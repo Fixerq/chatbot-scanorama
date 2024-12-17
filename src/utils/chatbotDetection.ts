@@ -64,22 +64,40 @@ export const detectChatbot = async (url: string): Promise<string> => {
     const html = await response.text();
     console.log(`Analyzing ${url}...`);
     
-    for (const platform of CHATBOT_PATTERNS) {
-      for (const pattern of platform.patterns) {
-        if (html.toLowerCase().includes(pattern.toLowerCase())) {
-          console.log(`Found ${platform.platform} on ${url}`);
-          return `Yes - ${platform.platform}`;
+    // Check for script tags that might contain chat widget configurations
+    const scriptTags = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi) || [];
+    for (const script of scriptTags) {
+      const scriptContent = script.toLowerCase();
+      
+      // Look for chat widget configurations
+      if (scriptContent.includes('widget') && scriptContent.includes('chat')) {
+        const configMatch = scriptContent.match(/widget_?id['":\s]+([^'"}\s]+)/i);
+        if (configMatch) {
+          console.log(`Found chat widget configuration: ${configMatch[1]}`);
+          return `Yes - Custom Chat Widget (ID: ${configMatch[1]})`;
         }
       }
     }
     
-    // Check for iframes that might contain chat widgets
-    if (html.toLowerCase().includes('iframe') && 
-        (html.toLowerCase().includes('chat') || 
-         html.toLowerCase().includes('messenger') || 
-         html.toLowerCase().includes('widget'))) {
-      console.log(`Found potential chat widget iframe on ${url}`);
-      return 'Yes - Unidentified Chat Widget (iframe detected)';
+    // Check for known platforms
+    for (const platform of CHATBOT_PATTERNS) {
+      for (const pattern of platform.patterns) {
+        if (html.toLowerCase().includes(pattern.toLowerCase())) {
+          // Look for specific configuration or implementation details
+          const configDetails = extractConfigDetails(html, platform.platform);
+          console.log(`Found ${platform.platform} on ${url}`);
+          return configDetails ? `Yes - ${platform.platform} (${configDetails})` : `Yes - ${platform.platform}`;
+        }
+      }
+    }
+    
+    // Check for iframes and div containers that might contain chat widgets
+    if (html.toLowerCase().includes('iframe') || html.toLowerCase().includes('div')) {
+      const matches = html.match(/(?:iframe|div)[^>]+(?:id|class)=['"]([^'"]*chat[^'"]*)['"]/i);
+      if (matches) {
+        console.log(`Found chat widget container: ${matches[1]}`);
+        return `Yes - Unidentified Chat Widget (Container: ${matches[1]})`;
+      }
     }
     
     console.log(`No chatbot detected on ${url}`);
@@ -87,6 +105,25 @@ export const detectChatbot = async (url: string): Promise<string> => {
   } catch (error) {
     console.error(`Error analyzing ${url}:`, error);
     return 'Error';
+  }
+};
+
+const extractConfigDetails = (html: string, platform: string): string | null => {
+  const lowerHtml = html.toLowerCase();
+  const lowerPlatform = platform.toLowerCase();
+  
+  switch (lowerPlatform) {
+    case 'hubspot':
+      const portalId = html.match(/portal(?:Id|_id)['":\s]+(\d+)/i)?.[1];
+      return portalId ? `Portal ID: ${portalId}` : null;
+    case 'drift':
+      const driftId = html.match(/drift(?:Id|_id)['":\s]+([^'"}\s]+)/i)?.[1];
+      return driftId ? `Drift ID: ${driftId}` : null;
+    case 'intercom':
+      const appId = html.match(/app(?:Id|_id)['":\s]+([^'"}\s]+)/i)?.[1];
+      return appId ? `App ID: ${appId}` : null;
+    default:
+      return null;
   }
 };
 
