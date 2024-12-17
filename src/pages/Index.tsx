@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { detectChatbot, processCSV, exportToCSV } from '@/utils/chatbotDetection';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
+import CsvInstructions from '@/components/CsvInstructions';
 
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -64,6 +65,8 @@ const Index = () => {
       </div>
 
       <div className="space-y-8">
+        <CsvInstructions />
+        
         <FileUpload onFileAccepted={handleFileAccepted} />
         
         {isProcessing && (
