@@ -1,31 +1,58 @@
 const CHATBOT_PATTERNS = [
   // HubSpot patterns
-  'hubspot.com',
-  'js.hsforms.net',
-  'js.hs-scripts.com',
-  'js.usemessages.com',
-  'hs-scripts',
-  'hubspot-wrapper',
+  { platform: 'HubSpot', patterns: [
+    'hubspot.com',
+    'js.hsforms.net',
+    'js.hs-scripts.com',
+    'js.usemessages.com',
+    'hs-scripts',
+    'hubspot-wrapper',
+    'HubSpot.com'
+  ]},
   // Drift patterns
-  'drift.com',
-  'js.driftt.com',
-  'drift-frame-controller',
+  { platform: 'Drift', patterns: [
+    'drift.com',
+    'js.driftt.com',
+    'drift-frame-controller'
+  ]},
   // Intercom patterns
-  'intercom.io',
-  'intercom-frame',
-  'intercomcdn',
+  { platform: 'Intercom', patterns: [
+    'intercom.io',
+    'intercom-frame',
+    'intercomcdn'
+  ]},
+  // Generic chat widget patterns
+  { platform: 'Generic Chat Widget', patterns: [
+    'chat-widget',
+    'chatWidget',
+    'livechat',
+    'live-chat',
+    'messenger',
+    'chat-box',
+    'chatbox',
+    'chat-container',
+    'chat-frame',
+    'chat-button',
+    'widget-launcher'
+  ]},
   // Other popular platforms
-  'livechat.com',
-  'zendesk.com',
-  'tawk.to',
-  'crisp.chat',
-  'botpress.com',
-  'manychat.com'
+  { platform: 'Zendesk', patterns: ['zendesk.com', 'zdassets', 'zopim']},
+  { platform: 'Tawk.to', patterns: ['tawk.to', 'embed.tawk.to']},
+  { platform: 'Crisp', patterns: ['crisp.chat', 'crisp.im']},
+  { platform: 'LiveChat', patterns: ['livechatinc.com', 'livechat-static']},
+  { platform: 'Olark', patterns: ['olark.com']},
+  { platform: 'Pure Chat', patterns: ['purechat.com']},
+  { platform: 'Tidio', patterns: ['tidio.co', 'tidiochat']},
+  { platform: 'LiveAgent', patterns: ['ladesk.com', 'liveagent']},
+  { platform: 'Freshchat', patterns: ['freshchat.com', 'wchat.freshchat']},
+  { platform: 'Botpress', patterns: ['botpress.com']},
+  { platform: 'ManyChat', patterns: ['manychat.com']},
+  { platform: 'Kommunicate', patterns: ['kommunicate.io']},
+  { platform: 'MobileMonkey', patterns: ['mobilemonkey.com']}
 ];
 
 export const detectChatbot = async (url: string): Promise<string> => {
   try {
-    // Use cors-anywhere as a proxy
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
     const response = await fetch(proxyUrl);
     
@@ -37,13 +64,22 @@ export const detectChatbot = async (url: string): Promise<string> => {
     const html = await response.text();
     console.log(`Analyzing ${url}...`);
     
-    for (const pattern of CHATBOT_PATTERNS) {
-      if (html.toLowerCase().includes(pattern.toLowerCase())) {
-        const platform = pattern.split('.')[0];
-        const capitalizedPlatform = platform.charAt(0).toUpperCase() + platform.slice(1);
-        console.log(`Found ${capitalizedPlatform} on ${url}`);
-        return `Yes - ${capitalizedPlatform}`;
+    for (const platform of CHATBOT_PATTERNS) {
+      for (const pattern of platform.patterns) {
+        if (html.toLowerCase().includes(pattern.toLowerCase())) {
+          console.log(`Found ${platform.platform} on ${url}`);
+          return `Yes - ${platform.platform}`;
+        }
       }
+    }
+    
+    // Check for iframes that might contain chat widgets
+    if (html.toLowerCase().includes('iframe') && 
+        (html.toLowerCase().includes('chat') || 
+         html.toLowerCase().includes('messenger') || 
+         html.toLowerCase().includes('widget'))) {
+      console.log(`Found potential chat widget iframe on ${url}`);
+      return 'Yes - Unidentified Chat Widget (iframe detected)';
     }
     
     console.log(`No chatbot detected on ${url}`);
