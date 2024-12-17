@@ -17,7 +17,7 @@ const Header = () => {
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-30" />
               {!imageError ? (
                 <img 
-                  src="/lovable-uploads/engage-logo.png" 
+                  src="/lovable-uploads/26054df1-6d14-4979-9e4f-0cd8f360cb33.png" 
                   alt="EngageAI Logo" 
                   className="relative h-20 w-auto hover:scale-105 transition-transform duration-300"
                   onError={(e) => {
