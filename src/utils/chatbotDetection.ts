@@ -1,7 +1,20 @@
 const CHATBOT_PATTERNS = [
-  'drift.com',
-  'intercom.io',
+  // HubSpot patterns
   'hubspot.com',
+  'js.hsforms.net',
+  'js.hs-scripts.com',
+  'js.usemessages.com',
+  'hs-scripts',
+  'hubspot-wrapper',
+  // Drift patterns
+  'drift.com',
+  'js.driftt.com',
+  'drift-frame-controller',
+  // Intercom patterns
+  'intercom.io',
+  'intercom-frame',
+  'intercomcdn',
+  // Other popular platforms
   'livechat.com',
   'zendesk.com',
   'tawk.to',
@@ -17,20 +30,26 @@ export const detectChatbot = async (url: string): Promise<string> => {
     const response = await fetch(proxyUrl);
     
     if (!response.ok) {
+      console.error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
       throw new Error('Network response was not ok');
     }
     
     const html = await response.text();
+    console.log(`Analyzing ${url}...`);
     
     for (const pattern of CHATBOT_PATTERNS) {
-      if (html.includes(pattern)) {
-        return `Yes - ${pattern.split('.')[0].charAt(0).toUpperCase() + pattern.split('.')[0].slice(1)}`;
+      if (html.toLowerCase().includes(pattern.toLowerCase())) {
+        const platform = pattern.split('.')[0];
+        const capitalizedPlatform = platform.charAt(0).toUpperCase() + platform.slice(1);
+        console.log(`Found ${capitalizedPlatform} on ${url}`);
+        return `Yes - ${capitalizedPlatform}`;
       }
     }
     
+    console.log(`No chatbot detected on ${url}`);
     return 'No';
   } catch (error) {
-    console.error(`Error fetching ${url}:`, error);
+    console.error(`Error analyzing ${url}:`, error);
     return 'Error';
   }
 };
