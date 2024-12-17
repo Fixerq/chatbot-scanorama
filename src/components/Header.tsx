@@ -1,27 +1,42 @@
 import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 
 const Header = () => {
   return (
-    <div className="text-center mb-8">
-      <div className="flex justify-center mb-6">
-        <img 
-          src="lovable-uploads/engage-logo.png" 
-          alt="EngageAI Logo" 
-          className="h-16 w-auto"
-          onError={(e) => {
-            console.error('Image failed to load:', e);
-            const img = e.target as HTMLImageElement;
-            console.log('Attempted image path:', img.src);
-          }}
-        />
-      </div>
-      <h1 className="text-4xl font-bold mb-4">EngageAI Chatbot Detection App</h1>
-      <p className="text-gray-600 max-w-2xl mx-auto">
-        Discover integrated chatbot platforms across your web properties with our advanced detection tool. 
-        Simply upload a CSV file with your URLs, and we'll identify popular platforms like Drift, Intercom, 
-        HubSpot, and more. Perfect for digital marketers and web administrators looking to analyze their 
-        customer engagement tools.
-      </p>
+    <div className="relative mb-12">
+      {/* Background gradient effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-lg blur-xl" />
+      
+      <Card className="relative bg-white/90 backdrop-blur-sm border-none shadow-xl">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center space-y-6">
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-30" />
+              <img 
+                src="lovable-uploads/engage-logo.png" 
+                alt="EngageAI Logo" 
+                className="relative h-20 w-auto hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  console.error('Image failed to load:', e);
+                  const img = e.target as HTMLImageElement;
+                  console.log('Attempted image path:', img.src);
+                }}
+              />
+            </div>
+            
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              EngageAI Chatbot Detection App
+            </h1>
+            
+            <p className="text-gray-600 max-w-2xl text-center leading-relaxed">
+              Discover integrated chatbot platforms across your web properties with our advanced detection tool. 
+              Simply upload a CSV file with your URLs, and we'll identify popular platforms like Drift, Intercom, 
+              HubSpot, and more. Perfect for digital marketers and web administrators looking to analyze their 
+              customer engagement tools.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

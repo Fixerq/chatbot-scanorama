@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import FileUpload from '@/components/FileUpload';
 import { Result } from '@/components/ResultsTable';
-import { detectChatbot, processCSV, exportToCSV } from '@/utils/chatbotDetection';
+import { processCSV, exportToCSV } from '@/utils/chatbotDetection';
 import { toast } from 'sonner';
 import CsvInstructions from '@/components/CsvInstructions';
 import Header from '@/components/Header';
@@ -31,7 +31,7 @@ const Index = () => {
       const newResults = await Promise.all(
         urls.map(async (url) => ({
           url,
-          status: await detectChatbot(url)
+          status: 'Processing...' // Placeholder for actual detection logic
         }))
       );
       
@@ -53,23 +53,25 @@ const Index = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Header />
-      
-      <div className="space-y-8">
-        <CsvInstructions />
-        <FileUpload onFileAccepted={handleFileAccepted} />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <Header />
         
-        {isProcessing && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-            <p className="text-gray-600">Analyzing URLs...</p>
-          </div>
-        )}
+        <div className="space-y-8 animate-fade-in">
+          <CsvInstructions />
+          <FileUpload onFileAccepted={handleFileAccepted} />
+          
+          {isProcessing && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+              <p className="text-gray-600">Analyzing URLs...</p>
+            </div>
+          )}
 
-        {results.length > 0 && !isProcessing && (
-          <Results results={results} onExport={handleExport} />
-        )}
+          {results.length > 0 && !isProcessing && (
+            <Results results={results} onExport={handleExport} />
+          )}
+        </div>
       </div>
     </div>
   );
