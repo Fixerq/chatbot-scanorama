@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 
 const Header = () => {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <div className="relative mb-12">
       {/* Background gradient effect */}
@@ -12,16 +15,21 @@ const Header = () => {
           <div className="flex flex-col items-center space-y-6">
             <div className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-30" />
-              <img 
-                src="lovable-uploads/engage-logo.png" 
-                alt="EngageAI Logo" 
-                className="relative h-20 w-auto hover:scale-105 transition-transform duration-300"
-                onError={(e) => {
-                  console.error('Image failed to load:', e);
-                  const img = e.target as HTMLImageElement;
-                  console.log('Attempted image path:', img.src);
-                }}
-              />
+              {!imageError ? (
+                <img 
+                  src="/lovable-uploads/engage-logo.png" 
+                  alt="EngageAI Logo" 
+                  className="relative h-20 w-auto hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    console.error('Image failed to load:', e);
+                    setImageError(true);
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-20 w-20 bg-gray-100 rounded-full">
+                  <AlertCircle className="h-8 w-8 text-gray-400" />
+                </div>
+              )}
             </div>
             
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
