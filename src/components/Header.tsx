@@ -5,7 +5,7 @@ const Header = () => {
     <div className="text-center mb-8">
       <div className="flex justify-center mb-6">
         <img 
-          src="/lovable-uploads/engage-logo.png" 
+          src="lovable-uploads/engage-logo.png" 
           alt="EngageAI Logo" 
           className="h-16 w-auto"
           onError={(e) => {
