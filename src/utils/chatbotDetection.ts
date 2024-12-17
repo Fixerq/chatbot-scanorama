@@ -12,7 +12,14 @@ const CHATBOT_PATTERNS = [
 
 export const detectChatbot = async (url: string): Promise<string> => {
   try {
-    const response = await fetch(url);
+    // Use cors-anywhere as a proxy
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl);
+    
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    
     const html = await response.text();
     
     for (const pattern of CHATBOT_PATTERNS) {
@@ -23,6 +30,7 @@ export const detectChatbot = async (url: string): Promise<string> => {
     
     return 'No';
   } catch (error) {
+    console.error(`Error fetching ${url}:`, error);
     return 'Error';
   }
 };
