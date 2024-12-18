@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Image } from "lucide-react";
 
 const Header = () => {
   const [imageError, setImageError] = useState(false);
@@ -17,17 +17,17 @@ const Header = () => {
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-30" />
               {!imageError ? (
                 <img 
-                  src="/lovable-uploads/engage-logo.png" 
+                  src="lovable-uploads/engage-logo.png"
                   alt="EngageAI Logo" 
                   className="relative h-20 w-auto hover:scale-105 transition-transform duration-300"
                   onError={(e) => {
-                    console.error('Image failed to load');
+                    console.error('Image failed to load. Image path:', e.currentTarget.src);
                     setImageError(true);
                   }}
                 />
               ) : (
                 <div className="flex items-center justify-center h-20 w-20 bg-gray-100 rounded-full">
-                  <AlertCircle className="h-8 w-8 text-gray-400" />
+                  <Image className="h-8 w-8 text-gray-400" />
                 </div>
               )}
             </div>
