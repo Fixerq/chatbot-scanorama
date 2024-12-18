@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Image } from "lucide-react";
 
 const Header = () => {
   const [imageError, setImageError] = useState(false);
-  const [imagePath, setImagePath] = useState('/lovable-uploads/engage-logo.png');
-
-  useEffect(() => {
-    // Log the complete URL being attempted
-    console.log('Attempting to load image from:', window.location.origin + imagePath);
-  }, [imagePath]);
 
   return (
     <div className="relative mb-12">
@@ -23,21 +17,12 @@ const Header = () => {
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-30" />
               {!imageError ? (
                 <img 
-                  src={imagePath}
+                  src="/lovable-uploads/engage-logo.png"
                   alt="EngageAI Logo" 
                   className="relative h-20 w-auto hover:scale-105 transition-transform duration-300"
                   onError={(e) => {
-                    console.error('Image failed to load:', {
-                      attemptedPath: imagePath,
-                      fullUrl: window.location.origin + imagePath,
-                      elementSrc: e.currentTarget.src
-                    });
-                    // Try alternate path if first attempt fails
-                    if (imagePath.startsWith('/')) {
-                      setImagePath(imagePath.slice(1));
-                    } else {
-                      setImageError(true);
-                    }
+                    console.error('Image failed to load:', e.currentTarget.src);
+                    setImageError(true);
                   }}
                 />
               ) : (
