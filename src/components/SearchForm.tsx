@@ -12,6 +12,7 @@ interface SearchFormProps {
 
 const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [query, setQuery] = useState('');
+  const [country, setCountry] = useState('');
   const [apiKey, setApiKey] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,6 +30,10 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
 
     try {
       // First, get URLs using Firecrawl
+      const searchQuery = country.trim() 
+        ? `${query} in ${country}`
+        : query;
+
       const crawlResponse = await fetch('https://api.firecrawl.co/api/v1/search', {
         method: 'POST',
         headers: {
@@ -36,7 +41,7 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query,
+          query: searchQuery,
           limit: 100,
           type: 'website'
         })
@@ -77,10 +82,17 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
       <div className="flex gap-2">
         <Input
           type="text"
-          placeholder="Enter niche (e.g., 'SaaS companies in healthcare')"
+          placeholder="Enter niche (e.g., 'SaaS companies')"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1"
+        />
+        <Input
+          type="text"
+          placeholder="Country (optional)"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+          className="w-1/3"
         />
         <Button type="submit" disabled={isProcessing}>
           <Search className="w-4 h-4 mr-2" />
