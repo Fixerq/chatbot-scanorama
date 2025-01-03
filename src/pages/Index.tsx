@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import CsvInstructions from '@/components/CsvInstructions';
 import Header from '@/components/Header';
 import Results from '@/components/Results';
-import SearchForm from '@/components/SearchForm';
+import SearchFormContainer from '@/components/SearchFormContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -137,7 +137,7 @@ const Index = () => {
                 <h3>Search Websites by Niche</h3>
                 <p>Enter a niche or industry to find and analyze websites for chatbot usage. The search will return up to 100 relevant websites.</p>
               </div>
-              <SearchForm onResults={handleSearchResults} isProcessing={isProcessing} />
+              <SearchFormContainer onResults={handleSearchResults} isProcessing={isProcessing} />
             </TabsContent>
           </Tabs>
           
