@@ -37,28 +37,31 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
   const handleSearch = async () => {
     setIsSearching(true);
     
-    // Keep track of existing results
-    const existingResults = results.currentResults;
+    // Increase the limit for subsequent searches to find new results
+    const searchLimit = results.currentResults.length > 0 ? 
+      results.currentResults.length + 10 : 
+      searchState.resultsLimit;
     
     const searchResult = await performSearch(
       searchState.query,
       searchState.country,
       searchState.region,
       searchState.apiKey,
-      searchState.resultsLimit
+      searchLimit
     );
     
     setIsSearching(false);
 
     if (searchResult) {
-      // Combine existing results with new ones, filtering out duplicates
+      // Filter out any URLs we already have
       const newResults = searchResult.results.filter(
-        newResult => !existingResults.some(
+        newResult => !results.currentResults.some(
           existing => existing.url === newResult.url
         )
       );
       
-      const combinedResults = [...existingResults, ...newResults];
+      // Combine with existing results if we have any
+      const combinedResults = [...results.currentResults, ...newResults];
       
       setResults({
         currentResults: combinedResults,
