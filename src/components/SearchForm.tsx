@@ -4,11 +4,36 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Result } from './ResultsTable';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SearchFormProps {
   onResults: (results: Result[]) => void;
   isProcessing: boolean;
 }
+
+const COUNTRIES = [
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Australia",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+  "Japan",
+  "Brazil",
+  "India",
+  "China",
+  "Singapore",
+  "Netherlands",
+  "Sweden"
+];
 
 const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [query, setQuery] = useState('');
@@ -28,11 +53,13 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
       return;
     }
 
+    if (!country) {
+      toast.error('Please select a country');
+      return;
+    }
+
     try {
-      // First, get URLs using Firecrawl
-      const searchQuery = country.trim() 
-        ? `${query} in ${country}`
-        : query;
+      const searchQuery = `${query} in ${country}`;
 
       const crawlResponse = await fetch('https://api.firecrawl.co/api/v1/search', {
         method: 'POST',
@@ -54,7 +81,6 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
       const data = await crawlResponse.json();
       const urls = data.results.map((result: any) => result.url);
 
-      // Process URLs through chatbot detection
       const results = urls.map((url: string) => ({
         url,
         status: 'Processing...'
@@ -87,13 +113,18 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1"
         />
-        <Input
-          type="text"
-          placeholder="Country (optional)"
-          value={country}
-          onChange={(e) => setCountry(e.target.value)}
-          className="w-1/3"
-        />
+        <Select value={country} onValueChange={setCountry}>
+          <SelectTrigger className="w-1/3">
+            <SelectValue placeholder="Select country" />
+          </SelectTrigger>
+          <SelectContent>
+            {COUNTRIES.map((country) => (
+              <SelectItem key={country} value={country}>
+                {country}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button type="submit" disabled={isProcessing}>
           <Search className="w-4 h-4 mr-2" />
           Search
