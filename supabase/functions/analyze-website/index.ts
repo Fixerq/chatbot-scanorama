@@ -42,11 +42,12 @@ serve(async (req) => {
         console.log('Using cached result for', url)
         return new Response(JSON.stringify(cachedResult), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
         })
       }
     }
 
-    // Use Firecrawl API
+    // Use Firecrawl API with native fetch
     const firecrawlApiKey = Deno.env.get('Firecrawl') ?? ''
     console.log('Crawling website with Firecrawl:', url)
     
