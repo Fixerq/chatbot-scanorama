@@ -16,26 +16,31 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
     console.log(`Starting analysis for ${url}`);
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), ANALYSIS_TIMEOUT);
-    
-    const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: { url },
-      signal: controller.signal,
+    // Create a timeout promise
+    const timeoutPromise = new Promise<AnalysisResult>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Analysis timeout'));
+      }, ANALYSIS_TIMEOUT);
     });
 
-    clearTimeout(timeoutId);
+    // Create the analysis promise
+    const analysisPromise = supabase.functions.invoke('analyze-website', {
+      body: { url }
+    });
 
-    if (error) {
-      console.error('Error invoking analyze-website function:', error);
+    // Race between timeout and analysis
+    const result = await Promise.race([analysisPromise, timeoutPromise]);
+
+    if ('error' in result) {
+      console.error('Error invoking analyze-website function:', result.error);
       return {
         status: 'Error analyzing website',
-        details: { errorDetails: error.message },
+        details: { errorDetails: result.error.message },
         technologies: []
       };
     }
 
-    if (!data) {
+    if (!result.data) {
       console.error('No data returned from analyze-website function');
       return {
         status: 'Error analyzing website',
@@ -45,17 +50,20 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     }
 
     return {
-      status: data.status,
-      details: data.details || {},
-      technologies: data.technologies || []
+      status: result.data.status,
+      details: result.data.details || {},
+      technologies: result.data.technologies || []
     };
 
   } catch (error) {
     console.error('Error analyzing website:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const status = errorMessage === 'Analysis timeout' ? 'Analysis timed out' : 'Error analyzing website';
+    
     return {
-      status: 'Error analyzing website',
+      status,
       details: { 
-        errorDetails: error instanceof Error ? error.message : 'Unknown error'
+        errorDetails: errorMessage
       },
       technologies: []
     };
