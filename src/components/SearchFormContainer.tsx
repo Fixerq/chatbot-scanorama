@@ -16,7 +16,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     country: '',
     region: '',
     apiKey: '',
-    resultsLimit: 30,
+    resultsLimit: 10, // Updated to respect API limit
   });
 
   const [results, setResults] = useState({

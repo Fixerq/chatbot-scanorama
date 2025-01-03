@@ -6,8 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
-  private static MAX_API_LIMIT = 30;
-  private static DEFAULT_LIMIT = 30;
+  private static MAX_API_LIMIT = 10; // Updated to respect API limit
+  private static DEFAULT_LIMIT = 10;
 
   static saveApiKey(apiKey: string): void {
     localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
@@ -74,6 +74,7 @@ export class FirecrawlService {
       const enhancedQuery = await this.enhanceSearchQuery(query, country, region);
       console.log('Enhanced search query:', enhancedQuery);
       
+      // Ensure we don't exceed the API limit
       const requestLimit = Math.min(this.MAX_API_LIMIT, limit);
       let response = await this.firecrawlApp.search(enhancedQuery, { limit: requestLimit }) as ApiResponse;
       console.log('Raw API response:', response);
