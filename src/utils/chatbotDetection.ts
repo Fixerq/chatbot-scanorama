@@ -106,14 +106,12 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
     try {
       const response = await fetchWithTimeout(normalizedUrl);
-      let result = 'No chatbot detected';
+      let result = 'Website accessible but content not analyzable';
       
-      // Only try to analyze content if we can access it
-      if (response.status === 200) {
+      // Since we're using no-cors mode, we can only check if the request was successful
+      if (response.type !== 'opaque') {
         const html = await response.text();
         result = hasChatbotScript(html) ? 'Chatbot detected' : 'No chatbot detected';
-      } else {
-        result = 'Error accessing website';
       }
 
       // Store the result in Supabase
