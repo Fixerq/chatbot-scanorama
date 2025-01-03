@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import FirecrawlApp from 'https://esm.sh/@mendable/firecrawl-js@1.11.2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,26 +53,37 @@ serve(async (req) => {
       }
     }
 
-    // Initialize Firecrawl
-    const firecrawl = new FirecrawlApp({ 
-      apiKey: Deno.env.get('Firecrawl') ?? '' 
-    })
-
-    // Crawl the website using Firecrawl
+    // Use Firecrawl API directly with fetch
+    const firecrawlApiKey = Deno.env.get('Firecrawl') ?? ''
     console.log('Crawling website with Firecrawl:', url)
-    const crawlResponse = await firecrawl.crawlUrl(url, {
-      limit: 1,
-      scrapeOptions: {
-        formats: ['html'],
-        timeout: 30000
-      }
+    
+    const crawlResponse = await fetch('https://api.firecrawl.co/crawl', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${firecrawlApiKey}`
+      },
+      body: JSON.stringify({
+        url,
+        limit: 1,
+        scrapeOptions: {
+          formats: ['html'],
+          timeout: 30000
+        }
+      })
     })
 
-    if (!crawlResponse.success || !crawlResponse.data?.[0]?.html) {
+    if (!crawlResponse.ok) {
+      throw new Error(`Firecrawl API error: ${crawlResponse.status}`)
+    }
+
+    const crawlData = await crawlResponse.json()
+    
+    if (!crawlData.success || !crawlData.data?.[0]?.html) {
       throw new Error('Failed to crawl website')
     }
 
-    const html = crawlResponse.data[0].html
+    const html = crawlData.data[0].html
 
     // Detect chat solutions
     const detectedChatSolutions = []
