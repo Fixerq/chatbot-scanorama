@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import CsvInstructions from '@/components/CsvInstructions';
 import Header from '@/components/Header';
 import Results from '@/components/Results';
+import SearchForm from '@/components/SearchForm';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -58,8 +60,25 @@ const Index = () => {
         <Header />
         
         <div className="space-y-8 animate-fade-in">
-          <CsvInstructions />
-          <FileUpload onFileAccepted={handleFileAccepted} />
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upload">Upload CSV</TabsTrigger>
+              <TabsTrigger value="search">Search Websites</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upload" className="space-y-8">
+              <CsvInstructions />
+              <FileUpload onFileAccepted={handleFileAccepted} />
+            </TabsContent>
+            
+            <TabsContent value="search" className="space-y-8">
+              <div className="prose dark:prose-invert max-w-none">
+                <h3>Search Websites by Niche</h3>
+                <p>Enter a niche or industry to find and analyze websites for chatbot usage. The search will return up to 100 relevant websites.</p>
+              </div>
+              <SearchForm onResults={setResults} isProcessing={isProcessing} />
+            </TabsContent>
+          </Tabs>
           
           {isProcessing && (
             <div className="text-center py-8">
