@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import FirecrawlApp from 'https://esm.sh/@mendable/firecrawl-js@1.11.2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,15 +8,15 @@ const corsHeaders = {
 }
 
 const CHAT_SOLUTIONS = {
-  'Intercom': ['.intercom-frame', '#intercom-container'],
-  'Drift': ['#drift-widget', '.drift-frame-controller'],
-  'Zendesk': ['.zEWidget-launcher', '#launcher'],
-  'Crisp': ['.crisp-client', '#crisp-chatbox'],
-  'LiveChat': ['#livechat-compact-container', '#chat-widget-container'],
-  'Tawk.to': ['#tawkchat-container', '#tawkchat-minified-wrapper'],
-  'HubSpot': ['#hubspot-messages-iframe-container', '.HubSpotWebWidget'],
-  'Facebook Messenger': ['.fb-customerchat', '.fb_dialog'],
-  'WhatsApp': ['.wa-chat-box', '.whatsapp-chat'],
+  'Intercom': ['.intercom-frame', '#intercom-container', 'intercom'],
+  'Drift': ['#drift-widget', '.drift-frame-controller', 'drift'],
+  'Zendesk': ['.zEWidget-launcher', '#launcher', 'zendesk'],
+  'Crisp': ['.crisp-client', '#crisp-chatbox', 'crisp'],
+  'LiveChat': ['#livechat-compact-container', '#chat-widget-container', 'livechat'],
+  'Tawk.to': ['#tawkchat-container', '#tawkchat-minified-wrapper', 'tawk'],
+  'HubSpot': ['#hubspot-messages-iframe-container', '.HubSpotWebWidget', 'hubspot'],
+  'Facebook Messenger': ['.fb-customerchat', '.fb_dialog', 'messenger'],
+  'WhatsApp': ['.wa-chat-box', '.whatsapp-chat', 'whatsapp'],
   'Custom Chat': ['[class*="chat"]', '[class*="messenger"]', '[id*="chat"]', '[id*="messenger"]']
 }
 
@@ -53,17 +54,31 @@ serve(async (req) => {
       }
     }
 
-    // Fetch and analyze the website
-    const response = await fetch(url)
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    // Initialize Firecrawl
+    const firecrawl = new FirecrawlApp({ 
+      apiKey: Deno.env.get('Firecrawl') ?? '' 
+    })
+
+    // Crawl the website using Firecrawl
+    console.log('Crawling website with Firecrawl:', url)
+    const crawlResponse = await firecrawl.crawlUrl(url, {
+      limit: 1,
+      scrapeOptions: {
+        formats: ['html'],
+        timeout: 30000
+      }
+    })
+
+    if (!crawlResponse.success || !crawlResponse.data?.[0]?.html) {
+      throw new Error('Failed to crawl website')
     }
-    const html = await response.text()
+
+    const html = crawlResponse.data[0].html
 
     // Detect chat solutions
     const detectedChatSolutions = []
     for (const [solution, selectors] of Object.entries(CHAT_SOLUTIONS)) {
-      if (selectors.some(selector => html.includes(selector))) {
+      if (selectors.some(selector => html.toLowerCase().includes(selector.toLowerCase()))) {
         detectedChatSolutions.push(solution)
       }
     }
@@ -90,6 +105,7 @@ serve(async (req) => {
         technologies: result.technologies
       })
 
+    console.log('Analysis complete for', url, ':', result.status)
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -99,8 +115,11 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const result = {
       url,
-      status: `Error: ${errorMessage}`,
-      details: { errorDetails: errorMessage },
+      status: 'Website not accessible - analysis failed',
+      details: { 
+        errorDetails: errorMessage,
+        lastChecked: new Date().toISOString()
+      },
       technologies: []
     }
 
