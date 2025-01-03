@@ -36,7 +36,6 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       status: analysisData.status || 'Analysis completed',
       details: {
         chatSolutions: analysisData.chatSolutions || [],
-        platform: analysisData.platform || 'Unknown',
         lastChecked: new Date().toISOString()
       },
       technologies: analysisData.technologies || []
@@ -55,8 +54,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       status,
       details: { 
         errorDetails: errorMessage,
-        lastChecked: new Date().toISOString(),
-        platform: 'Unknown'
+        lastChecked: new Date().toISOString()
       },
       technologies: []
     };

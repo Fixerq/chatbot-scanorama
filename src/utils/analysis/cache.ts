@@ -27,8 +27,7 @@ export const getCachedResult = async (url: string): Promise<ParsedCachedResult |
     details: {
       chatSolutions: parsedDetails?.chatSolutions || [],
       errorDetails: parsedDetails?.errorDetails,
-      lastChecked: parsedDetails?.lastChecked,
-      platform: parsedDetails?.platform
+      lastChecked: parsedDetails?.lastChecked
     }
   };
 };
