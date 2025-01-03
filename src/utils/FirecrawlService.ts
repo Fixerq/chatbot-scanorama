@@ -50,10 +50,10 @@ export class FirecrawlService {
       console.log('Raw API response:', response);
 
       if (!response.success) {
-        console.error('Search failed:', response.error);
+        console.error('Search failed:', (response as ErrorResponse).error);
         return { 
           success: false, 
-          error: response.error
+          error: (response as ErrorResponse).error
         };
       }
 
