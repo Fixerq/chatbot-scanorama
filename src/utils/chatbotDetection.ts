@@ -91,7 +91,7 @@ export const detectChatbot = async (url: string): Promise<string> => {
       .from('analyzed_urls')
       .select('status')
       .eq('url', url)
-      .maybeSingle(); // Changed from single() to maybeSingle()
+      .maybeSingle();
 
     if (existingResult) {
       console.log(`Using cached result for ${url}:`, existingResult.status);
@@ -106,9 +106,9 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
     try {
       const response = await fetchWithTimeout(normalizedUrl);
-      let result = 'Website accessible but content not analyzable';
+      let result = 'Website accessible but requires manual verification';
       
-      // Since we're using no-cors mode, we can only check if the request was successful
+      // Since we're using no-cors mode and some sites block requests
       if (response.type !== 'opaque') {
         const html = await response.text();
         result = hasChatbotScript(html) ? 'Chatbot detected' : 'No chatbot detected';
@@ -125,7 +125,7 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
       return result;
     } catch (error) {
-      const result = 'Error accessing website';
+      const result = 'Website requires manual verification';
       
       // Store the error result in Supabase
       const { error: insertError } = await supabase
