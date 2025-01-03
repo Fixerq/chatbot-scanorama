@@ -133,7 +133,6 @@ serve(async (req) => {
     console.error('Error analyzing website:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const result = {
-      url,
       status: 'Website not accessible - analysis failed',
       details: { 
         errorDetails: errorMessage,
