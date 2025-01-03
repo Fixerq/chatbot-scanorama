@@ -1,40 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Result } from './ResultsTable';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import ApiKeyInput from './ApiKeyInput';
+import SearchInputs from './SearchInputs';
+import { COUNTRIES } from '../constants/countries';
 
 interface SearchFormProps {
   onResults: (results: Result[]) => void;
   isProcessing: boolean;
 }
-
-const COUNTRIES = [
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
-  "Germany",
-  "France",
-  "Spain",
-  "Italy",
-  "Japan",
-  "Brazil",
-  "India",
-  "China",
-  "Singapore",
-  "Netherlands",
-  "Sweden"
-];
 
 const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [query, setQuery] = useState('');
@@ -42,7 +16,6 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [apiKey, setApiKey] = useState('');
 
   useEffect(() => {
-    // Try to load API key from localStorage first
     const savedApiKey = localStorage.getItem('firecrawl_api_key');
     if (savedApiKey) {
       setApiKey(savedApiKey);
@@ -67,7 +40,6 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
       return;
     }
 
-    // Save API key to localStorage
     localStorage.setItem('firecrawl_api_key', apiKey);
 
     try {
@@ -106,60 +78,20 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
     }
   };
 
-  const handleRemoveApiKey = () => {
-    localStorage.removeItem('firecrawl_api_key');
-    setApiKey('');
-    toast.success('API key removed successfully');
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex gap-2">
-          <Input
-            type="password"
-            placeholder="Enter your Firecrawl API key"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="flex-1"
-          />
-          {apiKey && (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleRemoveApiKey}
-              className="whitespace-nowrap"
-            >
-              Remove API Key
-            </Button>
-          )}
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          placeholder="Enter niche (e.g., 'SaaS companies')"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="flex-1"
-        />
-        <Select value={country} onValueChange={setCountry}>
-          <SelectTrigger className="w-1/3">
-            <SelectValue placeholder="Select country" />
-          </SelectTrigger>
-          <SelectContent>
-            {COUNTRIES.map((country) => (
-              <SelectItem key={country} value={country}>
-                {country}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button type="submit" disabled={isProcessing}>
-          <Search className="w-4 h-4 mr-2" />
-          Search
-        </Button>
-      </div>
+      <ApiKeyInput 
+        apiKey={apiKey}
+        onChange={setApiKey}
+      />
+      <SearchInputs
+        query={query}
+        country={country}
+        onQueryChange={setQuery}
+        onCountryChange={setCountry}
+        isProcessing={isProcessing}
+        countries={COUNTRIES}
+      />
     </form>
   );
 };
