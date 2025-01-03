@@ -40,19 +40,32 @@ export class FirecrawlService {
       }
 
       const searchQuery = `${query} in ${country}`;
-      // Using the correct method signature for the Firecrawl SDK
-      const response = await this.firecrawlApp.search(searchQuery) as ApiResponse;
+      console.log('Making search request with query:', searchQuery);
+      
+      // Call the search method with just the query string
+      const response = await this.firecrawlApp.search(searchQuery);
+      console.log('Raw API response:', response);
 
-      if (!response.success) {
-        console.error('Search failed:', (response as ErrorResponse).error);
+      if (!response || !response.success) {
+        console.error('Search failed:', response);
         return { 
           success: false, 
-          error: (response as ErrorResponse).error || 'Failed to search websites' 
+          error: (response as ErrorResponse)?.error || 'Failed to search websites' 
         };
       }
 
-      // Safely access and map the results
+      // Safely check if results exists before mapping
+      if (!response.results || !Array.isArray(response.results)) {
+        console.error('Invalid response structure:', response);
+        return {
+          success: false,
+          error: 'Invalid response from API'
+        };
+      }
+
       const urls = response.results.map(result => result.url);
+      console.log('Processed URLs:', urls);
+      
       return { 
         success: true,
         urls 
