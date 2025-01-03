@@ -1,9 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
-import { FirecrawlService } from './firecrawl';
-import { handleFirecrawlError } from './errors/firecrawlErrors';
-import { hasChatbotScript } from './chatbot/patterns';
+import { analyzeWebsite } from './websiteAnalysis';
 
 const isValidUrl = (url: string): boolean => {
   try {
@@ -37,51 +35,21 @@ export const detectChatbot = async (url: string): Promise<string> => {
     }
 
     const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+    console.log('Starting analysis for:', normalizedUrl);
 
-    try {
-      console.log('Starting Firecrawl analysis for:', normalizedUrl);
-      const response = await FirecrawlService.crawlWebsite(normalizedUrl);
+    const analysisResult = await analyzeWebsite(normalizedUrl);
+    
+    // Store the detailed result
+    await supabase
+      .from('analyzed_urls')
+      .insert({ 
+        url, 
+        status: analysisResult.status,
+        details: analysisResult.details,
+        technologies: analysisResult.technologies
+      });
 
-      if (!response.success) {
-        console.error('Firecrawl error:', response.error);
-        const result = handleFirecrawlError(response.error);
-        
-        await supabase
-          .from('analyzed_urls')
-          .insert({ url, status: result });
-        
-        return result;
-      }
-
-      if (!response.data?.data?.[0]?.html) {
-        console.error('No HTML content received from Firecrawl');
-        const result = 'No content retrieved';
-        await supabase
-          .from('analyzed_urls')
-          .insert({ url, status: result });
-        return result;
-      }
-
-      const htmlContent = response.data.data[0].html;
-      const result = hasChatbotScript(htmlContent) ? 'Chatbot detected' : 'No chatbot detected';
-
-      await supabase
-        .from('analyzed_urls')
-        .insert({ url, status: result });
-
-      return result;
-    } catch (error) {
-      console.error(`Error analyzing ${url}:`, error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.log('Detailed error:', errorMessage);
-      
-      const result = handleFirecrawlError(error);
-      await supabase
-        .from('analyzed_urls')
-        .insert({ url, status: result });
-
-      return result;
-    }
+    return analysisResult.status;
   } catch (error) {
     console.error(`Error analyzing ${url}:`, error);
     return 'Error analyzing URL';
