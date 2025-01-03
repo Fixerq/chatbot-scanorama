@@ -13,47 +13,8 @@ const isValidUrl = (url: string): boolean => {
 };
 
 export const detectChatbot = async (url: string): Promise<string> => {
-  try {
-    // Check if URL has already been analyzed
-    const { data: existingResult } = await supabase
-      .from('analyzed_urls')
-      .select('status')
-      .eq('url', url)
-      .maybeSingle();
-
-    if (existingResult) {
-      console.log(`Using cached result for ${url}:`, existingResult.status);
-      return existingResult.status;
-    }
-
-    if (!isValidUrl(url)) {
-      const result = 'Invalid URL format';
-      await supabase
-        .from('analyzed_urls')
-        .insert({ url, status: result });
-      return result;
-    }
-
-    const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
-    console.log('Starting analysis for:', normalizedUrl);
-
-    const analysisResult = await analyzeWebsite(normalizedUrl);
-    
-    // Store the detailed result
-    await supabase
-      .from('analyzed_urls')
-      .insert({ 
-        url, 
-        status: analysisResult.status,
-        details: analysisResult.details,
-        technologies: analysisResult.technologies
-      });
-
-    return analysisResult.status;
-  } catch (error) {
-    console.error(`Error analyzing ${url}:`, error);
-    return 'Error analyzing URL';
-  }
+  const result = await analyzeWebsite(url);
+  return result.status;
 };
 
 export const processCSV = (content: string): string[] => {

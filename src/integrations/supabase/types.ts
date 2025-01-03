@@ -12,20 +12,26 @@ export type Database = {
       analyzed_urls: {
         Row: {
           created_at: string
+          details: Json | null
           id: number
           status: string
+          technologies: string[] | null
           url: string
         }
         Insert: {
           created_at?: string
+          details?: Json | null
           id?: number
           status: string
+          technologies?: string[] | null
           url: string
         }
         Update: {
           created_at?: string
+          details?: Json | null
           id?: number
           status?: string
+          technologies?: string[] | null
           url?: string
         }
         Relationships: []

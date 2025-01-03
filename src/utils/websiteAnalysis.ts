@@ -1,142 +1,137 @@
-import { FirecrawlService } from './firecrawl';
-import { handleFirecrawlError } from './errors/firecrawlErrors';
+import { supabase } from '@/integrations/supabase/client';
+import { FirecrawlError, handleFirecrawlError } from './errors/firecrawlErrors';
 
 interface AnalysisResult {
   status: string;
-  chatbotDetected: boolean;
   details: {
-    hasLiveChat: boolean;
-    hasChatWidget: boolean;
-    hasMessenger: boolean;
-    hasIntercom: boolean;
-    hasZendesk: boolean;
-    hasCustomChat: boolean;
+    chatSolutions?: string[];
+    errorDetails?: string;
+    lastChecked?: string;
   };
   technologies: string[];
-  errorDetails?: string;
 }
 
-const CHATBOT_PATTERNS = {
-  livechat: [
-    'livechat',
-    'live-chat',
-    'live chat',
-    'chat-widget',
-    'chat widget'
-  ],
-  messenger: [
-    'messenger-widget',
-    'fb-messenger',
-    'facebook-messenger'
-  ],
-  intercom: [
-    'intercom-container',
-    'intercom-messenger',
-    'intercom-launcher'
-  ],
-  zendesk: [
-    'zopim',
-    'zendesk-chat',
-    'zopim-chat'
-  ],
-  customChat: [
-    'chat-bot',
-    'chatbot',
-    'ai-chat',
-    'virtual-assistant',
-    'chat-assistant'
+const CHAT_SOLUTIONS = {
+  'Intercom': ['.intercom-frame', '#intercom-container'],
+  'Drift': ['#drift-widget', '.drift-frame-controller'],
+  'Zendesk': ['.zEWidget-launcher', '#launcher'],
+  'Crisp': ['.crisp-client', '#crisp-chatbox'],
+  'LiveChat': ['#livechat-compact-container', '#chat-widget-container'],
+  'Tawk.to': ['#tawkchat-container', '#tawkchat-minified-wrapper'],
+  'HubSpot': ['#hubspot-messages-iframe-container', '.HubSpotWebWidget'],
+  'Facebook Messenger': ['.fb-customerchat', '.fb_dialog'],
+  'WhatsApp': ['.wa-chat-box', '.whatsapp-chat'],
+  'Custom Chat': [
+    '[class*="chat"]',
+    '[class*="messenger"]',
+    '[id*="chat"]',
+    '[id*="messenger"]'
   ]
 };
 
 const TECHNOLOGY_PATTERNS = {
-  analytics: ['google-analytics', 'gtag', 'hotjar', 'mixpanel'],
-  marketing: ['hubspot', 'marketo', 'pardot', 'salesforce'],
-  advertising: ['google-ads', 'facebook-pixel', 'linkedin-pixel'],
-  optimization: ['optimize', 'optimizely', 'vwo', 'ab-tasty'],
-  security: ['cloudflare', 'sucuri', 'recaptcha']
+  'React': ['react', 'react-dom'],
+  'Vue.js': ['vue', '__vue__'],
+  'Angular': ['ng-version', 'angular'],
+  'WordPress': ['wp-content', 'wp-includes'],
+  'Shopify': ['shopify', 'Shopify.theme'],
+  'Wix': ['wix-site', '_wixCssManager'],
+  'Webflow': ['webflow', '.w-webflow-badge'],
+  'jQuery': ['jquery', 'jQuery'],
+  'Bootstrap': ['bootstrap', '.navbar-toggle'],
+  'Tailwind': ['tailwind', '[class*="tw-"]']
 };
 
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
-  console.log('Starting detailed analysis for:', url);
-  
   try {
-    const response = await FirecrawlService.crawlWebsite(url);
+    console.log(`Starting analysis for ${url}`);
     
-    if (!response.success) {
-      console.error('Firecrawl error:', response.error);
-      const errorMessage = handleFirecrawlError(response.error);
-      return {
-        status: errorMessage,
-        chatbotDetected: false,
-        details: {
-          hasLiveChat: false,
-          hasChatWidget: false,
-          hasMessenger: false,
-          hasIntercom: false,
-          hasZendesk: false,
-          hasCustomChat: false
-        },
-        technologies: [],
-        errorDetails: response.error
-      };
+    // Check cache first
+    const { data: cachedResult } = await supabase
+      .from('analyzed_urls')
+      .select('*')
+      .eq('url', url)
+      .single();
+
+    if (cachedResult) {
+      const cacheAge = new Date().getTime() - new Date(cachedResult.created_at).getTime();
+      const cacheValidityPeriod = 24 * 60 * 60 * 1000; // 24 hours
+
+      if (cacheAge < cacheValidityPeriod) {
+        console.log('Using cached result for', url);
+        return {
+          status: cachedResult.status,
+          details: cachedResult.details || {},
+          technologies: cachedResult.technologies || []
+        };
+      }
     }
 
-    const htmlContent = response.data?.data?.[0]?.html || '';
+    // Perform new analysis
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new FirecrawlError('HTTP_ERROR', `HTTP error ${response.status}`);
+    }
+
+    const html = await response.text();
     
-    // Analyze for different types of chat solutions
-    const details = {
-      hasLiveChat: CHATBOT_PATTERNS.livechat.some(pattern => 
-        htmlContent.toLowerCase().includes(pattern)),
-      hasChatWidget: htmlContent.includes('chat-widget') || 
-        htmlContent.includes('chatWidget'),
-      hasMessenger: CHATBOT_PATTERNS.messenger.some(pattern => 
-        htmlContent.toLowerCase().includes(pattern)),
-      hasIntercom: CHATBOT_PATTERNS.intercom.some(pattern => 
-        htmlContent.toLowerCase().includes(pattern)),
-      hasZendesk: CHATBOT_PATTERNS.zendesk.some(pattern => 
-        htmlContent.toLowerCase().includes(pattern)),
-      hasCustomChat: CHATBOT_PATTERNS.customChat.some(pattern => 
-        htmlContent.toLowerCase().includes(pattern))
-    };
+    // Detect chat solutions
+    const detectedChatSolutions = [];
+    for (const [solution, selectors] of Object.entries(CHAT_SOLUTIONS)) {
+      if (selectors.some(selector => html.includes(selector))) {
+        detectedChatSolutions.push(solution);
+      }
+    }
 
-    // Detect technologies used
-    const technologies = Object.entries(TECHNOLOGY_PATTERNS).flatMap(([category, patterns]) => {
-      return patterns.filter(pattern => 
-        htmlContent.toLowerCase().includes(pattern)
-      ).map(pattern => `${category}:${pattern}`);
-    });
+    // Detect technologies
+    const detectedTechnologies = [];
+    for (const [tech, patterns] of Object.entries(TECHNOLOGY_PATTERNS)) {
+      if (patterns.some(pattern => html.toLowerCase().includes(pattern.toLowerCase()))) {
+        detectedTechnologies.push(tech);
+      }
+    }
 
-    const chatbotDetected = Object.values(details).some(value => value);
-    
-    console.log('Analysis complete:', {
-      url,
-      chatbotDetected,
-      details,
-      technologies
-    });
-
-    return {
-      status: chatbotDetected ? 'Chatbot detected' : 'No chatbot detected',
-      chatbotDetected,
-      details,
-      technologies
-    };
-  } catch (error) {
-    console.error('Error during analysis:', error);
-    const errorMessage = handleFirecrawlError(error);
-    return {
-      status: errorMessage,
-      chatbotDetected: false,
+    const result: AnalysisResult = {
+      status: detectedChatSolutions.length > 0 ? 
+        `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
+        'No chatbot detected',
       details: {
-        hasLiveChat: false,
-        hasChatWidget: false,
-        hasMessenger: false,
-        hasIntercom: false,
-        hasZendesk: false,
-        hasCustomChat: false
+        chatSolutions: detectedChatSolutions,
+        lastChecked: new Date().toISOString()
       },
-      technologies: [],
-      errorDetails: error instanceof Error ? error.message : 'Unknown error'
+      technologies: detectedTechnologies
+    };
+
+    // Cache the result
+    await supabase
+      .from('analyzed_urls')
+      .upsert({
+        url,
+        status: result.status,
+        details: result.details,
+        technologies: result.technologies
+      });
+
+    return result;
+
+  } catch (error) {
+    console.error('Error analyzing website:', error);
+    const errorResult = handleFirecrawlError(error);
+    
+    // Cache the error result
+    await supabase
+      .from('analyzed_urls')
+      .upsert({
+        url,
+        status: errorResult,
+        details: { errorDetails: errorResult },
+        technologies: []
+      });
+
+    return {
+      status: errorResult,
+      details: { errorDetails: errorResult },
+      technologies: []
     };
   }
 };
