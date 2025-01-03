@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
-  private static DEFAULT_LIMIT = 25;
+  private static DEFAULT_LIMIT = 10;
 
   static saveApiKey(apiKey: string): void {
     localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);

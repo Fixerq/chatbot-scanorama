@@ -17,7 +17,7 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [country, setCountry] = useState('');
   const [region, setRegion] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [resultsLimit, setResultsLimit] = useState(25);
+  const [resultsLimit, setResultsLimit] = useState(10);
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
 
   const handleLoadMore = async () => {
     try {
-      const newLimit = resultsLimit + 25;
+      const newLimit = resultsLimit + 10;
       setResultsLimit(newLimit);
       
       const response = await FirecrawlService.searchWebsites(query, country, region, newLimit);
