@@ -26,7 +26,6 @@ export class FirecrawlService {
   private static API_KEY_STORAGE_KEY = 'firecrawl_api_key';
   private static firecrawlApp: FirecrawlApp | null = null;
 
-  // Directory sites to exclude
   private static directoryDomains = [
     'yelp.com',
     'yellowpages.com',
@@ -41,7 +40,6 @@ export class FirecrawlService {
     'bbb.org'
   ];
 
-  // Service-related phrases to look for
   private static serviceIndicators = [
     'our services',
     'contact us',
@@ -54,7 +52,6 @@ export class FirecrawlService {
     'schedule service'
   ];
 
-  // Dynamic keyword generation based on business type
   private static getBusinessKeywords(query: string): string[] {
     const businessType = query.toLowerCase();
     const commonKeywords = ['services', 'local', 'professional', 'licensed', 'insured'];
@@ -78,12 +75,10 @@ export class FirecrawlService {
       : commonKeywords;
   }
 
-  // Check if URL is from a directory site
   private static isDirectorySite(url: string): boolean {
     return this.directoryDomains.some(domain => url.toLowerCase().includes(domain));
   }
 
-  // Check if content contains service indicators
   private static hasServiceIndicators(content: string): boolean {
     const lowerContent = content.toLowerCase();
     return this.serviceIndicators.some(indicator => 
@@ -91,24 +86,21 @@ export class FirecrawlService {
     );
   }
 
-  // Check if content contains business-relevant keywords
   private static hasRelevantKeywords(content: string, keywords: string[]): boolean {
     const lowerContent = content.toLowerCase();
     return keywords.some(keyword => lowerContent.includes(keyword.toLowerCase()));
   }
 
-  // Check for phone number patterns (international format support)
   private static hasPhoneNumber(content: string): boolean {
     const phonePatterns = [
-      /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/, // US/CA: 123-456-7890
-      /\b\d{2}[-.]?\d{4}[-.]?\d{4}\b/, // UK: 02 1234 5678
-      /\b\+\d{1,4}[-.]?\d{2,4}[-.]?\d{4}\b/ // International: +XX XXX XXXX
+      /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/,
+      /\b\d{2}[-.]?\d{4}[-.]?\d{4}\b/,
+      /\b\+\d{1,4}[-.]?\d{2,4}[-.]?\d{4}\b/
     ];
     
     return phonePatterns.some(pattern => pattern.test(content));
   }
 
-  // Filter search results
   private static filterResults(results: SearchResult[], query: string): SearchResult[] {
     const keywords = this.getBusinessKeywords(query);
     
@@ -171,11 +163,9 @@ export class FirecrawlService {
         };
       }
 
-      // Filter the results
       const filteredResults = this.filterResults(response.data, query);
       console.log('Filtered results:', filteredResults);
 
-      // Extract URLs from the filtered search results
       const urls = filteredResults.map(result => result.url);
       console.log('Processed URLs:', urls);
       
