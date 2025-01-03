@@ -1,12 +1,8 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { API_KEY_STORAGE_KEY } from './constants/firecrawl';
-import { filterResults } from './helpers/searchHelpers';
-import { ApiResponse, ErrorResponse, SearchResult } from './types/firecrawl';
-import { supabase } from '@/integrations/supabase/client';
 
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
-  private static MAX_API_LIMIT = 10; // Updated to respect API limit
+  private static MAX_API_LIMIT = 10;
   private static DEFAULT_LIMIT = 10;
   private static DIRECTORY_DOMAINS = [
     'yelp.com',
@@ -27,12 +23,12 @@ export class FirecrawlService {
   ];
 
   static saveApiKey(apiKey: string): void {
-    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    localStorage.setItem('firecrawl_api_key', apiKey);
     this.firecrawlApp = new FirecrawlApp({ apiKey });
   }
 
   static getApiKey(): string | null {
-    return localStorage.getItem(API_KEY_STORAGE_KEY);
+    return localStorage.getItem('firecrawl_api_key');
   }
 
   private static isDirectorySite(url: string): boolean {
@@ -100,13 +96,11 @@ export class FirecrawlService {
         this.firecrawlApp = new FirecrawlApp({ apiKey });
       }
 
-      // Build search query with location filters
       const searchQuery = `${query} ${country} ${region || ''}`.trim();
       console.log('Search query:', searchQuery);
       
-      // Ensure we don't exceed the API limit
       const requestLimit = Math.min(this.MAX_API_LIMIT, limit);
-      let response = await this.firecrawlApp.search(searchQuery, { limit: requestLimit }) as ApiResponse;
+      const response = await this.firecrawlApp.search(searchQuery, { limit: requestLimit });
       console.log('Raw API response:', response);
 
       if (!response.success) {
@@ -119,7 +113,8 @@ export class FirecrawlService {
 
       // Filter out directory sites
       const filteredResults = response.data
-        .filter(result => !this.isDirectorySite(result.url));
+        .filter(result => !this.isDirectorySite(result.url))
+        .map(result => result.url);
 
       console.log('Filtered results:', filteredResults);
 
@@ -130,23 +125,11 @@ export class FirecrawlService {
         };
       }
 
-      // Get previously analyzed URLs
-      const { data: analyzedUrls } = await supabase
-        .from('analyzed_urls')
-        .select('url, status');
-
-      const analyzedUrlSet = new Set(analyzedUrls?.map(item => item.url) || []);
-      
-      // Filter out already analyzed URLs
-      const newUrls = filteredResults
-        .filter(result => !analyzedUrlSet.has(result.url))
-        .map(result => result.url);
-
       const hasMore = response.data.length >= requestLimit;
       
       return { 
         success: true,
-        urls: newUrls.slice(0, limit),
+        urls: filteredResults.slice(0, limit),
         hasMore: hasMore
       };
 

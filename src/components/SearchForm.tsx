@@ -1,7 +1,8 @@
 import React from 'react';
-import ApiKeyInput from './ApiKeyInput';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import SearchInputs from './SearchInputs';
-import { COUNTRIES } from '../constants/countries';
+import ApiKeyInput from './ApiKeyInput';
 
 interface SearchFormProps {
   query: string;
@@ -36,22 +37,28 @@ const SearchForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <ApiKeyInput 
-        apiKey={apiKey}
-        onChange={onApiKeyChange}
-      />
-      <SearchInputs
-        query={query}
-        country={country}
-        region={region}
-        onQueryChange={onQueryChange}
-        onCountryChange={onCountryChange}
-        onRegionChange={onRegionChange}
-        isProcessing={isProcessing}
-        isSearching={isSearching}
-        countries={COUNTRIES}
-      />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-4">
+        <ApiKeyInput
+          value={apiKey}
+          onChange={onApiKeyChange}
+        />
+        <SearchInputs
+          query={query}
+          country={country}
+          region={region}
+          onQueryChange={onQueryChange}
+          onCountryChange={onCountryChange}
+          onRegionChange={onRegionChange}
+        />
+      </div>
+      <Button 
+        type="submit"
+        disabled={isProcessing || isSearching || !apiKey}
+        className="w-full"
+      >
+        {isSearching ? "Searching..." : "Search"}
+      </Button>
     </form>
   );
 };
