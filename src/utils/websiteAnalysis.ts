@@ -27,9 +27,18 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       };
     }
 
+    if (!data) {
+      console.error('No data returned from analyze-website function');
+      return {
+        status: 'Error analyzing website',
+        details: { errorDetails: 'No data returned from analysis' },
+        technologies: []
+      };
+    }
+
     return {
       status: data.status,
-      details: data.details,
+      details: data.details || {},
       technologies: data.technologies || []
     };
 

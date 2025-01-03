@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -6,15 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
+      headers: corsHeaders,
       status: 204,
-      headers: corsHeaders
     });
   }
 
@@ -43,7 +41,7 @@ serve(async (req) => {
         console.log('Using cached result for', url);
         return new Response(JSON.stringify(cachedResult), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
+          status: 200,
         });
       }
     }
@@ -58,7 +56,30 @@ serve(async (req) => {
       });
       
       if (!websiteCheck.ok) {
-        throw new Error(`Website returned status: ${websiteCheck.status}`);
+        const result = {
+          url,
+          status: `Website not accessible (${websiteCheck.status})`,
+          details: {
+            errorDetails: `Website returned status: ${websiteCheck.status}`,
+            lastChecked: new Date().toISOString()
+          },
+          technologies: []
+        };
+
+        // Cache the inaccessible result
+        await supabaseClient
+          .from('analyzed_urls')
+          .upsert({
+            url: result.url,
+            status: result.status,
+            details: result.details,
+            technologies: result.technologies
+          });
+
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
       }
     } catch (error) {
       console.log('Website not accessible:', url, error);
@@ -88,7 +109,7 @@ serve(async (req) => {
       });
     }
 
-    // Use Firecrawl API with native fetch
+    // Use Firecrawl API
     const firecrawlApiKey = Deno.env.get('Firecrawl') ?? '';
     console.log('Crawling website with Firecrawl:', url);
     
@@ -174,8 +195,7 @@ serve(async (req) => {
     console.error('Error analyzing website:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const result = {
-      url,
-      status: 'Website not accessible - analysis failed',
+      status: 'Error analyzing website',
       details: { 
         errorDetails: errorMessage,
         lastChecked: new Date().toISOString()
