@@ -20,6 +20,7 @@ type CrawlResponse = CrawlStatusResponse | ErrorResponse;
 export class FirecrawlService {
   private static API_KEY_STORAGE_KEY = 'firecrawl_api_key';
   private static firecrawlApp: FirecrawlApp | null = null;
+  private static MAX_API_LIMIT = 10;
 
   static saveApiKey(apiKey: string): void {
     localStorage.setItem(this.API_KEY_STORAGE_KEY, apiKey);
@@ -87,7 +88,7 @@ export class FirecrawlService {
     query: string, 
     country: string, 
     region?: string, 
-    limit: number = 20
+    limit: number = 10
   ): Promise<{ success: boolean; urls?: string[]; error?: string; hasMore?: boolean }> {
     const apiKey = this.getApiKey();
     if (!apiKey) {
@@ -99,7 +100,7 @@ export class FirecrawlService {
       console.log('Search params:', { query, country, region, limit });
 
       const searchQuery = `${query} ${country} ${region || ''}`.trim();
-      const requestLimit = limit + 5; // Request extra results to check if there are more
+      const requestLimit = Math.min(this.MAX_API_LIMIT, limit);
 
       const response = await this.firecrawlApp!.search(searchQuery, { 
         limit: requestLimit,
@@ -118,8 +119,8 @@ export class FirecrawlService {
       }
 
       const urls = response.data.map(result => result.url);
-      const hasMore = urls.length > limit;
-      const limitedUrls = urls.slice(0, limit);
+      const hasMore = urls.length >= requestLimit;
+      const limitedUrls = urls.slice(0, requestLimit);
 
       console.log('Search results:', {
         totalResults: urls.length,
