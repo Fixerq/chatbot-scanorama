@@ -4,11 +4,11 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 interface ApiKeyInputProps {
-  apiKey: string;
+  value: string;
   onChange: (value: string) => void;
 }
 
-const ApiKeyInput = ({ apiKey, onChange }: ApiKeyInputProps) => {
+const ApiKeyInput = ({ value, onChange }: ApiKeyInputProps) => {
   const handleRemoveApiKey = () => {
     localStorage.removeItem('firecrawl_api_key');
     onChange('');
@@ -21,11 +21,11 @@ const ApiKeyInput = ({ apiKey, onChange }: ApiKeyInputProps) => {
         <Input
           type="password"
           placeholder="Enter your Firecrawl API key"
-          value={apiKey}
+          value={value}
           onChange={(e) => onChange(e.target.value)}
           className="flex-1"
         />
-        {apiKey && (
+        {value && (
           <Button
             type="button"
             variant="destructive"

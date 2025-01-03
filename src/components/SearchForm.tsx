@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import SearchInputs from './SearchInputs';
 import ApiKeyInput from './ApiKeyInput';
+import { COUNTRIES } from '../constants/countries';
 
 interface SearchFormProps {
   query: string;
@@ -50,6 +50,9 @@ const SearchForm = ({
           onQueryChange={onQueryChange}
           onCountryChange={onCountryChange}
           onRegionChange={onRegionChange}
+          isProcessing={isProcessing}
+          isSearching={isSearching}
+          countries={COUNTRIES}
         />
       </div>
       <Button 
