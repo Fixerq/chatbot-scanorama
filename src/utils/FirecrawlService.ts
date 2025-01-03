@@ -1,141 +1,18 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
-
-interface SearchResult {
-  url: string;
-  title: string;
-  description?: string;
-}
-
-interface ErrorResponse {
-  success: false;
-  error: string;
-}
-
-interface SuccessResponse {
-  success: true;
-  data: SearchResult[];
-  warning?: {
-    _type: string;
-    value: string;
-  };
-}
-
-type ApiResponse = SuccessResponse | ErrorResponse;
+import { API_KEY_STORAGE_KEY } from './constants/firecrawl';
+import { filterResults } from './helpers/searchHelpers';
+import { ApiResponse, ErrorResponse, SearchResult } from './types/firecrawl';
 
 export class FirecrawlService {
-  private static API_KEY_STORAGE_KEY = 'firecrawl_api_key';
   private static firecrawlApp: FirecrawlApp | null = null;
 
-  private static directoryDomains = [
-    'yelp.com',
-    'yellowpages.com',
-    'angi.com',
-    'angieslist.com',
-    'checkatrade.com',
-    'houzz.com',
-    'thumbtack.com',
-    'homeadvisor.com',
-    'bark.com',
-    'trustpilot.com',
-    'bbb.org'
-  ];
-
-  private static serviceIndicators = [
-    'our services',
-    'contact us',
-    'locations',
-    'service area',
-    'about us',
-    'free quote',
-    'emergency service',
-    'book online',
-    'schedule service'
-  ];
-
-  private static getBusinessKeywords(query: string): string[] {
-    const businessType = query.toLowerCase();
-    const commonKeywords = ['services', 'local', 'professional', 'licensed', 'insured'];
-    
-    const businessSpecificKeywords: Record<string, string[]> = {
-      'plumber': ['plumbing', 'plumber', 'leak repair', 'pipe', 'drain', 'water heater'],
-      'electrician': ['electrical', 'electrician', 'wiring', 'fuse', 'lighting', 'power'],
-      'carpenter': ['carpentry', 'woodwork', 'furniture', 'cabinet', 'renovation'],
-      'painter': ['painting', 'decorator', 'wall', 'interior', 'exterior'],
-      'landscaper': ['landscaping', 'garden', 'lawn', 'outdoor', 'maintenance'],
-      'roofer': ['roofing', 'roof repair', 'gutters', 'shingles', 'leak'],
-      'hvac': ['heating', 'cooling', 'air conditioning', 'ventilation', 'furnace']
-    };
-
-    const matchedType = Object.keys(businessSpecificKeywords).find(type => 
-      businessType.includes(type)
-    );
-
-    return matchedType 
-      ? [...businessSpecificKeywords[matchedType], ...commonKeywords]
-      : commonKeywords;
-  }
-
-  private static isDirectorySite(url: string): boolean {
-    return this.directoryDomains.some(domain => url.toLowerCase().includes(domain));
-  }
-
-  private static hasServiceIndicators(content: string): boolean {
-    const lowerContent = content.toLowerCase();
-    return this.serviceIndicators.some(indicator => 
-      lowerContent.includes(indicator.toLowerCase())
-    );
-  }
-
-  private static hasRelevantKeywords(content: string, keywords: string[]): boolean {
-    const lowerContent = content.toLowerCase();
-    return keywords.some(keyword => lowerContent.includes(keyword.toLowerCase()));
-  }
-
-  private static hasPhoneNumber(content: string): boolean {
-    const phonePatterns = [
-      /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/,
-      /\b\d{2}[-.]?\d{4}[-.]?\d{4}\b/,
-      /\b\+\d{1,4}[-.]?\d{2,4}[-.]?\d{4}\b/
-    ];
-    
-    return phonePatterns.some(pattern => pattern.test(content));
-  }
-
-  private static filterResults(results: SearchResult[], query: string): SearchResult[] {
-    const keywords = this.getBusinessKeywords(query);
-    
-    return results.filter(result => {
-      if (this.isDirectorySite(result.url)) {
-        console.log(`Filtered out directory site: ${result.url}`);
-        return false;
-      }
-
-      const contentToCheck = [
-        result.title,
-        result.description || ''
-      ].join(' ').toLowerCase();
-
-      const hasKeywords = this.hasRelevantKeywords(contentToCheck, keywords);
-      const hasIndicators = this.hasServiceIndicators(contentToCheck);
-      const hasPhone = this.hasPhoneNumber(contentToCheck);
-
-      const isRelevant = hasKeywords && (hasIndicators || hasPhone);
-      
-      if (!isRelevant) {
-        console.log(`Filtered out non-relevant result: ${result.url}`);
-      }
-
-      return isRelevant;
-    });
-  }
-
   static saveApiKey(apiKey: string): void {
-    localStorage.setItem(this.API_KEY_STORAGE_KEY, apiKey);
+    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
     this.firecrawlApp = new FirecrawlApp({ apiKey });
   }
 
   static getApiKey(): string | null {
-    return localStorage.getItem(this.API_KEY_STORAGE_KEY);
+    return localStorage.getItem(API_KEY_STORAGE_KEY);
   }
 
   private static async enhanceSearchQuery(query: string, country: string): Promise<string> {
@@ -179,14 +56,14 @@ export class FirecrawlService {
       console.log('Raw API response:', response);
 
       if (!response.success) {
-        console.error('Search failed:', response.error);
+        console.error('Search failed:', (response as ErrorResponse).error);
         return { 
           success: false, 
-          error: response.error
+          error: (response as ErrorResponse).error
         };
       }
 
-      const filteredResults = this.filterResults(response.data, query);
+      const filteredResults = filterResults(response.data, query);
       console.log('Filtered results:', filteredResults);
 
       const urls = filteredResults.map(result => result.url);
