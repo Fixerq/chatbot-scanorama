@@ -15,9 +15,10 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
   const [country, setCountry] = useState('');
   const [region, setRegion] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [resultsLimit, setResultsLimit] = useState(10);
+  const [resultsLimit, setResultsLimit] = useState(30); // Increased initial limit
   const [hasMore, setHasMore] = useState(false);
   const [currentResults, setCurrentResults] = useState<Result[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const savedApiKey = FirecrawlService.getApiKey();
@@ -32,6 +33,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       return;
     }
 
+    setIsSearching(true);
     FirecrawlService.saveApiKey(apiKey);
 
     try {
@@ -55,6 +57,8 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Failed to search websites. Please check your API key and try again.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -101,6 +105,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         region={region}
         apiKey={apiKey}
         isProcessing={isProcessing}
+        isSearching={isSearching}
         onQueryChange={setQuery}
         onCountryChange={setCountry}
         onRegionChange={setRegion}

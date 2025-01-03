@@ -9,6 +9,7 @@ interface SearchFormProps {
   region: string;
   apiKey: string;
   isProcessing: boolean;
+  isSearching: boolean;
   onQueryChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
@@ -22,6 +23,7 @@ const SearchForm = ({
   region,
   apiKey,
   isProcessing,
+  isSearching,
   onQueryChange,
   onCountryChange,
   onRegionChange,
@@ -47,6 +49,7 @@ const SearchForm = ({
         onCountryChange={onCountryChange}
         onRegionChange={onRegionChange}
         isProcessing={isProcessing}
+        isSearching={isSearching}
         countries={COUNTRIES}
       />
     </form>

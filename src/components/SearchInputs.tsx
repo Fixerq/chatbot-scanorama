@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -18,6 +18,7 @@ interface SearchInputsProps {
   onCountryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
   isProcessing: boolean;
+  isSearching: boolean;
   countries: string[];
 }
 
@@ -29,6 +30,7 @@ const SearchInputs = ({
   onCountryChange,
   onRegionChange,
   isProcessing,
+  isSearching,
   countries,
 }: SearchInputsProps) => {
   return (
@@ -62,9 +64,22 @@ const SearchInputs = ({
           onChange={(e) => onRegionChange(e.target.value)}
           className="flex-1"
         />
-        <Button type="submit" disabled={isProcessing} className="w-32">
-          <Search className="w-4 h-4 mr-2" />
-          Search
+        <Button 
+          type="submit" 
+          disabled={isProcessing || isSearching} 
+          className="w-32"
+        >
+          {isSearching ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Searching
+            </>
+          ) : (
+            <>
+              <Search className="w-4 h-4 mr-2" />
+              Search
+            </>
+          )}
         </Button>
       </div>
     </div>
