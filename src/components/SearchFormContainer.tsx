@@ -17,6 +17,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
   const [apiKey, setApiKey] = useState('');
   const [resultsLimit, setResultsLimit] = useState(10);
   const [hasMore, setHasMore] = useState(false);
+  const [currentResults, setCurrentResults] = useState<Result[]>([]);
 
   useEffect(() => {
     const savedApiKey = FirecrawlService.getApiKey();
@@ -47,6 +48,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       }));
 
       setHasMore(response.hasMore || false);
+      setCurrentResults(results);
       onResults(results);
       toast.success(`Found ${results.length} websites to analyze`);
 
@@ -64,14 +66,26 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       const response = await FirecrawlService.searchWebsites(query, country, region, newLimit);
       
       if (response.success && response.urls) {
-        const results = response.urls.map((url: string) => ({
-          url,
-          status: 'Processing...'
-        }));
+        const newResults = response.urls
+          .map((url: string) => ({
+            url,
+            status: 'Processing...'
+          }))
+          // Filter out duplicates based on URL
+          .filter((newResult: Result) => 
+            !currentResults.some(existingResult => existingResult.url === newResult.url)
+          );
         
+        const combinedResults = [...currentResults, ...newResults];
+        setCurrentResults(combinedResults);
         setHasMore(response.hasMore || false);
-        onResults(results);
-        toast.success(`Loaded ${results.length} websites`);
+        onResults(combinedResults);
+        
+        if (newResults.length > 0) {
+          toast.success(`Loaded ${newResults.length} new websites`);
+        } else {
+          toast.info('No new websites found');
+        }
       }
     } catch (error) {
       console.error('Load more error:', error);
