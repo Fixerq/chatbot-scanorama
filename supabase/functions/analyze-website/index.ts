@@ -24,41 +24,49 @@ const PLATFORM_PATTERNS = {
     /wp-includes/i,
     /wordpress/i,
     /wp-json/i,
-    /wp-admin/i
+    /wp-admin/i,
+    /"generator" content="WordPress/i
   ],
   'Shopify': [
     /cdn\.shopify\.com/i,
     /shopify\.com/i,
-    /myshopify\.com/i
+    /myshopify\.com/i,
+    /Shopify.theme/i
   ],
   'Wix': [
     /wix\.com/i,
     /wixsite\.com/i,
-    /_wix_/i
+    /_wix_/i,
+    /X-Wix-/i
   ],
   'Squarespace': [
     /squarespace\.com/i,
     /static1\.squarespace\.com/i,
-    /sqsp\.com/i
+    /sqsp\.com/i,
+    /"generator" content="Squarespace"/i
   ],
   'Webflow': [
     /webflow\.com/i,
     /webflow\.io/i,
-    /assets-global\.website-files\.com/i
+    /assets-global\.website-files\.com/i,
+    /"generator" content="Webflow"/i
   ],
   'Drupal': [
     /drupal/i,
     /sites\/all/i,
-    /modules\/system/i
+    /modules\/system/i,
+    /"generator" content="Drupal/i
   ],
   'Joomla': [
     /joomla/i,
     /com_content/i,
-    /mod_/i
+    /mod_/i,
+    /"generator" content="Joomla/i
   ],
   'Ghost': [
     /ghost\.io/i,
-    /ghost-theme/i
+    /ghost-theme/i,
+    /"generator" content="Ghost"/i
   ]
 };
 
@@ -72,6 +80,7 @@ serve(async (req) => {
 
   try {
     const { url } = await req.json();
+    console.log('Analyzing URL:', url);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -101,18 +110,13 @@ serve(async (req) => {
         }
       }
 
-      // Check for platform with enhanced patterns
-      for (const [platform, patterns] of Object.entries(PLATFORM_PATTERNS)) {
-        if (patterns.some(pattern => pattern.test(html))) {
-          detectedPlatform = platform;
-          break;
-        }
-      }
-
-      // Additional platform detection from meta tags and generator
+      // Enhanced platform detection
+      // First check meta generator tag
       const metaGeneratorMatch = html.match(/<meta\s+name="generator"\s+content="([^"]+)"/i);
       if (metaGeneratorMatch) {
         const generator = metaGeneratorMatch[1].toLowerCase();
+        console.log('Found generator meta tag:', generator);
+        
         if (generator.includes('wordpress')) detectedPlatform = 'WordPress';
         else if (generator.includes('shopify')) detectedPlatform = 'Shopify';
         else if (generator.includes('wix')) detectedPlatform = 'Wix';
@@ -122,6 +126,33 @@ serve(async (req) => {
         else if (generator.includes('joomla')) detectedPlatform = 'Joomla';
         else if (generator.includes('ghost')) detectedPlatform = 'Ghost';
       }
+
+      // If no platform detected from meta tag, check patterns
+      if (detectedPlatform === 'Unknown') {
+        for (const [platform, patterns] of Object.entries(PLATFORM_PATTERNS)) {
+          if (patterns.some(pattern => pattern.test(html))) {
+            detectedPlatform = platform;
+            console.log('Detected platform from patterns:', platform);
+            break;
+          }
+        }
+      }
+
+      // Additional platform detection from common script patterns
+      if (detectedPlatform === 'Unknown') {
+        if (html.includes('wp-content') || html.includes('wp-includes')) {
+          detectedPlatform = 'WordPress';
+        } else if (html.includes('shopify.theme')) {
+          detectedPlatform = 'Shopify';
+        } else if (html.includes('_wixCssManager')) {
+          detectedPlatform = 'Wix';
+        }
+      }
+
+      console.log('Analysis complete:', {
+        platform: detectedPlatform,
+        chatSolutions: detectedChatSolutions
+      });
 
       return new Response(JSON.stringify({
         status: detectedChatSolutions.length > 0 ? 
