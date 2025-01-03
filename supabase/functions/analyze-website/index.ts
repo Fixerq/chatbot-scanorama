@@ -4,24 +4,17 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-const CHAT_SOLUTIONS = {
-  'Intercom': ['.intercom-frame', '#intercom-container', 'intercom'],
-  'Drift': ['#drift-widget', '.drift-frame-controller', 'drift'],
-  'Zendesk': ['.zEWidget-launcher', '#launcher', 'zendesk'],
-  'Crisp': ['.crisp-client', '#crisp-chatbox', 'crisp'],
-  'LiveChat': ['#livechat-compact-container', '#chat-widget-container', 'livechat'],
-  'Tawk.to': ['#tawkchat-container', '#tawkchat-minified-wrapper', 'tawk'],
-  'HubSpot': ['#hubspot-messages-iframe-container', '.HubSpotWebWidget', 'hubspot'],
-  'Facebook Messenger': ['.fb-customerchat', '.fb_dialog', 'messenger'],
-  'WhatsApp': ['.wa-chat-box', '.whatsapp-chat', 'whatsapp'],
-  'Custom Chat': ['[class*="chat"]', '[class*="messenger"]', '[id*="chat"]', '[id*="messenger"]']
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders
+    })
   }
 
   try {
@@ -78,6 +71,7 @@ serve(async (req) => {
     }
 
     const crawlData = await crawlResponse.json()
+    console.log('Firecrawl response:', crawlData)
     
     if (!crawlData.success || !crawlData.data?.[0]?.html) {
       throw new Error('Failed to crawl website')
@@ -87,6 +81,19 @@ serve(async (req) => {
 
     // Detect chat solutions
     const detectedChatSolutions = []
+    const CHAT_SOLUTIONS = {
+      'Intercom': ['.intercom-frame', '#intercom-container', 'intercom'],
+      'Drift': ['#drift-widget', '.drift-frame-controller', 'drift'],
+      'Zendesk': ['.zEWidget-launcher', '#launcher', 'zendesk'],
+      'Crisp': ['.crisp-client', '#crisp-chatbox', 'crisp'],
+      'LiveChat': ['#livechat-compact-container', '#chat-widget-container', 'livechat'],
+      'Tawk.to': ['#tawkchat-container', '#tawkchat-minified-wrapper', 'tawk'],
+      'HubSpot': ['#hubspot-messages-iframe-container', '.HubSpotWebWidget', 'hubspot'],
+      'Facebook Messenger': ['.fb-customerchat', '.fb_dialog', 'messenger'],
+      'WhatsApp': ['.wa-chat-box', '.whatsapp-chat', 'whatsapp'],
+      'Custom Chat': ['[class*="chat"]', '[class*="messenger"]', '[id*="chat"]', '[id*="messenger"]']
+    }
+
     for (const [solution, selectors] of Object.entries(CHAT_SOLUTIONS)) {
       if (selectors.some(selector => html.toLowerCase().includes(selector.toLowerCase()))) {
         detectedChatSolutions.push(solution)
