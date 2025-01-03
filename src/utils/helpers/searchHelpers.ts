@@ -1,27 +1,15 @@
-import { DIRECTORY_DOMAINS, SERVICE_INDICATORS } from '../constants/firecrawl';
+import { DIRECTORY_DOMAINS, SERVICE_INDICATORS, BUSINESS_KEYWORDS } from '../constants/firecrawl';
 import { SearchResult } from '../types/firecrawl';
 
 export const getBusinessKeywords = (query: string): string[] => {
   const businessType = query.toLowerCase();
   const commonKeywords = ['services', 'local', 'professional', 'licensed', 'insured', 'company', 'business'];
   
-  const businessSpecificKeywords: Record<string, string[]> = {
-    'plumber': ['plumbing', 'plumber', 'leak repair', 'pipe', 'drain', 'water heater'],
-    'electrician': ['electrical', 'electrician', 'wiring', 'fuse', 'lighting', 'power'],
-    'carpenter': ['carpentry', 'woodwork', 'furniture', 'cabinet', 'renovation'],
-    'painter': ['painting', 'decorator', 'wall', 'interior', 'exterior'],
-    'landscaper': ['landscaping', 'garden', 'lawn', 'outdoor', 'maintenance'],
-    'roofer': ['roofing', 'roof repair', 'gutters', 'shingles', 'leak'],
-    'hvac': ['heating', 'cooling', 'air conditioning', 'ventilation', 'furnace']
-  };
-
-  const matchedType = Object.keys(businessSpecificKeywords).find(type => 
+  const specificKeywords = Object.entries(BUSINESS_KEYWORDS).find(([type]) => 
     businessType.includes(type)
-  );
+  )?.[1] || [];
 
-  return matchedType 
-    ? [...businessSpecificKeywords[matchedType], ...commonKeywords]
-    : commonKeywords;
+  return [...new Set([...specificKeywords, ...commonKeywords])];
 };
 
 export const isDirectorySite = (url: string): boolean => {
@@ -88,7 +76,8 @@ export const filterResults = (
 
     const contentToCheck = [
       result.title,
-      result.description || ''
+      result.description || '',
+      result.url
     ].join(' ').toLowerCase();
 
     const hasKeywords = hasRelevantKeywords(contentToCheck, keywords);
@@ -100,6 +89,12 @@ export const filterResults = (
     
     if (!isRelevant) {
       console.log(`Filtered out non-relevant result: ${result.url}`);
+      console.log('Reasons:', {
+        hasKeywords,
+        hasIndicators,
+        hasPhone,
+        hasLocation
+      });
     }
 
     return isRelevant;
