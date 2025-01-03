@@ -8,6 +8,23 @@ export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
   private static MAX_API_LIMIT = 10; // Updated to respect API limit
   private static DEFAULT_LIMIT = 10;
+  private static DIRECTORY_DOMAINS = [
+    'yelp.com',
+    'yellowpages.com',
+    'angi.com',
+    'angieslist.com',
+    'checkatrade.com',
+    'houzz.com',
+    'thumbtack.com',
+    'homeadvisor.com',
+    'bark.com',
+    'trustpilot.com',
+    'bbb.org',
+    'google.com/maps',
+    'facebook.com/pages',
+    'linkedin.com/company',
+    'foursquare.com'
+  ];
 
   static saveApiKey(apiKey: string): void {
     localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
@@ -18,10 +35,18 @@ export class FirecrawlService {
     return localStorage.getItem(API_KEY_STORAGE_KEY);
   }
 
+  private static isDirectorySite(url: string): boolean {
+    return this.DIRECTORY_DOMAINS.some(domain => url.toLowerCase().includes(domain));
+  }
+
   static async crawlWebsite(url: string): Promise<{ success: boolean; error?: string; data?: any }> {
     const apiKey = this.getApiKey();
     if (!apiKey) {
       return { success: false, error: 'API key not found' };
+    }
+
+    if (this.isDirectorySite(url)) {
+      return { success: false, error: 'Directory sites are not supported' };
     }
 
     try {
@@ -92,7 +117,10 @@ export class FirecrawlService {
         };
       }
 
-      const filteredResults = filterResults(response.data, query, country, region);
+      // Filter out directory sites
+      const filteredResults = response.data
+        .filter(result => !this.isDirectorySite(result.url));
+
       console.log('Filtered results:', filteredResults);
 
       if (filteredResults.length === 0) {
