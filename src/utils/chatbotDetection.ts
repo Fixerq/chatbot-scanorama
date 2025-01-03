@@ -65,6 +65,34 @@ const hasChatbotScript = (html: string): boolean => {
   return chatbotPatterns.some(pattern => pattern.test(html));
 };
 
+const handleFirecrawlError = (error: any): string => {
+  const errorStr = error?.toString().toLowerCase() || '';
+  
+  if (errorStr.includes('timeout') || errorStr.includes('econnrefused')) {
+    return 'Website is not responding';
+  }
+  if (errorStr.includes('403')) {
+    return 'Access denied by website';
+  }
+  if (errorStr.includes('404')) {
+    return 'Website not found';
+  }
+  if (errorStr.includes('ssl') || errorStr.includes('certificate')) {
+    return 'SSL/Security certificate issue';
+  }
+  if (errorStr.includes('robots.txt') || errorStr.includes('forbidden')) {
+    return 'Website blocks automated access';
+  }
+  if (errorStr.includes('api key') || errorStr.includes('authentication')) {
+    return 'API authentication error';
+  }
+  if (errorStr.includes('rate limit')) {
+    return 'Rate limit exceeded';
+  }
+  
+  return 'Website not accessible';
+};
+
 export const detectChatbot = async (url: string): Promise<string> => {
   try {
     // Check if URL has already been analyzed
@@ -95,28 +123,12 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
       if (!response.success) {
         console.error('Firecrawl error:', response.error);
-        let result;
-        
-        // Provide more specific error messages based on the error type
-        if (response.error?.includes('ECONNREFUSED') || response.error?.includes('ETIMEDOUT')) {
-          result = 'Website is not responding';
-        } else if (response.error?.includes('403')) {
-          result = 'Access denied by website';
-        } else if (response.error?.includes('404')) {
-          result = 'Website not found';
-        } else if (response.error?.includes('SSL')) {
-          result = 'SSL/Security certificate issue';
-        } else if (response.error?.includes('robots.txt')) {
-          result = 'Website blocks automated access';
-        } else if (response.error === 'Failed to connect to Firecrawl API') {
-          result = 'API connection error';
-        } else {
-          result = 'Website not accessible';
-        }
+        const result = handleFirecrawlError(response.error);
         
         await supabase
           .from('analyzed_urls')
           .insert({ url, status: result });
+        
         return result;
       }
 
@@ -142,7 +154,7 @@ export const detectChatbot = async (url: string): Promise<string> => {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.log('Detailed error:', errorMessage);
       
-      const result = 'Error analyzing URL';
+      const result = handleFirecrawlError(error);
       await supabase
         .from('analyzed_urls')
         .insert({ url, status: result });
