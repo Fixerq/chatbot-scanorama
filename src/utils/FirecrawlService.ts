@@ -51,6 +51,7 @@ export class FirecrawlService {
         };
       }
 
+      // Safely access and map the results
       const urls = response.results.map(result => result.url);
       return { 
         success: true,
