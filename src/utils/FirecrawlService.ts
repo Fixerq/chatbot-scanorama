@@ -40,11 +40,8 @@ export class FirecrawlService {
       }
 
       const searchQuery = `${query} in ${country}`;
-      const response = await this.firecrawlApp.search({
-        query: searchQuery,
-        limit: 100,
-        type: 'website'
-      }) as ApiResponse;
+      // Using the correct method signature for the Firecrawl SDK
+      const response = await this.firecrawlApp.search(searchQuery) as ApiResponse;
 
       if (!response.success) {
         console.error('Search failed:', (response as ErrorResponse).error);
