@@ -10,6 +10,18 @@ interface AnalysisResult {
   technologies: string[];
 }
 
+interface CachedResult {
+  url: string;
+  status: string;
+  details: {
+    chatSolutions?: string[];
+    errorDetails?: string;
+    lastChecked?: string;
+  };
+  technologies: string[];
+  created_at: string;
+}
+
 const ANALYSIS_TIMEOUT = 30000; // 30 seconds
 
 const CHAT_PATTERNS = {
@@ -77,9 +89,17 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       
       if (cacheAge < cacheValidityPeriod) {
         console.log('Using cached result for', url);
+        const parsedDetails = typeof cachedResult.details === 'string' 
+          ? JSON.parse(cachedResult.details) 
+          : cachedResult.details;
+
         return {
           status: cachedResult.status,
-          details: cachedResult.details || {},
+          details: {
+            chatSolutions: parsedDetails?.chatSolutions || [],
+            errorDetails: parsedDetails?.errorDetails,
+            lastChecked: parsedDetails?.lastChecked
+          },
           technologies: cachedResult.technologies || []
         };
       }
@@ -147,12 +167,15 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const status = errorMessage.includes('abort') ? 'Analysis timed out' : 'Error analyzing website';
     
-    return {
+    const result: AnalysisResult = {
       status,
       details: { 
-        errorDetails: errorMessage
+        errorDetails: errorMessage,
+        lastChecked: new Date().toISOString()
       },
       technologies: []
     };
+
+    return result;
   }
 };
