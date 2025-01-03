@@ -65,17 +65,20 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       currentPage: nextPage,
       resultsLimit: newLimit 
     }));
-    
+
+    // Keep existing results while loading more
+    const existingResults = [...results.currentResults];
     const moreResults = await loadMoreResults(
       searchState.query,
       searchState.country,
       searchState.region,
-      results.currentResults,
+      existingResults,
       newLimit
     );
 
     if (moreResults) {
-      const combinedResults = [...results.currentResults, ...moreResults.newResults];
+      // Combine existing results with new ones
+      const combinedResults = [...existingResults, ...moreResults.newResults];
       setResults({
         currentResults: combinedResults,
         hasMore: moreResults.hasMore,
