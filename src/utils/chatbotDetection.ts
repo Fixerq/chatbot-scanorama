@@ -16,7 +16,13 @@ const fetchWithTimeout = async (url: string, timeout = 10000) => {
   const id = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { 
+      signal: controller.signal,
+      mode: 'no-cors', // Add no-cors mode to handle CORS issues
+      headers: {
+        'Accept': 'text/html'
+      }
+    });
     clearTimeout(id);
     return response;
   } catch (error) {
@@ -85,7 +91,7 @@ export const detectChatbot = async (url: string): Promise<string> => {
       .from('analyzed_urls')
       .select('status')
       .eq('url', url)
-      .single();
+      .maybeSingle(); // Changed from single() to maybeSingle()
 
     if (existingResult) {
       console.log(`Using cached result for ${url}:`, existingResult.status);
@@ -100,9 +106,15 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
     try {
       const response = await fetchWithTimeout(normalizedUrl);
-      const html = await response.text();
+      let result = 'No chatbot detected';
       
-      const result = hasChatbotScript(html) ? 'Chatbot detected' : 'No chatbot detected';
+      // Only try to analyze content if we can access it
+      if (response.status === 200) {
+        const html = await response.text();
+        result = hasChatbotScript(html) ? 'Chatbot detected' : 'No chatbot detected';
+      } else {
+        result = 'Error accessing website';
+      }
 
       // Store the result in Supabase
       const { error: insertError } = await supabase
