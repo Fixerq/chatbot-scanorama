@@ -25,6 +25,7 @@ export const hasServiceIndicators = (content: string): boolean => {
 
 export const hasRelevantKeywords = (content: string, keywords: string[]): boolean => {
   const lowerContent = content.toLowerCase();
+  // Require at least one keyword match
   return keywords.some(keyword => lowerContent.includes(keyword.toLowerCase()));
 };
 
@@ -44,7 +45,7 @@ export const hasLocationMatch = (content: string, country: string, region?: stri
   const lowerRegion = region.toLowerCase();
   const hasRegion = lowerContent.includes(lowerRegion);
   
-  // Return true if both country and region match, or at least one matches
+  // Return true if either country or region matches (less strict)
   return hasCountry || hasRegion;
 };
 
@@ -80,12 +81,14 @@ export const filterResults = (
       result.url
     ].join(' ').toLowerCase();
 
+    // Modified filtering logic to be less strict
     const hasKeywords = hasRelevantKeywords(contentToCheck, keywords);
+    const hasLocation = hasLocationMatch(contentToCheck, country, region);
     const hasIndicators = hasServiceIndicators(contentToCheck);
     const hasPhone = hasPhoneNumber(contentToCheck);
-    const hasLocation = hasLocationMatch(contentToCheck, country, region);
 
-    const isRelevant = hasKeywords && hasLocation && (hasIndicators || hasPhone);
+    // New relevancy scoring - require keywords and at least one other signal
+    const isRelevant = hasKeywords && (hasLocation || hasIndicators || hasPhone);
     
     if (!isRelevant) {
       console.log(`Filtered out non-relevant result: ${result.url}`);
