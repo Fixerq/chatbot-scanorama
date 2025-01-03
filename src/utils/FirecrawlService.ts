@@ -33,16 +33,15 @@ export class FirecrawlService {
       const crawlResponse = await this.firecrawlApp.crawlUrl(url, {
         limit: 1,
         scrapeOptions: {
-          formats: ['html'],
-          selectors: ['script', 'link[rel="stylesheet"]', 'meta'],
+          formats: ['html']
         }
       });
 
       if (!crawlResponse.success) {
-        console.error('Crawl failed:', crawlResponse.error);
+        console.error('Crawl failed:', 'error' in crawlResponse ? crawlResponse.error : 'Unknown error');
         return { 
           success: false, 
-          error: crawlResponse.error || 'Failed to crawl website' 
+          error: 'error' in crawlResponse ? crawlResponse.error : 'Failed to crawl website'
         };
       }
 
@@ -76,26 +75,20 @@ export class FirecrawlService {
         this.firecrawlApp = new FirecrawlApp({ apiKey });
       }
 
-      const enhancedQuery = await this.enhanceSearchQuery(query, country, region);
-      console.log('Enhanced search query:', enhancedQuery);
+      // Build search query with location filters
+      const searchQuery = `${query} ${country} ${region || ''}`.trim();
+      console.log('Search query:', searchQuery);
       
       // Ensure we don't exceed the API limit
       const requestLimit = Math.min(this.MAX_API_LIMIT, limit);
-      let response = await this.firecrawlApp.search(enhancedQuery, { limit: requestLimit }) as ApiResponse;
+      let response = await this.firecrawlApp.search(searchQuery, { limit: requestLimit }) as ApiResponse;
       console.log('Raw API response:', response);
 
-      if (!response.success || (response.success && (!response.data || response.data.length === 0))) {
-        const simpleQuery = this.buildSearchQuery(query, country, region);
-        console.log('Trying simple query:', simpleQuery);
-        response = await this.firecrawlApp.search(simpleQuery, { limit: requestLimit }) as ApiResponse;
-        console.log('Second attempt API response:', response);
-      }
-
       if (!response.success) {
-        console.error('Search failed:', (response as ErrorResponse).error);
+        console.error('Search failed:', 'error' in response ? response.error : 'Unknown error');
         return { 
           success: false, 
-          error: (response as ErrorResponse).error
+          error: 'error' in response ? response.error : 'Search failed'
         };
       }
 
