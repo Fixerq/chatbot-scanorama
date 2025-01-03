@@ -138,6 +138,29 @@ export class FirecrawlService {
     return localStorage.getItem(this.API_KEY_STORAGE_KEY);
   }
 
+  private static async enhanceSearchQuery(query: string, country: string): Promise<string> {
+    try {
+      const response = await fetch('/functions/enhance-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query, country }),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to enhance search query, using original query');
+        return `${query} in ${country}`;
+      }
+
+      const data = await response.json();
+      return data.enhancedQuery || `${query} in ${country}`;
+    } catch (error) {
+      console.warn('Error enhancing search query:', error);
+      return `${query} in ${country}`;
+    }
+  }
+
   static async searchWebsites(query: string, country: string): Promise<{ success: boolean; urls?: string[]; error?: string }> {
     const apiKey = this.getApiKey();
     if (!apiKey) {
@@ -149,10 +172,10 @@ export class FirecrawlService {
         this.firecrawlApp = new FirecrawlApp({ apiKey });
       }
 
-      const searchQuery = `${query} in ${country}`;
-      console.log('Making search request with query:', searchQuery);
+      const enhancedQuery = await this.enhanceSearchQuery(query, country);
+      console.log('Enhanced search query:', enhancedQuery);
       
-      const response = await this.firecrawlApp.search(searchQuery) as ApiResponse;
+      const response = await this.firecrawlApp.search(enhancedQuery) as ApiResponse;
       console.log('Raw API response:', response);
 
       if (!response.success) {
