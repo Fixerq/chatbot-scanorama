@@ -5,15 +5,19 @@ interface ErrorResponse {
   error: string;
 }
 
-interface SearchResponse {
-  success: true;
-  results: Array<{
-    url: string;
-    title?: string;
-  }>;
+interface SearchResult {
+  url: string;
+  title?: string;
 }
 
-type ApiResponse = SearchResponse | ErrorResponse;
+interface SuccessResponse {
+  success: true;
+  data: {
+    results: SearchResult[];
+  };
+}
+
+type ApiResponse = SuccessResponse | ErrorResponse;
 
 export class FirecrawlService {
   private static API_KEY_STORAGE_KEY = 'firecrawl_api_key';
@@ -42,20 +46,20 @@ export class FirecrawlService {
       const searchQuery = `${query} in ${country}`;
       console.log('Making search request with query:', searchQuery);
       
-      // Call the search method with just the query string
-      const response = await this.firecrawlApp.search(searchQuery);
+      const response = await this.firecrawlApp.search(searchQuery) as ApiResponse;
       console.log('Raw API response:', response);
 
-      if (!response || !response.success) {
-        console.error('Search failed:', response);
+      if (!response.success) {
+        console.error('Search failed:', response.error);
         return { 
           success: false, 
-          error: (response as ErrorResponse)?.error || 'Failed to search websites' 
+          error: response.error || 'Failed to search websites' 
         };
       }
 
-      // Safely check if results exists before mapping
-      if (!response.results || !Array.isArray(response.results)) {
+      // Safely check if results exists and map them
+      const results = response.data?.results;
+      if (!results || !Array.isArray(results)) {
         console.error('Invalid response structure:', response);
         return {
           success: false,
@@ -63,7 +67,7 @@ export class FirecrawlService {
         };
       }
 
-      const urls = response.results.map(result => result.url);
+      const urls = results.map(result => result.url);
       console.log('Processed URLs:', urls);
       
       return { 
