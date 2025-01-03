@@ -61,7 +61,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
         console.log('Using cached result for', url);
         return {
           status: cachedResult.status,
-          details: cachedResult.details || {},
+          details: cachedResult.details as AnalysisResult['details'],
           technologies: cachedResult.technologies || []
         };
       }
@@ -118,20 +118,22 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     console.error('Error analyzing website:', error);
     const errorResult = handleFirecrawlError(error);
     
+    const result: AnalysisResult = {
+      status: errorResult,
+      details: { errorDetails: errorResult },
+      technologies: []
+    };
+
     // Cache the error result
     await supabase
       .from('analyzed_urls')
       .upsert({
         url,
-        status: errorResult,
-        details: { errorDetails: errorResult },
-        technologies: []
+        status: result.status,
+        details: result.details,
+        technologies: result.technologies
       });
 
-    return {
-      status: errorResult,
-      details: { errorDetails: errorResult },
-      technologies: []
-    };
+    return result;
   }
 };

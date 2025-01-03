@@ -1,3 +1,10 @@
+export class FirecrawlError extends Error {
+  constructor(public code: string, message: string) {
+    super(message);
+    this.name = 'FirecrawlError';
+  }
+}
+
 export const handleFirecrawlError = (error: any): string => {
   const errorStr = error?.toString().toLowerCase() || '';
   console.log('Detailed Firecrawl error:', error);
@@ -47,13 +54,6 @@ export const handleFirecrawlError = (error: any): string => {
   if (errorStr.includes('empty') || errorStr.includes('no content')) {
     return 'Website returned no content';
   }
-  
-  // If we can't identify the specific error, provide more context
-  console.error('Unhandled Firecrawl error:', {
-    error,
-    errorString: errorStr,
-    timestamp: new Date().toISOString()
-  });
   
   return 'Website not accessible - ' + (errorStr.slice(0, 100) || 'unknown error');
 };
