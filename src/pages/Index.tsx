@@ -37,22 +37,22 @@ const Index = () => {
       setResults(initialResults);
 
       // Process URLs in parallel with a concurrency limit
-      const concurrencyLimit = 5;
+      const concurrencyLimit = 10; // Increased from 5 to 10 for faster processing
       const chunks = [];
       for (let i = 0; i < urls.length; i += concurrencyLimit) {
         chunks.push(urls.slice(i, i + concurrencyLimit));
       }
 
       for (const chunk of chunks) {
-        await Promise.all(chunk.map(async (url, chunkIndex) => {
+        await Promise.all(chunk.map(async (url) => {
           try {
             const status = await detectChatbot(url);
-            setResults(prev => prev.map((result, index) => 
+            setResults(prev => prev.map(result => 
               result.url === url ? { ...result, status } : result
             ));
           } catch (error) {
             console.error(`Error processing ${url}:`, error);
-            setResults(prev => prev.map((result, index) => 
+            setResults(prev => prev.map(result => 
               result.url === url ? { ...result, status: 'Error analyzing URL' } : result
             ));
           }
@@ -70,21 +70,34 @@ const Index = () => {
 
   const handleSearchResults = async (newResults: Result[]) => {
     setIsProcessing(true);
+    setResults(newResults.map(result => ({ ...result, status: 'Processing...' })));
+
     try {
-      // Process each URL through chatbot detection
-      const processedResults = await Promise.all(
-        newResults.map(async (result) => {
-          try {
-            const status = await detectChatbot(result.url);
-            return { ...result, status };
-          } catch (error) {
-            console.error(`Error processing ${result.url}:`, error);
-            return { ...result, status: 'Error analyzing URL' };
-          }
-        })
-      );
+      // Process all URLs in parallel with the same concurrency limit
+      const concurrencyLimit = 10;
+      const chunks = [];
+      for (let i = 0; i < newResults.length; i += concurrencyLimit) {
+        chunks.push(newResults.slice(i, i + concurrencyLimit));
+      }
+
+      const processedResults: Result[] = [];
       
-      setResults(processedResults);
+      for (const chunk of chunks) {
+        const chunkResults = await Promise.all(
+          chunk.map(async (result) => {
+            try {
+              const status = await detectChatbot(result.url);
+              return { ...result, status };
+            } catch (error) {
+              console.error(`Error processing ${result.url}:`, error);
+              return { ...result, status: 'Error analyzing URL' };
+            }
+          })
+        );
+        processedResults.push(...chunkResults);
+        setResults(prev => [...prev.filter(r => !chunkResults.find(cr => cr.url === r.url)), ...chunkResults]);
+      }
+      
       toast.success('Analysis complete!');
     } catch (error) {
       console.error('Error processing search results:', error);
