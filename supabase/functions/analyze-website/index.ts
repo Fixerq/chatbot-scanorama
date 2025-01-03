@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const TIMEOUT = 30000; // 30 seconds timeout
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -34,14 +36,20 @@ serve(async (req) => {
       });
     }
 
-    // Check if website is accessible
+    // Check if website is accessible with timeout
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+      
       const websiteCheck = await fetch(url.startsWith('http') ? url : `https://${url}`, {
         method: 'HEAD',
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
         },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!websiteCheck.ok) {
         const result: CacheResult = {
@@ -79,9 +87,12 @@ serve(async (req) => {
       });
     }
 
-    // Use Firecrawl for chatbot detection
+    // Use Firecrawl for chatbot detection with timeout
     const firecrawlApiKey = Deno.env.get('Firecrawl') ?? '';
     console.log('Crawling website with Firecrawl:', url);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
     
     const crawlResponse = await fetch('https://api.firecrawl.co/crawl', {
       method: 'POST',
@@ -94,10 +105,13 @@ serve(async (req) => {
         limit: 1,
         scrapeOptions: {
           formats: ['html'],
-          timeout: 30000
+          timeout: TIMEOUT
         }
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!crawlResponse.ok) {
       throw new Error(`Firecrawl API error: ${crawlResponse.status}`);

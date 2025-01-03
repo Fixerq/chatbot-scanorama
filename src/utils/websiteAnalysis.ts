@@ -10,13 +10,21 @@ interface AnalysisResult {
   technologies: string[];
 }
 
+const ANALYSIS_TIMEOUT = 30000; // 30 seconds
+
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
     console.log(`Starting analysis for ${url}`);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ANALYSIS_TIMEOUT);
+    
     const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: { url }
+      body: { url },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (error) {
       console.error('Error invoking analyze-website function:', error);
