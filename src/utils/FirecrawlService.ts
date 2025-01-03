@@ -2,7 +2,8 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 
 interface SearchResult {
   url: string;
-  title?: string;
+  title: string;
+  description?: string;
 }
 
 interface ErrorResponse {
@@ -12,8 +13,10 @@ interface ErrorResponse {
 
 interface SuccessResponse {
   success: true;
-  data: {
-    results: SearchResult[];
+  data: SearchResult[];
+  warning?: {
+    _type: string;
+    value: string;
   };
 }
 
@@ -57,17 +60,8 @@ export class FirecrawlService {
         };
       }
 
-      // At this point, TypeScript knows response is SuccessResponse
-      const results = response.data?.results;
-      if (!results || !Array.isArray(results)) {
-        console.error('Invalid response structure:', response);
-        return {
-          success: false,
-          error: 'Invalid response structure from API'
-        };
-      }
-
-      const urls = results.map(result => result.url);
+      // Extract URLs from the search results
+      const urls = response.data.map(result => result.url);
       console.log('Processed URLs:', urls);
       
       return { 
