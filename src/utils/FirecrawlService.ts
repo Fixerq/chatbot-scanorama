@@ -69,7 +69,6 @@ export class FirecrawlService {
       'hvac': ['heating', 'cooling', 'air conditioning', 'ventilation', 'furnace']
     };
 
-    // Extract the business type from the query
     const matchedType = Object.keys(businessSpecificKeywords).find(type => 
       businessType.includes(type)
     );
@@ -114,7 +113,6 @@ export class FirecrawlService {
     const keywords = this.getBusinessKeywords(query);
     
     return results.filter(result => {
-      // Skip directory sites
       if (this.isDirectorySite(result.url)) {
         console.log(`Filtered out directory site: ${result.url}`);
         return false;
@@ -125,7 +123,6 @@ export class FirecrawlService {
         result.description || ''
       ].join(' ').toLowerCase();
 
-      // Check for relevant content indicators
       const hasKeywords = this.hasRelevantKeywords(contentToCheck, keywords);
       const hasIndicators = this.hasServiceIndicators(contentToCheck);
       const hasPhone = this.hasPhoneNumber(contentToCheck);
