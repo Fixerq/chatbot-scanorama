@@ -2,6 +2,11 @@ import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
 import { FirecrawlService } from './firecrawl';
 import { supabase } from '@/integrations/supabase/client';
+import { BLOCKED_URLS } from '@/constants/blockedUrls';
+
+const isUrlBlocked = (url: string): boolean => {
+  return BLOCKED_URLS.some(blockedUrl => url.toLowerCase().includes(blockedUrl.toLowerCase()));
+};
 
 export const performSearch = async (
   query: string,
@@ -23,7 +28,7 @@ export const performSearch = async (
       .from('analyzed_urls')
       .select('url, status');
 
-    const response = await FirecrawlService.searchWebsites(query, country, region, resultsLimit + 5); // Request extra results to check if there are more
+    const response = await FirecrawlService.searchWebsites(query, country, region, resultsLimit + 5);
 
     if (!response.success) {
       toast.error(response.error || 'Failed to search websites');
@@ -35,11 +40,13 @@ export const performSearch = async (
       existingResults?.map(result => [result.url, result]) || []
     );
 
-    // Combine existing and new URLs
-    const allResults: Result[] = response.urls!.map(url => ({
-      url,
-      status: existingResultsMap.get(url)?.status || 'Processing...'
-    }));
+    // Filter out blocked URLs and combine existing and new URLs
+    const allResults: Result[] = response.urls!
+      .filter(url => !isUrlBlocked(url))
+      .map(url => ({
+        url,
+        status: existingResultsMap.get(url)?.status || 'Processing...'
+      }));
 
     const hasMore = allResults.length > resultsLimit;
     const limitedResults = allResults.slice(0, resultsLimit);
@@ -69,7 +76,7 @@ export const loadMoreResults = async (
       .from('analyzed_urls')
       .select('url, status');
 
-    const response = await FirecrawlService.searchWebsites(query, country, region, newLimit + 5); // Request extra results to check if there are more
+    const response = await FirecrawlService.searchWebsites(query, country, region, newLimit + 5);
     
     if (response.success && response.urls) {
       const existingResultsMap = new Map(
@@ -77,9 +84,9 @@ export const loadMoreResults = async (
       );
       const currentUrlsSet = new Set(currentResults.map(r => r.url));
 
-      // Filter out URLs we already have and create new results array
+      // Filter out blocked URLs and URLs we already have, then create new results array
       const newResults = response.urls
-        .filter(url => !currentUrlsSet.has(url))
+        .filter(url => !isUrlBlocked(url) && !currentUrlsSet.has(url))
         .map(url => ({
           url,
           status: existingResultsMap.get(url)?.status || 'Processing...'
