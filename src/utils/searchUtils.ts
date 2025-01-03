@@ -23,7 +23,7 @@ export const performSearch = async (
       .from('analyzed_urls')
       .select('url, status');
 
-    const response = await FirecrawlService.searchWebsites(query, country, region, resultsLimit);
+    const response = await FirecrawlService.searchWebsites(query, country, region, resultsLimit + 5); // Request extra results to check if there are more
 
     if (!response.success) {
       toast.error(response.error || 'Failed to search websites');
@@ -41,10 +41,13 @@ export const performSearch = async (
       status: existingResultsMap.get(url)?.status || 'Processing...'
     }));
 
-    toast.success(`Found ${allResults.length} websites to analyze`);
+    const hasMore = allResults.length > resultsLimit;
+    const limitedResults = allResults.slice(0, resultsLimit);
+
+    toast.success(`Found ${limitedResults.length} websites to analyze`);
     return { 
-      results: allResults.slice(0, resultsLimit), 
-      hasMore: response.hasMore || false 
+      results: limitedResults,
+      hasMore: hasMore
     };
   } catch (error) {
     console.error('Search error:', error);
@@ -66,7 +69,7 @@ export const loadMoreResults = async (
       .from('analyzed_urls')
       .select('url, status');
 
-    const response = await FirecrawlService.searchWebsites(query, country, region, newLimit);
+    const response = await FirecrawlService.searchWebsites(query, country, region, newLimit + 5); // Request extra results to check if there are more
     
     if (response.success && response.urls) {
       const existingResultsMap = new Map(
@@ -74,23 +77,26 @@ export const loadMoreResults = async (
       );
       const currentUrlsSet = new Set(currentResults.map(r => r.url));
 
-      // Create new results array, prioritizing existing analysis results
+      // Filter out URLs we already have and create new results array
       const newResults = response.urls
         .filter(url => !currentUrlsSet.has(url))
         .map(url => ({
           url,
           status: existingResultsMap.get(url)?.status || 'Processing...'
         }));
+
+      const hasMore = response.urls.length > newLimit;
+      const limitedNewResults = newResults.slice(0, newLimit - currentResults.length);
       
-      if (newResults.length > 0) {
-        toast.success(`Loaded ${newResults.length} new websites`);
+      if (limitedNewResults.length > 0) {
+        toast.success(`Loaded ${limitedNewResults.length} new websites`);
       } else {
         toast.info('No new websites found');
       }
       
       return { 
-        newResults, 
-        hasMore: response.hasMore || false 
+        newResults: limitedNewResults,
+        hasMore: hasMore
       };
     }
     return null;
