@@ -2,8 +2,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { AnalysisResult } from './types';
 import { getCachedResult, cacheResult, isCacheValid } from './cache';
 
-const ANALYSIS_TIMEOUT = 30000; // 30 seconds
-
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
     console.log('Starting analysis for', url);
@@ -13,18 +11,9 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     
     if (cachedResult && isCacheValid(cachedResult)) {
       console.log('Using cached result for', url);
-      const parsedDetails = typeof cachedResult.details === 'string' 
-        ? JSON.parse(cachedResult.details) 
-        : cachedResult.details;
-
       return {
         status: cachedResult.status,
-        details: {
-          chatSolutions: parsedDetails?.chatSolutions || [],
-          errorDetails: parsedDetails?.errorDetails,
-          lastChecked: parsedDetails?.lastChecked,
-          platform: parsedDetails?.platform
-        },
+        details: cachedResult.details,
         technologies: cachedResult.technologies || []
       };
     }

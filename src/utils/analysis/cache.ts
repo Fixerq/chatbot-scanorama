@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
-import { AnalysisResult, CachedResult } from './types';
+import { AnalysisResult, CachedResult, ParsedCachedResult } from './types';
 
-export const getCachedResult = async (url: string): Promise<CachedResult | null> => {
+export const getCachedResult = async (url: string): Promise<ParsedCachedResult | null> => {
   const { data: cachedResult, error: cacheError } = await supabase
     .from('analyzed_urls')
     .select('*')
@@ -13,7 +13,24 @@ export const getCachedResult = async (url: string): Promise<CachedResult | null>
     return null;
   }
 
-  return cachedResult;
+  if (!cachedResult) {
+    return null;
+  }
+
+  // Parse the details from Json to our expected format
+  const parsedDetails = typeof cachedResult.details === 'string' 
+    ? JSON.parse(cachedResult.details) 
+    : cachedResult.details;
+
+  return {
+    ...cachedResult,
+    details: {
+      chatSolutions: parsedDetails?.chatSolutions || [],
+      errorDetails: parsedDetails?.errorDetails,
+      lastChecked: parsedDetails?.lastChecked,
+      platform: parsedDetails?.platform
+    }
+  };
 };
 
 export const cacheResult = async (url: string, result: AnalysisResult): Promise<void> => {
@@ -31,7 +48,7 @@ export const cacheResult = async (url: string, result: AnalysisResult): Promise<
   }
 };
 
-export const isCacheValid = (cachedResult: CachedResult): boolean => {
+export const isCacheValid = (cachedResult: ParsedCachedResult): boolean => {
   const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime();
   const cacheValidityPeriod = 24 * 60 * 60 * 1000; // 24 hours
   return cacheAge < cacheValidityPeriod;
