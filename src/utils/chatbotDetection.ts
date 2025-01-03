@@ -106,7 +106,7 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
     try {
       const response = await fetchWithTimeout(normalizedUrl);
-      let result = 'Website accessible but requires manual verification';
+      let result = 'Website detected but requires manual verification';
       
       // Since we're using no-cors mode and some sites block requests
       if (response.type !== 'opaque') {
@@ -125,7 +125,9 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
       return result;
     } catch (error) {
-      const result = 'Website requires manual verification';
+      // Handle server errors more gracefully
+      const result = 'Website exists but blocks automated access - manual check required';
+      console.log(`Server error for ${url}:`, error);
       
       // Store the error result in Supabase
       const { error: insertError } = await supabase
