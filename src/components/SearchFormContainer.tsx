@@ -66,24 +66,21 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       resultsLimit: newLimit 
     }));
 
-    // Keep existing results while loading more
-    const existingResults = [...results.currentResults];
     const moreResults = await loadMoreResults(
       searchState.query,
       searchState.country,
       searchState.region,
-      existingResults,
+      results.currentResults,
       newLimit
     );
 
-    if (moreResults) {
-      // Combine existing results with new ones
-      const combinedResults = [...existingResults, ...moreResults.newResults];
+    if (moreResults && moreResults.newResults.length > 0) {
+      const updatedResults = [...results.currentResults, ...moreResults.newResults];
       setResults({
-        currentResults: combinedResults,
+        currentResults: updatedResults,
         hasMore: moreResults.hasMore,
       });
-      onResults(combinedResults);
+      onResults(updatedResults);
     }
   };
 
