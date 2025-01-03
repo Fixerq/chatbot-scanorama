@@ -50,20 +50,21 @@ export class FirecrawlService {
       console.log('Raw API response:', response);
 
       if (!response.success) {
+        // Now TypeScript knows this is an ErrorResponse
         console.error('Search failed:', response.error);
         return { 
           success: false, 
-          error: response.error || 'Failed to search websites' 
+          error: response.error
         };
       }
 
-      // Safely check if results exists and map them
+      // At this point, TypeScript knows response is SuccessResponse
       const results = response.data?.results;
       if (!results || !Array.isArray(results)) {
         console.error('Invalid response structure:', response);
         return {
           success: false,
-          error: 'Invalid response from API'
+          error: 'Invalid response structure from API'
         };
       }
 
@@ -74,6 +75,7 @@ export class FirecrawlService {
         success: true,
         urls 
       };
+
     } catch (error) {
       console.error('Error during search:', error);
       return { 
