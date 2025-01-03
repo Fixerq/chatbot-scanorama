@@ -1,13 +1,13 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
 
-interface ErrorResponse {
-  success: false;
-  error: string;
-}
-
 interface SearchResult {
   url: string;
   title?: string;
+}
+
+interface ErrorResponse {
+  success: false;
+  error: string;
 }
 
 interface SuccessResponse {
@@ -50,7 +50,6 @@ export class FirecrawlService {
       console.log('Raw API response:', response);
 
       if (!response.success) {
-        // Now TypeScript knows this is an ErrorResponse
         console.error('Search failed:', response.error);
         return { 
           success: false, 
