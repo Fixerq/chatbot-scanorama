@@ -5,6 +5,7 @@ import ApiKeyInput from './ApiKeyInput';
 import SearchInputs from './SearchInputs';
 import { COUNTRIES } from '../constants/countries';
 import { FirecrawlService } from '../utils/FirecrawlService';
+import { Button } from './ui/button';
 
 interface SearchFormProps {
   onResults: (results: Result[]) => void;
@@ -16,6 +17,8 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [country, setCountry] = useState('');
   const [region, setRegion] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [resultsLimit, setResultsLimit] = useState(25);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     const savedApiKey = FirecrawlService.getApiKey();
@@ -45,7 +48,7 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
     FirecrawlService.saveApiKey(apiKey);
 
     try {
-      const response = await FirecrawlService.searchWebsites(query, country, region);
+      const response = await FirecrawlService.searchWebsites(query, country, region, resultsLimit);
 
       if (!response.success) {
         toast.error(response.error || 'Failed to search websites');
@@ -57,6 +60,7 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
         status: 'Processing...'
       }));
 
+      setHasMore(response.hasMore || false);
       onResults(results);
       toast.success(`Found ${results.length} websites to analyze`);
 
@@ -66,23 +70,60 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
     }
   };
 
+  const handleLoadMore = async () => {
+    try {
+      const newLimit = resultsLimit + 25;
+      setResultsLimit(newLimit);
+      
+      const response = await FirecrawlService.searchWebsites(query, country, region, newLimit);
+      
+      if (response.success && response.urls) {
+        const results = response.urls.map((url: string) => ({
+          url,
+          status: 'Processing...'
+        }));
+        
+        setHasMore(response.hasMore || false);
+        onResults(results);
+        toast.success(`Loaded ${results.length} websites`);
+      }
+    } catch (error) {
+      console.error('Load more error:', error);
+      toast.error('Failed to load more results');
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <ApiKeyInput 
-        apiKey={apiKey}
-        onChange={setApiKey}
-      />
-      <SearchInputs
-        query={query}
-        country={country}
-        region={region}
-        onQueryChange={setQuery}
-        onCountryChange={setCountry}
-        onRegionChange={setRegion}
-        isProcessing={isProcessing}
-        countries={COUNTRIES}
-      />
-    </form>
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <ApiKeyInput 
+          apiKey={apiKey}
+          onChange={setApiKey}
+        />
+        <SearchInputs
+          query={query}
+          country={country}
+          region={region}
+          onQueryChange={setQuery}
+          onCountryChange={setCountry}
+          onRegionChange={setRegion}
+          isProcessing={isProcessing}
+          countries={COUNTRIES}
+        />
+      </form>
+      
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <Button 
+            onClick={handleLoadMore}
+            disabled={isProcessing}
+            variant="outline"
+          >
+            Load More Results
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 

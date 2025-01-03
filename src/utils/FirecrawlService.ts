@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
+  private static DEFAULT_LIMIT = 25;
 
   static saveApiKey(apiKey: string): void {
     localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
@@ -53,7 +54,12 @@ export class FirecrawlService {
     return queryParts.join(' ');
   }
 
-  static async searchWebsites(query: string, country: string, region?: string): Promise<{ success: boolean; urls?: string[]; error?: string }> {
+  static async searchWebsites(
+    query: string, 
+    country: string, 
+    region?: string, 
+    limit: number = this.DEFAULT_LIMIT
+  ): Promise<{ success: boolean; urls?: string[]; error?: string; hasMore?: boolean }> {
     const apiKey = this.getApiKey();
     if (!apiKey) {
       return { success: false, error: 'API key not found' };
@@ -67,13 +73,15 @@ export class FirecrawlService {
       const enhancedQuery = await this.enhanceSearchQuery(query, country, region);
       console.log('Enhanced search query:', enhancedQuery);
       
-      let response = await this.firecrawlApp.search(enhancedQuery) as ApiResponse;
+      // Request more results than needed to ensure we have enough after filtering
+      const requestLimit = Math.min(limit * 2, 100);
+      let response = await this.firecrawlApp.search(enhancedQuery, { limit: requestLimit }) as ApiResponse;
       console.log('Raw API response:', response);
 
       if (!response.success || (response.success && (!response.data || response.data.length === 0))) {
         const simpleQuery = this.buildSearchQuery(query, country, region);
         console.log('Trying simple query:', simpleQuery);
-        response = await this.firecrawlApp.search(simpleQuery) as ApiResponse;
+        response = await this.firecrawlApp.search(simpleQuery, { limit: requestLimit }) as ApiResponse;
         console.log('Second attempt API response:', response);
       }
 
@@ -96,11 +104,12 @@ export class FirecrawlService {
       }
 
       const urls = filteredResults.map(result => result.url);
-      console.log('Processed URLs:', urls);
+      const hasMore = urls.length > limit;
       
       return { 
         success: true,
-        urls: urls.slice(0, 100) // Limit to 100 results
+        urls: urls.slice(0, limit),
+        hasMore: hasMore
       };
 
     } catch (error) {
