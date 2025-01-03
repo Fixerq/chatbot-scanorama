@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { analyzeWithWappalyzer } from './wappalyzer.ts';
+import { getCachedResult, cacheResult, CacheResult } from './cache.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +10,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders,
@@ -20,33 +21,22 @@ serve(async (req) => {
     const { url } = await req.json();
     console.log('Analyzing URL:', url);
 
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Check cache first
-    const { data: cachedResult } = await supabaseClient
-      .from('analyzed_urls')
-      .select('*')
-      .eq('url', url)
-      .single();
-
+    // Check cache
+    const cachedResult = await getCachedResult(supabaseClient, url);
     if (cachedResult) {
-      const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime();
-      const cacheValidityPeriod = 24 * 60 * 60 * 1000; // 24 hours
-
-      if (cacheAge < cacheValidityPeriod) {
-        console.log('Using cached result for', url);
-        return new Response(JSON.stringify(cachedResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        });
-      }
+      console.log('Using cached result for', url);
+      return new Response(JSON.stringify(cachedResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
     }
 
-    // First, check if the website is accessible
+    // Check if website is accessible
     try {
       const websiteCheck = await fetch(url.startsWith('http') ? url : `https://${url}`, {
         method: 'HEAD',
@@ -56,7 +46,7 @@ serve(async (req) => {
       });
       
       if (!websiteCheck.ok) {
-        const result = {
+        const result: CacheResult = {
           url,
           status: `Website not accessible (${websiteCheck.status})`,
           details: {
@@ -66,16 +56,7 @@ serve(async (req) => {
           technologies: []
         };
 
-        // Cache the inaccessible result
-        await supabaseClient
-          .from('analyzed_urls')
-          .upsert({
-            url: result.url,
-            status: result.status,
-            details: result.details,
-            technologies: result.technologies
-          });
-
+        await cacheResult(supabaseClient, result);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
@@ -83,7 +64,7 @@ serve(async (req) => {
       }
     } catch (error) {
       console.log('Website not accessible:', url, error);
-      const result = {
+      const result: CacheResult = {
         url,
         status: 'Website not accessible - skipped analysis',
         details: {
@@ -93,23 +74,18 @@ serve(async (req) => {
         technologies: []
       };
 
-      // Cache the inaccessible result
-      await supabaseClient
-        .from('analyzed_urls')
-        .upsert({
-          url: result.url,
-          status: result.status,
-          details: result.details,
-          technologies: result.technologies
-        });
-
+      await cacheResult(supabaseClient, result);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
     }
 
-    // Use Firecrawl API
+    // Analyze with Wappalyzer
+    const technologies = await analyzeWithWappalyzer(url);
+    console.log('Detected technologies:', technologies);
+
+    // Use Firecrawl for chatbot detection
     const firecrawlApiKey = Deno.env.get('Firecrawl') ?? '';
     console.log('Crawling website with Firecrawl:', url);
     
@@ -163,7 +139,7 @@ serve(async (req) => {
       }
     }
 
-    const result = {
+    const result: CacheResult = {
       url,
       status: detectedChatSolutions.length > 0 ? 
         `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
@@ -172,18 +148,10 @@ serve(async (req) => {
         chatSolutions: detectedChatSolutions,
         lastChecked: new Date().toISOString()
       },
-      technologies: []
+      technologies
     };
 
-    // Cache the result
-    await supabaseClient
-      .from('analyzed_urls')
-      .upsert({
-        url: result.url,
-        status: result.status,
-        details: result.details,
-        technologies: result.technologies
-      });
+    await cacheResult(supabaseClient, result);
 
     console.log('Analysis complete for', url, ':', result.status);
     return new Response(JSON.stringify(result), {
