@@ -1,12 +1,13 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Max-Age': '86400',
-}
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -14,42 +15,82 @@ serve(async (req) => {
     return new Response(null, {
       status: 204,
       headers: corsHeaders
-    })
+    });
   }
 
   try {
-    const { url } = await req.json()
-    console.log('Analyzing URL:', url)
+    const { url } = await req.json();
+    console.log('Analyzing URL:', url);
 
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
     // Check cache first
     const { data: cachedResult } = await supabaseClient
       .from('analyzed_urls')
       .select('*')
       .eq('url', url)
-      .single()
+      .single();
 
     if (cachedResult) {
-      const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime()
-      const cacheValidityPeriod = 24 * 60 * 60 * 1000 // 24 hours
+      const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime();
+      const cacheValidityPeriod = 24 * 60 * 60 * 1000; // 24 hours
 
       if (cacheAge < cacheValidityPeriod) {
-        console.log('Using cached result for', url)
+        console.log('Using cached result for', url);
         return new Response(JSON.stringify(cachedResult), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200
-        })
+        });
       }
     }
 
+    // First, check if the website is accessible
+    try {
+      const websiteCheck = await fetch(url.startsWith('http') ? url : `https://${url}`, {
+        method: 'HEAD',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
+        },
+      });
+      
+      if (!websiteCheck.ok) {
+        throw new Error(`Website returned status: ${websiteCheck.status}`);
+      }
+    } catch (error) {
+      console.log('Website not accessible:', url, error);
+      const result = {
+        url,
+        status: 'Website not accessible - skipped analysis',
+        details: {
+          errorDetails: error instanceof Error ? error.message : 'Connection failed',
+          lastChecked: new Date().toISOString()
+        },
+        technologies: []
+      };
+
+      // Cache the inaccessible result
+      await supabaseClient
+        .from('analyzed_urls')
+        .upsert({
+          url: result.url,
+          status: result.status,
+          details: result.details,
+          technologies: result.technologies
+        });
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    }
+
     // Use Firecrawl API with native fetch
-    const firecrawlApiKey = Deno.env.get('Firecrawl') ?? ''
-    console.log('Crawling website with Firecrawl:', url)
+    const firecrawlApiKey = Deno.env.get('Firecrawl') ?? '';
+    console.log('Crawling website with Firecrawl:', url);
     
     const crawlResponse = await fetch('https://api.firecrawl.co/crawl', {
       method: 'POST',
@@ -65,23 +106,23 @@ serve(async (req) => {
           timeout: 30000
         }
       })
-    })
+    });
 
     if (!crawlResponse.ok) {
-      throw new Error(`Firecrawl API error: ${crawlResponse.status}`)
+      throw new Error(`Firecrawl API error: ${crawlResponse.status}`);
     }
 
-    const crawlData = await crawlResponse.json()
-    console.log('Firecrawl response:', crawlData)
+    const crawlData = await crawlResponse.json();
+    console.log('Firecrawl response:', crawlData);
     
     if (!crawlData.success || !crawlData.data?.[0]?.html) {
-      throw new Error('Failed to crawl website')
+      throw new Error('Failed to crawl website');
     }
 
-    const html = crawlData.data[0].html
+    const html = crawlData.data[0].html;
 
     // Detect chat solutions
-    const detectedChatSolutions = []
+    const detectedChatSolutions = [];
     const CHAT_SOLUTIONS = {
       'Intercom': ['.intercom-frame', '#intercom-container', 'intercom'],
       'Drift': ['#drift-widget', '.drift-frame-controller', 'drift'],
@@ -93,11 +134,11 @@ serve(async (req) => {
       'Facebook Messenger': ['.fb-customerchat', '.fb_dialog', 'messenger'],
       'WhatsApp': ['.wa-chat-box', '.whatsapp-chat', 'whatsapp'],
       'Custom Chat': ['[class*="chat"]', '[class*="messenger"]', '[id*="chat"]', '[id*="messenger"]']
-    }
+    };
 
     for (const [solution, selectors] of Object.entries(CHAT_SOLUTIONS)) {
       if (selectors.some(selector => html.toLowerCase().includes(selector.toLowerCase()))) {
-        detectedChatSolutions.push(solution)
+        detectedChatSolutions.push(solution);
       }
     }
 
@@ -111,7 +152,7 @@ serve(async (req) => {
         lastChecked: new Date().toISOString()
       },
       technologies: []
-    }
+    };
 
     // Cache the result
     await supabaseClient
@@ -121,29 +162,30 @@ serve(async (req) => {
         status: result.status,
         details: result.details,
         technologies: result.technologies
-      })
+      });
 
-    console.log('Analysis complete for', url, ':', result.status)
+    console.log('Analysis complete for', url, ':', result.status);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
-    })
+    });
 
   } catch (error) {
-    console.error('Error analyzing website:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error analyzing website:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const result = {
+      url,
       status: 'Website not accessible - analysis failed',
       details: { 
         errorDetails: errorMessage,
         lastChecked: new Date().toISOString()
       },
       technologies: []
-    }
+    };
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200 // Still return 200 to handle the error gracefully on the client
-    })
+      status: 200
+    });
   }
-})
+});
