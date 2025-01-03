@@ -53,6 +53,18 @@ const CHATBOT_PATTERNS = [
 
 export const detectChatbot = async (url: string): Promise<string> => {
   try {
+    // Check if URL has already been analyzed
+    const { data: existingAnalysis } = await supabase
+      .from('analyzed_urls')
+      .select('status')
+      .eq('url', url)
+      .single();
+
+    if (existingAnalysis) {
+      console.log(`Using cached result for ${url}: ${existingAnalysis.status}`);
+      return existingAnalysis.status;
+    }
+
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
     const response = await fetch(proxyUrl);
     
@@ -64,44 +76,55 @@ export const detectChatbot = async (url: string): Promise<string> => {
     const html = await response.text();
     console.log(`Analyzing ${url}...`);
     
+    let status = 'No';
+
     // Check for script tags that might contain chat widget configurations
     const scriptTags = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi) || [];
     for (const script of scriptTags) {
       const scriptContent = script.toLowerCase();
       
-      // Look for chat widget configurations
       if (scriptContent.includes('widget') && scriptContent.includes('chat')) {
         const configMatch = scriptContent.match(/widget_?id['":\s]+([^'"}\s]+)/i);
         if (configMatch) {
           console.log(`Found chat widget configuration: ${configMatch[1]}`);
-          return `Yes - Custom Chat Widget (ID: ${configMatch[1]})`;
+          status = `Yes - Custom Chat Widget (ID: ${configMatch[1]})`;
+          break;
         }
       }
     }
     
-    // Check for known platforms
-    for (const platform of CHATBOT_PATTERNS) {
-      for (const pattern of platform.patterns) {
-        if (html.toLowerCase().includes(pattern.toLowerCase())) {
-          // Look for specific configuration or implementation details
-          const configDetails = extractConfigDetails(html, platform.platform);
-          console.log(`Found ${platform.platform} on ${url}`);
-          return configDetails ? `Yes - ${platform.platform} (${configDetails})` : `Yes - ${platform.platform}`;
+    // Check for known platforms if no custom widget was found
+    if (status === 'No') {
+      for (const platform of CHATBOT_PATTERNS) {
+        for (const pattern of platform.patterns) {
+          if (html.toLowerCase().includes(pattern.toLowerCase())) {
+            const configDetails = extractConfigDetails(html, platform.platform);
+            console.log(`Found ${platform.platform} on ${url}`);
+            status = configDetails ? `Yes - ${platform.platform} (${configDetails})` : `Yes - ${platform.platform}`;
+            break;
+          }
         }
+        if (status !== 'No') break;
       }
     }
     
-    // Check for iframes and div containers that might contain chat widgets
-    if (html.toLowerCase().includes('iframe') || html.toLowerCase().includes('div')) {
+    // Check for iframes and div containers if still no chatbot found
+    if (status === 'No') {
       const matches = html.match(/(?:iframe|div)[^>]+(?:id|class)=['"]([^'"]*chat[^'"]*)['"]/i);
       if (matches) {
         console.log(`Found chat widget container: ${matches[1]}`);
-        return `Yes - Unidentified Chat Widget (Container: ${matches[1]})`;
+        status = `Yes - Unidentified Chat Widget (Container: ${matches[1]})`;
       }
     }
     
-    console.log(`No chatbot detected on ${url}`);
-    return 'No';
+    // Store the result in the database
+    await supabase
+      .from('analyzed_urls')
+      .insert([{ url, status }])
+      .select();
+
+    console.log(`Analysis complete for ${url}: ${status}`);
+    return status;
   } catch (error) {
     console.error(`Error analyzing ${url}:`, error);
     return 'Error';

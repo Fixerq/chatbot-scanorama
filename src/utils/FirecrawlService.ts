@@ -6,8 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
-  private static MAX_API_LIMIT = 10; // Maximum allowed by Firecrawl API
-  private static DEFAULT_LIMIT = 10;
+  private static MAX_API_LIMIT = 30; // Increased from 10 to 30 for deeper search
+  private static DEFAULT_LIMIT = 30;
 
   static saveApiKey(apiKey: string): void {
     localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
@@ -74,7 +74,7 @@ export class FirecrawlService {
       const enhancedQuery = await this.enhanceSearchQuery(query, country, region);
       console.log('Enhanced search query:', enhancedQuery);
       
-      // Ensure we don't exceed the API limit
+      // Request more results from the API
       const requestLimit = Math.min(this.MAX_API_LIMIT, limit);
       let response = await this.firecrawlApp.search(enhancedQuery, { limit: requestLimit }) as ApiResponse;
       console.log('Raw API response:', response);
@@ -104,12 +104,24 @@ export class FirecrawlService {
         };
       }
 
-      const urls = filteredResults.map(result => result.url);
-      const hasMore = response.data.length >= requestLimit; // If we got the maximum results, there might be more
+      // Get previously analyzed URLs
+      const { data: analyzedUrls } = await supabase
+        .from('analyzed_urls')
+        .select('url')
+        .in('url', filteredResults.map(result => result.url));
+
+      const analyzedUrlSet = new Set(analyzedUrls?.map(item => item.url) || []);
+      
+      // Filter out already analyzed URLs
+      const newUrls = filteredResults
+        .filter(result => !analyzedUrlSet.has(result.url))
+        .map(result => result.url);
+
+      const hasMore = response.data.length >= requestLimit;
       
       return { 
         success: true,
-        urls: urls.slice(0, limit),
+        urls: newUrls.slice(0, limit),
         hasMore: hasMore
       };
 
