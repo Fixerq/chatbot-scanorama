@@ -14,6 +14,7 @@ interface SearchFormProps {
 const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [query, setQuery] = useState('');
   const [country, setCountry] = useState('');
+  const [region, setRegion] = useState('');
   const [apiKey, setApiKey] = useState('');
 
   useEffect(() => {
@@ -44,7 +45,7 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
     FirecrawlService.saveApiKey(apiKey);
 
     try {
-      const response = await FirecrawlService.searchWebsites(query, country);
+      const response = await FirecrawlService.searchWebsites(query, country, region);
 
       if (!response.success) {
         toast.error(response.error || 'Failed to search websites');
@@ -74,8 +75,10 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
       <SearchInputs
         query={query}
         country={country}
+        region={region}
         onQueryChange={setQuery}
         onCountryChange={setCountry}
+        onRegionChange={setRegion}
         isProcessing={isProcessing}
         countries={COUNTRIES}
       />

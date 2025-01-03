@@ -25,7 +25,6 @@ export const getBusinessKeywords = (query: string): string[] => {
 };
 
 export const isDirectorySite = (url: string): boolean => {
-  // Only filter out well-known directory sites
   return DIRECTORY_DOMAINS.some(domain => url.toLowerCase().includes(domain));
 };
 
@@ -38,8 +37,27 @@ export const hasServiceIndicators = (content: string): boolean => {
 
 export const hasRelevantKeywords = (content: string, keywords: string[]): boolean => {
   const lowerContent = content.toLowerCase();
-  // Make the keyword matching less strict by requiring only one keyword match
   return keywords.some(keyword => lowerContent.includes(keyword.toLowerCase()));
+};
+
+export const hasLocationMatch = (content: string, country: string, region?: string): boolean => {
+  const lowerContent = content.toLowerCase();
+  const lowerCountry = country.toLowerCase();
+  
+  // Check for country match
+  const hasCountry = lowerContent.includes(lowerCountry);
+  
+  // If no region specified, only check country
+  if (!region) {
+    return hasCountry;
+  }
+  
+  // Check for region match if specified
+  const lowerRegion = region.toLowerCase();
+  const hasRegion = lowerContent.includes(lowerRegion);
+  
+  // Return true if both country and region match, or at least one matches
+  return hasCountry || hasRegion;
 };
 
 export const hasPhoneNumber = (content: string): boolean => {
@@ -54,28 +72,31 @@ export const hasPhoneNumber = (content: string): boolean => {
   return phonePatterns.some(pattern => pattern.test(content));
 };
 
-export const filterResults = (results: SearchResult[], query: string): SearchResult[] => {
+export const filterResults = (
+  results: SearchResult[], 
+  query: string, 
+  country: string, 
+  region?: string
+): SearchResult[] => {
   const keywords = getBusinessKeywords(query);
   
   return results.filter(result => {
-    // Skip directory site check for now to get more results
-    // if (isDirectorySite(result.url)) {
-    //   console.log(`Filtered out directory site: ${result.url}`);
-    //   return false;
-    // }
+    if (isDirectorySite(result.url)) {
+      console.log(`Filtered out directory site: ${result.url}`);
+      return false;
+    }
 
     const contentToCheck = [
       result.title,
       result.description || ''
     ].join(' ').toLowerCase();
 
-    // Make the filtering less strict by requiring only keywords OR indicators
     const hasKeywords = hasRelevantKeywords(contentToCheck, keywords);
     const hasIndicators = hasServiceIndicators(contentToCheck);
     const hasPhone = hasPhoneNumber(contentToCheck);
+    const hasLocation = hasLocationMatch(contentToCheck, country, region);
 
-    // Changed from AND to OR to be less restrictive
-    const isRelevant = hasKeywords || hasIndicators || hasPhone;
+    const isRelevant = hasKeywords && hasLocation && (hasIndicators || hasPhone);
     
     if (!isRelevant) {
       console.log(`Filtered out non-relevant result: ${result.url}`);

@@ -13,8 +13,10 @@ import {
 interface SearchInputsProps {
   query: string;
   country: string;
+  region: string;
   onQueryChange: (value: string) => void;
   onCountryChange: (value: string) => void;
+  onRegionChange: (value: string) => void;
   isProcessing: boolean;
   countries: string[];
 }
@@ -22,36 +24,49 @@ interface SearchInputsProps {
 const SearchInputs = ({
   query,
   country,
+  region,
   onQueryChange,
   onCountryChange,
+  onRegionChange,
   isProcessing,
   countries,
 }: SearchInputsProps) => {
   return (
-    <div className="flex gap-2">
-      <Input
-        type="text"
-        placeholder="Enter niche (e.g., 'SaaS companies')"
-        value={query}
-        onChange={(e) => onQueryChange(e.target.value)}
-        className="flex-1"
-      />
-      <Select value={country} onValueChange={onCountryChange}>
-        <SelectTrigger className="w-1/3">
-          <SelectValue placeholder="Select country" />
-        </SelectTrigger>
-        <SelectContent>
-          {countries.map((country) => (
-            <SelectItem key={country} value={country}>
-              {country}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button type="submit" disabled={isProcessing}>
-        <Search className="w-4 h-4 mr-2" />
-        Search
-      </Button>
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Input
+          type="text"
+          placeholder="Enter niche (e.g., 'plumbers', 'electricians')"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={country} onValueChange={onCountryChange}>
+          <SelectTrigger className="w-1/3">
+            <SelectValue placeholder="Select country" />
+          </SelectTrigger>
+          <SelectContent>
+            {countries.map((country) => (
+              <SelectItem key={country} value={country}>
+                {country}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex gap-2">
+        <Input
+          type="text"
+          placeholder="Enter state/region (optional)"
+          value={region}
+          onChange={(e) => onRegionChange(e.target.value)}
+          className="flex-1"
+        />
+        <Button type="submit" disabled={isProcessing} className="w-32">
+          <Search className="w-4 h-4 mr-2" />
+          Search
+        </Button>
+      </div>
     </div>
   );
 };
