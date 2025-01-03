@@ -1,4 +1,4 @@
 project_id = "cfelpyucqllkshmlkwxz"
 
-[functions.enhance-search]
+[functions.analyze-website]
 verify_jwt = false
