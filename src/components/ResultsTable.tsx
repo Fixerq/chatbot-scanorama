@@ -7,50 +7,48 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 export interface Result {
   url: string;
   status: string;
-  technologies?: string[];
+  details?: {
+    platform?: string;
+    chatSolutions?: string[];
+    errorDetails?: string;
+    lastChecked?: string;
+  };
 }
 
 interface ResultsTableProps {
   results: Result[];
 }
 
-const ResultsTable = ({ results }: ResultsTableProps) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   return (
-    <div className="border rounded-lg">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>URL</TableHead>
-            <TableHead>Detection Status</TableHead>
-            <TableHead>Technologies</TableHead>
+            <TableHead className="w-[300px]">Website</TableHead>
+            <TableHead>Platform</TableHead>
+            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {results.map((result, index) => (
             <TableRow key={index}>
-              <TableCell className="font-medium">{result.url}</TableCell>
-              <TableCell>
-                <span className={`inline-flex items-center ${
-                  result.status.includes('detected') ? 'text-green-600' : 
-                  result.status.includes('Error') ? 'text-red-600' : 'text-gray-600'
-                }`}>
-                  {result.status}
-                </span>
+              <TableCell className="font-medium">
+                <a 
+                  href={result.url.startsWith('http') ? result.url : `https://${result.url}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  {result.url}
+                </a>
               </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {result.technologies?.map((tech, i) => (
-                    <Badge key={i} variant="secondary">
-                      {tech}
-                    </Badge>
-                  ))}
-                </div>
-              </TableCell>
+              <TableCell>{result.details?.platform || 'Unknown'}</TableCell>
+              <TableCell>{result.status}</TableCell>
             </TableRow>
           ))}
         </TableBody>

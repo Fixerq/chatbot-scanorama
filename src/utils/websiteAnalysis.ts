@@ -6,6 +6,7 @@ interface AnalysisResult {
     chatSolutions?: string[];
     errorDetails?: string;
     lastChecked?: string;
+    platform?: string;
   };
   technologies: string[];
 }
@@ -17,6 +18,7 @@ interface CachedResult {
     chatSolutions?: string[];
     errorDetails?: string;
     lastChecked?: string;
+    platform?: string;
   };
   technologies: string[];
   created_at: string;
@@ -72,6 +74,43 @@ const CHAT_PATTERNS = {
   ]
 };
 
+const PLATFORM_PATTERNS = {
+  'WordPress': [
+    /wp-content/i,
+    /wp-includes/i,
+    /wordpress/i
+  ],
+  'Shopify': [
+    /cdn\.shopify\.com/i,
+    /shopify\.com/i
+  ],
+  'Wix': [
+    /wix\.com/i,
+    /wixsite\.com/i
+  ],
+  'Squarespace': [
+    /squarespace\.com/i,
+    /static1\.squarespace\.com/i
+  ],
+  'Webflow': [
+    /webflow\.com/i,
+    /webflow\.io/i
+  ],
+  'Drupal': [
+    /drupal/i,
+    /sites\/all/i
+  ],
+  'Joomla': [
+    /joomla/i,
+    /com_content/i
+  ],
+  'Ghost': [
+    /ghost\.io/i,
+    /ghost-theme/i
+  ],
+  'Custom/Unknown': []
+};
+
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
     console.log('Starting analysis for', url);
@@ -102,7 +141,8 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
           details: {
             chatSolutions: parsedDetails?.chatSolutions || [],
             errorDetails: parsedDetails?.errorDetails,
-            lastChecked: parsedDetails?.lastChecked
+            lastChecked: parsedDetails?.lastChecked,
+            platform: parsedDetails?.platform
           },
           technologies: cachedResult.technologies || []
         };
@@ -127,6 +167,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       status: analysisData.status || 'Analysis completed',
       details: {
         chatSolutions: analysisData.chatSolutions || [],
+        platform: analysisData.platform || 'Unknown',
         lastChecked: new Date().toISOString()
       },
       technologies: analysisData.technologies || []
@@ -157,7 +198,8 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       status,
       details: { 
         errorDetails: errorMessage,
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
+        platform: 'Unknown'
       },
       technologies: []
     };

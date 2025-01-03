@@ -21,6 +21,17 @@ const CHAT_PATTERNS = {
   'Custom Chat': [/chat-widget/i, /chat-container/i, /chat-box/i, /messenger-widget/i]
 };
 
+const PLATFORM_PATTERNS = {
+  'WordPress': [/wp-content/i, /wp-includes/i, /wordpress/i],
+  'Shopify': [/cdn\.shopify\.com/i, /shopify\.com/i],
+  'Wix': [/wix\.com/i, /wixsite\.com/i],
+  'Squarespace': [/squarespace\.com/i, /static1\.squarespace\.com/i],
+  'Webflow': [/webflow\.com/i, /webflow\.io/i],
+  'Drupal': [/drupal/i, /sites\/all/i],
+  'Joomla': [/joomla/i, /com_content/i],
+  'Ghost': [/ghost\.io/i, /ghost-theme/i]
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -32,7 +43,6 @@ serve(async (req) => {
   try {
     const { url } = await req.json();
     
-    // Fetch the website content with a timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
     
@@ -52,6 +62,7 @@ serve(async (req) => {
 
       const html = await response.text();
       const detectedChatSolutions = [];
+      let detectedPlatform = 'Unknown';
 
       // Check for chat solutions
       for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
@@ -60,11 +71,20 @@ serve(async (req) => {
         }
       }
 
+      // Check for platform
+      for (const [platform, patterns] of Object.entries(PLATFORM_PATTERNS)) {
+        if (patterns.some(pattern => pattern.test(html))) {
+          detectedPlatform = platform;
+          break;
+        }
+      }
+
       return new Response(JSON.stringify({
         status: detectedChatSolutions.length > 0 ? 
           `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
           'No chatbot detected',
         chatSolutions: detectedChatSolutions,
+        platform: detectedPlatform,
         technologies: [],
         lastChecked: new Date().toISOString()
       }), {
@@ -82,6 +102,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       status: 'Error analyzing website',
       error: error instanceof Error ? error.message : 'Unknown error',
+      platform: 'Unknown',
       lastChecked: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
