@@ -16,7 +16,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     country: '',
     region: '',
     apiKey: '',
-    resultsLimit: 10,
+    resultsLimit: 9,
     currentPage: 1,
   });
 
@@ -37,17 +37,15 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
   const handleSearch = async () => {
     setIsSearching(true);
     
-    // Increase the limit for subsequent searches to find new results
-    const searchLimit = results.currentResults.length > 0 ? 
-      results.currentResults.length + 10 : 
-      searchState.resultsLimit;
+    // Calculate new limit based on current results
+    const newLimit = results.currentResults.length + 9;
     
     const searchResult = await performSearch(
       searchState.query,
       searchState.country,
       searchState.region,
       searchState.apiKey,
-      searchLimit
+      newLimit
     );
     
     setIsSearching(false);
@@ -60,7 +58,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         )
       );
       
-      // Combine with existing results if we have any
+      // Combine with existing results
       const combinedResults = [...results.currentResults, ...newResults];
       
       setResults({
@@ -73,7 +71,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
 
   const handleLoadMore = async () => {
     const nextPage = searchState.currentPage + 1;
-    const newLimit = searchState.resultsLimit + 10;
+    const newLimit = searchState.resultsLimit + 9;
     
     setSearchState(prev => ({ 
       ...prev, 
