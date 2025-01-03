@@ -21,9 +21,7 @@ export const performSearch = async (
     // Get existing analyzed URLs for this search
     const { data: existingResults } = await supabase
       .from('analyzed_urls')
-      .select('url, status')
-      .ilike('url', `%${query}%`)
-      .limit(resultsLimit);
+      .select('url, status');
 
     const response = await FirecrawlService.searchWebsites(query, country, region, resultsLimit);
 
@@ -32,16 +30,20 @@ export const performSearch = async (
       return null;
     }
 
-    // Combine existing and new URLs
-    const existingUrls = new Set(existingResults?.map(r => r.url) || []);
-    const allUrls = [...(existingResults || []), ...response.urls!.map(url => ({ url, status: 'Processing...' }))];
-    
-    // Remove duplicates while preserving order
-    const uniqueResults = Array.from(new Map(allUrls.map(item => [item.url, item])).values());
+    // Create a map of existing results for quick lookup
+    const existingResultsMap = new Map(
+      existingResults?.map(result => [result.url, result]) || []
+    );
 
-    toast.success(`Found ${uniqueResults.length} websites to analyze`);
+    // Combine existing and new URLs
+    const allResults: Result[] = response.urls!.map(url => ({
+      url,
+      status: existingResultsMap.get(url)?.status || 'Processing...'
+    }));
+
+    toast.success(`Found ${allResults.length} websites to analyze`);
     return { 
-      results: uniqueResults.slice(0, resultsLimit), 
+      results: allResults.slice(0, resultsLimit), 
       hasMore: response.hasMore || false 
     };
   } catch (error) {
@@ -59,16 +61,17 @@ export const loadMoreResults = async (
   newLimit: number
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   try {
+    // Get existing analyzed URLs
+    const { data: existingResults } = await supabase
+      .from('analyzed_urls')
+      .select('url, status');
+
     const response = await FirecrawlService.searchWebsites(query, country, region, newLimit);
     
     if (response.success && response.urls) {
-      // Get existing analyzed URLs
-      const { data: existingResults } = await supabase
-        .from('analyzed_urls')
-        .select('url, status')
-        .in('url', response.urls);
-
-      const existingUrlsMap = new Map(existingResults?.map(r => [r.url, r.status]) || []);
+      const existingResultsMap = new Map(
+        existingResults?.map(result => [result.url, result]) || []
+      );
       const currentUrlsSet = new Set(currentResults.map(r => r.url));
 
       // Create new results array, prioritizing existing analysis results
@@ -76,7 +79,7 @@ export const loadMoreResults = async (
         .filter(url => !currentUrlsSet.has(url))
         .map(url => ({
           url,
-          status: existingUrlsMap.get(url) || 'Processing...'
+          status: existingResultsMap.get(url)?.status || 'Processing...'
         }));
       
       if (newResults.length > 0) {

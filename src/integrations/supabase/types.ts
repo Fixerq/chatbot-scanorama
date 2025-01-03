@@ -9,18 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      Table1: {
+      analyzed_urls: {
         Row: {
           created_at: string
           id: number
+          status: string
+          url: string
         }
         Insert: {
           created_at?: string
           id?: number
+          status: string
+          url: string
         }
         Update: {
           created_at?: string
           id?: number
+          status?: string
+          url?: string
         }
         Relationships: []
       }
@@ -136,3 +142,4 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
     ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
