@@ -16,7 +16,8 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     country: '',
     region: '',
     apiKey: '',
-    resultsLimit: 10, // Updated to respect API limit
+    resultsLimit: 20, // Increased initial limit
+    currentPage: 1,
   });
 
   const [results, setResults] = useState({
@@ -35,6 +36,8 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
 
   const handleSearch = async () => {
     setIsSearching(true);
+    setSearchState(prev => ({ ...prev, currentPage: 1 })); // Reset page on new search
+    
     const searchResult = await performSearch(
       searchState.query,
       searchState.country,
@@ -54,8 +57,14 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
   };
 
   const handleLoadMore = async () => {
-    const newLimit = searchState.resultsLimit + 10;
-    setSearchState(prev => ({ ...prev, resultsLimit: newLimit }));
+    const nextPage = searchState.currentPage + 1;
+    const newLimit = searchState.resultsLimit + 20; // Increase limit by 20 each time
+    
+    setSearchState(prev => ({ 
+      ...prev, 
+      currentPage: nextPage,
+      resultsLimit: newLimit 
+    }));
     
     const moreResults = await loadMoreResults(
       searchState.query,
