@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Result } from './ResultsTable';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -40,6 +41,14 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [country, setCountry] = useState('');
   const [apiKey, setApiKey] = useState('');
 
+  useEffect(() => {
+    // Try to load API key from localStorage first
+    const savedApiKey = localStorage.getItem('firecrawl_api_key');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -57,6 +66,9 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
       toast.error('Please select a country');
       return;
     }
+
+    // Save API key to localStorage
+    localStorage.setItem('firecrawl_api_key', apiKey);
 
     try {
       const searchQuery = `${query} in ${country}`;
@@ -94,16 +106,34 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
     }
   };
 
+  const handleRemoveApiKey = () => {
+    localStorage.removeItem('firecrawl_api_key');
+    setApiKey('');
+    toast.success('API key removed successfully');
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Input
-          type="password"
-          placeholder="Enter your Firecrawl API key"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          className="w-full"
-        />
+        <div className="flex gap-2">
+          <Input
+            type="password"
+            placeholder="Enter your Firecrawl API key"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            className="flex-1"
+          />
+          {apiKey && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleRemoveApiKey}
+              className="whitespace-nowrap"
+            >
+              Remove API Key
+            </Button>
+          )}
+        </div>
       </div>
       <div className="flex gap-2">
         <Input
