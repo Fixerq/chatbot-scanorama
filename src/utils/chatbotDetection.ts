@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
+import { FirecrawlService } from './FirecrawlService';
 
 const isValidUrl = (url: string): boolean => {
   try {
@@ -8,25 +9,6 @@ const isValidUrl = (url: string): boolean => {
     return true;
   } catch {
     return false;
-  }
-};
-
-const fetchWithTimeout = async (url: string, timeout = 10000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, { 
-      signal: controller.signal,
-      headers: {
-        'Accept': 'text/html'
-      }
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
   }
 };
 
@@ -104,25 +86,20 @@ export const detectChatbot = async (url: string): Promise<string> => {
     const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
 
     try {
-      const response = await fetchWithTimeout(normalizedUrl);
-      
-      if (!response.ok) {
-        const result = `Website not accessible (HTTP ${response.status})`;
-        
-        // Store the error result in Supabase
-        const { error: insertError } = await supabase
+      console.log('Starting Firecrawl analysis for:', normalizedUrl);
+      const response = await FirecrawlService.crawlWebsite(normalizedUrl);
+
+      if (!response.success) {
+        const result = 'Website not accessible - analysis failed';
+        await supabase
           .from('analyzed_urls')
           .insert({ url, status: result });
-
-        if (insertError) {
-          console.error('Error storing result:', insertError);
-        }
-
         return result;
       }
 
-      const html = await response.text();
-      const result = hasChatbotScript(html) ? 'Chatbot detected' : 'No chatbot detected';
+      // Extract HTML content from Firecrawl response
+      const htmlContent = response.data?.data?.[0]?.html || '';
+      const result = hasChatbotScript(htmlContent) ? 'Chatbot detected' : 'No chatbot detected';
 
       // Store the result in Supabase
       const { error: insertError } = await supabase
@@ -135,21 +112,12 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
       return result;
     } catch (error) {
-      // Handle specific error cases
-      const result = error instanceof Error && error.name === 'AbortError' 
-        ? 'Analysis timeout - website too slow to respond'
-        : 'Website not accessible - connection failed';
+      console.error(`Error analyzing ${url}:`, error);
+      const result = 'Error analyzing URL';
       
-      console.log(`Error analyzing ${url}:`, error);
-      
-      // Store the error result in Supabase
-      const { error: insertError } = await supabase
+      await supabase
         .from('analyzed_urls')
         .insert({ url, status: result });
-
-      if (insertError) {
-        console.error('Error storing result:', insertError);
-      }
 
       return result;
     }

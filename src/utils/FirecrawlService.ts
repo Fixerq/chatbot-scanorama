@@ -18,41 +18,46 @@ export class FirecrawlService {
     return localStorage.getItem(API_KEY_STORAGE_KEY);
   }
 
-  private static async enhanceSearchQuery(query: string, country: string, region?: string): Promise<string> {
-    try {
-      const { data, error } = await supabase.functions.invoke('enhance-search', {
-        body: { query, country, region }
-      });
+  static async crawlWebsite(url: string): Promise<{ success: boolean; error?: string; data?: any }> {
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      return { success: false, error: 'API key not found' };
+    }
 
-      if (error) {
-        console.warn('Failed to enhance search query:', error);
-        return this.buildSearchQuery(query, country, region);
+    try {
+      console.log('Making crawl request to Firecrawl API');
+      if (!this.firecrawlApp) {
+        this.firecrawlApp = new FirecrawlApp({ apiKey });
       }
 
-      return data?.enhancedQuery || this.buildSearchQuery(query, country, region);
+      const crawlResponse = await this.firecrawlApp.crawlUrl(url, {
+        limit: 1,
+        scrapeOptions: {
+          formats: ['html'],
+          selectors: ['script', 'link[rel="stylesheet"]', 'meta'],
+        }
+      });
+
+      if (!crawlResponse.success) {
+        console.error('Crawl failed:', crawlResponse.error);
+        return { 
+          success: false, 
+          error: crawlResponse.error || 'Failed to crawl website' 
+        };
+      }
+
+      console.log('Crawl successful:', crawlResponse);
+      return { 
+        success: true,
+        data: crawlResponse 
+      };
     } catch (error) {
-      console.warn('Error enhancing search query:', error);
-      return this.buildSearchQuery(query, country, region);
+      console.error('Error during crawl:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to connect to Firecrawl API' 
+      };
     }
-  }
-
-  private static buildSearchQuery(query: string, country: string, region?: string): string {
-    const locationString = region ? `${region}, ${country}` : country;
-    const businessTerms = [
-      'business',
-      'company',
-      'service',
-      'professional',
-      'local'
-    ];
-
-    const queryParts = [
-      query,
-      locationString,
-      ...businessTerms
-    ];
-
-    return queryParts.join(' ');
   }
 
   static async searchWebsites(
