@@ -18,7 +18,6 @@ const fetchWithTimeout = async (url: string, timeout = 10000) => {
   try {
     const response = await fetch(url, { 
       signal: controller.signal,
-      mode: 'no-cors', // Add no-cors mode to handle CORS issues
       headers: {
         'Accept': 'text/html'
       }
@@ -106,13 +105,24 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
     try {
       const response = await fetchWithTimeout(normalizedUrl);
-      let result = 'Website detected but requires manual verification';
       
-      // Since we're using no-cors mode and some sites block requests
-      if (response.type !== 'opaque') {
-        const html = await response.text();
-        result = hasChatbotScript(html) ? 'Chatbot detected' : 'No chatbot detected';
+      if (!response.ok) {
+        const result = `Website not accessible (HTTP ${response.status})`;
+        
+        // Store the error result in Supabase
+        const { error: insertError } = await supabase
+          .from('analyzed_urls')
+          .insert({ url, status: result });
+
+        if (insertError) {
+          console.error('Error storing result:', insertError);
+        }
+
+        return result;
       }
+
+      const html = await response.text();
+      const result = hasChatbotScript(html) ? 'Chatbot detected' : 'No chatbot detected';
 
       // Store the result in Supabase
       const { error: insertError } = await supabase
@@ -125,9 +135,12 @@ export const detectChatbot = async (url: string): Promise<string> => {
 
       return result;
     } catch (error) {
-      // Handle server errors more gracefully
-      const result = 'Website exists but blocks automated access - manual check required';
-      console.log(`Server error for ${url}:`, error);
+      // Handle specific error cases
+      const result = error instanceof Error && error.name === 'AbortError' 
+        ? 'Analysis timeout - website too slow to respond'
+        : 'Website not accessible - connection failed';
+      
+      console.log(`Error analyzing ${url}:`, error);
       
       // Store the error result in Supabase
       const { error: insertError } = await supabase
