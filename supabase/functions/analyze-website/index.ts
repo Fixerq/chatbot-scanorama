@@ -46,7 +46,7 @@ serve(async (req) => {
       }
     }
 
-    // Use Firecrawl API directly with fetch
+    // Use Firecrawl API
     const firecrawlApiKey = Deno.env.get('Firecrawl') ?? ''
     console.log('Crawling website with Firecrawl:', url)
     
@@ -125,6 +125,7 @@ serve(async (req) => {
     console.log('Analysis complete for', url, ':', result.status)
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
     })
 
   } catch (error) {
