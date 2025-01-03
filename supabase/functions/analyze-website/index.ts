@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getCachedResult, cacheResult, CacheResult } from './cache.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +7,19 @@ const corsHeaders = {
 };
 
 const TIMEOUT = 30000; // 30 seconds timeout
+
+const CHAT_PATTERNS = {
+  'Intercom': [/intercom/i, /widget\.intercom\.io/i],
+  'Drift': [/drift\.com/i, /js\.driftt\.com/i, /drift-frame/i],
+  'Zendesk': [/zopim/i, /zendesk/i, /zdassets\.com/i],
+  'Crisp': [/crisp\.chat/i, /client\.crisp\.chat/i],
+  'LiveChat': [/livechat/i, /livechatinc\.com/i],
+  'Tawk.to': [/tawk\.to/i, /embed\.tawk\.to/i],
+  'HubSpot': [/hubspot/i, /js\.hs-scripts\.com/i],
+  'Facebook Messenger': [/facebook\.com\/customer_chat/i, /connect\.facebook\.net.*\/sdk\/xfbml\.customerchat/i],
+  'WhatsApp': [/wa\.me/i, /whatsapp/i, /api\.whatsapp\.com/i],
+  'Custom Chat': [/chat-widget/i, /chat-container/i, /chat-box/i, /messenger-widget/i]
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,167 +31,59 @@ serve(async (req) => {
 
   try {
     const { url } = await req.json();
-    console.log('Analyzing URL:', url);
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Check cache
-    const cachedResult = await getCachedResult(supabaseClient, url);
-    if (cachedResult) {
-      console.log('Using cached result for', url);
-      return new Response(JSON.stringify(cachedResult), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
-
-    // Check if website is accessible with timeout
+    
+    // Fetch the website content with a timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+    
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
-      
-      const websiteCheck = await fetch(url.startsWith('http') ? url : `https://${url}`, {
-        method: 'HEAD',
+      const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
         },
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
-      
-      if (!websiteCheck.ok) {
-        const result: CacheResult = {
-          url,
-          status: `Website not accessible (${websiteCheck.status})`,
-          details: {
-            errorDetails: `Website returned status: ${websiteCheck.status}`,
-            lastChecked: new Date().toISOString()
-          },
-          technologies: []
-        };
 
-        await cacheResult(supabaseClient, result);
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } catch (error) {
-      console.log('Website not accessible:', url, error);
-      const result: CacheResult = {
-        url,
-        status: 'Website not accessible - skipped analysis',
-        details: {
-          errorDetails: error instanceof Error ? error.message : 'Connection failed',
-          lastChecked: new Date().toISOString()
-        },
-        technologies: []
-      };
 
-      await cacheResult(supabaseClient, result);
-      return new Response(JSON.stringify(result), {
+      const html = await response.text();
+      const detectedChatSolutions = [];
+
+      // Check for chat solutions
+      for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
+        if (patterns.some(pattern => pattern.test(html))) {
+          detectedChatSolutions.push(solution);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        status: detectedChatSolutions.length > 0 ? 
+          `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
+          'No chatbot detected',
+        chatSolutions: detectedChatSolutions,
+        technologies: [],
+        lastChecked: new Date().toISOString()
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       });
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
     }
-
-    // Use Firecrawl for chatbot detection with timeout
-    const firecrawlApiKey = Deno.env.get('Firecrawl') ?? '';
-    console.log('Crawling website with Firecrawl:', url);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
-    
-    const crawlResponse = await fetch('https://api.firecrawl.co/crawl', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${firecrawlApiKey}`
-      },
-      body: JSON.stringify({
-        url,
-        limit: 1,
-        scrapeOptions: {
-          formats: ['html'],
-          timeout: TIMEOUT
-        }
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!crawlResponse.ok) {
-      throw new Error(`Firecrawl API error: ${crawlResponse.status}`);
-    }
-
-    const crawlData = await crawlResponse.json();
-    console.log('Firecrawl response:', crawlData);
-    
-    if (!crawlData.success || !crawlData.data?.[0]?.html) {
-      throw new Error('Failed to crawl website');
-    }
-
-    const html = crawlData.data[0].html;
-
-    // Detect chat solutions
-    const detectedChatSolutions = [];
-    const CHAT_SOLUTIONS = {
-      'Intercom': ['.intercom-frame', '#intercom-container', 'intercom'],
-      'Drift': ['#drift-widget', '.drift-frame-controller', 'drift'],
-      'Zendesk': ['.zEWidget-launcher', '#launcher', 'zendesk'],
-      'Crisp': ['.crisp-client', '#crisp-chatbox', 'crisp'],
-      'LiveChat': ['#livechat-compact-container', '#chat-widget-container', 'livechat'],
-      'Tawk.to': ['#tawkchat-container', '#tawkchat-minified-wrapper', 'tawk'],
-      'HubSpot': ['#hubspot-messages-iframe-container', '.HubSpotWebWidget', 'hubspot'],
-      'Facebook Messenger': ['.fb-customerchat', '.fb_dialog', 'messenger'],
-      'WhatsApp': ['.wa-chat-box', '.whatsapp-chat', 'whatsapp'],
-      'Custom Chat': ['[class*="chat"]', '[class*="messenger"]', '[id*="chat"]', '[id*="messenger"]']
-    };
-
-    for (const [solution, selectors] of Object.entries(CHAT_SOLUTIONS)) {
-      if (selectors.some(selector => html.toLowerCase().includes(selector.toLowerCase()))) {
-        detectedChatSolutions.push(solution);
-      }
-    }
-
-    const result: CacheResult = {
-      url,
-      status: detectedChatSolutions.length > 0 ? 
-        `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
-        'No chatbot detected',
-      details: {
-        chatSolutions: detectedChatSolutions,
-        lastChecked: new Date().toISOString()
-      },
-      technologies: []
-    };
-
-    await cacheResult(supabaseClient, result);
-
-    console.log('Analysis complete for', url, ':', result.status);
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
 
   } catch (error) {
     console.error('Error analyzing website:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const result = {
+    return new Response(JSON.stringify({
       status: 'Error analyzing website',
-      details: { 
-        errorDetails: errorMessage,
-        lastChecked: new Date().toISOString()
-      },
-      technologies: []
-    };
-
-    return new Response(JSON.stringify(result), {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      lastChecked: new Date().toISOString()
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200
     });

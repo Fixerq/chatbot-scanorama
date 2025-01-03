@@ -74,14 +74,18 @@ const CHAT_PATTERNS = {
 
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
-    console.log(`Starting analysis for ${url}`);
+    console.log('Starting analysis for', url);
     
     // First check cache
-    const { data: cachedResult } = await supabase
+    const { data: cachedResult, error: cacheError } = await supabase
       .from('analyzed_urls')
       .select('*')
       .eq('url', url)
-      .single();
+      .maybeSingle();
+
+    if (cacheError) {
+      console.error('Cache lookup error:', cacheError);
+    }
 
     if (cachedResult) {
       const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime();
@@ -105,62 +109,44 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       }
     }
 
-    // Create a timeout promise
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), ANALYSIS_TIMEOUT);
-
-    try {
-      // Fetch the webpage
-      const response = await fetch(url.startsWith('http') ? url : `https://${url}`, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
-        }
+    // Use Supabase Edge Function to analyze the website
+    const { data: analysisData, error: analysisError } = await supabase
+      .functions.invoke('analyze-website', {
+        body: { url }
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const html = await response.text();
-      const detectedChatSolutions: string[] = [];
-
-      // Check for chat solutions using regex patterns
-      for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
-        if (patterns.some(pattern => pattern.test(html))) {
-          detectedChatSolutions.push(solution);
-        }
-      }
-
-      const result: AnalysisResult = {
-        status: detectedChatSolutions.length > 0 ? 
-          `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
-          'No chatbot detected',
-        details: {
-          chatSolutions: detectedChatSolutions,
-          lastChecked: new Date().toISOString()
-        },
-        technologies: []
-      };
-
-      // Cache the result
-      await supabase
-        .from('analyzed_urls')
-        .upsert({
-          url,
-          status: result.status,
-          details: result.details,
-          technologies: result.technologies
-        });
-
-      return result;
-
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
+    if (analysisError) {
+      throw new Error(`Analysis failed: ${analysisError.message}`);
     }
+
+    if (!analysisData) {
+      throw new Error('No analysis data returned');
+    }
+
+    const result: AnalysisResult = {
+      status: analysisData.status || 'Analysis completed',
+      details: {
+        chatSolutions: analysisData.chatSolutions || [],
+        lastChecked: new Date().toISOString()
+      },
+      technologies: analysisData.technologies || []
+    };
+
+    // Cache the result
+    const { error: insertError } = await supabase
+      .from('analyzed_urls')
+      .upsert({
+        url,
+        status: result.status,
+        details: result.details,
+        technologies: result.technologies
+      });
+
+    if (insertError) {
+      console.error('Error caching result:', insertError);
+    }
+
+    return result;
 
   } catch (error) {
     console.error('Error analyzing website:', error);
