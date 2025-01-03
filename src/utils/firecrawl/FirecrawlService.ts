@@ -1,18 +1,33 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { API_CONSTANTS } from './config';
-import { isDirectorySite, validateApiKey } from './validation';
-import type { CrawlResponse, SearchOptions, ApiResponse } from './types';
+
+interface ErrorResponse {
+  success: false;
+  error: string;
+}
+
+interface CrawlStatusResponse {
+  success: true;
+  status: string;
+  completed: number;
+  total: number;
+  creditsUsed: number;
+  expiresAt: string;
+  data: any[];
+}
+
+type CrawlResponse = CrawlStatusResponse | ErrorResponse;
 
 export class FirecrawlService {
+  private static API_KEY_STORAGE_KEY = 'firecrawl_api_key';
   private static firecrawlApp: FirecrawlApp | null = null;
 
   static saveApiKey(apiKey: string): void {
-    localStorage.setItem(API_CONSTANTS.STORAGE_KEY, apiKey);
+    localStorage.setItem(this.API_KEY_STORAGE_KEY, apiKey);
     this.firecrawlApp = new FirecrawlApp({ apiKey });
   }
 
   static getApiKey(): string | null {
-    return localStorage.getItem(API_CONSTANTS.STORAGE_KEY);
+    return localStorage.getItem(this.API_KEY_STORAGE_KEY);
   }
 
   private static initializeApp(apiKey: string): void {
@@ -22,13 +37,9 @@ export class FirecrawlService {
   }
 
   static async crawlWebsite(url: string): Promise<{ success: boolean; error?: string; data?: any }> {
-    const apiKey = validateApiKey(this.getApiKey());
+    const apiKey = this.getApiKey();
     if (!apiKey) {
       return { success: false, error: 'API key not found' };
-    }
-
-    if (isDirectorySite(url)) {
-      return { success: false, error: 'Directory sites are not supported' };
     }
 
     try {
@@ -39,7 +50,7 @@ export class FirecrawlService {
         limit: 1,
         scrapeOptions: {
           formats: ['html'],
-          timeout: API_CONSTANTS.DEFAULT_TIMEOUT
+          timeout: 30000
         }
       });
 
@@ -76,22 +87,27 @@ export class FirecrawlService {
     query: string, 
     country: string, 
     region?: string, 
-    limit: number = API_CONSTANTS.DEFAULT_LIMIT
+    limit: number = 20
   ): Promise<{ success: boolean; urls?: string[]; error?: string; hasMore?: boolean }> {
-    const apiKey = validateApiKey(this.getApiKey());
+    const apiKey = this.getApiKey();
     if (!apiKey) {
       return { success: false, error: 'API key not found' };
     }
 
     try {
       this.initializeApp(apiKey);
+      console.log('Search params:', { query, country, region, limit });
 
       const searchQuery = `${query} ${country} ${region || ''}`.trim();
-      console.log('Search query:', searchQuery);
-      
-      const requestLimit = Math.min(API_CONSTANTS.MAX_API_LIMIT, limit);
-      const response = await this.firecrawlApp!.search(searchQuery, { limit: requestLimit });
-      console.log('Raw API response:', response);
+      const requestLimit = limit + 5; // Request extra results to check if there are more
+
+      const response = await this.firecrawlApp!.search(searchQuery, { 
+        limit: requestLimit,
+        options: {
+          country: country,
+          region: region || undefined
+        }
+      });
 
       if (!response.success) {
         console.error('Search failed:', 'error' in response ? response.error : 'Unknown error');
@@ -101,27 +117,21 @@ export class FirecrawlService {
         };
       }
 
-      const filteredResults = response.data
-        .filter(result => !isDirectorySite(result.url))
-        .map(result => result.url);
+      const urls = response.data.map(result => result.url);
+      const hasMore = urls.length > limit;
+      const limitedUrls = urls.slice(0, limit);
 
-      console.log('Filtered results:', filteredResults);
+      console.log('Search results:', {
+        totalResults: urls.length,
+        limitedResults: limitedUrls.length,
+        hasMore
+      });
 
-      if (filteredResults.length === 0) {
-        return {
-          success: false,
-          error: 'No relevant websites found. Try adjusting your search terms.'
-        };
-      }
-
-      const hasMore = response.data.length >= requestLimit;
-      
       return { 
         success: true,
-        urls: filteredResults.slice(0, limit),
-        hasMore: hasMore
+        urls: limitedUrls,
+        hasMore
       };
-
     } catch (error) {
       console.error('Error during search:', error);
       return { 
