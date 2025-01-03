@@ -12,7 +12,6 @@ export interface Result {
   url: string;
   status: string;
   details?: {
-    platform?: string;
     chatSolutions?: string[];
     errorDetails?: string;
     lastChecked?: string;
@@ -30,7 +29,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
-            <TableHead>Platform</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -47,7 +45,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   {result.url}
                 </a>
               </TableCell>
-              <TableCell>{result.details?.platform || 'Unknown'}</TableCell>
               <TableCell>{result.status}</TableCell>
             </TableRow>
           ))}
