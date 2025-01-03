@@ -55,8 +55,7 @@ export class FirecrawlService {
         limit: 1,
         scrapeOptions: {
           formats: ['html'],
-          timeout: 30000, // Increased timeout to 30 seconds
-          waitUntil: 'networkidle0' // Wait for network to be idle
+          timeout: 30000 // Increased timeout to 30 seconds
         }
       });
 
@@ -64,7 +63,7 @@ export class FirecrawlService {
         console.error('Crawl failed:', 'error' in crawlResponse ? crawlResponse.error : 'Unknown error');
         return { 
           success: false, 
-          error: 'error' in crawlResponse ? crawlResponse.error : 'Failed to crawl website'
+          error: 'error' in crawlResponse ? crawlResponse.error : 'Failed to crawl website' 
         };
       }
 
