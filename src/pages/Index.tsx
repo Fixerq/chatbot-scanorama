@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import FileUpload from '@/components/FileUpload';
 import { Result } from '@/components/ResultsTable';
-import { processCSV, exportToCSV } from '@/utils/chatbotDetection';
+import { processCSV, exportToCSV, detectChatbot } from '@/utils/chatbotDetection';
 import { toast } from 'sonner';
 import CsvInstructions from '@/components/CsvInstructions';
 import Header from '@/components/Header';
@@ -30,16 +30,64 @@ const Index = () => {
     }
 
     try {
-      const newResults = await Promise.all(
-        urls.map(async (url) => ({
-          url,
-          status: 'Processing...' // Placeholder for actual detection logic
-        }))
-      );
-      
-      setResults(newResults);
+      const initialResults = urls.map(url => ({
+        url,
+        status: 'Processing...'
+      }));
+      setResults(initialResults);
+
+      // Process URLs in parallel with a concurrency limit
+      const concurrencyLimit = 5;
+      const chunks = [];
+      for (let i = 0; i < urls.length; i += concurrencyLimit) {
+        chunks.push(urls.slice(i, i + concurrencyLimit));
+      }
+
+      for (const chunk of chunks) {
+        await Promise.all(chunk.map(async (url, chunkIndex) => {
+          try {
+            const status = await detectChatbot(url);
+            setResults(prev => prev.map((result, index) => 
+              result.url === url ? { ...result, status } : result
+            ));
+          } catch (error) {
+            console.error(`Error processing ${url}:`, error);
+            setResults(prev => prev.map((result, index) => 
+              result.url === url ? { ...result, status: 'Error analyzing URL' } : result
+            ));
+          }
+        }));
+      }
+
       toast.success('Analysis complete!');
     } catch (error) {
+      console.error('Error processing URLs:', error);
+      toast.error('Error processing URLs');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSearchResults = async (newResults: Result[]) => {
+    setIsProcessing(true);
+    try {
+      // Process each URL through chatbot detection
+      const processedResults = await Promise.all(
+        newResults.map(async (result) => {
+          try {
+            const status = await detectChatbot(result.url);
+            return { ...result, status };
+          } catch (error) {
+            console.error(`Error processing ${result.url}:`, error);
+            return { ...result, status: 'Error analyzing URL' };
+          }
+        })
+      );
+      
+      setResults(processedResults);
+      toast.success('Analysis complete!');
+    } catch (error) {
+      console.error('Error processing search results:', error);
       toast.error('Error processing URLs');
     } finally {
       setIsProcessing(false);
@@ -76,7 +124,7 @@ const Index = () => {
                 <h3>Search Websites by Niche</h3>
                 <p>Enter a niche or industry to find and analyze websites for chatbot usage. The search will return up to 100 relevant websites.</p>
               </div>
-              <SearchForm onResults={setResults} isProcessing={isProcessing} />
+              <SearchForm onResults={handleSearchResults} isProcessing={isProcessing} />
             </TabsContent>
           </Tabs>
           
@@ -87,7 +135,7 @@ const Index = () => {
             </div>
           )}
 
-          {results.length > 0 && !isProcessing && (
+          {results.length > 0 && (
             <Results results={results} onExport={handleExport} />
           )}
         </div>
