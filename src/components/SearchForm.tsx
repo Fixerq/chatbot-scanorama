@@ -4,6 +4,7 @@ import { Result } from './ResultsTable';
 import ApiKeyInput from './ApiKeyInput';
 import SearchInputs from './SearchInputs';
 import { COUNTRIES } from '../constants/countries';
+import { FirecrawlService } from '../utils/FirecrawlService';
 
 interface SearchFormProps {
   onResults: (results: Result[]) => void;
@@ -16,7 +17,7 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
   const [apiKey, setApiKey] = useState('');
 
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('firecrawl_api_key');
+    const savedApiKey = FirecrawlService.getApiKey();
     if (savedApiKey) {
       setApiKey(savedApiKey);
     }
@@ -40,40 +41,26 @@ const SearchForm = ({ onResults, isProcessing }: SearchFormProps) => {
       return;
     }
 
-    localStorage.setItem('firecrawl_api_key', apiKey);
+    FirecrawlService.saveApiKey(apiKey);
 
     try {
-      const searchQuery = `${query} in ${country}`;
+      const response = await FirecrawlService.searchWebsites(query, country);
 
-      const crawlResponse = await fetch('https://api.firecrawl.co/api/v1/search', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: searchQuery,
-          limit: 100,
-          type: 'website'
-        })
-      });
-
-      if (!crawlResponse.ok) {
-        throw new Error('Failed to fetch URLs');
+      if (!response.success) {
+        toast.error(response.error || 'Failed to search websites');
+        return;
       }
 
-      const data = await crawlResponse.json();
-      const urls = data.results.map((result: any) => result.url);
-
-      const results = urls.map((url: string) => ({
+      const results = response.urls!.map((url: string) => ({
         url,
         status: 'Processing...'
       }));
 
       onResults(results);
-      toast.success(`Found ${urls.length} websites to analyze`);
+      toast.success(`Found ${results.length} websites to analyze`);
 
     } catch (error) {
+      console.error('Search error:', error);
       toast.error('Failed to search websites. Please check your API key and try again.');
     }
   };
