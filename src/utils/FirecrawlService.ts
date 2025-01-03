@@ -54,7 +54,9 @@ export class FirecrawlService {
       const crawlResponse = await this.firecrawlApp.crawlUrl(url, {
         limit: 1,
         scrapeOptions: {
-          formats: ['html']
+          formats: ['html'],
+          timeout: 30000, // Increased timeout to 30 seconds
+          waitUntil: 'networkidle0' // Wait for network to be idle
         }
       });
 
@@ -63,6 +65,13 @@ export class FirecrawlService {
         return { 
           success: false, 
           error: 'error' in crawlResponse ? crawlResponse.error : 'Failed to crawl website'
+        };
+      }
+
+      if (!crawlResponse.data?.[0]?.html) {
+        return {
+          success: false,
+          error: 'No HTML content retrieved'
         };
       }
 

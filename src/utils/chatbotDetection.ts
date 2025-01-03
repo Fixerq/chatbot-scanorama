@@ -5,7 +5,7 @@ import { FirecrawlService } from './FirecrawlService';
 
 const isValidUrl = (url: string): boolean => {
   try {
-    new URL(url);
+    new URL(url.startsWith('http') ? url : `https://${url}`);
     return true;
   } catch {
     return false;
@@ -80,7 +80,11 @@ export const detectChatbot = async (url: string): Promise<string> => {
     }
 
     if (!isValidUrl(url)) {
-      return 'Invalid URL';
+      const result = 'Invalid URL format';
+      await supabase
+        .from('analyzed_urls')
+        .insert({ url, status: result });
+      return result;
     }
 
     const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
@@ -90,25 +94,32 @@ export const detectChatbot = async (url: string): Promise<string> => {
       const response = await FirecrawlService.crawlWebsite(normalizedUrl);
 
       if (!response.success) {
-        const result = 'Website not accessible - analysis failed';
+        console.error('Firecrawl error:', response.error);
+        const result = response.error === 'Failed to connect to Firecrawl API' 
+          ? 'API connection error' 
+          : 'Website not accessible';
+        
         await supabase
           .from('analyzed_urls')
           .insert({ url, status: result });
         return result;
       }
 
-      // Extract HTML content from Firecrawl response
-      const htmlContent = response.data?.data?.[0]?.html || '';
+      if (!response.data?.data?.[0]?.html) {
+        console.error('No HTML content received from Firecrawl');
+        const result = 'No content retrieved';
+        await supabase
+          .from('analyzed_urls')
+          .insert({ url, status: result });
+        return result;
+      }
+
+      const htmlContent = response.data.data[0].html;
       const result = hasChatbotScript(htmlContent) ? 'Chatbot detected' : 'No chatbot detected';
 
-      // Store the result in Supabase
-      const { error: insertError } = await supabase
+      await supabase
         .from('analyzed_urls')
         .insert({ url, status: result });
-
-      if (insertError) {
-        console.error('Error storing result:', insertError);
-      }
 
       return result;
     } catch (error) {
@@ -134,8 +145,11 @@ export const processCSV = (content: string): string[] => {
   if (results.data && Array.isArray(results.data)) {
     results.data.forEach((row: any) => {
       const urlValue = row.url || row.URL || row.Website || row.website || Object.values(row)[0];
-      if (urlValue && typeof urlValue === 'string' && isValidUrl(urlValue)) {
-        urls.push(urlValue);
+      if (urlValue && typeof urlValue === 'string') {
+        const cleanUrl = urlValue.trim();
+        if (isValidUrl(cleanUrl)) {
+          urls.push(cleanUrl);
+        }
       }
     });
   }
