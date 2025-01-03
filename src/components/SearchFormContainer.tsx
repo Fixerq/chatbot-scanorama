@@ -36,7 +36,9 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
 
   const handleSearch = async () => {
     setIsSearching(true);
-    setSearchState(prev => ({ ...prev, currentPage: 1, resultsLimit: 10 }));
+    
+    // Keep track of existing results
+    const existingResults = results.currentResults;
     
     const searchResult = await performSearch(
       searchState.query,
@@ -45,20 +47,30 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       searchState.apiKey,
       searchState.resultsLimit
     );
+    
     setIsSearching(false);
 
     if (searchResult) {
+      // Combine existing results with new ones, filtering out duplicates
+      const newResults = searchResult.results.filter(
+        newResult => !existingResults.some(
+          existing => existing.url === newResult.url
+        )
+      );
+      
+      const combinedResults = [...existingResults, ...newResults];
+      
       setResults({
-        currentResults: searchResult.results,
+        currentResults: combinedResults,
         hasMore: searchResult.hasMore,
       });
-      onResults(searchResult.results);
+      onResults(combinedResults);
     }
   };
 
   const handleLoadMore = async () => {
     const nextPage = searchState.currentPage + 1;
-    const newLimit = Math.min(10, searchState.resultsLimit + 10);
+    const newLimit = searchState.resultsLimit + 10;
     
     setSearchState(prev => ({ 
       ...prev, 
@@ -75,7 +87,14 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     );
 
     if (moreResults && moreResults.newResults.length > 0) {
-      const updatedResults = [...results.currentResults, ...moreResults.newResults];
+      // Filter out any duplicate results
+      const newUniqueResults = moreResults.newResults.filter(
+        newResult => !results.currentResults.some(
+          existing => existing.url === newResult.url
+        )
+      );
+      
+      const updatedResults = [...results.currentResults, ...newUniqueResults];
       setResults({
         currentResults: updatedResults,
         hasMore: moreResults.hasMore,
