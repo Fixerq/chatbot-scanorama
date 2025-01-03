@@ -2,6 +2,7 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 import { API_KEY_STORAGE_KEY } from './constants/firecrawl';
 import { filterResults } from './helpers/searchHelpers';
 import { ApiResponse, ErrorResponse, SearchResult } from './types/firecrawl';
+import { supabase } from '@/integrations/supabase/client';
 
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
@@ -17,21 +18,16 @@ export class FirecrawlService {
 
   private static async enhanceSearchQuery(query: string, country: string): Promise<string> {
     try {
-      const response = await fetch('/functions/enhance-search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query, country }),
+      const { data, error } = await supabase.functions.invoke('enhance-search', {
+        body: { query, country }
       });
 
-      if (!response.ok) {
-        console.warn('Failed to enhance search query, using original query');
+      if (error) {
+        console.warn('Failed to enhance search query:', error);
         return `${query} in ${country}`;
       }
 
-      const data = await response.json();
-      return data.enhancedQuery || `${query} in ${country}`;
+      return data?.enhancedQuery || `${query} in ${country}`;
     } catch (error) {
       console.warn('Error enhancing search query:', error);
       return `${query} in ${country}`;
