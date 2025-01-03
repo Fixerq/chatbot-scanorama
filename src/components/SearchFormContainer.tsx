@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Result } from './ResultsTable';
-import { FirecrawlService } from '../utils/FirecrawlService';
+import { FirecrawlService } from '../utils/firecrawl';
 import { performSearch, loadMoreResults } from '../utils/searchUtils';
 import SearchForm from './SearchForm';
 import LoadMoreButton from './LoadMoreButton';
