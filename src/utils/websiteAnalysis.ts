@@ -17,7 +17,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     console.log(`Starting analysis for ${url}`);
     
     // Create a timeout promise
-    const timeoutPromise = new Promise<AnalysisResult>((_, reject) => {
+    const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error('Analysis timeout'));
       }, ANALYSIS_TIMEOUT);
@@ -29,18 +29,22 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     });
 
     // Race between timeout and analysis
-    const result = await Promise.race([analysisPromise, timeoutPromise]);
-
-    if ('error' in result) {
-      console.error('Error invoking analyze-website function:', result.error);
+    const response = await Promise.race([analysisPromise, timeoutPromise]);
+    
+    if (!response || 'error' in response) {
+      console.error('Error invoking analyze-website function:', response?.error || 'No response');
       return {
         status: 'Error analyzing website',
-        details: { errorDetails: result.error.message },
+        details: { 
+          errorDetails: response?.error?.message || 'Failed to analyze website'
+        },
         technologies: []
       };
     }
 
-    if (!result.data) {
+    const result = response.data;
+    
+    if (!result) {
       console.error('No data returned from analyze-website function');
       return {
         status: 'Error analyzing website',
@@ -50,9 +54,9 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     }
 
     return {
-      status: result.data.status,
-      details: result.data.details || {},
-      technologies: result.data.technologies || []
+      status: result.status || 'Error analyzing website',
+      details: result.details || {},
+      technologies: result.technologies || []
     };
 
   } catch (error) {
