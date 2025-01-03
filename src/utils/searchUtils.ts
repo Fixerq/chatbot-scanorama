@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
-import { FirecrawlService } from './FirecrawlService';
+import { FirecrawlService } from './firecrawl';
 import { supabase } from '@/integrations/supabase/client';
 
 export const performSearch = async (

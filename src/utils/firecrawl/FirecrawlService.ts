@@ -1,61 +1,45 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { API_CONSTANTS } from './config';
+import { isDirectorySite, validateApiKey } from './validation';
+import type { CrawlResponse, SearchOptions, ApiResponse } from './types';
 
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
-  private static MAX_API_LIMIT = 10;
-  private static DEFAULT_LIMIT = 10;
-  private static DIRECTORY_DOMAINS = [
-    'yelp.com',
-    'yellowpages.com',
-    'angi.com',
-    'angieslist.com',
-    'checkatrade.com',
-    'houzz.com',
-    'thumbtack.com',
-    'homeadvisor.com',
-    'bark.com',
-    'trustpilot.com',
-    'bbb.org',
-    'google.com/maps',
-    'facebook.com/pages',
-    'linkedin.com/company',
-    'foursquare.com'
-  ];
 
   static saveApiKey(apiKey: string): void {
-    localStorage.setItem('firecrawl_api_key', apiKey);
+    localStorage.setItem(API_CONSTANTS.STORAGE_KEY, apiKey);
     this.firecrawlApp = new FirecrawlApp({ apiKey });
   }
 
   static getApiKey(): string | null {
-    return localStorage.getItem('firecrawl_api_key');
+    return localStorage.getItem(API_CONSTANTS.STORAGE_KEY);
   }
 
-  private static isDirectorySite(url: string): boolean {
-    return this.DIRECTORY_DOMAINS.some(domain => url.toLowerCase().includes(domain));
+  private static initializeApp(apiKey: string): void {
+    if (!this.firecrawlApp) {
+      this.firecrawlApp = new FirecrawlApp({ apiKey });
+    }
   }
 
   static async crawlWebsite(url: string): Promise<{ success: boolean; error?: string; data?: any }> {
-    const apiKey = this.getApiKey();
+    const apiKey = validateApiKey(this.getApiKey());
     if (!apiKey) {
       return { success: false, error: 'API key not found' };
     }
 
-    if (this.isDirectorySite(url)) {
+    if (isDirectorySite(url)) {
       return { success: false, error: 'Directory sites are not supported' };
     }
 
     try {
       console.log('Making crawl request to Firecrawl API');
-      if (!this.firecrawlApp) {
-        this.firecrawlApp = new FirecrawlApp({ apiKey });
-      }
+      this.initializeApp(apiKey);
 
-      const crawlResponse = await this.firecrawlApp.crawlUrl(url, {
+      const crawlResponse = await this.firecrawlApp!.crawlUrl(url, {
         limit: 1,
         scrapeOptions: {
           formats: ['html'],
-          timeout: 30000 // Increased timeout to 30 seconds
+          timeout: API_CONSTANTS.DEFAULT_TIMEOUT
         }
       });
 
@@ -92,23 +76,21 @@ export class FirecrawlService {
     query: string, 
     country: string, 
     region?: string, 
-    limit: number = this.DEFAULT_LIMIT
+    limit: number = API_CONSTANTS.DEFAULT_LIMIT
   ): Promise<{ success: boolean; urls?: string[]; error?: string; hasMore?: boolean }> {
-    const apiKey = this.getApiKey();
+    const apiKey = validateApiKey(this.getApiKey());
     if (!apiKey) {
       return { success: false, error: 'API key not found' };
     }
 
     try {
-      if (!this.firecrawlApp) {
-        this.firecrawlApp = new FirecrawlApp({ apiKey });
-      }
+      this.initializeApp(apiKey);
 
       const searchQuery = `${query} ${country} ${region || ''}`.trim();
       console.log('Search query:', searchQuery);
       
-      const requestLimit = Math.min(this.MAX_API_LIMIT, limit);
-      const response = await this.firecrawlApp.search(searchQuery, { limit: requestLimit });
+      const requestLimit = Math.min(API_CONSTANTS.MAX_API_LIMIT, limit);
+      const response = await this.firecrawlApp!.search(searchQuery, { limit: requestLimit });
       console.log('Raw API response:', response);
 
       if (!response.success) {
@@ -119,9 +101,8 @@ export class FirecrawlService {
         };
       }
 
-      // Filter out directory sites
       const filteredResults = response.data
-        .filter(result => !this.isDirectorySite(result.url))
+        .filter(result => !isDirectorySite(result.url))
         .map(result => result.url);
 
       console.log('Filtered results:', filteredResults);

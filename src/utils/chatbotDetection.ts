@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
-import { FirecrawlService } from './FirecrawlService';
+import { FirecrawlService } from './firecrawl';
 
 const isValidUrl = (url: string): boolean => {
   try {
