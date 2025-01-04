@@ -8,6 +8,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const ASSISTANT_INSTRUCTIONS = `You are a local business search specialist. Your task is to enhance search queries to find ONLY small-to-medium local business service providers.
+
+Key requirements for search results:
+1. ONLY return local business service providers
+2. NO government websites, educational institutions, or large corporations
+3. NO job boards, career sites, or news articles
+4. NO online directories (LinkedIn, Yellow Pages, etc)
+5. NO military/veteran services or non-profits
+
+Guidelines for query enhancement:
+1. ALWAYS include terms that indicate local business:
+   - "local business"
+   - "local company"
+   - "local service"
+   - "local contractor"
+2. Focus on service-oriented businesses
+3. Keep queries concise (3-4 words maximum)
+4. Emphasize local/small business nature
+
+Examples:
+❌ "IT support services" → ✅ "local computer repair business"
+❌ "plumbing services" → ✅ "local plumber company"
+❌ "window installation" → ✅ "local window contractor"
+❌ "tech support" → ✅ "local IT company"
+
+Always think: Will this query find actual local service businesses rather than institutions or large companies?`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,40 +55,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a local business search specialist. Your task is to enhance search queries to find ONLY small-to-medium local business service providers.
-
-Key requirements:
-- Focus EXCLUSIVELY on finding LOCAL BUSINESS SERVICE PROVIDERS
-- ALWAYS include terms like "local", "company", "business", "service", or "contractor"
-- STRICTLY EXCLUDE:
-  * Government websites (.gov domains)
-  * Educational institutions (.edu domains)
-  * Large corporations and chains
-  * Job boards or career sites
-  * News articles and blogs
-  * Professional associations
-  * Online directories (LinkedIn, Yellow Pages, etc)
-  * Support pages of major brands
-  * Military or veteran services
-  * Social services and non-profits
-
-- Keep queries under 4 words
-- Do not add specific location terms
-
-Examples:
-❌ Bad: "IT support services" (too generic)
-✅ Good: "local computer repair"
-
-❌ Bad: "windows installation" (ambiguous)
-✅ Good: "local window contractor"
-
-❌ Bad: "plumbing services" (too broad)
-✅ Good: "local plumber business"
-
-❌ Bad: "tech support help" (attracts major companies)
-✅ Good: "local IT company"
-
-Always think: "Will this query find actual local service businesses rather than institutions or large companies?"`
+            content: ASSISTANT_INSTRUCTIONS
           },
           {
             role: 'user',
@@ -72,7 +66,7 @@ Always think: "Will this query find actual local service businesses rather than 
           }
         ],
         temperature: 0.3,
-        max_tokens: 30
+        max_tokens: 50
       }),
     });
 
