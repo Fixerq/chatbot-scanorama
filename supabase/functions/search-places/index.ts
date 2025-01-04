@@ -9,9 +9,22 @@ interface SearchRequest {
   startIndex: number;
 }
 
+// Define CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const { query, country, region, startIndex } = await req.json() as SearchRequest;
+    
+    console.log('Received search request:', { query, country, region, startIndex });
     
     // Construct location-specific search query
     const locationQuery = region ? `${region}, ${country}` : country;
@@ -21,6 +34,8 @@ serve(async (req) => {
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
     const geocodeResponse = await fetch(geocodeUrl);
     const geocodeData = await geocodeResponse.json();
+
+    console.log('Geocoding response:', geocodeData);
 
     if (!geocodeData.results?.[0]?.geometry?.location) {
       throw new Error('Location not found');
@@ -33,6 +48,8 @@ serve(async (req) => {
     
     const placesResponse = await fetch(placesUrl);
     const placesData = await placesResponse.json();
+
+    console.log('Places API response:', placesData);
 
     // Get website details for each place
     const placesWithWebsites = await Promise.all(
@@ -55,13 +72,15 @@ serve(async (req) => {
     // Filter out places without websites
     const validResults = placesWithWebsites.filter((place: any) => place.website);
 
+    console.log('Returning results:', validResults.length);
+
     return new Response(
       JSON.stringify({
         results: validResults,
         hasMore: placesData.next_page_token ? true : false
       }),
       {
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     )
   } catch (error) {
@@ -70,7 +89,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     )
   }
