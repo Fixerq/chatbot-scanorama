@@ -68,51 +68,9 @@ const Index = () => {
     }
   };
 
-  const handleSearchResults = async (newResults: Result[]) => {
-    setIsProcessing(true);
-    setResults(newResults.map(result => ({ ...result, status: 'Processing...' })));
-
-    try {
-      // Process all URLs in parallel with the same concurrency limit
-      const concurrencyLimit = 10;
-      const chunks = [];
-      for (let i = 0; i < newResults.length; i += concurrencyLimit) {
-        chunks.push(newResults.slice(i, i + concurrencyLimit));
-      }
-
-      const processedResults: Result[] = [];
-      
-      for (const chunk of chunks) {
-        const chunkResults = await Promise.all(
-          chunk.map(async (result) => {
-            try {
-              const status = await detectChatbot(result.url);
-              return { ...result, status };
-            } catch (error) {
-              console.error(`Error processing ${result.url}:`, error);
-              return { ...result, status: 'Error analyzing URL' };
-            }
-          })
-        );
-        processedResults.push(...chunkResults);
-        setResults(prev => [...prev.filter(r => !chunkResults.find(cr => cr.url === r.url)), ...chunkResults]);
-      }
-      
-      toast.success('Analysis complete!');
-    } catch (error) {
-      console.error('Error processing search results:', error);
-      toast.error('Error processing URLs');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleExport = () => {
-    if (results.length === 0) {
-      toast.error('No results to export');
-      return;
-    }
-    exportToCSV(results);
+  const handleNewSearch = () => {
+    setResults([]);
+    toast.success('Ready for a new search');
   };
 
   return (
@@ -137,7 +95,7 @@ const Index = () => {
                 <h3>Search Websites by Niche</h3>
                 <p>Enter a niche or industry to find and analyze websites for chatbot usage. The search will return up to 100 relevant websites.</p>
               </div>
-              <SearchFormContainer onResults={handleSearchResults} isProcessing={isProcessing} />
+              <SearchFormContainer onResults={setResults} isProcessing={isProcessing} />
             </TabsContent>
           </Tabs>
           
@@ -149,7 +107,11 @@ const Index = () => {
           )}
 
           {results.length > 0 && (
-            <Results results={results} onExport={handleExport} />
+            <Results 
+              results={results} 
+              onExport={() => exportToCSV(results)}
+              onNewSearch={handleNewSearch}
+            />
           )}
         </div>
       </div>
