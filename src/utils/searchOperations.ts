@@ -13,12 +13,13 @@ export const enhanceSearchQuery = async (
       body: { query, country, region }
     });
 
-    if (error) {
+    if (error || !data?.enhancedQuery) {
       console.error('Error enhancing search query:', error);
       toast.error('Failed to enhance search query, using original query');
       return query;
     }
 
+    console.log('Original query:', query);
     console.log('Enhanced query:', data.enhancedQuery);
     return data.enhancedQuery || query;
   } catch (error) {

@@ -29,9 +29,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a search query enhancement assistant. Your task is to enhance search queries for finding business websites. 
-            Focus on adding relevant industry terms, common business indicators, and location-specific terms.
-            Return ONLY the enhanced search query, nothing else.`
+            content: `You are a search query enhancement assistant. Your task is to enhance search queries for finding business websites.
+            - Keep the enhanced query concise (max 5-6 words)
+            - Maintain the core intent of the original query
+            - Add only the most relevant business-related terms
+            - Return ONLY the enhanced query text, no explanations`
           },
           {
             role: 'user',
@@ -41,17 +43,18 @@ serve(async (req) => {
             ${region ? `Region: ${region}` : ''}
             
             Example input: "plumbers"
-            Example output: "professional plumbers plumbing services water leak repair drainage emergency local business"`
+            Example output: "local plumbing services repairs"`
           }
         ],
-        temperature: 0.7,
-        max_tokens: 100
+        temperature: 0.3, // Lower temperature for more focused results
+        max_tokens: 50
       }),
     });
 
     const data = await response.json();
+    console.log('OpenAI response:', data);
+    
     const enhancedQuery = data.choices[0].message.content.trim();
-
     console.log('Enhanced query:', enhancedQuery);
 
     return new Response(
@@ -70,6 +73,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message,
+        enhancedQuery: null // Return null so we can fallback to original query
       }),
       {
         status: 500,
