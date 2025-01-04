@@ -1,118 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
 import FileUpload from '@/components/FileUpload';
-import { Result } from '@/components/ResultsTable';
-import { processCSV, exportToCSV, detectChatbot } from '@/utils/chatbotDetection';
+import { processCSV, exportToCSV } from '@/utils/chatbotDetection';
 import { toast } from 'sonner';
 import CsvInstructions from '@/components/CsvInstructions';
 import Header from '@/components/Header';
 import Results from '@/components/Results';
 import SearchFormContainer from '@/components/SearchFormContainer';
+import ProcessingIndicator from '@/components/ProcessingIndicator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useUrlProcessor } from '@/hooks/useUrlProcessor';
 
 const Index = () => {
-  const [results, setResults] = useState<Result[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { 
+    results, 
+    isProcessing, 
+    processUrls, 
+    processSearchResults, 
+    clearResults 
+  } = useUrlProcessor();
 
   const handleFileAccepted = async (content: string) => {
-    setIsProcessing(true);
     const urls = processCSV(content);
     
     if (urls.length === 0) {
       toast.error('No valid URLs found in the CSV');
-      setIsProcessing(false);
       return;
     }
 
     if (urls.length > 100) {
       toast.error('Please limit your CSV to 100 URLs or less');
-      setIsProcessing(false);
       return;
     }
 
-    try {
-      const initialResults = urls.map(url => ({
-        url,
-        status: 'Processing...'
-      }));
-      setResults(initialResults);
-
-      // Process URLs in parallel with a concurrency limit
-      const concurrencyLimit = 10;
-      const chunks = [];
-      for (let i = 0; i < urls.length; i += concurrencyLimit) {
-        chunks.push(urls.slice(i, i + concurrencyLimit));
-      }
-
-      for (const chunk of chunks) {
-        await Promise.all(chunk.map(async (url) => {
-          try {
-            const status = await detectChatbot(url);
-            setResults(prev => prev.map(result => 
-              result.url === url ? { ...result, status } : result
-            ));
-          } catch (error) {
-            console.error(`Error processing ${url}:`, error);
-            setResults(prev => prev.map(result => 
-              result.url === url ? { ...result, status: 'Error analyzing URL' } : result
-            ));
-          }
-        }));
-      }
-
-      toast.success('Analysis complete!');
-    } catch (error) {
-      console.error('Error processing URLs:', error);
-      toast.error('Error processing URLs');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleSearchResults = async (newResults: Result[]) => {
-    setIsProcessing(true);
-    
-    // Add new results to existing ones, marking them as processing
-    setResults(prev => [
-      ...prev,
-      ...newResults.map(result => ({ ...result, status: 'Processing...' }))
-    ]);
-
-    try {
-      // Process all URLs in parallel with the same concurrency limit
-      const concurrencyLimit = 10;
-      const chunks = [];
-      for (let i = 0; i < newResults.length; i += concurrencyLimit) {
-        chunks.push(newResults.slice(i, i + concurrencyLimit));
-      }
-
-      for (const chunk of chunks) {
-        await Promise.all(chunk.map(async (result) => {
-          try {
-            const status = await detectChatbot(result.url);
-            setResults(prev => prev.map(r => 
-              r.url === result.url ? { ...r, status } : r
-            ));
-          } catch (error) {
-            console.error(`Error processing ${result.url}:`, error);
-            setResults(prev => prev.map(r => 
-              r.url === result.url ? { ...r, status: 'Error analyzing URL' } : r
-            ));
-          }
-        }));
-      }
-
-      toast.success('Analysis complete!');
-    } catch (error) {
-      console.error('Error processing search results:', error);
-      toast.error('Error processing URLs');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleNewSearch = () => {
-    setResults([]);
-    toast.success('Ready for a new search');
+    await processUrls(urls);
   };
 
   return (
@@ -137,22 +57,20 @@ const Index = () => {
                 <h3>Search Websites by Niche</h3>
                 <p>Enter a niche or industry to find and analyze websites for chatbot usage. The search will return up to 100 relevant websites.</p>
               </div>
-              <SearchFormContainer onResults={handleSearchResults} isProcessing={isProcessing} />
+              <SearchFormContainer 
+                onResults={processSearchResults} 
+                isProcessing={isProcessing} 
+              />
             </TabsContent>
           </Tabs>
           
-          {isProcessing && (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-              <p className="text-gray-600">Analyzing URLs...</p>
-            </div>
-          )}
+          {isProcessing && <ProcessingIndicator />}
 
           {results.length > 0 && (
             <Results 
               results={results} 
               onExport={() => exportToCSV(results)}
-              onNewSearch={handleNewSearch}
+              onNewSearch={clearResults}
             />
           )}
         </div>
