@@ -1,7 +1,5 @@
 import { Result } from '@/components/ResultsTable';
-
-const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-const GOOGLE_CX = import.meta.env.VITE_GOOGLE_CX;
+import { supabase } from '@/integrations/supabase/client';
 
 interface GoogleSearchResult {
   items: Array<{
@@ -22,15 +20,37 @@ export const performGoogleSearch = async (
   console.log('Performing Google search with query:', locationQuery);
   
   try {
+    // Fetch secrets from Supabase
+    const { data: { GOOGLE_API_KEY } } = await supabase.functions.invoke('get-secret', {
+      body: { key: 'GOOGLE_API_KEY' }
+    });
+    
+    const { data: { GOOGLE_CX } } = await supabase.functions.invoke('get-secret', {
+      body: { key: 'GOOGLE_CX' }
+    });
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+      throw new Error('Google Search credentials not configured');
+    }
+
     const response = await fetch(
       `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(locationQuery)}&start=${startIndex}`
     );
 
     if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Google API Error:', errorData);
       throw new Error('Search API request failed');
     }
 
     const data: GoogleSearchResult = await response.json();
+    
+    if (!data.items) {
+      return {
+        results: [],
+        hasMore: false
+      };
+    }
     
     const results: Result[] = data.items.map(item => ({
       url: item.link,
@@ -49,4 +69,4 @@ export const performGoogleSearch = async (
     console.error('Google search error:', error);
     throw error;
   }
-}
+};
