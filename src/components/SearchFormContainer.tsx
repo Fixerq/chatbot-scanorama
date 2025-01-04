@@ -46,7 +46,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       );
       
       if (searchResult) {
-        const combinedResults = [...results.currentResults, ...searchResult.newResults];
+        const combinedResults = [...results.currentResults, ...searchResult.results];
         
         setResults({
           currentResults: combinedResults,
@@ -54,10 +54,10 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         });
         onResults(combinedResults);
         
-        if (searchResult.newResults.length === 0) {
+        if (searchResult.results.length === 0) {
           toast.info('No new results found. Try adjusting your search terms.');
         } else {
-          toast.success(`Found ${searchResult.newResults.length} new results`);
+          toast.success(`Found ${searchResult.results.length} new results`);
         }
       }
     } catch (error) {
@@ -91,9 +91,9 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         newLimit
       );
 
-      if (moreResults && moreResults.newResults.length > 0) {
+      if (moreResults && moreResults.results.length > 0) {
         const existingUrls = new Set(results.currentResults.map(r => r.url));
-        const newUniqueResults = moreResults.newResults.filter(result => !existingUrls.has(result.url));
+        const newUniqueResults = moreResults.results.filter(result => !existingUrls.has(result.url));
         
         console.log(`Found ${newUniqueResults.length} additional results`);
         
