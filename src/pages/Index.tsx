@@ -37,6 +37,14 @@ const Index = () => {
 
   const handleNewSearch = () => {
     clearResults();
+    // Reset the active tab to 'search'
+    const tabsList = document.querySelector('[role="tablist"]') as HTMLElement;
+    if (tabsList) {
+      const searchTab = tabsList.querySelector('[value="search"]') as HTMLElement;
+      if (searchTab) {
+        searchTab.click();
+      }
+    }
     toast.success('Ready for a new search');
   };
 

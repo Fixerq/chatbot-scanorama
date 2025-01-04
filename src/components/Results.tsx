@@ -12,7 +12,6 @@ interface ResultsProps {
 
 const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
   const handleNewSearch = () => {
-    // Ensure we clear everything before triggering the new search
     onNewSearch();
   };
 
