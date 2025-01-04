@@ -54,23 +54,19 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       limit: searchState.resultsLimit
     });
     
-    const newLimit = results.currentResults.length + 9;
-    
     try {
       const searchResult = await performSearch(
         searchState.query,
         searchState.country,
         searchState.region,
         searchState.apiKey,
-        newLimit
+        searchState.resultsLimit
       );
       
       if (searchResult) {
-        const newResults = searchResult.results.filter(
-          newResult => !results.currentResults.some(
-            existing => existing.url === newResult.url
-          )
-        );
+        // Filter out duplicates while keeping existing results
+        const existingUrls = new Set(results.currentResults.map(r => r.url));
+        const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
         
         console.log(`Found ${newResults.length} new results`);
         
@@ -85,7 +81,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         if (newResults.length === 0) {
           toast.info('No new results found. Try adjusting your search terms.');
         } else {
-          toast.success(`Found ${newResults.length} results`);
+          toast.success(`Found ${newResults.length} new results`);
         }
       }
     } catch (error) {
@@ -121,11 +117,8 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       );
 
       if (moreResults && moreResults.newResults.length > 0) {
-        const newUniqueResults = moreResults.newResults.filter(
-          newResult => !results.currentResults.some(
-            existing => existing.url === newResult.url
-          )
-        );
+        const existingUrls = new Set(results.currentResults.map(r => r.url));
+        const newUniqueResults = moreResults.newResults.filter(result => !existingUrls.has(result.url));
         
         console.log(`Found ${newUniqueResults.length} additional results`);
         
@@ -139,7 +132,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         if (newUniqueResults.length > 0) {
           toast.success(`Loaded ${newUniqueResults.length} more results`);
         } else {
-          toast.info('No more results found');
+          toast.info('No more new results found');
         }
       }
     } catch (error) {
