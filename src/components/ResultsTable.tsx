@@ -15,6 +15,8 @@ export interface Result {
     chatSolutions?: string[];
     errorDetails?: string;
     lastChecked?: string;
+    title?: string;
+    description?: string;
   };
 }
 
