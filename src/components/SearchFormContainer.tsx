@@ -35,37 +35,24 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     }
   }, []);
 
-  const validateServiceQuery = (query: string): boolean => {
-    const serviceKeywords = [
-      'service', 'provider', 'contractor', 'professional', 'company',
-      'plumber', 'electrician', 'carpenter', 'painter', 'landscaper',
-      'roofer', 'hvac', 'repair', 'maintenance', 'installation',
-      'cleaning', 'construction', 'builder', 'consultant', 'expert',
-      'specialist', 'technician', 'handyman', 'contractor', 'pro',
-      // Add plurals
-      'plumbers', 'electricians', 'carpenters', 'painters', 'landscapers',
-      'roofers', 'cleaners', 'builders', 'consultants', 'experts',
-      'specialists', 'technicians', 'handymen', 'contractors', 'pros'
-    ];
-    
-    const words = query.toLowerCase().split(' ');
-    return serviceKeywords.some(keyword => 
-      words.includes(keyword.toLowerCase())
-    );
-  };
-
   const handleSearch = async () => {
     if (!searchState.query.trim()) {
       toast.error('Please enter a search query');
       return;
     }
 
-    if (!validateServiceQuery(searchState.query)) {
-      toast.error('Please enter a valid service provider category (e.g., plumbers, electricians, contractors)');
+    if (!searchState.country) {
+      toast.error('Please select a country');
       return;
     }
 
     setIsSearching(true);
+    console.log('Search params:', {
+      query: searchState.query,
+      country: searchState.country,
+      region: searchState.region,
+      limit: searchState.resultsLimit
+    });
     
     // Calculate new limit based on current results
     const newLimit = results.currentResults.length + 9;
