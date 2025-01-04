@@ -9,6 +9,8 @@ import SearchFormContainer from '@/components/SearchFormContainer';
 import ProcessingIndicator from '@/components/ProcessingIndicator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUrlProcessor } from '@/hooks/useUrlProcessor';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Upload, Search, FileText } from 'lucide-react';
 
 const Index = () => {
   const { 
@@ -37,7 +39,6 @@ const Index = () => {
 
   const handleNewSearch = () => {
     clearResults();
-    // Reset the active tab to 'search'
     const tabsList = document.querySelector('[role="tablist"]') as HTMLElement;
     if (tabsList) {
       const searchTab = tabsList.querySelector('[value="search"]') as HTMLElement;
@@ -55,36 +56,74 @@ const Index = () => {
         
         <div className="space-y-8 animate-fade-in">
           <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upload">Upload CSV</TabsTrigger>
-              <TabsTrigger value="search">Search Websites</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="upload" className="space-x-2">
+                <Upload className="w-4 h-4" />
+                <span>Upload CSV</span>
+              </TabsTrigger>
+              <TabsTrigger value="search" className="space-x-2">
+                <Search className="w-4 h-4" />
+                <span>Search Websites</span>
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="upload" className="space-y-8">
-              <CsvInstructions />
-              <FileUpload onFileAccepted={handleFileAccepted} />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    Bulk URL Analysis
+                  </CardTitle>
+                  <CardDescription>
+                    Upload a CSV file containing multiple URLs to analyze their chatbot implementations in bulk.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <CsvInstructions />
+                  <FileUpload onFileAccepted={handleFileAccepted} />
+                </CardContent>
+              </Card>
             </TabsContent>
             
             <TabsContent value="search" className="space-y-8">
-              <div className="prose dark:prose-invert max-w-none">
-                <h3>Search Websites by Niche</h3>
-                <p>Enter a niche or industry to find and analyze websites for chatbot usage.</p>
-              </div>
-              <SearchFormContainer 
-                onResults={processSearchResults} 
-                isProcessing={isProcessing} 
-              />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Search className="w-5 h-5 text-blue-600" />
+                    Website Search
+                  </CardTitle>
+                  <CardDescription>
+                    Search for websites by industry or niche to analyze their chatbot implementations.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SearchFormContainer 
+                    onResults={processSearchResults} 
+                    isProcessing={isProcessing} 
+                  />
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
           
-          {isProcessing && <ProcessingIndicator />}
+          {isProcessing && (
+            <Card>
+              <CardContent className="py-6">
+                <ProcessingIndicator />
+              </CardContent>
+            </Card>
+          )}
 
           {results.length > 0 && (
-            <Results 
-              results={results} 
-              onExport={() => exportToCSV(results)}
-              onNewSearch={handleNewSearch}
-            />
+            <Card className="overflow-hidden">
+              <CardContent className="p-6">
+                <Results 
+                  results={results} 
+                  onExport={() => exportToCSV(results)}
+                  onNewSearch={handleNewSearch}
+                />
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
