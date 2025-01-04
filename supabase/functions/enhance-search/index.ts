@@ -33,7 +33,9 @@ Examples:
 ❌ "window installation" → ✅ "local window contractor"
 ❌ "tech support" → ✅ "local IT company"
 
-Always think: Will this query find actual local service businesses rather than institutions or large companies?`;
+Always think: Will this query find actual local service businesses rather than institutions or large companies?
+
+IMPORTANT: Return ONLY the enhanced query string, without any quotes or additional text.`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -73,7 +75,11 @@ serve(async (req) => {
     const data = await response.json();
     console.log('OpenAI response:', data);
     
-    const enhancedQuery = data.choices[0].message.content.trim().replace(/["']/g, '');
+    // Clean up the response by removing quotes and extra whitespace
+    const enhancedQuery = data.choices[0].message.content
+      .replace(/['"]/g, '') // Remove quotes
+      .trim(); // Remove extra whitespace
+    
     console.log('Enhanced query:', enhancedQuery);
 
     return new Response(
