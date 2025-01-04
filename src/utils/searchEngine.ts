@@ -28,7 +28,7 @@ export const performGoogleSearch = async (
     
     if (secretError || !secretData?.GOOGLE_API_KEY) {
       console.error('Failed to fetch Google API key:', secretError);
-      toast.error('Failed to fetch search credentials');
+      toast.error('Failed to fetch Google API key. Please check your configuration.');
       throw new Error('Google API key not found');
     }
 
@@ -38,13 +38,12 @@ export const performGoogleSearch = async (
 
     if (cxError || !cxData?.GOOGLE_CX) {
       console.error('Failed to fetch Google CX:', cxError);
-      toast.error('Failed to fetch search credentials');
+      toast.error('Failed to fetch Search Engine ID. Please check your configuration.');
       throw new Error('Google CX not found');
     }
 
     const GOOGLE_API_KEY = secretData.GOOGLE_API_KEY;
-    // Extract just the Search Engine ID from the CX value
-    const GOOGLE_CX = cxData.GOOGLE_CX.replace(/.*cx=([^"&\s]+).*/, '$1');
+    const GOOGLE_CX = cxData.GOOGLE_CX;
 
     console.log('Making Google API request with query:', locationQuery);
     
@@ -56,26 +55,18 @@ export const performGoogleSearch = async (
       const errorData = await response.json();
       console.error('Google API Error:', errorData);
       
-      // Check for specific error cases
       if (errorData.error?.status === 'PERMISSION_DENIED') {
-        const projectId = errorData.error?.details?.[0]?.metadata?.consumer?.split('/')?.[1];
-        const enableApiUrl = projectId 
-          ? `https://console.developers.google.com/apis/api/customsearch.googleapis.com/overview?project=${projectId}`
-          : 'https://console.cloud.google.com/apis/library/customsearch.googleapis.com';
-        
         toast.error(
           'Custom Search API is not enabled. Please enable it in the Google Cloud Console.',
           {
             action: {
               label: 'Enable API',
-              onClick: () => window.open(enableApiUrl, '_blank')
+              onClick: () => window.open('https://console.developers.google.com/apis/api/customsearch.googleapis.com/overview', '_blank')
             }
           }
         );
-      } else if (errorData.error?.status === 'INVALID_ARGUMENT') {
-        toast.error('Invalid API credentials. Please check your Google API key and Search Engine ID.');
       } else {
-        toast.error('Search API request failed. Please try again.');
+        toast.error(`Search API request failed: ${errorData.error?.message || 'Unknown error'}`);
       }
       
       throw new Error('Search API request failed');
