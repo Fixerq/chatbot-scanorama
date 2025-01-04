@@ -1,22 +1,13 @@
 // Domain filtering logic
 export const EXCLUDED_DOMAINS = [
-  // Government domains
+  // Government domains (block all .gov sites)
   '.gov',
-  '.mil',
-  'whitehouse.gov',
-  'usa.gov',
-  'uscis.gov',
-  'sba.gov',
-  'secretservice.gov',
   
   // Educational institutions
   '.edu',
   
   // Non-profits and organizations
-  'feedingamerica.org',
-  'unitedway.org',
-  'redcross.org',
-  'salvation-army.org',
+  '.org',
   
   // Job sites
   'linkedin.com',
