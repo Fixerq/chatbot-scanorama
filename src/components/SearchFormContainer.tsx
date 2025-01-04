@@ -47,42 +47,52 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     }
 
     setIsSearching(true);
-    console.log('Search params:', {
+    console.log('Starting search with params:', {
       query: searchState.query,
       country: searchState.country,
       region: searchState.region,
       limit: searchState.resultsLimit
     });
     
-    // Calculate new limit based on current results
     const newLimit = results.currentResults.length + 9;
     
-    const searchResult = await performSearch(
-      searchState.query,
-      searchState.country,
-      searchState.region,
-      searchState.apiKey,
-      newLimit
-    );
-    
-    setIsSearching(false);
-
-    if (searchResult) {
-      // Filter out any URLs we already have
-      const newResults = searchResult.results.filter(
-        newResult => !results.currentResults.some(
-          existing => existing.url === newResult.url
-        )
+    try {
+      const searchResult = await performSearch(
+        searchState.query,
+        searchState.country,
+        searchState.region,
+        searchState.apiKey,
+        newLimit
       );
       
-      // Combine with existing results
-      const combinedResults = [...results.currentResults, ...newResults];
-      
-      setResults({
-        currentResults: combinedResults,
-        hasMore: searchResult.hasMore,
-      });
-      onResults(combinedResults);
+      if (searchResult) {
+        const newResults = searchResult.results.filter(
+          newResult => !results.currentResults.some(
+            existing => existing.url === newResult.url
+          )
+        );
+        
+        console.log(`Found ${newResults.length} new results`);
+        
+        const combinedResults = [...results.currentResults, ...newResults];
+        
+        setResults({
+          currentResults: combinedResults,
+          hasMore: searchResult.hasMore,
+        });
+        onResults(combinedResults);
+        
+        if (newResults.length === 0) {
+          toast.info('No new results found. Try adjusting your search terms.');
+        } else {
+          toast.success(`Found ${newResults.length} results`);
+        }
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      toast.error('Failed to perform search. Please try again.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -96,28 +106,45 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       resultsLimit: newLimit 
     }));
 
-    const moreResults = await loadMoreResults(
-      searchState.query,
-      searchState.country,
-      searchState.region,
-      results.currentResults,
-      newLimit
-    );
+    console.log('Loading more results:', {
+      page: nextPage,
+      newLimit: newLimit
+    });
 
-    if (moreResults && moreResults.newResults.length > 0) {
-      // Filter out any duplicate results
-      const newUniqueResults = moreResults.newResults.filter(
-        newResult => !results.currentResults.some(
-          existing => existing.url === newResult.url
-        )
+    try {
+      const moreResults = await loadMoreResults(
+        searchState.query,
+        searchState.country,
+        searchState.region,
+        results.currentResults,
+        newLimit
       );
-      
-      const updatedResults = [...results.currentResults, ...newUniqueResults];
-      setResults({
-        currentResults: updatedResults,
-        hasMore: moreResults.hasMore,
-      });
-      onResults(updatedResults);
+
+      if (moreResults && moreResults.newResults.length > 0) {
+        const newUniqueResults = moreResults.newResults.filter(
+          newResult => !results.currentResults.some(
+            existing => existing.url === newResult.url
+          )
+        );
+        
+        console.log(`Found ${newUniqueResults.length} additional results`);
+        
+        const updatedResults = [...results.currentResults, ...newUniqueResults];
+        setResults({
+          currentResults: updatedResults,
+          hasMore: moreResults.hasMore,
+        });
+        onResults(updatedResults);
+        
+        if (newUniqueResults.length > 0) {
+          toast.success(`Loaded ${newUniqueResults.length} more results`);
+        } else {
+          toast.info('No more results found');
+        }
+      }
+    } catch (error) {
+      console.error('Load more error:', error);
+      toast.error('Failed to load more results. Please try again.');
     }
   };
 
