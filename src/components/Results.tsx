@@ -11,7 +11,10 @@ interface ResultsProps {
 const Results = ({ results, onExport }: ResultsProps) => {
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Found {results.length} website{results.length !== 1 ? 's' : ''}
+        </p>
         <Button onClick={onExport}>
           <Download className="w-4 h-4 mr-2" />
           Export Results
