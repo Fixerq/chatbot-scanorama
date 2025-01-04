@@ -36,23 +36,27 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     setIsSearching(true);
     
     try {
+      // Reset results before starting new search
+      setResults({
+        currentResults: [],
+        hasMore: false,
+      });
+      
       const searchResult = await executeSearch(
         searchState.query,
         searchState.country,
         searchState.region,
         searchState.apiKey,
         searchState.resultsLimit,
-        results.currentResults
+        []  // Start with empty results array for new search
       );
       
       if (searchResult) {
-        const combinedResults = [...results.currentResults, ...searchResult.newResults];
-        
         setResults({
-          currentResults: combinedResults,
+          currentResults: searchResult.newResults,
           hasMore: searchResult.hasMore,
         });
-        onResults(combinedResults);
+        onResults(searchResult.newResults);
         
         if (searchResult.newResults.length === 0) {
           toast.info('No new results found. Try adjusting your search terms.');
