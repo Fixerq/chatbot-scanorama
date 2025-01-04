@@ -1,5 +1,5 @@
 import { Result } from '@/components/ResultsTable';
-import { performSearch, loadMoreResults } from './searchUtils';
+import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -55,12 +55,10 @@ export const executeSearch = async (
     limit: resultsLimit
   });
 
-  const searchResult = await performSearch(
+  const searchResult = await performGoogleSearch(
     enhancedQuery,
     country,
-    region,
-    apiKey,
-    resultsLimit
+    region
   );
 
   if (!searchResult) return null;
@@ -84,11 +82,6 @@ export const loadMore = async (
   currentResults: Result[],
   newLimit: number
 ) => {
-  return loadMoreResults(
-    query,
-    country,
-    region,
-    currentResults,
-    newLimit
-  );
+  const startIndex = currentResults.length + 1;
+  return performGoogleSearch(query, country, region, startIndex);
 };

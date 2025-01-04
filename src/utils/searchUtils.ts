@@ -1,7 +1,5 @@
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
-import { FirecrawlService } from './firecrawl';
-import { supabase } from '@/integrations/supabase/client';
 import { BLOCKED_URLS } from '@/constants/blockedUrls';
 import { performGoogleSearch } from './searchEngine';
 
@@ -17,34 +15,25 @@ export const performSearch = async (
   resultsLimit: number
 ): Promise<{ results: Result[]; hasMore: boolean } | null> => {
   try {
-    // Get existing analyzed URLs for this search
-    const { data: existingResults } = await supabase
-      .from('analyzed_urls')
-      .select('url, status');
-
     const searchResult = await performGoogleSearch(query, country, region);
 
-    // Create a map of existing results for quick lookup
-    const existingResultsMap = new Map(
-      existingResults?.map(result => [result.url, result]) || []
-    );
-
-    // Filter out blocked URLs and combine with existing URLs
-    const allResults: Result[] = searchResult.results
-      .filter(result => !isUrlBlocked(result.url))
-      .map(result => ({
-        ...result,
-        status: existingResultsMap.get(result.url)?.status || 'Processing...'
-      }));
-
-    const hasMore = allResults.length > resultsLimit;
-    const limitedResults = allResults.slice(0, resultsLimit);
-
-    if (limitedResults.length === 0) {
+    if (!searchResult || !searchResult.results) {
       toast.warning('No results found. Try adjusting your search terms.');
-    } else {
-      toast.success(`Found ${limitedResults.length} results to analyze`);
+      return null;
     }
+
+    // Filter out blocked URLs
+    const filteredResults = searchResult.results.filter(result => !isUrlBlocked(result.url));
+
+    if (filteredResults.length === 0) {
+      toast.warning('No valid results found after filtering. Try adjusting your search terms.');
+      return null;
+    }
+
+    const hasMore = filteredResults.length > resultsLimit;
+    const limitedResults = filteredResults.slice(0, resultsLimit);
+
+    toast.success(`Found ${limitedResults.length} results to analyze`);
 
     return { 
       results: limitedResults,
@@ -65,7 +54,6 @@ export const loadMoreResults = async (
   newLimit: number
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   try {
-    // Calculate the start index for the next page (Google uses 1-based indexing)
     const startIndex = currentResults.length + 1;
     
     const searchResult = await performGoogleSearch(
@@ -75,18 +63,19 @@ export const loadMoreResults = async (
       startIndex
     );
     
-    if (searchResult.results.length > 0) {
-      // Filter out blocked URLs and URLs we already have
-      const newResults = searchResult.results
-        .filter(result => !isUrlBlocked(result.url))
-        .filter(newResult => !currentResults.some(existing => existing.url === newResult.url));
-
-      return { 
-        newResults,
-        hasMore: searchResult.hasMore
-      };
+    if (!searchResult || !searchResult.results) {
+      return null;
     }
-    return null;
+
+    // Filter out blocked URLs and URLs we already have
+    const newResults = searchResult.results
+      .filter(result => !isUrlBlocked(result.url))
+      .filter(newResult => !currentResults.some(existing => existing.url === newResult.url));
+
+    return { 
+      newResults,
+      hasMore: searchResult.hasMore
+    };
   } catch (error) {
     console.error('Load more error:', error);
     toast.error('Failed to load more results');
