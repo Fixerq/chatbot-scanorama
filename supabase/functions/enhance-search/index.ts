@@ -29,11 +29,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a search query enhancement assistant. Your task is to enhance search queries for finding business websites.
-            - Keep the enhanced query concise (max 5-6 words)
-            - Maintain the core intent of the original query
-            - Add only the most relevant business-related terms
-            - Return ONLY the enhanced query text, no explanations`
+            content: `You are a search query enhancement assistant. Enhance search queries for finding business websites.
+            - Return a simple search phrase without quotes or special characters
+            - Keep it under 4 words
+            - Focus on the core service/business type
+            - Do not add location terms as they are handled separately`
           },
           {
             role: 'user',
@@ -43,18 +43,21 @@ serve(async (req) => {
             ${region ? `Region: ${region}` : ''}
             
             Example input: "plumbers"
-            Example output: "local plumbing services repairs"`
+            Example output: plumbing services repair
+            
+            Example input: "windows support specialist"
+            Example output: windows support services`
           }
         ],
-        temperature: 0.3, // Lower temperature for more focused results
-        max_tokens: 50
+        temperature: 0.3,
+        max_tokens: 30
       }),
     });
 
     const data = await response.json();
     console.log('OpenAI response:', data);
     
-    const enhancedQuery = data.choices[0].message.content.trim();
+    const enhancedQuery = data.choices[0].message.content.trim().replace(/["']/g, '');
     console.log('Enhanced query:', enhancedQuery);
 
     return new Response(
@@ -73,7 +76,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message,
-        enhancedQuery: null // Return null so we can fallback to original query
+        enhancedQuery: null
       }),
       {
         status: 500,

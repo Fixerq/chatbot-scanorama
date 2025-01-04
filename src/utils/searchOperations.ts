@@ -19,9 +19,17 @@ export const enhanceSearchQuery = async (
       return query;
     }
 
+    // Log both queries for debugging
     console.log('Original query:', query);
     console.log('Enhanced query:', data.enhancedQuery);
-    return data.enhancedQuery || query;
+    
+    // If the enhanced query is too short or empty, use the original
+    if (!data.enhancedQuery || data.enhancedQuery.length < 3) {
+      console.log('Enhanced query too short, using original');
+      return query;
+    }
+
+    return data.enhancedQuery;
   } catch (error) {
     console.error('Error calling enhance-search function:', error);
     toast.error('Failed to enhance search query, using original query');
