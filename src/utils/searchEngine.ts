@@ -58,7 +58,22 @@ export const performGoogleSearch = async (
       
       // Check for specific error cases
       if (errorData.error?.status === 'PERMISSION_DENIED') {
-        toast.error('Custom Search API is not enabled. Please enable it in the Google Cloud Console.');
+        const projectId = errorData.error?.details?.[0]?.metadata?.consumer?.split('/')?.[1];
+        const enableApiUrl = projectId 
+          ? `https://console.developers.google.com/apis/api/customsearch.googleapis.com/overview?project=${projectId}`
+          : 'https://console.cloud.google.com/apis/library/customsearch.googleapis.com';
+        
+        toast.error(
+          'Custom Search API is not enabled. Please enable it in the Google Cloud Console.',
+          {
+            action: {
+              label: 'Enable API',
+              onClick: () => window.open(enableApiUrl, '_blank')
+            }
+          }
+        );
+      } else if (errorData.error?.status === 'INVALID_ARGUMENT') {
+        toast.error('Invalid API credentials. Please check your Google API key and Search Engine ID.');
       } else {
         toast.error('Search API request failed. Please try again.');
       }
