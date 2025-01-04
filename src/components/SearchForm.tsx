@@ -33,6 +33,9 @@ const SearchForm = ({
 }: SearchFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!query.trim()) {
+      return;
+    }
     onSubmit();
   };
 
@@ -55,13 +58,6 @@ const SearchForm = ({
           countries={COUNTRIES}
         />
       </div>
-      <Button 
-        type="submit"
-        disabled={isProcessing || isSearching || !apiKey}
-        className="w-full"
-      >
-        {isSearching ? "Searching..." : "Search"}
-      </Button>
     </form>
   );
 };

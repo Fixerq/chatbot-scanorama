@@ -38,10 +38,11 @@ const SearchInputs = ({
       <div className="flex gap-2">
         <Input
           type="text"
-          placeholder="Enter niche (e.g., 'plumbers', 'electricians')"
+          placeholder="Enter service provider category (e.g., 'plumbers', 'electricians')"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           className="flex-1"
+          required
         />
         <Select value={country} onValueChange={onCountryChange}>
           <SelectTrigger className="w-1/3">
@@ -66,7 +67,7 @@ const SearchInputs = ({
         />
         <Button 
           type="submit" 
-          disabled={isProcessing || isSearching} 
+          disabled={isProcessing || isSearching || !query.trim()} 
           className="w-32"
         >
           {isSearching ? (
