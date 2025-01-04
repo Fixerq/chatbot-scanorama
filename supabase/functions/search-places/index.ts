@@ -1,17 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY')
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 interface SearchRequest {
   query: string;
   country: string;
   region: string;
   startIndex: number;
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req) => {
@@ -21,7 +19,10 @@ serve(async (req) => {
   }
 
   try {
+    const GOOGLE_API_KEY = Deno.env.get('Google API');
+    
     if (!GOOGLE_API_KEY) {
+      console.error('Google API key not found in environment variables');
       throw new Error('Google API key is not configured');
     }
 

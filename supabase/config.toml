@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.enhance-search]
 verify_jwt = false
+
+[functions.search-places]
+verify_jwt = false
