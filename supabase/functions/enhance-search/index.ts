@@ -29,24 +29,34 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a search query enhancement assistant. Enhance search queries for finding business websites.
+            content: `You are a search query enhancement assistant focused on finding local business services.
             - Return a simple search phrase without quotes or special characters
             - Keep it under 4 words
-            - Focus on the core service/business type
-            - Do not add location terms as they are handled separately`
+            - Focus on the core business service type
+            - Understand context (e.g. "windows support" refers to computer services, not home windows)
+            - Always think in terms of businesses offering services
+            - Do not add location terms as they are handled separately
+            
+            Context rules:
+            - "windows" in context of "support", "IT", "computer" refers to Microsoft Windows
+            - "windows" alone or with "home", "house", "glass" refers to physical windows
+            - "support" usually refers to IT/technical support unless clearly about physical items`
           },
           {
             role: 'user',
-            content: `Enhance this search query for finding business websites:
+            content: `Enhance this search query to find local businesses offering these services:
             Business Type: ${query}
             Country: ${country}
             ${region ? `Region: ${region}` : ''}
             
             Example input: "plumbers"
-            Example output: plumbing services repair
+            Example output: plumbing repair services
             
             Example input: "windows support specialist"
-            Example output: windows support services`
+            Example output: computer tech support
+            
+            Example input: "window installation"
+            Example output: home windows services`
           }
         ],
         temperature: 0.3,
