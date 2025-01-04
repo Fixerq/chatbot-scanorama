@@ -35,6 +35,11 @@ const Index = () => {
     await processUrls(urls);
   };
 
+  const handleNewSearch = () => {
+    clearResults();
+    toast.success('Ready for a new search');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
@@ -70,7 +75,7 @@ const Index = () => {
             <Results 
               results={results} 
               onExport={() => exportToCSV(results)}
-              onNewSearch={clearResults}
+              onNewSearch={handleNewSearch}
             />
           )}
         </div>
