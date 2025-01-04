@@ -55,7 +55,7 @@ const Index = () => {
             <TabsContent value="search" className="space-y-8">
               <div className="prose dark:prose-invert max-w-none">
                 <h3>Search Websites by Niche</h3>
-                <p>Enter a niche or industry to find and analyze websites for chatbot usage. The search will return up to 100 relevant websites.</p>
+                <p>Enter a niche or industry to find and analyze websites for chatbot usage.</p>
               </div>
               <SearchFormContainer 
                 onResults={processSearchResults} 
