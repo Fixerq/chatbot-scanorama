@@ -10,6 +10,11 @@ interface ResultsProps {
 }
 
 const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
+  const handleNewSearch = () => {
+    // Ensure we clear everything before triggering the new search
+    onNewSearch();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -17,7 +22,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           Found {results.length} website{results.length !== 1 ? 's' : ''}
         </p>
         <div className="space-x-2">
-          <Button variant="outline" onClick={onNewSearch}>
+          <Button variant="outline" onClick={handleNewSearch}>
             <RefreshCw className="w-4 h-4 mr-2" />
             New Search
           </Button>

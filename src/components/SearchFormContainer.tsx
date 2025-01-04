@@ -12,14 +12,16 @@ interface SearchFormContainerProps {
 }
 
 const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerProps) => {
-  const [searchState, setSearchState] = useState({
+  const initialState = {
     query: '',
     country: '',
     region: '',
     apiKey: '',
     resultsLimit: 9,
     currentPage: 1,
-  });
+  };
+
+  const [searchState, setSearchState] = useState(initialState);
 
   const [results, setResults] = useState({
     currentResults: [] as Result[],
@@ -34,6 +36,18 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       setSearchState(prev => ({ ...prev, apiKey: savedApiKey }));
     }
   }, []);
+
+  const resetSearch = () => {
+    setSearchState(prev => ({
+      ...initialState,
+      apiKey: prev.apiKey // Preserve the API key
+    }));
+    setResults({
+      currentResults: [],
+      hasMore: false,
+    });
+    onResults([]);
+  };
 
   const handleSearch = async () => {
     if (!searchState.query.trim()) {
