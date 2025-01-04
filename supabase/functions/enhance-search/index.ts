@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -29,34 +28,32 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a search query enhancement assistant focused on finding local business services.
-            - Return a simple search phrase without quotes or special characters
-            - Keep it under 4 words
-            - Focus on the core business service type
-            - Understand context (e.g. "windows support" refers to computer services, not home windows)
-            - Always think in terms of businesses offering services
-            - Do not add location terms as they are handled separately
-            
-            Context rules:
-            - "windows" in context of "support", "IT", "computer" refers to Microsoft Windows
-            - "windows" alone or with "home", "house", "glass" refers to physical windows
-            - "support" usually refers to IT/technical support unless clearly about physical items`
+            content: `You are a local business search specialist. Your task is to enhance search queries to find local business service providers.
+
+Key requirements:
+- Focus ONLY on finding local business service providers and companies
+- EXCLUDE job postings, educational institutions, government websites
+- EXCLUDE news articles, blogs, directories like LinkedIn
+- ADD relevant business-specific terms like "company", "service provider", "local business"
+- Keep queries under 4 words
+- Do not add location terms as they are handled separately
+
+Examples:
+❌ Bad: "computer support jobs"
+✅ Good: "computer repair company"
+
+❌ Bad: "windows installation training"
+✅ Good: "window installation service"
+
+❌ Bad: "plumbing certification course"
+✅ Good: "local plumbing company"`
           },
           {
             role: 'user',
             content: `Enhance this search query to find local businesses offering these services:
             Business Type: ${query}
             Country: ${country}
-            ${region ? `Region: ${region}` : ''}
-            
-            Example input: "plumbers"
-            Example output: plumbing repair services
-            
-            Example input: "windows support specialist"
-            Example output: computer tech support
-            
-            Example input: "window installation"
-            Example output: home windows services`
+            ${region ? `Region: ${region}` : ''}`
           }
         ],
         temperature: 0.3,
