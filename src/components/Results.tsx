@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, RefreshCw } from 'lucide-react';
 import ResultsTable, { Result } from './ResultsTable';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ResultsProps {
   results: Result[];
@@ -14,6 +15,26 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
     // Ensure we clear everything before triggering the new search
     onNewSearch();
   };
+
+  if (results.length === 0) {
+    return (
+      <Alert>
+        <AlertDescription className="space-y-4">
+          <p>No results found. Try:</p>
+          <ul className="list-disc pl-4 space-y-2">
+            <li>Using more general search terms</li>
+            <li>Checking for spelling mistakes</li>
+            <li>Removing location-specific terms</li>
+            <li>Using different keywords related to your search</li>
+          </ul>
+          <Button variant="outline" onClick={handleNewSearch} className="mt-4">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try New Search
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-4">
