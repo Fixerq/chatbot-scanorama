@@ -18,34 +18,24 @@ interface CrawlStatusResponse {
 type CrawlResponse = CrawlStatusResponse | ErrorResponse;
 
 export class FirecrawlService {
-  private static API_KEY_STORAGE_KEY = 'firecrawl_api_key';
+  private static API_KEY = 'YOUR_FIRECRAWL_API_KEY'; // This will be replaced with the actual key
   private static firecrawlApp: FirecrawlApp | null = null;
   private static MAX_API_LIMIT = 10;
 
-  static saveApiKey(apiKey: string): void {
-    localStorage.setItem(this.API_KEY_STORAGE_KEY, apiKey);
-    this.firecrawlApp = new FirecrawlApp({ apiKey });
+  static getApiKey(): string {
+    return this.API_KEY;
   }
 
-  static getApiKey(): string | null {
-    return localStorage.getItem(this.API_KEY_STORAGE_KEY);
-  }
-
-  private static initializeApp(apiKey: string): void {
+  private static initializeApp(): void {
     if (!this.firecrawlApp) {
-      this.firecrawlApp = new FirecrawlApp({ apiKey });
+      this.firecrawlApp = new FirecrawlApp({ apiKey: this.API_KEY });
     }
   }
 
   static async crawlWebsite(url: string): Promise<{ success: boolean; error?: string; data?: any }> {
-    const apiKey = this.getApiKey();
-    if (!apiKey) {
-      return { success: false, error: 'API key not found' };
-    }
-
     try {
       console.log('Making crawl request to Firecrawl API');
-      this.initializeApp(apiKey);
+      this.initializeApp();
 
       const crawlResponse = await this.firecrawlApp!.crawlUrl(url, {
         limit: 1,
@@ -90,13 +80,8 @@ export class FirecrawlService {
     region?: string, 
     limit: number = 10
   ): Promise<{ success: boolean; urls?: string[]; error?: string; hasMore?: boolean }> {
-    const apiKey = this.getApiKey();
-    if (!apiKey) {
-      return { success: false, error: 'API key not found' };
-    }
-
     try {
-      this.initializeApp(apiKey);
+      this.initializeApp();
       console.log('Search params:', { query, country, region, limit });
 
       const searchQuery = `${query} ${country} ${region || ''}`.trim();

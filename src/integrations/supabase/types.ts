@@ -36,6 +36,24 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          api_key: string | null
+          created_at: string
+          id: string
+        }
+        Insert: {
+          api_key?: string | null
+          created_at?: string
+          id: string
+        }
+        Update: {
+          api_key?: string | null
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       Table1: {
         Row: {
           created_at: string
