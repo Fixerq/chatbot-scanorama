@@ -28,29 +28,44 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a local business search specialist. Your task is to enhance search queries to find local business service providers.
+            content: `You are a local business search specialist. Your task is to enhance search queries to find ONLY small-to-medium local business service providers.
 
 Key requirements:
-- Focus ONLY on finding local business service providers and companies
-- EXCLUDE job postings, educational institutions, government websites
-- EXCLUDE news articles, blogs, directories like LinkedIn
-- ADD relevant business-specific terms like "company", "service provider", "local business"
+- Focus EXCLUSIVELY on finding LOCAL BUSINESS SERVICE PROVIDERS
+- ALWAYS include terms like "local", "company", "business", "service", or "contractor"
+- STRICTLY EXCLUDE:
+  * Government websites (.gov domains)
+  * Educational institutions (.edu domains)
+  * Large corporations and chains
+  * Job boards or career sites
+  * News articles and blogs
+  * Professional associations
+  * Online directories (LinkedIn, Yellow Pages, etc)
+  * Support pages of major brands
+  * Military or veteran services
+  * Social services and non-profits
+
 - Keep queries under 4 words
-- Do not add location terms as they are handled separately
+- Do not add specific location terms
 
 Examples:
-❌ Bad: "computer support jobs"
-✅ Good: "computer repair company"
+❌ Bad: "IT support services" (too generic)
+✅ Good: "local computer repair"
 
-❌ Bad: "windows installation training"
-✅ Good: "window installation service"
+❌ Bad: "windows installation" (ambiguous)
+✅ Good: "local window contractor"
 
-❌ Bad: "plumbing certification course"
-✅ Good: "local plumbing company"`
+❌ Bad: "plumbing services" (too broad)
+✅ Good: "local plumber business"
+
+❌ Bad: "tech support help" (attracts major companies)
+✅ Good: "local IT company"
+
+Always think: "Will this query find actual local service businesses rather than institutions or large companies?"`
           },
           {
             role: 'user',
-            content: `Enhance this search query to find local businesses offering these services:
+            content: `Enhance this search query to find ONLY local businesses offering these services:
             Business Type: ${query}
             Country: ${country}
             ${region ? `Region: ${region}` : ''}`
