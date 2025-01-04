@@ -13,7 +13,6 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -30,7 +29,6 @@ serve(async (req) => {
     
     console.log('Received search request:', { query, country, region, startIndex });
     
-    // Construct location-specific search query
     const locationQuery = region && region.toLowerCase() !== country.toLowerCase() 
       ? `${region}, ${country}`
       : country;
@@ -39,7 +37,6 @@ serve(async (req) => {
     console.log('Using location query:', locationQuery);
     console.log('Final search query:', searchQuery);
 
-    // First, get the location coordinates using Geocoding API
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
     const geocodeResponse = await fetch(geocodeUrl);
     const geocodeData = await geocodeResponse.json();
@@ -62,7 +59,6 @@ serve(async (req) => {
     const { lat, lng } = geocodeData.results[0].geometry.location;
     console.log('Location coordinates:', { lat, lng });
 
-    // Then, search for businesses using Places API
     const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&location=${lat},${lng}&radius=50000&type=business&key=${GOOGLE_API_KEY}`;
     
     const placesResponse = await fetch(placesUrl);
@@ -79,33 +75,41 @@ serve(async (req) => {
       throw new Error(`Places API failed: ${placesData.status} - ${placesData.error_message || 'Unknown error'}`);
     }
 
-    // Get website details for each place
-    const placesWithWebsites = await Promise.all(
+    // Get detailed information including phone numbers for each place
+    const placesWithDetails = await Promise.all(
       placesData.results.map(async (place: any) => {
         if (place.place_id) {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number&key=${GOOGLE_API_KEY}`;
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,international_phone_number&key=${GOOGLE_API_KEY}`;
           const detailsResponse = await fetch(detailsUrl);
           const detailsData = await detailsResponse.json();
           
-          if (detailsData.status === 'REQUEST_DENIED') {
-            console.error('Place Details API request denied:', detailsData.error_message);
-            return place;
+          if (detailsData.status === 'OK') {
+            return {
+              ...place,
+              website: detailsData.result?.website || null,
+              phone: detailsData.result?.formatted_phone_number || detailsData.result?.international_phone_number || null
+            };
           }
-          
-          return {
-            ...place,
-            website: detailsData.result?.website || null,
-            phone: detailsData.result?.formatted_phone_number || null
-          };
         }
         return place;
       })
     );
 
-    // Filter out places without websites
-    const validResults = placesWithWebsites.filter((place: any) => place.website);
+    // Filter out places without websites and ensure phone numbers are included
+    const validResults = placesWithDetails
+      .filter((place: any) => place.website)
+      .map((place: any) => ({
+        url: place.website,
+        phone: place.phone || 'N/A',
+        status: 'Processing...',
+        details: {
+          title: place.name,
+          description: place.formatted_address,
+          lastChecked: new Date().toISOString()
+        }
+      }));
 
-    console.log('Returning results:', validResults.length);
+    console.log('Returning results with phone numbers:', validResults.length);
 
     return new Response(
       JSON.stringify({
