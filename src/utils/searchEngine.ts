@@ -43,7 +43,8 @@ export const performGoogleSearch = async (
     }
 
     const GOOGLE_API_KEY = secretData.GOOGLE_API_KEY;
-    const GOOGLE_CX = cxData.GOOGLE_CX;
+    // Extract just the Search Engine ID from the CX value
+    const GOOGLE_CX = cxData.GOOGLE_CX.replace(/.*cx=([^"&\s]+).*/, '$1');
 
     console.log('Making Google API request with query:', locationQuery);
     
@@ -54,7 +55,14 @@ export const performGoogleSearch = async (
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Google API Error:', errorData);
-      toast.error('Search API request failed. Please try again.');
+      
+      // Check for specific error cases
+      if (errorData.error?.status === 'PERMISSION_DENIED') {
+        toast.error('Custom Search API is not enabled. Please enable it in the Google Cloud Console.');
+      } else {
+        toast.error('Search API request failed. Please try again.');
+      }
+      
       throw new Error('Search API request failed');
     }
 
