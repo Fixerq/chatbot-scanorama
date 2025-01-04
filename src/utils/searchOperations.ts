@@ -19,11 +19,9 @@ export const enhanceSearchQuery = async (
       return query;
     }
 
-    // Log both queries for debugging
     console.log('Original query:', query);
     console.log('Enhanced query:', data.enhancedQuery);
     
-    // If the enhanced query is too short or empty, use the original
     if (!data.enhancedQuery || data.enhancedQuery.length < 3) {
       console.log('Enhanced query too short, using original');
       return query;
@@ -61,7 +59,10 @@ export const executeSearch = async (
     region
   );
 
-  if (!searchResult) return null;
+  if (!searchResult || !searchResult.results) {
+    console.error('No search results returned');
+    return null;
+  }
 
   // Filter out duplicates while keeping existing results
   const existingUrls = new Set(currentResults.map(r => r.url));
@@ -81,7 +82,20 @@ export const loadMore = async (
   region: string,
   currentResults: Result[],
   newLimit: number
-) => {
+): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   const startIndex = currentResults.length + 1;
-  return performGoogleSearch(query, country, region, startIndex);
+  const searchResult = await performGoogleSearch(query, country, region, startIndex);
+  
+  if (!searchResult || !searchResult.results) {
+    return null;
+  }
+
+  // Filter out duplicates
+  const existingUrls = new Set(currentResults.map(r => r.url));
+  const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+
+  return {
+    newResults,
+    hasMore: searchResult.hasMore
+  };
 };
