@@ -9,7 +9,6 @@ interface SearchRequest {
   startIndex: number;
 }
 
-// Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -22,12 +21,15 @@ serve(async (req) => {
   }
 
   try {
+    if (!GOOGLE_API_KEY) {
+      throw new Error('Google API key is not configured');
+    }
+
     const { query, country, region, startIndex } = await req.json() as SearchRequest;
     
     console.log('Received search request:', { query, country, region, startIndex });
     
     // Construct location-specific search query
-    // Only include region if it's not empty and different from country
     const locationQuery = region && region.toLowerCase() !== country.toLowerCase() 
       ? `${region}, ${country}`
       : country;
@@ -41,8 +43,13 @@ serve(async (req) => {
     const geocodeResponse = await fetch(geocodeUrl);
     const geocodeData = await geocodeResponse.json();
 
-    console.log('Geocoding API status:', geocodeData.status);
+    console.log('Geocoding API response:', geocodeData);
     
+    if (geocodeData.status === 'REQUEST_DENIED') {
+      console.error('Geocoding API request denied:', geocodeData.error_message);
+      throw new Error(`Google API Error: ${geocodeData.error_message || 'API not properly configured'}`);
+    }
+
     if (geocodeData.status !== 'OK') {
       throw new Error(`Geocoding failed: ${geocodeData.status} - ${geocodeData.error_message || 'Unknown error'}`);
     }
@@ -60,7 +67,12 @@ serve(async (req) => {
     const placesResponse = await fetch(placesUrl);
     const placesData = await placesResponse.json();
 
-    console.log('Places API status:', placesData.status);
+    console.log('Places API response:', placesData);
+
+    if (placesData.status === 'REQUEST_DENIED') {
+      console.error('Places API request denied:', placesData.error_message);
+      throw new Error(`Google API Error: ${placesData.error_message || 'API not properly configured'}`);
+    }
 
     if (placesData.status !== 'OK') {
       throw new Error(`Places API failed: ${placesData.status} - ${placesData.error_message || 'Unknown error'}`);
@@ -73,6 +85,11 @@ serve(async (req) => {
           const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number&key=${GOOGLE_API_KEY}`;
           const detailsResponse = await fetch(detailsUrl);
           const detailsData = await detailsResponse.json();
+          
+          if (detailsData.status === 'REQUEST_DENIED') {
+            console.error('Place Details API request denied:', detailsData.error_message);
+            return place;
+          }
           
           return {
             ...place,
