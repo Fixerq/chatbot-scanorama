@@ -8,19 +8,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface RequestBody {
-  query: string;
-  country: string;
-  region?: string;
-}
-
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, country, region } = await req.json() as RequestBody;
+    const { query, country, region } = await req.json();
+    console.log('Enhancing search query:', { query, country, region });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -56,7 +52,6 @@ serve(async (req) => {
     const data = await response.json();
     const enhancedQuery = data.choices[0].message.content.trim();
 
-    console.log('Original query:', query);
     console.log('Enhanced query:', enhancedQuery);
 
     return new Response(
@@ -75,7 +70,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message,
-        originalQuery: req.query // Return original query as fallback
       }),
       {
         status: 500,

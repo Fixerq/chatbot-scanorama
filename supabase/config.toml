@@ -2,3 +2,6 @@ project_id = "cfelpyucqllkshmlkwxz"
 
 [functions.analyze-website]
 verify_jwt = false
+
+[functions.enhance-search]
+verify_jwt = false
