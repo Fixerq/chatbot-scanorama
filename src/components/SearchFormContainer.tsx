@@ -4,6 +4,7 @@ import { FirecrawlService } from '../utils/firecrawl';
 import { performSearch, loadMoreResults } from '../utils/searchUtils';
 import SearchForm from './SearchForm';
 import LoadMoreButton from './LoadMoreButton';
+import { toast } from 'sonner';
 
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
@@ -34,7 +35,24 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     }
   }, []);
 
+  const validateServiceQuery = (query: string): boolean => {
+    const serviceKeywords = [
+      'service', 'provider', 'contractor', 'professional', 'company',
+      'plumber', 'electrician', 'carpenter', 'painter', 'landscaper',
+      'roofer', 'hvac', 'repair', 'maintenance', 'installation'
+    ];
+    
+    return serviceKeywords.some(keyword => 
+      query.toLowerCase().includes(keyword.toLowerCase())
+    );
+  };
+
   const handleSearch = async () => {
+    if (!validateServiceQuery(searchState.query)) {
+      toast.error('Please enter a valid service provider category (e.g., plumbers, electricians, contractors)');
+      return;
+    }
+
     setIsSearching(true);
     
     // Calculate new limit based on current results

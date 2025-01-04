@@ -8,6 +8,17 @@ const isUrlBlocked = (url: string): boolean => {
   return BLOCKED_URLS.some(blockedUrl => url.toLowerCase().includes(blockedUrl.toLowerCase()));
 };
 
+const isServiceProvider = (url: string, title: string = '', description: string = ''): boolean => {
+  const serviceIndicators = [
+    'services', 'service area', 'professional', 'licensed', 'insured',
+    'free quote', 'estimate', 'emergency service', 'contact us',
+    'service provider', 'contractor', 'local service'
+  ];
+
+  const content = `${url} ${title} ${description}`.toLowerCase();
+  return serviceIndicators.some(indicator => content.includes(indicator.toLowerCase()));
+};
+
 export const performSearch = async (
   query: string,
   country: string,
@@ -40,9 +51,9 @@ export const performSearch = async (
       existingResults?.map(result => [result.url, result]) || []
     );
 
-    // Filter out blocked URLs and combine existing and new URLs
+    // Filter out blocked URLs and non-service providers, then combine with existing URLs
     const allResults: Result[] = response.urls!
-      .filter(url => !isUrlBlocked(url))
+      .filter(url => !isUrlBlocked(url) && isServiceProvider(url))
       .map(url => ({
         url,
         status: existingResultsMap.get(url)?.status || 'Processing...'
@@ -51,7 +62,12 @@ export const performSearch = async (
     const hasMore = allResults.length > resultsLimit;
     const limitedResults = allResults.slice(0, resultsLimit);
 
-    toast.success(`Found ${limitedResults.length} websites to analyze`);
+    if (limitedResults.length === 0) {
+      toast.warning('No service providers found. Try adjusting your search terms.');
+    } else {
+      toast.success(`Found ${limitedResults.length} service providers to analyze`);
+    }
+
     return { 
       results: limitedResults,
       hasMore: hasMore
@@ -84,9 +100,9 @@ export const loadMoreResults = async (
       );
       const currentUrlsSet = new Set(currentResults.map(r => r.url));
 
-      // Filter out blocked URLs and URLs we already have, then create new results array
+      // Filter out blocked URLs, non-service providers, and URLs we already have
       const newResults = response.urls
-        .filter(url => !isUrlBlocked(url) && !currentUrlsSet.has(url))
+        .filter(url => !isUrlBlocked(url) && !currentUrlsSet.has(url) && isServiceProvider(url))
         .map(url => ({
           url,
           status: existingResultsMap.get(url)?.status || 'Processing...'
@@ -96,9 +112,9 @@ export const loadMoreResults = async (
       const limitedNewResults = newResults.slice(0, newLimit - currentResults.length);
       
       if (limitedNewResults.length > 0) {
-        toast.success(`Loaded ${limitedNewResults.length} new websites`);
+        toast.success(`Loaded ${limitedNewResults.length} new service providers`);
       } else {
-        toast.info('No new websites found');
+        toast.info('No new service providers found');
       }
       
       return { 
