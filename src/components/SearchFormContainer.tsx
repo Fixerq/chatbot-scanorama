@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Result } from './ResultsTable';
-import { FirecrawlService } from '../utils/firecrawl';
-import { performSearch, loadMoreResults } from '../utils/searchUtils';
+import { useSearchState } from '../hooks/useSearchState';
+import { executeSearch, loadMore } from '../utils/searchOperations';
 import SearchForm from './SearchForm';
 import LoadMoreButton from './LoadMoreButton';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
@@ -13,61 +12,15 @@ interface SearchFormContainerProps {
 }
 
 const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerProps) => {
-  const initialState = {
-    query: '',
-    country: '',
-    region: '',
-    apiKey: '',
-    resultsLimit: 9,
-    currentPage: 1,
-  };
-
-  const [searchState, setSearchState] = useState(initialState);
-  const [results, setResults] = useState({
-    currentResults: [] as Result[],
-    hasMore: false,
-  });
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    const savedApiKey = FirecrawlService.getApiKey();
-    if (savedApiKey) {
-      setSearchState(prev => ({ ...prev, apiKey: savedApiKey }));
-    }
-  }, []);
-
-  const resetSearch = () => {
-    setSearchState(prev => ({
-      ...initialState,
-      apiKey: prev.apiKey // Preserve the API key
-    }));
-    setResults({
-      currentResults: [],
-      hasMore: false,
-    });
-    onResults([]);
-  };
-
-  const enhanceSearchQuery = async (query: string, country: string, region: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('enhance-search', {
-        body: { query, country, region }
-      });
-
-      if (error) {
-        console.error('Error enhancing search query:', error);
-        toast.error('Failed to enhance search query, using original query');
-        return query;
-      }
-
-      console.log('Enhanced query:', data.enhancedQuery);
-      return data.enhancedQuery || query;
-    } catch (error) {
-      console.error('Error calling enhance-search function:', error);
-      toast.error('Failed to enhance search query, using original query');
-      return query;
-    }
-  };
+  const {
+    searchState,
+    results,
+    isSearching,
+    setIsSearching,
+    setResults,
+    resetSearch,
+    updateSearchState
+  } = useSearchState();
 
   const handleSearch = async () => {
     if (!searchState.query.trim()) {
@@ -83,37 +36,17 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     setIsSearching(true);
     
     try {
-      // Enhance the search query using OpenAI
-      const enhancedQuery = await enhanceSearchQuery(
+      const searchResult = await executeSearch(
         searchState.query,
-        searchState.country,
-        searchState.region
-      );
-
-      console.log('Starting search with params:', {
-        originalQuery: searchState.query,
-        enhancedQuery,
-        country: searchState.country,
-        region: searchState.region,
-        limit: searchState.resultsLimit
-      });
-      
-      const searchResult = await performSearch(
-        enhancedQuery,
         searchState.country,
         searchState.region,
         searchState.apiKey,
-        searchState.resultsLimit
+        searchState.resultsLimit,
+        results.currentResults
       );
       
       if (searchResult) {
-        // Filter out duplicates while keeping existing results
-        const existingUrls = new Set(results.currentResults.map(r => r.url));
-        const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
-        
-        console.log(`Found ${newResults.length} new results`);
-        
-        const combinedResults = [...results.currentResults, ...newResults];
+        const combinedResults = [...results.currentResults, ...searchResult.newResults];
         
         setResults({
           currentResults: combinedResults,
@@ -121,10 +54,10 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         });
         onResults(combinedResults);
         
-        if (newResults.length === 0) {
+        if (searchResult.newResults.length === 0) {
           toast.info('No new results found. Try adjusting your search terms.');
         } else {
-          toast.success(`Found ${newResults.length} new results`);
+          toast.success(`Found ${searchResult.newResults.length} new results`);
         }
       }
     } catch (error) {
@@ -139,11 +72,10 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     const nextPage = searchState.currentPage + 1;
     const newLimit = searchState.resultsLimit + 9;
     
-    setSearchState(prev => ({ 
-      ...prev, 
+    updateSearchState({ 
       currentPage: nextPage,
       resultsLimit: newLimit 
-    }));
+    });
 
     console.log('Loading more results:', {
       page: nextPage,
@@ -151,7 +83,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     });
 
     try {
-      const moreResults = await loadMoreResults(
+      const moreResults = await loadMore(
         searchState.query,
         searchState.country,
         searchState.region,
@@ -193,10 +125,10 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
         apiKey={searchState.apiKey}
         isProcessing={isProcessing}
         isSearching={isSearching}
-        onQueryChange={(value) => setSearchState(prev => ({ ...prev, query: value }))}
-        onCountryChange={(value) => setSearchState(prev => ({ ...prev, country: value }))}
-        onRegionChange={(value) => setSearchState(prev => ({ ...prev, region: value }))}
-        onApiKeyChange={(value) => setSearchState(prev => ({ ...prev, apiKey: value }))}
+        onQueryChange={(value) => updateSearchState({ query: value })}
+        onCountryChange={(value) => updateSearchState({ country: value })}
+        onRegionChange={(value) => updateSearchState({ region: value })}
+        onApiKeyChange={(value) => updateSearchState({ apiKey: value })}
         onSubmit={handleSearch}
       />
       
