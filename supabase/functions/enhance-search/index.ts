@@ -1,32 +1,63 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 interface RequestBody {
-  query: string
-  country: string
-  region?: string
+  query: string;
+  country: string;
+  region?: string;
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, country, region } = await req.json() as RequestBody
+    const { query, country, region } = await req.json() as RequestBody;
 
-    // Generate industry-specific keywords
-    const industryKeywords = generateIndustryKeywords(query)
-    
-    // Generate location-specific terms
-    const locationTerms = generateLocationTerms(country, region)
-    
-    // Combine everything into an enhanced query
-    const enhancedQuery = buildEnhancedQuery(query, industryKeywords, locationTerms)
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a search query enhancement assistant. Your task is to enhance search queries for finding business websites. 
+            Focus on adding relevant industry terms, common business indicators, and location-specific terms.
+            Return ONLY the enhanced search query, nothing else.`
+          },
+          {
+            role: 'user',
+            content: `Enhance this search query for finding business websites:
+            Business Type: ${query}
+            Country: ${country}
+            ${region ? `Region: ${region}` : ''}
+            
+            Example input: "plumbers"
+            Example output: "professional plumbers plumbing services water leak repair drainage emergency local business"`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 100
+      }),
+    });
+
+    const data = await response.json();
+    const enhancedQuery = data.choices[0].message.content.trim();
+
+    console.log('Original query:', query);
+    console.log('Enhanced query:', enhancedQuery);
 
     return new Response(
       JSON.stringify({
@@ -38,62 +69,21 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
       },
-    )
+    );
   } catch (error) {
+    console.error('Error enhancing search query:', error);
     return new Response(
       JSON.stringify({
         error: error.message,
+        originalQuery: req.query // Return original query as fallback
       }),
       {
-        status: 400,
+        status: 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
       },
-    )
+    );
   }
-})
-
-function generateIndustryKeywords(query: string): string[] {
-  const commonKeywords = ['business', 'company', 'service', 'professional']
-  
-  const industryMap: Record<string, string[]> = {
-    'plumber': ['plumbing', 'leak repair', 'pipe', 'drain', 'water heater'],
-    'electrician': ['electrical', 'wiring', 'fuse', 'lighting', 'power'],
-    'carpenter': ['carpentry', 'woodwork', 'furniture', 'cabinet', 'renovation'],
-    'painter': ['painting', 'decorator', 'wall', 'interior', 'exterior'],
-    'landscaper': ['landscaping', 'garden', 'lawn', 'outdoor', 'maintenance'],
-    'roofer': ['roofing', 'roof repair', 'gutters', 'shingles', 'leak'],
-    'hvac': ['heating', 'cooling', 'air conditioning', 'ventilation', 'furnace']
-  }
-
-  const queryLower = query.toLowerCase()
-  const industryKeywords = industryMap[queryLower] || []
-  
-  return [...new Set([...commonKeywords, ...industryKeywords])]
-}
-
-function generateLocationTerms(country: string, region?: string): string[] {
-  const terms = [country]
-  
-  if (region) {
-    terms.push(region)
-    
-    // Add common location-specific terms
-    terms.push('local', 'near', 'in', 'serving')
-  }
-  
-  return terms
-}
-
-function buildEnhancedQuery(query: string, industryKeywords: string[], locationTerms: string[]): string {
-  const parts = [
-    query,
-    ...industryKeywords,
-    ...locationTerms
-  ]
-  
-  // Remove duplicates and join with spaces
-  return [...new Set(parts)].join(' ')
-}
+});

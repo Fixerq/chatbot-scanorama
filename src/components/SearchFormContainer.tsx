@@ -5,6 +5,7 @@ import { performSearch, loadMoreResults } from '../utils/searchUtils';
 import SearchForm from './SearchForm';
 import LoadMoreButton from './LoadMoreButton';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
@@ -22,12 +23,10 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
   };
 
   const [searchState, setSearchState] = useState(initialState);
-
   const [results, setResults] = useState({
     currentResults: [] as Result[],
     hasMore: false,
   });
-
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -49,6 +48,27 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     onResults([]);
   };
 
+  const enhanceSearchQuery = async (query: string, country: string, region: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-search', {
+        body: { query, country, region }
+      });
+
+      if (error) {
+        console.error('Error enhancing search query:', error);
+        toast.error('Failed to enhance search query, using original query');
+        return query;
+      }
+
+      console.log('Enhanced query:', data.enhancedQuery);
+      return data.enhancedQuery || query;
+    } catch (error) {
+      console.error('Error calling enhance-search function:', error);
+      toast.error('Failed to enhance search query, using original query');
+      return query;
+    }
+  };
+
   const handleSearch = async () => {
     if (!searchState.query.trim()) {
       toast.error('Please enter a search query');
@@ -61,16 +81,25 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     }
 
     setIsSearching(true);
-    console.log('Starting search with params:', {
-      query: searchState.query,
-      country: searchState.country,
-      region: searchState.region,
-      limit: searchState.resultsLimit
-    });
     
     try {
-      const searchResult = await performSearch(
+      // Enhance the search query using OpenAI
+      const enhancedQuery = await enhanceSearchQuery(
         searchState.query,
+        searchState.country,
+        searchState.region
+      );
+
+      console.log('Starting search with params:', {
+        originalQuery: searchState.query,
+        enhancedQuery,
+        country: searchState.country,
+        region: searchState.region,
+        limit: searchState.resultsLimit
+      });
+      
+      const searchResult = await performSearch(
+        enhancedQuery,
         searchState.country,
         searchState.region,
         searchState.apiKey,
