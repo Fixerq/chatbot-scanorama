@@ -39,15 +39,27 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
     const serviceKeywords = [
       'service', 'provider', 'contractor', 'professional', 'company',
       'plumber', 'electrician', 'carpenter', 'painter', 'landscaper',
-      'roofer', 'hvac', 'repair', 'maintenance', 'installation'
+      'roofer', 'hvac', 'repair', 'maintenance', 'installation',
+      'cleaning', 'construction', 'builder', 'consultant', 'expert',
+      'specialist', 'technician', 'handyman', 'contractor', 'pro',
+      // Add plurals
+      'plumbers', 'electricians', 'carpenters', 'painters', 'landscapers',
+      'roofers', 'cleaners', 'builders', 'consultants', 'experts',
+      'specialists', 'technicians', 'handymen', 'contractors', 'pros'
     ];
     
+    const words = query.toLowerCase().split(' ');
     return serviceKeywords.some(keyword => 
-      query.toLowerCase().includes(keyword.toLowerCase())
+      words.includes(keyword.toLowerCase())
     );
   };
 
   const handleSearch = async () => {
+    if (!searchState.query.trim()) {
+      toast.error('Please enter a search query');
+      return;
+    }
+
     if (!validateServiceQuery(searchState.query)) {
       toast.error('Please enter a valid service provider category (e.g., plumbers, electricians, contractors)');
       return;
