@@ -37,7 +37,7 @@ const Index = () => {
       setResults(initialResults);
 
       // Process URLs in parallel with a concurrency limit
-      const concurrencyLimit = 10; // Increased from 5 to 10 for faster processing
+      const concurrencyLimit = 10;
       const chunks = [];
       for (let i = 0; i < urls.length; i += concurrencyLimit) {
         chunks.push(urls.slice(i, i + concurrencyLimit));
@@ -62,6 +62,48 @@ const Index = () => {
       toast.success('Analysis complete!');
     } catch (error) {
       console.error('Error processing URLs:', error);
+      toast.error('Error processing URLs');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSearchResults = async (newResults: Result[]) => {
+    setIsProcessing(true);
+    
+    // Add new results to existing ones, marking them as processing
+    setResults(prev => [
+      ...prev,
+      ...newResults.map(result => ({ ...result, status: 'Processing...' }))
+    ]);
+
+    try {
+      // Process all URLs in parallel with the same concurrency limit
+      const concurrencyLimit = 10;
+      const chunks = [];
+      for (let i = 0; i < newResults.length; i += concurrencyLimit) {
+        chunks.push(newResults.slice(i, i + concurrencyLimit));
+      }
+
+      for (const chunk of chunks) {
+        await Promise.all(chunk.map(async (result) => {
+          try {
+            const status = await detectChatbot(result.url);
+            setResults(prev => prev.map(r => 
+              r.url === result.url ? { ...r, status } : r
+            ));
+          } catch (error) {
+            console.error(`Error processing ${result.url}:`, error);
+            setResults(prev => prev.map(r => 
+              r.url === result.url ? { ...r, status: 'Error analyzing URL' } : r
+            ));
+          }
+        }));
+      }
+
+      toast.success('Analysis complete!');
+    } catch (error) {
+      console.error('Error processing search results:', error);
       toast.error('Error processing URLs');
     } finally {
       setIsProcessing(false);
@@ -95,7 +137,7 @@ const Index = () => {
                 <h3>Search Websites by Niche</h3>
                 <p>Enter a niche or industry to find and analyze websites for chatbot usage. The search will return up to 100 relevant websites.</p>
               </div>
-              <SearchFormContainer onResults={setResults} isProcessing={isProcessing} />
+              <SearchFormContainer onResults={handleSearchResults} isProcessing={isProcessing} />
             </TabsContent>
           </Tabs>
           
