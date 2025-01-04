@@ -8,7 +8,8 @@ export interface AnalysisResult {
   technologies: string[];
 }
 
-export interface CachedResult {
+export interface ParsedCachedResult {
+  id: number;
   url: string;
   status: string;
   details: {
@@ -18,8 +19,4 @@ export interface CachedResult {
   };
   technologies: string[];
   created_at: string;
-}
-
-export interface ParsedCachedResult extends CachedResult {
-  id: number;
 }

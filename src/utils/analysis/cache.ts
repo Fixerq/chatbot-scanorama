@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { AnalysisResult, CachedResult, ParsedCachedResult } from './types';
+import { ParsedCachedResult } from './types';
 
 export const getCachedResult = async (url: string): Promise<ParsedCachedResult | null> => {
   const { data: cachedResult, error: cacheError } = await supabase
@@ -17,38 +17,35 @@ export const getCachedResult = async (url: string): Promise<ParsedCachedResult |
     return null;
   }
 
-  // Parse the details from Json to our expected format
-  const parsedDetails = typeof cachedResult.details === 'string' 
-    ? JSON.parse(cachedResult.details) 
-    : cachedResult.details;
+  const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime();
+  const cacheValidityPeriod = 24 * 60 * 60 * 1000; // 24 hours
+
+  if (cacheAge >= cacheValidityPeriod) {
+    return null;
+  }
 
   return {
     ...cachedResult,
-    details: {
-      chatSolutions: parsedDetails?.chatSolutions || [],
-      errorDetails: parsedDetails?.errorDetails,
-      lastChecked: parsedDetails?.lastChecked
-    }
+    details: typeof cachedResult.details === 'string' 
+      ? JSON.parse(cachedResult.details) 
+      : cachedResult.details
   };
 };
 
-export const cacheResult = async (url: string, result: AnalysisResult): Promise<void> => {
-  const { error: insertError } = await supabase
+export const cacheResult = async (url: string, result: any): Promise<void> => {
+  const { error: upsertError } = await supabase
     .from('analyzed_urls')
     .upsert({
       url,
       status: result.status,
       details: result.details,
       technologies: result.technologies
+    }, {
+      onConflict: 'url',
+      ignoreDuplicates: false
     });
 
-  if (insertError) {
-    console.error('Error caching result:', insertError);
+  if (upsertError) {
+    console.error('Error caching result:', upsertError);
   }
-};
-
-export const isCacheValid = (cachedResult: ParsedCachedResult): boolean => {
-  const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime();
-  const cacheValidityPeriod = 24 * 60 * 60 * 1000; // 24 hours
-  return cacheAge < cacheValidityPeriod;
 };
