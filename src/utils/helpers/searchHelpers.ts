@@ -20,6 +20,7 @@ export const isExcludedDomain = (url: string): boolean => {
   const excludedDomains = [
     '.gov',
     '.edu',
+    '.mil',
     'linkedin.com',
     'indeed.com',
     'glassdoor.com',
@@ -37,10 +38,50 @@ export const isExcludedDomain = (url: string): boolean => {
     'amazon.com',
     'apple.com',
     'microsoft.com',
-    'google.com'
+    'google.com',
+    'facebook.com',
+    'twitter.com',
+    'instagram.com',
+    'youtube.com',
+    'reddit.com',
+    'quora.com',
+    'medium.com',
+    'forbes.com',
+    'bloomberg.com',
+    'reuters.com',
+    'cnbc.com',
+    'cnn.com',
+    'bbc.com',
+    'nytimes.com',
+    'washingtonpost.com',
+    'wsj.com',
+    'metlife.com',
+    'insurance.',
+    'bank.',
+    'healthcare.gov',
+    'medicare.gov',
+    'medicaid.gov',
+    'irs.gov',
+    'usa.gov',
+    'state.',
+    'county.',
+    'city.',
+    'municipal.',
+    'department',
+    'agency',
+    'bureau',
+    'administration',
+    'institute',
+    'association',
+    'foundation',
+    'society',
+    'organization',
+    'nonprofit',
+    'ngo'
   ];
 
-  return excludedDomains.some(domain => url.toLowerCase().includes(domain));
+  const lowerUrl = url.toLowerCase();
+  return excludedDomains.some(domain => lowerUrl.includes(domain));
 };
 
 export const hasServiceIndicators = (content: string): boolean => {
@@ -59,23 +100,40 @@ export const hasServiceIndicators = (content: string): boolean => {
     'family owned',
     'serving',
     'licensed',
-    'insured'
+    'insured',
+    'estimates',
+    'consultation',
+    'emergency service',
+    '24/7',
+    'same day',
+    'satisfaction guaranteed',
+    'locally owned',
+    'locally operated',
+    'years in business',
+    'years of experience',
+    'professional service',
+    'reliable service',
+    'trusted',
+    'affordable'
   ];
   
-  return localServiceIndicators.some(indicator => 
+  const matchCount = localServiceIndicators.filter(indicator => 
     lowerContent.includes(indicator.toLowerCase())
-  );
+  ).length;
+
+  // Require at least 3 service indicators
+  return matchCount >= 3;
 };
 
 export const hasRelevantKeywords = (content: string, keywords: string[]): boolean => {
   const lowerContent = content.toLowerCase();
   const requiredKeywords = ['local', 'service', 'company', 'business'];
   
-  // Require at least one required keyword and one specific keyword
-  const hasRequired = requiredKeywords.some(keyword => lowerContent.includes(keyword));
-  const hasSpecific = keywords.some(keyword => lowerContent.includes(keyword.toLowerCase()));
+  // Require at least two required keywords and two specific keywords
+  const requiredMatches = requiredKeywords.filter(keyword => lowerContent.includes(keyword)).length;
+  const specificMatches = keywords.filter(keyword => lowerContent.includes(keyword.toLowerCase())).length;
   
-  return hasRequired && hasSpecific;
+  return requiredMatches >= 2 && specificMatches >= 2;
 };
 
 export const hasLocationMatch = (content: string, country: string, region?: string): boolean => {
@@ -91,7 +149,9 @@ export const hasLocationMatch = (content: string, country: string, region?: stri
     'service area',
     'local to',
     'near',
-    'in the'
+    'in the',
+    'servicing',
+    'covering'
   ];
   
   const hasLocationIndicator = locationIndicators.some(indicator => 
@@ -99,10 +159,16 @@ export const hasLocationMatch = (content: string, country: string, region?: stri
   );
   
   // Check for region/country match with location indicator
-  return hasLocationIndicator && (
+  const hasLocation = hasLocationIndicator && (
     lowerContent.includes(lowerRegion) || 
     lowerContent.includes(lowerCountry)
   );
+
+  // Also check for zip codes or area codes as additional location signals
+  const hasZipCode = /\b\d{5}(-\d{4})?\b/.test(content);
+  const hasAreaCode = /\(\d{3}\)/.test(content);
+
+  return hasLocation || hasZipCode || hasAreaCode;
 };
 
 export const hasPhoneNumber = (content: string): boolean => {
@@ -126,7 +192,7 @@ export const filterResults = (
   const keywords = getBusinessKeywords(query);
   
   return results.filter(result => {
-    // First, check for excluded domains
+    // First, check for excluded domains - this is now more strict
     if (isDirectorySite(result.url) || isExcludedDomain(result.url)) {
       console.log(`Filtered out excluded domain: ${result.url}`);
       return false;
@@ -138,26 +204,29 @@ export const filterResults = (
       result.url
     ].join(' ').toLowerCase();
 
-    // Require multiple signals for a result to be considered a local business
+    // Require multiple strong signals for a result to be considered a local business
     const hasKeywords = hasRelevantKeywords(contentToCheck, keywords);
     const hasLocation = hasLocationMatch(contentToCheck, country, region);
     const hasIndicators = hasServiceIndicators(contentToCheck);
     const hasPhone = hasPhoneNumber(contentToCheck);
 
-    // Require at least 3 out of 4 signals
+    // Log the signals for debugging
+    console.log(`Analyzing ${result.url}:`, {
+      hasKeywords,
+      hasLocation,
+      hasIndicators,
+      hasPhone,
+      keywords: keywords,
+      content: contentToCheck.substring(0, 200) + '...' // Log first 200 chars of content
+    });
+
+    // Now require at least 3 out of 4 signals AND no excluded domains
     const signals = [hasKeywords, hasLocation, hasIndicators, hasPhone];
     const signalCount = signals.filter(Boolean).length;
     const isLocalBusiness = signalCount >= 3;
 
     if (!isLocalBusiness) {
-      console.log(`Filtered out non-local business: ${result.url}`);
-      console.log('Signals:', {
-        hasKeywords,
-        hasLocation,
-        hasIndicators,
-        hasPhone,
-        signalCount
-      });
+      console.log(`Filtered out non-local business: ${result.url} (${signalCount}/4 signals)`);
     }
 
     return isLocalBusiness;
