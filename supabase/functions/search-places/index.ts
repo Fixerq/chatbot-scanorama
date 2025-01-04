@@ -27,29 +27,44 @@ serve(async (req) => {
     console.log('Received search request:', { query, country, region, startIndex });
     
     // Construct location-specific search query
-    const locationQuery = region ? `${region}, ${country}` : country;
+    // Only include region if it's not empty and different from country
+    const locationQuery = region && region.toLowerCase() !== country.toLowerCase() 
+      ? `${region}, ${country}`
+      : country;
     const searchQuery = `${query} in ${locationQuery}`;
+
+    console.log('Using location query:', locationQuery);
+    console.log('Final search query:', searchQuery);
 
     // First, get the location coordinates using Geocoding API
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
     const geocodeResponse = await fetch(geocodeUrl);
     const geocodeData = await geocodeResponse.json();
 
-    console.log('Geocoding response:', geocodeData);
+    console.log('Geocoding API status:', geocodeData.status);
+    
+    if (geocodeData.status !== 'OK') {
+      throw new Error(`Geocoding failed: ${geocodeData.status} - ${geocodeData.error_message || 'Unknown error'}`);
+    }
 
     if (!geocodeData.results?.[0]?.geometry?.location) {
-      throw new Error('Location not found');
+      throw new Error('No location coordinates found in geocoding response');
     }
 
     const { lat, lng } = geocodeData.results[0].geometry.location;
+    console.log('Location coordinates:', { lat, lng });
 
     // Then, search for businesses using Places API
-    const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${lat},${lng}&radius=50000&type=business&key=${GOOGLE_API_KEY}`;
+    const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&location=${lat},${lng}&radius=50000&type=business&key=${GOOGLE_API_KEY}`;
     
     const placesResponse = await fetch(placesUrl);
     const placesData = await placesResponse.json();
 
-    console.log('Places API response:', placesData);
+    console.log('Places API status:', placesData.status);
+
+    if (placesData.status !== 'OK') {
+      throw new Error(`Places API failed: ${placesData.status} - ${placesData.error_message || 'Unknown error'}`);
+    }
 
     // Get website details for each place
     const placesWithWebsites = await Promise.all(
