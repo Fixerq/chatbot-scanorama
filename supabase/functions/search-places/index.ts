@@ -32,18 +32,16 @@ serve(async (req) => {
     const locationQuery = region ? `${region}, ${country}` : country;
     
     // Construct the places search URL
-    const searchUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
-    searchUrl.searchParams.append('query', `${query} in ${locationQuery}`);
-    searchUrl.searchParams.append('key', GOOGLE_API_KEY);
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(`${query} in ${locationQuery}`)}&key=${GOOGLE_API_KEY}`;
     
     if (startIndex) {
       searchUrl.searchParams.append('pagetoken', startIndex.toString());
     }
 
-    console.log('Searching places with URL:', searchUrl.toString());
+    console.log('Searching places with URL:', searchUrl);
 
     // Fetch places
-    const placesResponse = await fetch(searchUrl.toString());
+    const placesResponse = await fetch(searchUrl);
     
     if (!placesResponse.ok) {
       console.error('Places API request failed:', placesResponse.statusText);
@@ -51,17 +49,12 @@ serve(async (req) => {
     }
 
     const placesData = await placesResponse.json();
-    console.log('Places API response:', {
-      status: placesData.status,
-      resultsCount: placesData.results?.length || 0
-    });
+    console.log('Places API response status:', placesData.status);
+    console.log('Number of places found:', placesData.results?.length || 0);
 
     if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
       console.error('Places API error:', placesData);
-      throw new Error(
-        placesData.error_message || 
-        `Places API returned status: ${placesData.status}`
-      );
+      throw new Error(`Places API returned status: ${placesData.status}`);
     }
 
     if (!placesData.results || placesData.results.length === 0) {
@@ -76,7 +69,7 @@ serve(async (req) => {
       );
     }
 
-    // Get details for each place with explicit website field request
+    // Get details for each place
     const detailedResults = await Promise.all(
       placesData.results.map(async (place: any) => {
         if (!place.place_id) {
@@ -85,25 +78,17 @@ serve(async (req) => {
         }
 
         try {
-          const detailsUrl = new URL('https://maps.googleapis.com/maps/api/place/details/json');
-          detailsUrl.searchParams.append('place_id', place.place_id);
-          detailsUrl.searchParams.append('fields', 'website,name,formatted_address');
-          detailsUrl.searchParams.append('key', GOOGLE_API_KEY);
-
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,name,formatted_address&key=${GOOGLE_API_KEY}`;
           console.log(`Fetching details for place: ${place.name}`);
           
-          const detailsResponse = await fetch(detailsUrl.toString());
+          const detailsResponse = await fetch(detailsUrl);
           if (!detailsResponse.ok) {
-            console.error(`Failed to fetch details for place ${place.place_id}: ${detailsResponse.statusText}`);
+            console.error(`Failed to fetch details for place ${place.place_id}`);
             return null;
           }
 
           const detailsData = await detailsResponse.json();
-          console.log(`Place details for ${place.name}:`, {
-            status: detailsData.status,
-            hasWebsite: !!detailsData.result?.website
-          });
-
+          
           if (detailsData.status !== 'OK' || !detailsData.result) {
             console.log('Invalid place details:', detailsData);
             return null;
@@ -111,7 +96,6 @@ serve(async (req) => {
 
           const { website, name, formatted_address } = detailsData.result;
 
-          // Only return places with valid websites
           if (!website) {
             console.log(`No website found for place: ${name}`);
             return null;
@@ -120,9 +104,9 @@ serve(async (req) => {
           // Validate website URL
           try {
             new URL(website);
-            console.log(`Valid website found for ${name}: ${website}`);
             return {
               url: website,
+              status: 'Processing...',
               details: {
                 title: name || place.name,
                 description: formatted_address || place.formatted_address,
@@ -140,14 +124,8 @@ serve(async (req) => {
       })
     );
 
-    // Filter out null results and prepare response
-    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
-      result !== null && 
-      typeof result.url === 'string' && 
-      result.url.length > 0
-    );
-    
-    console.log(`Found ${validResults.length} valid results with websites`);
+    // Filter out null results
+    const validResults = detailedResults.filter(result => result !== null);
     
     return new Response(
       JSON.stringify({
