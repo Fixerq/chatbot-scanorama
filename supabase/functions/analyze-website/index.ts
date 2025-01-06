@@ -19,6 +19,8 @@ const CHAT_PATTERNS = {
 };
 
 function normalizeUrl(url: string): string {
+  if (!url) return '';
+  url = url.trim();
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     return `https://${url}`;
   }
@@ -26,11 +28,17 @@ function normalizeUrl(url: string): string {
 }
 
 function validateUrl(url: string): void {
-  if (!url) {
+  if (!url || typeof url !== 'string') {
     throw new Error('URL is required');
   }
+
+  const normalizedUrl = normalizeUrl(url.trim());
+  if (!normalizedUrl) {
+    throw new Error('Invalid URL format');
+  }
+
   try {
-    new URL(normalizeUrl(url));
+    new URL(normalizedUrl);
   } catch {
     throw new Error('Invalid URL format');
   }
@@ -46,8 +54,16 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
-    console.log('Starting analysis for URL:', url);
+    const requestData = await req.json();
+    console.log('Received request data:', requestData);
+
+    if (!requestData || !requestData.url) {
+      console.error('No URL provided in request');
+      throw new Error('URL is required');
+    }
+
+    const url = requestData.url;
+    console.log('Processing URL:', url);
     
     try {
       validateUrl(url);

@@ -4,8 +4,34 @@ import { getCachedResult, cacheResult } from './analysis/cache';
 
 const ANALYSIS_TIMEOUT = 30000; // 30 seconds
 
+function validateUrl(url: string): string {
+  if (!url || typeof url !== 'string') {
+    throw new Error('URL is required');
+  }
+
+  let normalizedUrl = url.trim();
+  if (!normalizedUrl) {
+    throw new Error('URL cannot be empty');
+  }
+
+  if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+    normalizedUrl = `https://${normalizedUrl}`;
+  }
+
+  try {
+    new URL(normalizedUrl);
+    return normalizedUrl;
+  } catch {
+    throw new Error('Invalid URL format');
+  }
+}
+
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
+    if (!url) {
+      throw new Error('URL is required');
+    }
+
     console.log('Starting analysis for', url);
     
     // First check cache
@@ -19,11 +45,14 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       };
     }
 
-    console.log('Calling analyze-website function for', url);
+    // Validate URL before making the request
+    const validatedUrl = validateUrl(url);
+    console.log('Calling analyze-website function for', validatedUrl);
+
     // Use Supabase Edge Function to analyze the website
     const { data: analysisData, error: analysisError } = await supabase
       .functions.invoke('analyze-website', {
-        body: { url }
+        body: { url: validatedUrl }
       });
 
     if (analysisError) {
