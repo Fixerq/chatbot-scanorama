@@ -38,17 +38,20 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     return url.startsWith('http') ? url : `https://${url}`;
   };
 
-  const getChatbotStatusColor = (status: string | undefined) => {
+  const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
     if (!status) return 'gray';
-    if (status.toLowerCase().includes('detected')) return 'green';
+    if (hasChatbot) return 'green';
     if (status.toLowerCase().includes('error')) return 'red';
-    return 'gray';
+    return 'yellow';
   };
 
   const formatChatbotInfo = (result: Result) => {
     if (!result.status) return 'Pending Analysis';
     if (result.status.toLowerCase().includes('error')) return result.status;
-    if (result.details?.chatSolutions && result.details.chatSolutions.length > 0) {
+    
+    const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
+    
+    if (hasChatbot) {
       return (
         <div className="flex items-center gap-2">
           <span>Chatbot Detected</span>
@@ -70,6 +73,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         </div>
       );
     }
+    
     return 'No chatbot detected';
   };
 
@@ -85,34 +89,38 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results.map((result, index) => (
-            <TableRow key={index}>
-              <TableCell className="font-medium">
-                {result.url ? (
-                  <a 
-                    href={formatUrl(result.url)}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+          {results.map((result, index) => {
+            const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
+            
+            return (
+              <TableRow key={index}>
+                <TableCell className="font-medium">
+                  {result.url ? (
+                    <a 
+                      href={formatUrl(result.url)}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {result.url}
+                    </a>
+                  ) : (
+                    <span className="text-gray-500">N/A</span>
+                  )}
+                </TableCell>
+                <TableCell>{result.details?.title || 'N/A'}</TableCell>
+                <TableCell>{result.details?.description || 'N/A'}</TableCell>
+                <TableCell>
+                  <Badge 
+                    variant="secondary"
+                    className={`bg-${getChatbotStatusColor(result.status, hasChatbot)}-100 text-${getChatbotStatusColor(result.status, hasChatbot)}-800 border-${getChatbotStatusColor(result.status, hasChatbot)}-200`}
                   >
-                    {result.url}
-                  </a>
-                ) : (
-                  <span className="text-gray-500">N/A</span>
-                )}
-              </TableCell>
-              <TableCell>{result.details?.title || 'N/A'}</TableCell>
-              <TableCell>{result.details?.description || 'N/A'}</TableCell>
-              <TableCell>
-                <Badge 
-                  variant="secondary"
-                  className={`bg-${getChatbotStatusColor(result.status)}-100 text-${getChatbotStatusColor(result.status)}-800 border-${getChatbotStatusColor(result.status)}-200`}
-                >
-                  {formatChatbotInfo(result)}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
+                    {formatChatbotInfo(result)}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
