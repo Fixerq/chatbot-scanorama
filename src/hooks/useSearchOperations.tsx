@@ -20,7 +20,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
 
   const isValidUrl = (url: string): boolean => {
     try {
-      new URL(url);
+      new URL(url.startsWith('http') ? url : `https://${url}`);
       return true;
     } catch {
       return false;
@@ -29,15 +29,13 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
 
   const validateResults = (results: Result[]): Result[] => {
     return results.filter(result => {
-      // Check if URL exists and is valid
       if (!result.url || !isValidUrl(result.url)) {
-        console.log('Invalid or missing URL:', result);
+        console.log('Invalid URL:', result);
         return false;
       }
 
-      // Ensure required fields exist
-      if (!result.status) {
-        console.log('Missing status:', result);
+      if (!result.status || !result.details?.title) {
+        console.log('Missing required fields:', result);
         return false;
       }
 
@@ -65,7 +63,6 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     setState(prev => ({ ...prev, isSearching: true }));
     
     try {
-      // Reset results before starting new search
       setState(prev => ({
         ...prev,
         results: {
@@ -79,16 +76,15 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         country,
         region,
         apiKey,
-        resultsLimit,
-        []
+        resultsLimit
       );
       
       if (searchResult) {
         const validResults = validateResults(searchResult.newResults);
-        console.log('Valid results after filtering:', validResults.length);
+        console.log('Valid results:', validResults.length);
         
         if (validResults.length === 0) {
-          toast.info('No valid results found. Try adjusting your search terms or location.');
+          toast.info('No results found. Try adjusting your search terms or location.');
           setState(prev => ({
             ...prev,
             results: {
@@ -112,7 +108,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       }
     } catch (error) {
       console.error('Search error:', error);
-      toast.error('Failed to perform search. Please try again.');
+      toast.error('Search failed. Please try again.');
     } finally {
       setState(prev => ({ ...prev, isSearching: false }));
     }
@@ -134,13 +130,13 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         newLimit
       );
 
-      if (moreResults && moreResults.newResults.length > 0) {
+      if (moreResults?.newResults.length) {
         const validNewResults = validateResults(moreResults.newResults);
         const existingUrls = new Set(state.results.currentResults.map(r => r.url));
-        const newUniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
+        const uniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
         
-        if (newUniqueResults.length > 0) {
-          const updatedResults = [...state.results.currentResults, ...newUniqueResults];
+        if (uniqueResults.length > 0) {
+          const updatedResults = [...state.results.currentResults, ...uniqueResults];
           setState(prev => ({
             ...prev,
             results: {
@@ -149,14 +145,14 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
             }
           }));
           onResults(updatedResults);
-          toast.success(`Loaded ${newUniqueResults.length} more results`);
+          toast.success(`Loaded ${uniqueResults.length} more results`);
         } else {
           toast.info('No more new results found');
         }
       }
     } catch (error) {
       console.error('Load more error:', error);
-      toast.error('Failed to load more results. Please try again.');
+      toast.error('Failed to load more results');
     }
   };
 
