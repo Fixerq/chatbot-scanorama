@@ -10,7 +10,6 @@ import {
 
 export interface Result {
   url: string;
-  phone?: string;
 }
 
 interface ResultsTableProps {
@@ -29,7 +28,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
-            <TableHead className="w-[150px]">Phone</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -49,7 +47,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   <span className="text-gray-500">N/A</span>
                 )}
               </TableCell>
-              <TableCell>{result.phone || 'N/A'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
