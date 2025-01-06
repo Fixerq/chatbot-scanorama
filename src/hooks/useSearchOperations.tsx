@@ -49,10 +49,17 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     const analyzedResults = await Promise.all(
       results.map(async (result) => {
         try {
-          const status = await detectChatbot(result.url);
+          const response = await detectChatbot(result.url);
+          const chatbotDetails = typeof response === 'string' ? { status: response } : response;
+          
           return {
             ...result,
-            status: status || 'No chatbot detected'
+            status: chatbotDetails.status,
+            details: {
+              ...result.details,
+              chatSolutions: chatbotDetails.chatSolutions || [],
+              lastChecked: chatbotDetails.lastChecked
+            }
           };
         } catch (error) {
           console.error(`Error analyzing ${result.url}:`, error);

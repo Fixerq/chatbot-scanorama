@@ -8,6 +8,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface Result {
   url: string;
@@ -16,6 +23,7 @@ export interface Result {
     title?: string;
     description?: string;
     lastChecked?: string;
+    chatSolutions?: string[];
   };
 }
 
@@ -34,6 +42,34 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     if (status.toLowerCase().includes('detected')) return 'green';
     if (status.toLowerCase().includes('error')) return 'red';
     return 'gray';
+  };
+
+  const formatChatbotInfo = (result: Result) => {
+    if (!result.status) return 'Pending Analysis';
+    if (result.status.toLowerCase().includes('error')) return result.status;
+    if (result.details?.chatSolutions && result.details.chatSolutions.length > 0) {
+      return (
+        <div className="flex items-center gap-2">
+          <span>Chatbot Detected</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="h-4 w-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Solutions detected:</p>
+                <ul className="list-disc pl-4">
+                  {result.details.chatSolutions.map((solution, index) => (
+                    <li key={index}>{solution}</li>
+                  ))}
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      );
+    }
+    return 'No chatbot detected';
   };
 
   return (
@@ -71,7 +107,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   variant="secondary"
                   className={`bg-${getChatbotStatusColor(result.status)}-100 text-${getChatbotStatusColor(result.status)}-800 border-${getChatbotStatusColor(result.status)}-200`}
                 >
-                  {result.status || 'Pending Analysis'}
+                  {formatChatbotInfo(result)}
                 </Badge>
               </TableCell>
             </TableRow>
