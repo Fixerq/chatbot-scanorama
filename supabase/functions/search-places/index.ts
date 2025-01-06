@@ -41,8 +41,6 @@ serve(async (req) => {
     const geocodeResponse = await fetch(geocodeUrl);
     const geocodeData = await geocodeResponse.json();
 
-    console.log('Geocoding API response:', geocodeData);
-    
     if (geocodeData.status === 'REQUEST_DENIED') {
       console.error('Geocoding API request denied:', geocodeData.error_message);
       throw new Error(`Google API Error: ${geocodeData.error_message || 'API not properly configured'}`);
@@ -64,8 +62,6 @@ serve(async (req) => {
     const placesResponse = await fetch(placesUrl);
     const placesData = await placesResponse.json();
 
-    console.log('Places API response:', placesData);
-
     if (placesData.status === 'REQUEST_DENIED') {
       console.error('Places API request denied:', placesData.error_message);
       throw new Error(`Google API Error: ${placesData.error_message || 'API not properly configured'}`);
@@ -75,41 +71,76 @@ serve(async (req) => {
       throw new Error(`Places API failed: ${placesData.status} - ${placesData.error_message || 'Unknown error'}`);
     }
 
-    // Get detailed information including phone numbers for each place
-    const placesWithDetails = await Promise.all(
+    // Get detailed information for each place
+    const detailedResults = await Promise.all(
       placesData.results.map(async (place: any) => {
-        if (place.place_id) {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,international_phone_number&key=${GOOGLE_API_KEY}`;
+        if (!place.place_id) {
+          console.log('Place missing place_id:', place);
+          return null;
+        }
+
+        try {
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,international_phone_number,name,formatted_address&key=${GOOGLE_API_KEY}`;
           const detailsResponse = await fetch(detailsUrl);
           const detailsData = await detailsResponse.json();
-          
-          if (detailsData.status === 'OK') {
-            return {
-              ...place,
-              website: detailsData.result?.website || null,
-              phone: detailsData.result?.formatted_phone_number || detailsData.result?.international_phone_number || null
-            };
+
+          if (detailsData.status !== 'OK') {
+            console.log('Failed to get details for place:', place.place_id);
+            return null;
           }
+
+          const website = detailsData.result?.website;
+          if (!website) {
+            console.log('Place has no website:', place.name);
+            return null;
+          }
+
+          // Ensure the website URL is valid
+          try {
+            new URL(website);
+          } catch {
+            console.log('Invalid website URL:', website);
+            return null;
+          }
+
+          return {
+            url: website,
+            phone: detailsData.result?.formatted_phone_number || detailsData.result?.international_phone_number || 'N/A',
+            status: 'Processing...',
+            details: {
+              title: place.name || detailsData.result?.name,
+              description: place.formatted_address || detailsData.result?.formatted_address,
+              lastChecked: new Date().toISOString()
+            }
+          };
+        } catch (error) {
+          console.error('Error getting place details:', error);
+          return null;
         }
-        return place;
       })
     );
 
-    // Filter out places without websites and ensure phone numbers are included
-    const validResults = placesWithDetails
-      .filter((place: any) => place.website)
-      .map((place: any) => ({
-        url: place.website,
-        phone: place.phone || 'N/A',
-        status: 'Processing...',
-        details: {
-          title: place.name,
-          description: place.formatted_address,
-          lastChecked: new Date().toISOString()
-        }
-      }));
+    // Filter out null results and ensure we have valid data
+    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
+      result !== null && 
+      typeof result.url === 'string' && 
+      result.url.length > 0
+    );
 
-    console.log('Returning results with phone numbers:', validResults.length);
+    console.log(`Found ${validResults.length} valid results with websites`);
+
+    if (validResults.length === 0) {
+      return new Response(
+        JSON.stringify({
+          results: [],
+          hasMore: false,
+          message: 'No businesses with websites found in this area. Try expanding your search area or using different keywords.'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
 
     return new Response(
       JSON.stringify({
@@ -119,15 +150,19 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   } catch (error) {
     console.error('Search places error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        results: [],
+        hasMore: false
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   }
 })
