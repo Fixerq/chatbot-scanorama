@@ -76,7 +76,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         country,
         region,
         apiKey,
-        resultsLimit
+        resultsLimit,
+        [] // Pass empty array as current results for new search
       );
       
       if (searchResult) {
