@@ -28,14 +28,13 @@ serve(async (req) => {
     const { query, country, region, startIndex } = await req.json() as SearchRequest;
     
     console.log('Received search request:', { query, country, region, startIndex });
-    
+
+    // First, get location coordinates using Geocoding API
     const locationQuery = region && region.toLowerCase() !== country.toLowerCase() 
       ? `${region}, ${country}`
       : country;
-    const searchQuery = `${query} in ${locationQuery}`;
 
     console.log('Using location query:', locationQuery);
-    console.log('Final search query:', searchQuery);
 
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
     const geocodeResponse = await fetch(geocodeUrl);
@@ -57,9 +56,23 @@ serve(async (req) => {
     const { lat, lng } = geocodeData.results[0].geometry.location;
     console.log('Location coordinates:', { lat, lng });
 
-    const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&location=${lat},${lng}&radius=50000&type=business&key=${GOOGLE_API_KEY}`;
+    // Use Places API with location bias and proper type filtering
+    const placesUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
+    const searchParams = new URLSearchParams({
+      query: query,
+      location: `${lat},${lng}`,
+      radius: '50000', // 50km radius
+      type: 'business',
+      key: GOOGLE_API_KEY
+    });
+
+    if (startIndex) {
+      searchParams.append('pagetoken', startIndex.toString());
+    }
+
+    placesUrl.search = searchParams.toString();
     
-    const placesResponse = await fetch(placesUrl);
+    const placesResponse = await fetch(placesUrl.toString());
     const placesData = await placesResponse.json();
 
     if (placesData.status === 'REQUEST_DENIED') {
@@ -67,8 +80,20 @@ serve(async (req) => {
       throw new Error(`Google API Error: ${placesData.error_message || 'API not properly configured'}`);
     }
 
-    if (placesData.status !== 'OK') {
+    if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
       throw new Error(`Places API failed: ${placesData.status} - ${placesData.error_message || 'Unknown error'}`);
+    }
+
+    if (!placesData.results || placesData.results.length === 0) {
+      console.log('No places found for the search criteria');
+      return new Response(
+        JSON.stringify({
+          results: [],
+          hasMore: false,
+          message: 'No businesses found in this area. Try expanding your search area or using different keywords.'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Get detailed information for each place
@@ -95,7 +120,7 @@ serve(async (req) => {
             return null;
           }
 
-          // Ensure the website URL is valid
+          // Validate website URL
           try {
             new URL(website);
           } catch {
@@ -129,27 +154,14 @@ serve(async (req) => {
 
     console.log(`Found ${validResults.length} valid results with websites`);
 
-    if (validResults.length === 0) {
-      return new Response(
-        JSON.stringify({
-          results: [],
-          hasMore: false,
-          message: 'No businesses with websites found in this area. Try expanding your search area or using different keywords.'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      );
-    }
-
     return new Response(
       JSON.stringify({
         results: validResults,
-        hasMore: placesData.next_page_token ? true : false
+        hasMore: Boolean(placesData.next_page_token)
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      }
     );
   } catch (error) {
     console.error('Search places error:', error);
@@ -162,7 +174,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      }
     );
   }
 })
