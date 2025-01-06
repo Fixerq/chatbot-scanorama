@@ -91,7 +91,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
             <TableHead>Business Name</TableHead>
-            <TableHead>Description</TableHead>
             <TableHead>Chatbot Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -116,7 +115,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   )}
                 </TableCell>
                 <TableCell>{result.details?.title || 'N/A'}</TableCell>
-                <TableCell>{result.details?.description || 'N/A'}</TableCell>
                 <TableCell>
                   <Badge 
                     variant={getChatbotStatusColor(result.status, hasChatbot)}
