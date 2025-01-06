@@ -112,8 +112,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                 <TableCell>{result.details?.description || 'N/A'}</TableCell>
                 <TableCell>
                   <Badge 
-                    variant="secondary"
-                    className={`bg-${getChatbotStatusColor(result.status, hasChatbot)}-100 text-${getChatbotStatusColor(result.status, hasChatbot)}-800 border-${getChatbotStatusColor(result.status, hasChatbot)}-200`}
+                    variant={hasChatbot ? "success" : "secondary"}
+                    className={`${hasChatbot ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'}`}
                   >
                     {formatChatbotInfo(result)}
                   </Badge>
