@@ -1,4 +1,5 @@
 export const chatbotPatterns = [
+  // Common chat platforms
   /intercom/i,
   /drift/i,
   /zendesk/i,
@@ -45,8 +46,90 @@ export const chatbotPatterns = [
   /live\s*chat/i,
   /customer\s*support\s*chat/i,
   /chat\s*support/i,
+  // Common chat HTML elements and classes
+  /chat-widget/i,
+  /chat-container/i,
+  /chat-box/i,
+  /chat-frame/i,
+  /chat-button/i,
+  /chat-messenger/i,
+  /chat-popup/i,
+  /chat-window/i,
+  /chat-launcher/i,
+  /chat-trigger/i,
+  // Common chat script patterns
+  /widget\.js.*chat/i,
+  /chat.*widget\.js/i,
+  /chat.*messenger/i,
+  /messenger.*chat/i,
+  // Facebook specific
+  /facebook.*customerchat/i,
+  /fb.*customerchat/i,
+  /facebook.*messenger/i,
+  // WhatsApp specific
+  /whatsapp.*chat/i,
+  /wa\.me/i,
+  /whatsapp.*button/i,
+  // Generic chat indicators
+  /data-.*chat/i,
+  /chat.*plugin/i,
+  /chat.*sdk/i,
+  /chat.*api/i,
+  /chat.*integration/i,
+  // Common chat service domains
+  /\.chat\./i,
+  /chat\..*\.com/i,
+  /\.tawk\.to/i,
+  /\.crisp\.chat/i,
+  /\.gorgias\./i,
+  /\.intercom\./i,
+  /\.drift\./i,
+  /\.zendesk\./i,
+  /\.freshchat\./i,
+  /\.livechat\./i,
+  /\.tidio\./i,
+  /\.olark\./i,
+  /\.helpscout\./i,
+  /\.messenger\./i,
+  /\.liveperson\./i,
+  /\.hubspot\./i,
+  /\.chatwoot\./i,
+  /\.kommunicate\./i,
+  /\.botpress\./i,
+  /\.dialogflow\./i,
+  /\.manychat\./i,
+  /\.chatfuel\./i,
+  /\.mobilemonkey\./i,
+  /\.botsify\./i,
+  /\.pandorabots\./i,
+  /\.flowxo\./i,
+  /\.chatrace\./i,
+  /\.collect\.chat/i,
+  /\.userlike\./i,
+  /\.purechat\./i,
+  /\.chatra\./i,
+  /\.smartsupp\./i,
+  /\.jivochat\./i,
+  /\.snapengage\./i,
+  /\.iadvize\./i,
+  /\.acquire\./i,
+  /\.chaport\./i,
+  /\.kayako\./i,
+  /\.helpcrunch\./i
 ];
 
 export const hasChatbotScript = (html: string): boolean => {
-  return chatbotPatterns.some(pattern => pattern.test(html));
+  // First check for common chat elements in the HTML structure
+  const hasCommonChatElements = /<div[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
+    /<iframe[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
+    /<button[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
+
+  // Then check for chat-related scripts and links
+  const hasScriptOrLink = /<(?:script|link)[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
+
+  // Check for specific chat platform patterns
+  const hasChatPlatform = chatbotPatterns.some(pattern => pattern.test(html));
+
+  // Return true if any of the checks pass
+  return hasCommonChatElements || hasScriptOrLink || hasChatPlatform;
 };
