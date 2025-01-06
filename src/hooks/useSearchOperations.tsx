@@ -49,6 +49,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   const analyzeChatbots = async (results: Result[]): Promise<Result[]> => {
     const analyzedResults = await Promise.all(
       results.map(async (result) => {
+        if (!result.url) return result;
+
         try {
           const response: ChatbotDetectionResponse = await detectChatbot(result.url);
           return {
@@ -92,6 +94,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     setState(prev => ({ ...prev, isSearching: true }));
     
     try {
+      // Clear previous results before new search
       setState(prev => ({
         ...prev,
         results: {
@@ -129,6 +132,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
 
         toast.info('Analyzing websites for chatbots...');
         const analyzedResults = await analyzeChatbots(validResults);
+        console.log('Analyzed results:', analyzedResults);
         
         setState(prev => ({
           ...prev,
