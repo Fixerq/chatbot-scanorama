@@ -1,5 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Use a specific version of the std library for stability
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
 
@@ -8,13 +8,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface SearchRequest {
+  query: string;
+  country: string;
+  region: string;
+  startIndex?: number;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { query, country, region, startIndex } = await req.json();
+    const { query, country, region, startIndex } = await req.json() as SearchRequest;
     console.log('Search request:', { query, country, region, startIndex });
 
     if (!GOOGLE_API_KEY) {
@@ -24,75 +31,47 @@ serve(async (req) => {
 
     // Build location query
     const locationQuery = region ? `${region}, ${country}` : country;
-    const searchQuery = `${query} in ${locationQuery}`;
-    console.log('Search query:', searchQuery);
-
-    // Test Google Places API connection
-    try {
-      const testUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=test&key=${GOOGLE_API_KEY}`;
-      const testResponse = await fetch(testUrl);
-      if (!testResponse.ok) {
-        throw new Error(`Google Places API connection test failed: ${testResponse.statusText}`);
-      }
-      console.log('Successfully connected to Google Places API');
-    } catch (error) {
-      console.error('Failed to connect to Google Places API:', error);
-      throw new Error('Unable to connect to Google Places API');
-    }
-
-    // Get coordinates for location biasing
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
-    const geocodeResponse = await fetch(geocodeUrl);
-    const geocodeData = await geocodeResponse.json();
-
-    if (!geocodeData.results?.[0]?.geometry?.location) {
-      console.error('Geocoding failed:', geocodeData);
-      throw new Error('Could not determine location coordinates');
-    }
-
-    const { lat, lng } = geocodeData.results[0].geometry.location;
-    console.log('Location coordinates:', { lat, lng });
-
-    // Search for places
-    const placesUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
-    const searchParams = new URLSearchParams({
-      query: searchQuery,
-      key: GOOGLE_API_KEY,
-      location: `${lat},${lng}`,
-      radius: '50000', // 50km radius
-      type: 'establishment'
-    });
-
-    if (startIndex) {
-      searchParams.append('pagetoken', startIndex.toString());
-    }
-
-    placesUrl.search = searchParams.toString();
-    console.log('Places API URL:', placesUrl.toString());
-
-    const placesResponse = await fetch(placesUrl.toString());
-    if (!placesResponse.ok) {
-      throw new Error(`Places API request failed: ${placesResponse.statusText}`);
-    }
     
+    // Construct the places search URL
+    const searchUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
+    searchUrl.searchParams.append('query', `${query} in ${locationQuery}`);
+    searchUrl.searchParams.append('key', GOOGLE_API_KEY);
+    
+    if (startIndex) {
+      searchUrl.searchParams.append('pagetoken', startIndex.toString());
+    }
+
+    console.log('Searching places with URL:', searchUrl.toString());
+
+    // Fetch places
+    const placesResponse = await fetch(searchUrl.toString());
+    
+    if (!placesResponse.ok) {
+      console.error('Places API request failed:', placesResponse.statusText);
+      throw new Error('Failed to fetch places from Google API');
+    }
+
     const placesData = await placesResponse.json();
     console.log('Places API response status:', placesData.status);
     console.log('Number of places found:', placesData.results?.length || 0);
 
     if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
       console.error('Places API error:', placesData);
-      throw new Error(`Places API failed: ${placesData.error_message || placesData.status}`);
+      throw new Error(
+        placesData.error_message || 
+        `Places API returned status: ${placesData.status}`
+      );
     }
 
-    if (!placesData.results?.length) {
-      console.log('No places found');
+    if (!placesData.results || placesData.results.length === 0) {
       return new Response(
-        JSON.stringify({
-          results: [],
-          hasMore: false,
-          message: 'No businesses found in this area'
+        JSON.stringify({ 
+          results: [], 
+          nextPageToken: null 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
@@ -105,7 +84,6 @@ serve(async (req) => {
         }
 
         try {
-          // Explicitly request website field
           const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,name,formatted_address&key=${GOOGLE_API_KEY}`;
           console.log(`Fetching details for place: ${place.name}`);
           
@@ -152,37 +130,30 @@ serve(async (req) => {
             return null;
           }
         } catch (error) {
-          console.error('Error fetching place details:', error);
+          console.error(`Error fetching details for place ${place.place_id}:`, error);
           return null;
         }
       })
     );
 
-    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
-      result !== null && 
-      result.url && 
-      result.details?.title
-    );
-
-    console.log(`Found ${validResults.length} valid results with websites`);
-
+    // Filter out null results and prepare response
+    const validResults = detailedResults.filter(result => result !== null);
+    
     return new Response(
       JSON.stringify({
         results: validResults,
-        hasMore: Boolean(placesData.next_page_token)
+        nextPageToken: placesData.next_page_token || null
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
 
   } catch (error) {
-    console.error('Search error:', error);
+    console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        results: [],
-        hasMore: false
-      }),
-      {
+      JSON.stringify({ error: error.message }),
+      { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
