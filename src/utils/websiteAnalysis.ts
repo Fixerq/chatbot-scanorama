@@ -5,7 +5,7 @@ function validateUrl(url: string): string {
     throw new Error('URL is required');
   }
 
-  const trimmedUrl = url.trim();
+  let trimmedUrl = url.trim();
   if (!trimmedUrl) {
     throw new Error('URL cannot be empty');
   }
