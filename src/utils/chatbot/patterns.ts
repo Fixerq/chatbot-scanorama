@@ -156,7 +156,49 @@ export const chatbotPatterns = [
   /chat-bubble/i,
   /chat_bubble/i,
   /chat-icon/i,
-  /chat_icon/i
+  /chat_icon/i,
+  // Additional common chat services
+  /tidiochat/i,
+  /smartsuppchat/i,
+  /jivosite/i,
+  /gorgias-chat/i,
+  /freshworks/i,
+  /freshdesk/i,
+  /tawkto/i,
+  /tawk-messenger/i,
+  /chatnox/i,
+  /chatra-iframe/i,
+  /chat-bubble/i,
+  /chat-toggle/i,
+  /chat-notification/i,
+  /chat-online/i,
+  /chat-offline/i,
+  /chat-away/i,
+  /chat-busy/i,
+  /chat-status/i,
+  // Common chat elements
+  /div[^>]*chat/i,
+  /iframe[^>]*chat/i,
+  /button[^>]*chat/i,
+  /span[^>]*chat/i,
+  /a[^>]*chat/i,
+  // Chat loading scripts
+  /chat.*loader/i,
+  /loader.*chat/i,
+  /chat.*initialize/i,
+  /initialize.*chat/i,
+  /chat.*bootstrap/i,
+  /bootstrap.*chat/i,
+  // Chat configuration patterns
+  /chat.*config/i,
+  /config.*chat/i,
+  /chat.*settings/i,
+  /settings.*chat/i,
+  // Chat event listeners
+  /chat.*event/i,
+  /event.*chat/i,
+  /chat.*listener/i,
+  /listener.*chat/i
 ];
 
 export const hasChatbotScript = (html: string): boolean => {
@@ -180,10 +222,22 @@ export const hasChatbotScript = (html: string): boolean => {
   // Check for common chat-related meta tags
   const hasMetaTags = /<meta[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
 
+  // Check for chat-related data attributes
+  const hasDataAttributes = /data-(?:chat|messenger|support|widget)/i.test(html);
+
+  // Check for chat-related comments
+  const hasComments = /<!--.*(?:chat|messenger|support).*-->/i.test(html);
+
+  // Check for chat-related JSON configuration
+  const hasJsonConfig = /{[^}]*(?:chat|messenger|support)[^}]*}/i.test(html);
+
   // Return true if any of the checks pass
   return hasCommonChatElements || 
          hasScriptOrLink || 
          hasChatPlatform || 
          hasDynamicLoading || 
-         hasMetaTags;
+         hasMetaTags ||
+         hasDataAttributes ||
+         hasComments ||
+         hasJsonConfig;
 };
