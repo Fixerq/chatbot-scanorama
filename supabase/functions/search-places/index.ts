@@ -15,137 +15,97 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { query, country, region, startIndex } = await req.json() as SearchRequest;
-    console.log('Received search request:', { query, country, region, startIndex });
+    const { query, country, region } = await req.json() as SearchRequest;
+    console.log('Received search request:', { query, country, region });
 
     if (!GOOGLE_API_KEY) {
-      console.error('Google API key not found in environment variables');
+      console.error('Google API key not found');
       throw new Error('Google API key is not configured');
     }
 
-    // Build location query
-    const locationQuery = region ? `${query} in ${region}, ${country}` : `${query} in ${country}`;
-    console.log('Constructed location query:', locationQuery);
+    // Build location-specific search query
+    const locationQuery = region 
+      ? `${query} in ${region}, ${country}`
+      : `${query} in ${country}`;
+    
+    console.log('Searching for businesses with query:', locationQuery);
 
-    // Construct the Places API URL with URLSearchParams
-    const params = new URLSearchParams({
+    // First, search for businesses using Places Text Search
+    const searchParams = new URLSearchParams({
       query: locationQuery,
+      type: 'business', // Specifically look for businesses
       key: GOOGLE_API_KEY,
     });
 
-    if (startIndex) {
-      params.append('pagetoken', startIndex.toString());
-    }
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?${searchParams.toString()}`;
+    console.log('Making Places API request:', searchUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
 
-    const baseUrl = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
-    const searchUrl = `${baseUrl}?${params.toString()}`;
-    console.log('Making request to Places API:', searchUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
-
-    // Fetch places
-    const placesResponse = await fetch(searchUrl);
+    const searchResponse = await fetch(searchUrl);
     
-    if (!placesResponse.ok) {
-      console.error('Places API error:', {
-        status: placesResponse.status,
-        statusText: placesResponse.statusText
-      });
-      throw new Error(`Places API request failed: ${placesResponse.statusText}`);
+    if (!searchResponse.ok) {
+      console.error('Places API error:', searchResponse.statusText);
+      throw new Error(`Places API request failed: ${searchResponse.statusText}`);
     }
 
-    const placesData = await placesResponse.json();
-    console.log('Places API response status:', placesData.status);
+    const searchData = await searchResponse.json();
+    console.log('Places API response status:', searchData.status);
 
-    if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
-      console.error('Places API error:', placesData);
-      throw new Error(`Places API error: ${placesData.status}`);
+    if (searchData.status !== 'OK' && searchData.status !== 'ZERO_RESULTS') {
+      console.error('Places API error:', searchData);
+      throw new Error(`Places API error: ${searchData.status}`);
     }
 
-    if (!placesData.results || placesData.results.length === 0) {
-      console.log('No results found');
-      return new Response(
-        JSON.stringify({ 
-          results: [], 
-          hasMore: false 
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-    }
+    // Get details (including website URLs) for each place
+    const placesWithDetails = await Promise.all(
+      (searchData.results || []).map(async (place: any) => {
+        if (!place.place_id) return null;
 
-    console.log(`Found ${placesData.results.length} places, fetching details...`);
+        const detailsParams = new URLSearchParams({
+          place_id: place.place_id,
+          fields: 'website,name,formatted_address',
+          key: GOOGLE_API_KEY,
+        });
 
-    // Get details for each place
-    const detailedResults = await Promise.all(
-      placesData.results.map(async (place: any) => {
-        if (!place.place_id) {
-          console.log('Place missing place_id:', place);
-          return null;
-        }
+        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${detailsParams.toString()}`;
+        const detailsResponse = await fetch(detailsUrl);
+        const detailsData = await detailsResponse.json();
 
-        try {
-          const detailsParams = new URLSearchParams({
-            place_id: place.place_id,
-            fields: 'website,name,formatted_address',
-            key: GOOGLE_API_KEY
-          });
-
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${detailsParams.toString()}`;
-          console.log(`Fetching details for place: ${place.name}`);
-          
-          const detailsResponse = await fetch(detailsUrl);
-          if (!detailsResponse.ok) {
-            console.error(`Failed to fetch details for place ${place.place_id}:`, detailsResponse.statusText);
-            return null;
-          }
-
-          const detailsData = await detailsResponse.json();
-          
-          if (detailsData.status !== 'OK' || !detailsData.result) {
-            console.log(`Invalid details response for ${place.name}:`, detailsData.status);
-            return null;
-          }
-
-          const { website, name, formatted_address } = detailsData.result;
-
-          if (!website) {
-            console.log(`No website found for place: ${name}`);
-            return null;
-          }
-
+        if (detailsData.status === 'OK' && detailsData.result?.website) {
           return {
-            url: website,
-            status: 'Processing...',
-            details: {
-              title: name || place.name,
-              description: formatted_address || place.formatted_address,
-              lastChecked: new Date().toISOString()
-            }
+            url: detailsData.result.website,
+            name: detailsData.result.name,
+            address: detailsData.result.formatted_address,
           };
-        } catch (error) {
-          console.error(`Error fetching details for place ${place.place_id}:`, error);
-          return null;
         }
+        return null;
       })
     );
 
-    // Filter out null results
-    const validResults = detailedResults.filter(result => result !== null);
-    console.log(`Found ${validResults.length} valid results with websites`);
+    // Filter out places without websites and format response
+    const validResults = placesWithDetails
+      .filter((place): place is NonNullable<typeof place> => 
+        place !== null && Boolean(place.url)
+      )
+      .map(place => ({
+        url: place.url,
+        details: {
+          title: place.name,
+          description: place.address,
+          lastChecked: new Date().toISOString()
+        }
+      }));
+
+    console.log(`Found ${validResults.length} businesses with websites`);
 
     return new Response(
       JSON.stringify({
         results: validResults,
-        hasMore: !!placesData.next_page_token
+        hasMore: Boolean(searchData.next_page_token)
       }),
       { 
         headers: { 
