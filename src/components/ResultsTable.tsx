@@ -26,6 +26,11 @@ interface ResultsTableProps {
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
+  const formatUrl = (url: string) => {
+    if (!url) return 'N/A';
+    return url.startsWith('http') ? url : `https://${url}`;
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -40,17 +45,21 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           {results.map((result, index) => (
             <TableRow key={index}>
               <TableCell className="font-medium">
-                <a 
-                  href={result.url.startsWith('http') ? result.url : `https://${result.url}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  {result.url}
-                </a>
+                {result.url ? (
+                  <a 
+                    href={formatUrl(result.url)}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {result.url}
+                  </a>
+                ) : (
+                  <span className="text-gray-500">N/A</span>
+                )}
               </TableCell>
               <TableCell>{result.phone || 'N/A'}</TableCell>
-              <TableCell>{result.status}</TableCell>
+              <TableCell>{result.status || 'Pending'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
