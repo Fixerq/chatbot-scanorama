@@ -72,6 +72,8 @@ serve(async (req) => {
       throw new Error(`Places API failed: ${placesData.error_message || placesData.status}`);
     }
 
+    console.log('Places API response:', placesData);
+
     if (!placesData.results?.length) {
       console.log('No places found');
       return new Response(
@@ -87,30 +89,49 @@ serve(async (req) => {
     // Get details for each place
     const detailedResults = await Promise.all(
       placesData.results.map(async (place: any) => {
-        if (!place.place_id) return null;
-
-        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,name,formatted_address&key=${GOOGLE_API_KEY}`;
-        const detailsResponse = await fetch(detailsUrl);
-        const detailsData = await detailsResponse.json();
-
-        if (detailsData.status !== 'OK' || !detailsData.result?.website) {
+        if (!place.place_id) {
+          console.log('Place missing place_id:', place);
           return null;
         }
 
         try {
-          new URL(detailsData.result.website);
-          return {
-            url: detailsData.result.website,
-            phone: detailsData.result.formatted_phone_number || 'N/A',
-            status: 'Processing...',
-            details: {
-              title: place.name || detailsData.result.name,
-              description: place.formatted_address || detailsData.result.formatted_address,
-              lastChecked: new Date().toISOString()
-            }
-          };
-        } catch {
-          console.log('Invalid website URL:', detailsData.result.website);
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,name,formatted_address&key=${GOOGLE_API_KEY}`;
+          const detailsResponse = await fetch(detailsUrl);
+          const detailsData = await detailsResponse.json();
+
+          console.log('Place details response:', detailsData);
+
+          if (detailsData.status !== 'OK' || !detailsData.result) {
+            console.log('Invalid place details:', detailsData);
+            return null;
+          }
+
+          const { website, formatted_phone_number, name, formatted_address } = detailsData.result;
+
+          // Skip places without websites
+          if (!website) {
+            console.log('Place missing website:', name);
+            return null;
+          }
+
+          try {
+            new URL(website);
+            return {
+              url: website,
+              phone: formatted_phone_number || 'N/A',
+              status: 'Processing...',
+              details: {
+                title: name || place.name,
+                description: formatted_address || place.formatted_address,
+                lastChecked: new Date().toISOString()
+              }
+            };
+          } catch (error) {
+            console.log('Invalid website URL:', website);
+            return null;
+          }
+        } catch (error) {
+          console.error('Error fetching place details:', error);
           return null;
         }
       })
@@ -119,7 +140,7 @@ serve(async (req) => {
     const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
       result !== null && 
       result.url && 
-      result.url.length > 0
+      result.details?.title
     );
 
     console.log(`Found ${validResults.length} valid results with websites`);
