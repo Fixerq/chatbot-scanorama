@@ -1,17 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const GOOGLE_API_KEY = Deno.env.get('Google API');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface SearchRequest {
-  query: string;
-  country: string;
-  region: string;
-  startIndex?: number;
-}
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,15 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const GOOGLE_API_KEY = Deno.env.get('Google API');
-    
+    const { query, country, region, startIndex } = await req.json();
+    console.log('Search request:', { query, country, region, startIndex });
+
     if (!GOOGLE_API_KEY) {
-      console.error('Google API key not found in environment variables');
+      console.error('Google API key not found');
       throw new Error('Google API key is not configured');
     }
-
-    const { query, country, region, startIndex } = await req.json() as SearchRequest;
-    console.log('Search request:', { query, country, region, startIndex });
 
     // Build location query
     const locationQuery = region ? `${region}, ${country}` : country;
@@ -84,6 +77,7 @@ serve(async (req) => {
     
     const placesData = await placesResponse.json();
     console.log('Places API response status:', placesData.status);
+    console.log('Number of places found:', placesData.results?.length || 0);
 
     if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
       console.error('Places API error:', placesData);
@@ -102,7 +96,7 @@ serve(async (req) => {
       );
     }
 
-    // Get details for each place
+    // Get details for each place with explicit website field request
     const detailedResults = await Promise.all(
       placesData.results.map(async (place: any) => {
         if (!place.place_id) {
@@ -111,51 +105,50 @@ serve(async (req) => {
         }
 
         try {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,name,formatted_address,rating,business_status&key=${GOOGLE_API_KEY}`;
-          const detailsResponse = await fetch(detailsUrl);
+          // Explicitly request website field
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,name,formatted_address&key=${GOOGLE_API_KEY}`;
+          console.log(`Fetching details for place: ${place.name}`);
           
+          const detailsResponse = await fetch(detailsUrl);
           if (!detailsResponse.ok) {
             console.error(`Failed to fetch details for place ${place.place_id}: ${detailsResponse.statusText}`);
             return null;
           }
 
           const detailsData = await detailsResponse.json();
-          console.log('Place details status:', detailsData.status);
+          console.log(`Place details for ${place.name}:`, {
+            status: detailsData.status,
+            hasWebsite: !!detailsData.result?.website
+          });
 
           if (detailsData.status !== 'OK' || !detailsData.result) {
             console.log('Invalid place details:', detailsData);
             return null;
           }
 
-          const { 
-            website, 
-            name, 
-            formatted_address,
-            rating,
-            business_status 
-          } = detailsData.result;
+          const { website, name, formatted_address } = detailsData.result;
 
-          // Skip places without websites
+          // Only return places with valid websites
           if (!website) {
-            console.log('Place missing website:', name);
+            console.log(`No website found for place: ${name}`);
             return null;
           }
 
           // Validate website URL
           try {
             new URL(website);
+            console.log(`Valid website found for ${name}: ${website}`);
             return {
               url: website,
-              status: business_status || 'OPERATIONAL',
+              status: 'Processing...',
               details: {
                 title: name || place.name,
                 description: formatted_address || place.formatted_address,
-                rating: rating || null,
                 lastChecked: new Date().toISOString()
               }
             };
           } catch (error) {
-            console.log('Invalid website URL:', website);
+            console.log(`Invalid website URL for ${name}: ${website}`);
             return null;
           }
         } catch (error) {
