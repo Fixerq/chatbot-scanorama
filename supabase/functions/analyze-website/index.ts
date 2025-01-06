@@ -15,7 +15,21 @@ const CHAT_PATTERNS = {
   'HubSpot': [/hubspot/i, /js\.hs-scripts\.com/i],
   'Facebook Messenger': [/facebook\.com\/customer_chat/i, /connect\.facebook\.net.*\/sdk\/xfbml\.customerchat/i],
   'WhatsApp': [/wa\.me/i, /whatsapp/i, /api\.whatsapp\.com/i],
-  'Custom Chat': [/chat-widget/i, /chat-container/i, /chat-box/i, /messenger-widget/i]
+  'Gist': [/getgist\.com/i, /gist\.build/i], // Added Gist chat detection
+  'Custom Chat': [
+    /chat-widget/i, 
+    /chat-container/i, 
+    /chat-box/i, 
+    /messenger-widget/i,
+    /gist-/i, // Added specific Gist chat pattern
+    /chat-frame/i,
+    /chat-button/i,
+    /chat-messenger/i,
+    /chat-popup/i,
+    /chat-window/i,
+    /chat-launcher/i,
+    /chat-trigger/i
+  ]
 };
 
 function normalizeUrl(url: string): string {
@@ -96,13 +110,30 @@ serve(async (req) => {
         }
 
         const html = await response.text();
+        console.log('Analyzing HTML content for chat patterns...');
+        
         const detectedChatSolutions = [];
 
-        // Check for chat solutions
+        // Enhanced detection logic
         for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
-          if (patterns.some(pattern => pattern.test(html))) {
+          if (patterns.some(pattern => {
+            const matches = pattern.test(html);
+            if (matches) {
+              console.log(`Detected ${solution} using pattern:`, pattern);
+            }
+            return matches;
+          })) {
             detectedChatSolutions.push(solution);
           }
+        }
+
+        // Additional checks for dynamic loading
+        const hasDynamicChatLoading = /window\.(onload|addEventListener).*chat/i.test(html) ||
+                                    /document\.(ready|addEventListener).*chat/i.test(html);
+        
+        if (hasDynamicChatLoading && !detectedChatSolutions.includes('Custom Chat')) {
+          console.log('Detected dynamically loaded chat widget');
+          detectedChatSolutions.push('Custom Chat');
         }
 
         console.log('Analysis complete:', {
