@@ -19,6 +19,7 @@ const CHAT_PATTERNS = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: corsHeaders,
@@ -30,11 +31,22 @@ serve(async (req) => {
     const { url } = await req.json();
     console.log('Analyzing URL:', url);
     
+    if (!url) {
+      throw new Error('URL is required');
+    }
+
+    // Validate URL format
+    try {
+      new URL(url.startsWith('http') ? url : `https://${url}`);
+    } catch {
+      throw new Error('Invalid URL format');
+    }
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     try {
-      const response = await fetch(url, {
+      const response = await fetch(url.startsWith('http') ? url : `https://${url}`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
         },
@@ -58,6 +70,7 @@ serve(async (req) => {
       }
 
       console.log('Analysis complete:', {
+        url,
         chatSolutions: detectedChatSolutions
       });
 
@@ -79,13 +92,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error analyzing website:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return new Response(JSON.stringify({
       status: 'Error analyzing website',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
       lastChecked: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
+      status: 200 // Keep 200 to handle the error gracefully on the client side
     });
   }
 });

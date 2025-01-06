@@ -18,6 +18,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       };
     }
 
+    console.log('Calling analyze-website function for', url);
     // Use Supabase Edge Function to analyze the website
     const { data: analysisData, error: analysisError } = await supabase
       .functions.invoke('analyze-website', {
@@ -25,12 +26,16 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       });
 
     if (analysisError) {
+      console.error('Edge function error:', analysisError);
       throw new Error(`Analysis failed: ${analysisError.message}`);
     }
 
     if (!analysisData) {
+      console.error('No analysis data returned for', url);
       throw new Error('No analysis data returned');
     }
+
+    console.log('Analysis data received:', analysisData);
 
     const result: AnalysisResult = {
       status: analysisData.status || 'Analysis completed',
@@ -42,13 +47,31 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     };
 
     // Cache the result
-    await cacheResult(url, result);
+    try {
+      await cacheResult(url, result);
+      console.log('Successfully cached result for', url);
+    } catch (cacheError) {
+      console.error('Error caching result:', cacheError);
+      // Continue even if caching fails
+    }
+
     return result;
 
   } catch (error) {
     console.error('Error analyzing website:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const status = errorMessage.includes('abort') ? 'Analysis timed out' : 'Error analyzing website';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    // Determine a more specific error message based on the error
+    let status = 'Error analyzing website';
+    if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
+      status = 'Analysis timed out';
+    } else if (errorMessage.includes('404')) {
+      status = 'Website not found';
+    } else if (errorMessage.includes('403')) {
+      status = 'Access denied';
+    } else if (errorMessage.includes('network')) {
+      status = 'Network error';
+    }
     
     return {
       status,
