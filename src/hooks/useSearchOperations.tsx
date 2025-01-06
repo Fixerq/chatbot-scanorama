@@ -4,6 +4,7 @@ import { executeSearch, loadMore } from '@/utils/searchOperations';
 import { toast } from 'sonner';
 import { SearchResults } from '@/types/search';
 import { detectChatbot } from '@/utils/chatbotDetection';
+import { ChatbotDetectionResponse } from '@/types/chatbot';
 
 interface SearchOperationsState {
   results: SearchResults;
@@ -49,16 +50,14 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     const analyzedResults = await Promise.all(
       results.map(async (result) => {
         try {
-          const response = await detectChatbot(result.url);
-          const chatbotDetails = typeof response === 'string' ? { status: response } : response;
-          
+          const response: ChatbotDetectionResponse = await detectChatbot(result.url);
           return {
             ...result,
-            status: chatbotDetails.status,
+            status: response.status,
             details: {
               ...result.details,
-              chatSolutions: chatbotDetails.chatSolutions || [],
-              lastChecked: chatbotDetails.lastChecked
+              chatSolutions: response.chatSolutions || [],
+              lastChecked: response.lastChecked
             }
           };
         } catch (error) {

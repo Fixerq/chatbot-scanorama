@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { analyzeWebsite } from './websiteAnalysis';
+import { ChatbotDetectionResponse } from '@/types/chatbot';
 
 const isValidUrl = (url: string): boolean => {
   try {
@@ -12,9 +13,13 @@ const isValidUrl = (url: string): boolean => {
   }
 };
 
-export const detectChatbot = async (url: string): Promise<string> => {
+export const detectChatbot = async (url: string): Promise<ChatbotDetectionResponse> => {
   const result = await analyzeWebsite(url);
-  return result.status;
+  return {
+    status: result.status,
+    chatSolutions: result.details?.chatSolutions,
+    lastChecked: result.details?.lastChecked
+  };
 };
 
 export const processCSV = (content: string): string[] => {
