@@ -18,6 +18,24 @@ const CHAT_PATTERNS = {
   'Custom Chat': [/chat-widget/i, /chat-container/i, /chat-box/i, /messenger-widget/i]
 };
 
+function normalizeUrl(url: string): string {
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return `https://${url}`;
+  }
+  return url;
+}
+
+function validateUrl(url: string): void {
+  if (!url) {
+    throw new Error('URL is required');
+  }
+  try {
+    new URL(normalizeUrl(url));
+  } catch {
+    throw new Error('Invalid URL format');
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -29,24 +47,29 @@ serve(async (req) => {
 
   try {
     const { url } = await req.json();
-    console.log('Analyzing URL:', url);
+    console.log('Starting analysis for URL:', url);
     
-    if (!url) {
-      throw new Error('URL is required');
+    try {
+      validateUrl(url);
+    } catch (error) {
+      console.error('URL validation failed:', error);
+      return new Response(JSON.stringify({
+        status: 'Invalid URL',
+        error: error instanceof Error ? error.message : 'URL validation failed',
+        lastChecked: new Date().toISOString()
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
     }
 
-    // Validate URL format
-    try {
-      new URL(url.startsWith('http') ? url : `https://${url}`);
-    } catch {
-      throw new Error('Invalid URL format');
-    }
-    
+    const normalizedUrl = normalizeUrl(url);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
     
     try {
-      const response = await fetch(url.startsWith('http') ? url : `https://${url}`, {
+      console.log('Fetching URL:', normalizedUrl);
+      const response = await fetch(normalizedUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
         },
@@ -56,7 +79,9 @@ serve(async (req) => {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorMessage = `HTTP error! status: ${response.status}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
       }
 
       const html = await response.text();
@@ -70,7 +95,7 @@ serve(async (req) => {
       }
 
       console.log('Analysis complete:', {
-        url,
+        url: normalizedUrl,
         chatSolutions: detectedChatSolutions
       });
 
@@ -94,13 +119,30 @@ serve(async (req) => {
     console.error('Error analyzing website:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
+    let status = 'Error analyzing website';
+    let httpStatus = 500;
+
+    if (errorMessage.includes('abort') || errorMessage.includes('timeout')) {
+      status = 'Analysis timed out';
+      httpStatus = 408;
+    } else if (errorMessage.includes('404')) {
+      status = 'Website not found';
+      httpStatus = 404;
+    } else if (errorMessage.includes('403')) {
+      status = 'Access denied';
+      httpStatus = 403;
+    } else if (errorMessage.includes('network')) {
+      status = 'Network error';
+      httpStatus = 503;
+    }
+
     return new Response(JSON.stringify({
-      status: 'Error analyzing website',
+      status,
       error: errorMessage,
       lastChecked: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200 // Keep 200 to handle the error gracefully on the client side
+      status: httpStatus
     });
   }
 });

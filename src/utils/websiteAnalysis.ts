@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisResult } from './analysis/types';
-import { analyzeContent } from './analysis/contentAnalyzer';
 import { getCachedResult, cacheResult } from './analysis/cache';
 
 const ANALYSIS_TIMEOUT = 30000; // 30 seconds
@@ -20,6 +19,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       };
     }
 
+    console.log('Calling analyze-website function for', url);
     // Use Supabase Edge Function to analyze the website
     const { data: analysisData, error: analysisError } = await supabase
       .functions.invoke('analyze-website', {
@@ -27,11 +27,20 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       });
 
     if (analysisError) {
+      console.error('Edge function error:', analysisError);
       throw new Error(`Analysis failed: ${analysisError.message}`);
     }
 
     if (!analysisData) {
+      console.error('No analysis data returned for', url);
       throw new Error('No analysis data returned');
+    }
+
+    console.log('Analysis data received:', analysisData);
+
+    // If there's an error status from the edge function, throw it
+    if (analysisData.error) {
+      throw new Error(analysisData.error);
     }
 
     const result: AnalysisResult = {
@@ -43,33 +52,34 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
       technologies: analysisData.technologies || []
     };
 
-    // Cache the result using upsert
+    // Cache the result
     try {
-      const { error: upsertError } = await supabase
-        .from('analyzed_urls')
-        .upsert({
-          url,
-          status: result.status,
-          details: result.details,
-          technologies: result.technologies
-        }, {
-          onConflict: 'url',
-          ignoreDuplicates: false
-        });
-
-      if (upsertError) {
-        console.error('Error caching result:', upsertError);
-      }
+      await cacheResult(url, result);
+      console.log('Successfully cached result for', url);
     } catch (cacheError) {
-      console.error('Error during cache operation:', cacheError);
+      console.error('Error caching result:', cacheError);
+      // Continue even if caching fails
     }
 
     return result;
 
   } catch (error) {
     console.error('Error analyzing website:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const status = errorMessage.includes('abort') ? 'Analysis timed out' : 'Error analyzing website';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    
+    // Determine a more specific error message based on the error
+    let status = 'Error analyzing website';
+    if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
+      status = 'Analysis timed out';
+    } else if (errorMessage.includes('404')) {
+      status = 'Website not found';
+    } else if (errorMessage.includes('403')) {
+      status = 'Access denied';
+    } else if (errorMessage.includes('network')) {
+      status = 'Network error';
+    } else if (errorMessage.includes('Invalid URL')) {
+      status = 'Invalid URL format';
+    }
     
     return {
       status,
