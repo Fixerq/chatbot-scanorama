@@ -16,7 +16,7 @@ interface SearchRequest {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -28,17 +28,20 @@ serve(async (req) => {
       throw new Error('Google API key is not configured');
     }
 
-    // Build location-specific search query
-    const locationQuery = region 
-      ? `${query} in ${region}, ${country}`
-      : `${query} in ${country}`;
+    // Construct a more natural search query
+    let locationQuery = query;
+    if (region && country) {
+      locationQuery = `${query} ${region} ${country}`;
+    } else if (country) {
+      locationQuery = `${query} ${country}`;
+    }
     
-    console.log('Searching for businesses with query:', locationQuery);
+    console.log('Using search query:', locationQuery);
 
-    // First, search for businesses using Places Text Search
+    // Search for businesses using Places Text Search
     const searchParams = new URLSearchParams({
       query: locationQuery,
-      type: 'business', // Specifically look for businesses
+      type: 'business',
       key: GOOGLE_API_KEY,
     });
 
@@ -48,7 +51,10 @@ serve(async (req) => {
     const searchResponse = await fetch(searchUrl);
     
     if (!searchResponse.ok) {
-      console.error('Places API error:', searchResponse.statusText);
+      console.error('Places API error:', {
+        status: searchResponse.status,
+        statusText: searchResponse.statusText
+      });
       throw new Error(`Places API request failed: ${searchResponse.statusText}`);
     }
 
@@ -60,27 +66,40 @@ serve(async (req) => {
       throw new Error(`Places API error: ${searchData.status}`);
     }
 
-    // Get details (including website URLs) for each place
+    // Get details for each place
     const placesWithDetails = await Promise.all(
-      (searchData.results || []).map(async (place: any) => {
+      (searchData.results || []).slice(0, 10).map(async (place: any) => {
         if (!place.place_id) return null;
 
-        const detailsParams = new URLSearchParams({
-          place_id: place.place_id,
-          fields: 'website,name,formatted_address',
-          key: GOOGLE_API_KEY,
-        });
+        try {
+          const detailsParams = new URLSearchParams({
+            place_id: place.place_id,
+            fields: 'website,name,formatted_address',
+            key: GOOGLE_API_KEY,
+          });
 
-        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${detailsParams.toString()}`;
-        const detailsResponse = await fetch(detailsUrl);
-        const detailsData = await detailsResponse.json();
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${detailsParams.toString()}`;
+          const detailsResponse = await fetch(detailsUrl);
+          
+          if (!detailsResponse.ok) {
+            console.error('Place Details API error:', {
+              status: detailsResponse.status,
+              statusText: detailsResponse.statusText
+            });
+            return null;
+          }
 
-        if (detailsData.status === 'OK' && detailsData.result?.website) {
-          return {
-            url: detailsData.result.website,
-            name: detailsData.result.name,
-            address: detailsData.result.formatted_address,
-          };
+          const detailsData = await detailsResponse.json();
+
+          if (detailsData.status === 'OK' && detailsData.result?.website) {
+            return {
+              url: detailsData.result.website,
+              name: detailsData.result.name,
+              address: detailsData.result.formatted_address,
+            };
+          }
+        } catch (error) {
+          console.error('Error fetching place details:', error);
         }
         return null;
       })
@@ -117,9 +136,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in search-places function:', error);
+    
+    // Return a more detailed error response
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
+        details: error instanceof Error ? error.stack : undefined,
         results: [],
         hasMore: false
       }),
