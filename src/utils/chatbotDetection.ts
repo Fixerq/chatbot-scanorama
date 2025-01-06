@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
-import { analyzeWebsite } from './websiteAnalysis';
+import { supabase } from '@/integrations/supabase/client';
 import { ChatbotDetectionResponse } from '@/types/chatbot';
 
 const isValidUrl = (url: string): boolean => {
@@ -13,12 +13,33 @@ const isValidUrl = (url: string): boolean => {
 };
 
 export const detectChatbot = async (url: string): Promise<ChatbotDetectionResponse> => {
-  const result = await analyzeWebsite(url);
-  return {
-    status: result.status,
-    chatSolutions: result.details.chatSolutions || [],
-    lastChecked: result.details.lastChecked
-  };
+  try {
+    console.log('Analyzing URL:', url);
+    
+    const { data, error } = await supabase.functions.invoke('analyze-website', {
+      body: { url }
+    });
+
+    if (error) {
+      console.error('Error analyzing website:', error);
+      throw error;
+    }
+
+    console.log('Analysis result:', data);
+    
+    return {
+      status: data.status,
+      chatSolutions: data.chatSolutions || [],
+      lastChecked: data.lastChecked
+    };
+  } catch (error) {
+    console.error('Error in detectChatbot:', error);
+    return {
+      status: 'Error analyzing URL',
+      chatSolutions: [],
+      lastChecked: new Date().toISOString()
+    };
+  }
 };
 
 export const processCSV = (content: string): string[] => {

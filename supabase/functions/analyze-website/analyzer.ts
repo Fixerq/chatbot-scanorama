@@ -19,6 +19,7 @@ export async function analyzeChatbot(url: string): Promise<string[]> {
     
     const detectedChatSolutions: string[] = [];
 
+    // Check for specific chat solutions
     for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
       if (patterns.some(pattern => {
         const matches = pattern.test(html);
@@ -31,12 +32,23 @@ export async function analyzeChatbot(url: string): Promise<string[]> {
       }
     }
 
-    // Check for dynamic loading
+    // Check for dynamic loading patterns
     const hasDynamicChatLoading = /window\.(onload|addEventListener).*chat/i.test(html) ||
-                                 /document\.(ready|addEventListener).*chat/i.test(html);
+                                 /document\.(ready|addEventListener).*chat/i.test(html) ||
+                                 /loadChat|initChat|startChat|chatInit/i.test(html);
     
     if (hasDynamicChatLoading && !detectedChatSolutions.includes('Custom Chat')) {
       console.log('Detected dynamically loaded chat widget');
+      detectedChatSolutions.push('Custom Chat');
+    }
+
+    // Additional checks for common chat-related elements
+    const hasCommonChatElements = /<div[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
+                                 /<iframe[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
+                                 /<button[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
+
+    if (hasCommonChatElements && !detectedChatSolutions.includes('Custom Chat')) {
+      console.log('Detected common chat elements');
       detectedChatSolutions.push('Custom Chat');
     }
 

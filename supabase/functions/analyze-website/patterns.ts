@@ -8,19 +8,32 @@ export const CHAT_PATTERNS = {
   'HubSpot': [/hubspot/i, /js\.hs-scripts\.com/i],
   'Facebook Messenger': [/facebook\.com\/customer_chat/i, /connect\.facebook\.net.*\/sdk\/xfbml\.customerchat/i],
   'WhatsApp': [/wa\.me/i, /whatsapp/i, /api\.whatsapp\.com/i],
-  'Gist': [/getgist\.com/i, /gist\.build/i],
+  'Gist': [
+    /getgist\.com/i,
+    /gist\.build/i,
+    /gist-/i,
+    /gist\.js/i,
+    /gist-embed/i,
+    /gist-widget/i
+  ],
   'Custom Chat': [
     /chat-widget/i,
     /chat-container/i,
     /chat-box/i,
     /messenger-widget/i,
-    /gist-/i,
     /chat-frame/i,
     /chat-button/i,
     /chat-messenger/i,
     /chat-popup/i,
     /chat-window/i,
     /chat-launcher/i,
-    /chat-trigger/i
+    /chat-trigger/i,
+    /chat-bubble/i,
+    /chat-icon/i,
+    /chat-header/i,
+    /chat-footer/i,
+    /chat-body/i,
+    /chat-input/i,
+    /chat-messages/i
   ]
 };
