@@ -18,6 +18,33 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     isSearching: false,
   });
 
+  const isValidUrl = (url: string): boolean => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const validateResults = (results: Result[]): Result[] => {
+    return results.filter(result => {
+      // Check if URL exists and is valid
+      if (!result.url || !isValidUrl(result.url)) {
+        console.log('Invalid or missing URL:', result);
+        return false;
+      }
+
+      // Ensure required fields exist
+      if (!result.status) {
+        console.log('Missing status:', result);
+        return false;
+      }
+
+      return true;
+    });
+  };
+
   const handleSearch = async (
     query: string,
     country: string,
@@ -57,10 +84,19 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       );
       
       if (searchResult) {
-        const validResults = searchResult.newResults.filter(result => result.url);
+        const validResults = validateResults(searchResult.newResults);
+        console.log('Valid results after filtering:', validResults.length);
         
         if (validResults.length === 0) {
-          toast.info('No valid results found. Try adjusting your search terms.');
+          toast.info('No valid results found. Try adjusting your search terms or location.');
+          setState(prev => ({
+            ...prev,
+            results: {
+              currentResults: [],
+              hasMore: false,
+            }
+          }));
+          onResults([]);
           return;
         }
 
@@ -99,7 +135,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       );
 
       if (moreResults && moreResults.newResults.length > 0) {
-        const validNewResults = moreResults.newResults.filter(result => result.url);
+        const validNewResults = validateResults(moreResults.newResults);
         const existingUrls = new Set(state.results.currentResults.map(r => r.url));
         const newUniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
         
