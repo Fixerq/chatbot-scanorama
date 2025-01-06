@@ -52,17 +52,20 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       );
       
       if (searchResult) {
+        // Filter out results without URLs
+        const validResults = searchResult.newResults.filter(result => result.url);
+        
+        if (validResults.length === 0) {
+          toast.info('No valid results found. Try adjusting your search terms.');
+          return;
+        }
+
         setResults({
-          currentResults: searchResult.newResults,
+          currentResults: validResults,
           hasMore: searchResult.hasMore,
         });
-        onResults(searchResult.newResults);
-        
-        if (searchResult.newResults.length === 0) {
-          toast.info('No new results found. Try adjusting your search terms.');
-        } else {
-          toast.success(`Found ${searchResult.newResults.length} new results`);
-        }
+        onResults(validResults);
+        toast.success(`Found ${validResults.length} results`);
       }
     } catch (error) {
       console.error('Search error:', error);
@@ -96,19 +99,18 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       );
 
       if (moreResults && moreResults.newResults.length > 0) {
+        // Filter out results without URLs
+        const validNewResults = moreResults.newResults.filter(result => result.url);
         const existingUrls = new Set(results.currentResults.map(r => r.url));
-        const newUniqueResults = moreResults.newResults.filter(result => !existingUrls.has(result.url));
-        
-        console.log(`Found ${newUniqueResults.length} additional results`);
-        
-        const updatedResults = [...results.currentResults, ...newUniqueResults];
-        setResults({
-          currentResults: updatedResults,
-          hasMore: moreResults.hasMore,
-        });
-        onResults(updatedResults);
+        const newUniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
         
         if (newUniqueResults.length > 0) {
+          const updatedResults = [...results.currentResults, ...newUniqueResults];
+          setResults({
+            currentResults: updatedResults,
+            hasMore: moreResults.hasMore,
+          });
+          onResults(updatedResults);
           toast.success(`Loaded ${newUniqueResults.length} more results`);
         } else {
           toast.info('No more new results found');
