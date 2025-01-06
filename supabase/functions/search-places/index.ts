@@ -1,4 +1,3 @@
-// Use a specific version of the std library for stability
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
@@ -52,8 +51,10 @@ serve(async (req) => {
     }
 
     const placesData = await placesResponse.json();
-    console.log('Places API response status:', placesData.status);
-    console.log('Number of places found:', placesData.results?.length || 0);
+    console.log('Places API response:', {
+      status: placesData.status,
+      resultsCount: placesData.results?.length || 0
+    });
 
     if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
       console.error('Places API error:', placesData);
@@ -67,7 +68,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           results: [], 
-          nextPageToken: null 
+          hasMore: false 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -84,10 +85,14 @@ serve(async (req) => {
         }
 
         try {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,name,formatted_address&key=${GOOGLE_API_KEY}`;
+          const detailsUrl = new URL('https://maps.googleapis.com/maps/api/place/details/json');
+          detailsUrl.searchParams.append('place_id', place.place_id);
+          detailsUrl.searchParams.append('fields', 'website,name,formatted_address');
+          detailsUrl.searchParams.append('key', GOOGLE_API_KEY);
+
           console.log(`Fetching details for place: ${place.name}`);
           
-          const detailsResponse = await fetch(detailsUrl);
+          const detailsResponse = await fetch(detailsUrl.toString());
           if (!detailsResponse.ok) {
             console.error(`Failed to fetch details for place ${place.place_id}: ${detailsResponse.statusText}`);
             return null;
@@ -118,7 +123,6 @@ serve(async (req) => {
             console.log(`Valid website found for ${name}: ${website}`);
             return {
               url: website,
-              status: 'Processing...',
               details: {
                 title: name || place.name,
                 description: formatted_address || place.formatted_address,
@@ -137,12 +141,18 @@ serve(async (req) => {
     );
 
     // Filter out null results and prepare response
-    const validResults = detailedResults.filter(result => result !== null);
+    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
+      result !== null && 
+      typeof result.url === 'string' && 
+      result.url.length > 0
+    );
+    
+    console.log(`Found ${validResults.length} valid results with websites`);
     
     return new Response(
       JSON.stringify({
         results: validResults,
-        nextPageToken: placesData.next_page_token || null
+        hasMore: !!placesData.next_page_token
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -152,7 +162,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        results: [],
+        hasMore: false
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

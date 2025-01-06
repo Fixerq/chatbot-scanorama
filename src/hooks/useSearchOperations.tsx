@@ -30,9 +30,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
 
   const validateResults = (results: Result[]): Result[] => {
     return results.filter(result => {
-      console.log('Validating result:', result);
-
-      if (!result.url) {
+      if (!result?.url) {
         console.log('Missing URL:', result);
         return false;
       }
@@ -42,7 +40,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         return false;
       }
 
-      return result;
+      return true;
     });
   };
 
