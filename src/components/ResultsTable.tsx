@@ -10,6 +10,12 @@ import {
 
 export interface Result {
   url: string;
+  status?: string;
+  details?: {
+    title?: string;
+    description?: string;
+    lastChecked?: string;
+  };
 }
 
 interface ResultsTableProps {
@@ -28,6 +34,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
+            <TableHead>Business Name</TableHead>
+            <TableHead>Description</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -47,6 +55,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   <span className="text-gray-500">N/A</span>
                 )}
               </TableCell>
+              <TableCell>{result.details?.title || 'N/A'}</TableCell>
+              <TableCell>{result.details?.description || 'N/A'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

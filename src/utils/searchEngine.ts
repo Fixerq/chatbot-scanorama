@@ -34,17 +34,31 @@ export const performGoogleSearch = async (
       return null;
     }
 
-    return {
-      results: data.results.map((place: any) => ({
-        url: place.website || '',
-        status: 'Processing...',
+    console.log('Raw response from Edge Function:', data);
+
+    if (!data.results || !Array.isArray(data.results)) {
+      console.error('Invalid response format:', data);
+      return null;
+    }
+
+    // Map the results to the expected format
+    const formattedResults = data.results
+      .filter((result: any) => result && result.url) // Only include results with URLs
+      .map((result: any) => ({
+        url: result.url,
+        status: 'Ready',
         details: {
-          title: place.name,
-          description: place.formatted_address,
+          title: result.details?.title || '',
+          description: result.details?.description || '',
           lastChecked: new Date().toISOString()
         }
-      })),
-      hasMore: data.hasMore
+      }));
+
+    console.log('Formatted results:', formattedResults);
+
+    return {
+      results: formattedResults,
+      hasMore: data.hasMore || false
     };
   } catch (error) {
     console.error('Places search error:', error);
