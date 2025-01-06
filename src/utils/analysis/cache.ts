@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ParsedCachedResult } from './types';
 
+const CACHE_VALIDITY_PERIOD = 24 * 60 * 60 * 1000; // 24 hours
+
 export const getCachedResult = async (url: string): Promise<ParsedCachedResult | null> => {
   const { data: cachedResult, error: cacheError } = await supabase
     .from('analyzed_urls')
@@ -18,9 +20,8 @@ export const getCachedResult = async (url: string): Promise<ParsedCachedResult |
   }
 
   const cacheAge = Date.now() - new Date(cachedResult.created_at).getTime();
-  const cacheValidityPeriod = 24 * 60 * 60 * 1000; // 24 hours
-
-  if (cacheAge >= cacheValidityPeriod) {
+  
+  if (cacheAge >= CACHE_VALIDITY_PERIOD) {
     return null;
   }
 
@@ -41,8 +42,7 @@ export const cacheResult = async (url: string, result: any): Promise<void> => {
       details: result.details,
       technologies: result.technologies
     }, {
-      onConflict: 'url',
-      ignoreDuplicates: false
+      onConflict: 'url'
     });
 
   if (upsertError) {

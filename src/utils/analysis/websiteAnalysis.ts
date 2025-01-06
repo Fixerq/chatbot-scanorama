@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisResult } from './types';
-import { getCachedResult, cacheResult, isCacheValid } from './cache';
+import { getCachedResult, cacheResult } from './cache';
 
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
@@ -9,7 +9,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     // Check cache first
     const cachedResult = await getCachedResult(url);
     
-    if (cachedResult && isCacheValid(cachedResult)) {
+    if (cachedResult) {
       console.log('Using cached result for', url);
       return {
         status: cachedResult.status,
