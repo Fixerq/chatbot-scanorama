@@ -52,16 +52,28 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       );
       
       if (searchResult) {
+        // Filter out results with empty or invalid URLs
+        const validResults = searchResult.newResults.filter(result => {
+          try {
+            if (!result.url) return false;
+            new URL(result.url);
+            return true;
+          } catch {
+            console.log('Filtered out invalid URL:', result.url);
+            return false;
+          }
+        });
+
         setResults({
-          currentResults: searchResult.newResults,
+          currentResults: validResults,
           hasMore: searchResult.hasMore,
         });
-        onResults(searchResult.newResults);
+        onResults(validResults);
         
-        if (searchResult.newResults.length === 0) {
-          toast.info('No new results found. Try adjusting your search terms.');
+        if (validResults.length === 0) {
+          toast.info('No valid results found. Try adjusting your search terms.');
         } else {
-          toast.success(`Found ${searchResult.newResults.length} new results`);
+          toast.success(`Found ${validResults.length} results`);
         }
       }
     } catch (error) {
@@ -96,10 +108,22 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       );
 
       if (moreResults && moreResults.newResults.length > 0) {
+        // Filter out results with empty or invalid URLs
+        const validNewResults = moreResults.newResults.filter(result => {
+          try {
+            if (!result.url) return false;
+            new URL(result.url);
+            return true;
+          } catch {
+            console.log('Filtered out invalid URL:', result.url);
+            return false;
+          }
+        });
+
         const existingUrls = new Set(results.currentResults.map(r => r.url));
-        const newUniqueResults = moreResults.newResults.filter(result => !existingUrls.has(result.url));
+        const newUniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
         
-        console.log(`Found ${newUniqueResults.length} additional results`);
+        console.log(`Found ${newUniqueResults.length} additional valid results`);
         
         const updatedResults = [...results.currentResults, ...newUniqueResults];
         setResults({
