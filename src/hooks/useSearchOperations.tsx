@@ -19,6 +19,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   });
 
   const isValidUrl = (url: string): boolean => {
+    if (!url) return false;
     try {
       new URL(url.startsWith('http') ? url : `https://${url}`);
       return true;
@@ -29,17 +30,30 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
 
   const validateResults = (results: Result[]): Result[] => {
     return results.filter(result => {
-      if (!result.url || !isValidUrl(result.url)) {
-        console.log('Invalid URL:', result);
+      // Log the result being validated
+      console.log('Validating result:', result);
+
+      if (!result.url) {
+        console.log('Missing URL:', result);
         return false;
       }
 
-      if (!result.status || !result.details?.title) {
-        console.log('Missing required fields:', result);
+      if (!isValidUrl(result.url)) {
+        console.log('Invalid URL format:', result.url);
         return false;
       }
 
-      return true;
+      // Ensure required fields exist with fallbacks
+      return {
+        ...result,
+        status: result.status || 'Pending',
+        details: {
+          ...result.details,
+          title: result.details?.title || 'Unknown',
+          description: result.details?.description || '',
+          lastChecked: result.details?.lastChecked || new Date().toISOString()
+        }
+      };
     });
   };
 
@@ -81,6 +95,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       );
       
       if (searchResult) {
+        console.log('Raw search results:', searchResult);
         const validResults = validateResults(searchResult.newResults);
         console.log('Valid results:', validResults.length);
         
@@ -132,7 +147,10 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       );
 
       if (moreResults?.newResults.length) {
+        console.log('Raw more results:', moreResults);
         const validNewResults = validateResults(moreResults.newResults);
+        console.log('Valid new results:', validNewResults.length);
+        
         const existingUrls = new Set(state.results.currentResults.map(r => r.url));
         const uniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
         
