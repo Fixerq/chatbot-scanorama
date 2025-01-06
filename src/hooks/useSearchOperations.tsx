@@ -3,6 +3,7 @@ import { Result } from '@/components/ResultsTable';
 import { executeSearch, loadMore } from '@/utils/searchOperations';
 import { toast } from 'sonner';
 import { SearchResults } from '@/types/search';
+import { detectChatbot } from '@/utils/chatbotDetection';
 
 interface SearchOperationsState {
   results: SearchResults;
@@ -42,6 +43,27 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
 
       return true;
     });
+  };
+
+  const analyzeChatbots = async (results: Result[]): Promise<Result[]> => {
+    const analyzedResults = await Promise.all(
+      results.map(async (result) => {
+        try {
+          const status = await detectChatbot(result.url);
+          return {
+            ...result,
+            status: status || 'No chatbot detected'
+          };
+        } catch (error) {
+          console.error(`Error analyzing ${result.url}:`, error);
+          return {
+            ...result,
+            status: 'Error analyzing URL'
+          };
+        }
+      })
+    );
+    return analyzedResults;
   };
 
   const handleSearch = async (
@@ -99,15 +121,18 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
           return;
         }
 
+        toast.info('Analyzing websites for chatbots...');
+        const analyzedResults = await analyzeChatbots(validResults);
+        
         setState(prev => ({
           ...prev,
           results: {
-            currentResults: validResults,
+            currentResults: analyzedResults,
             hasMore: searchResult.hasMore,
           }
         }));
-        onResults(validResults);
-        toast.success(`Found ${validResults.length} results`);
+        onResults(analyzedResults);
+        toast.success(`Found and analyzed ${analyzedResults.length} results`);
       }
     } catch (error) {
       console.error('Search error:', error);
@@ -142,7 +167,10 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         const uniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
         
         if (uniqueResults.length > 0) {
-          const updatedResults = [...state.results.currentResults, ...uniqueResults];
+          toast.info('Analyzing new websites for chatbots...');
+          const analyzedNewResults = await analyzeChatbots(uniqueResults);
+          const updatedResults = [...state.results.currentResults, ...analyzedNewResults];
+          
           setState(prev => ({
             ...prev,
             results: {
@@ -151,7 +179,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
             }
           }));
           onResults(updatedResults);
-          toast.success(`Loaded ${uniqueResults.length} more results`);
+          toast.success(`Loaded and analyzed ${analyzedNewResults.length} more results`);
         } else {
           toast.info('No more new results found');
         }

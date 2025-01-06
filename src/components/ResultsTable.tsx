@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export interface Result {
   url: string;
@@ -28,6 +29,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     return url.startsWith('http') ? url : `https://${url}`;
   };
 
+  const getChatbotStatusColor = (status: string | undefined) => {
+    if (!status) return 'gray';
+    if (status.toLowerCase().includes('detected')) return 'green';
+    if (status.toLowerCase().includes('error')) return 'red';
+    return 'gray';
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -36,6 +44,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             <TableHead className="w-[300px]">Website</TableHead>
             <TableHead>Business Name</TableHead>
             <TableHead>Description</TableHead>
+            <TableHead>Chatbot Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -57,6 +66,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               </TableCell>
               <TableCell>{result.details?.title || 'N/A'}</TableCell>
               <TableCell>{result.details?.description || 'N/A'}</TableCell>
+              <TableCell>
+                <Badge 
+                  variant="secondary"
+                  className={`bg-${getChatbotStatusColor(result.status)}-100 text-${getChatbotStatusColor(result.status)}-800 border-${getChatbotStatusColor(result.status)}-200`}
+                >
+                  {result.status || 'Pending Analysis'}
+                </Badge>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
