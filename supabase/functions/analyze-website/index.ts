@@ -27,18 +27,21 @@ function normalizeUrl(url: string): string {
   return url;
 }
 
-function validateUrl(url: string): void {
+function validateUrl(url: string): string {
   if (!url || typeof url !== 'string') {
     throw new Error('URL is required');
   }
 
-  const normalizedUrl = normalizeUrl(url.trim());
-  if (!normalizedUrl) {
-    throw new Error('Invalid URL format');
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    throw new Error('URL cannot be empty');
   }
 
+  const normalizedUrl = normalizeUrl(trimmedUrl);
+  
   try {
     new URL(normalizedUrl);
+    return normalizedUrl;
   } catch {
     throw new Error('Invalid URL format');
   }
@@ -57,78 +60,82 @@ serve(async (req) => {
     const requestData = await req.json();
     console.log('Received request data:', requestData);
 
-    if (!requestData || !requestData.url) {
-      console.error('No URL provided in request');
-      throw new Error('URL is required');
+    if (!requestData) {
+      throw new Error('Request data is required');
     }
 
     const url = requestData.url;
+    if (!url) {
+      throw new Error('URL is required in request data');
+    }
+
     console.log('Processing URL:', url);
     
     try {
-      validateUrl(url);
-    } catch (error) {
-      console.error('URL validation failed:', error);
+      const validatedUrl = validateUrl(url);
+      console.log('Validated URL:', validatedUrl);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      try {
+        console.log('Fetching URL:', validatedUrl);
+        const response = await fetch(validatedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorMessage = `HTTP error! status: ${response.status}`;
+          console.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+
+        const html = await response.text();
+        const detectedChatSolutions = [];
+
+        // Check for chat solutions
+        for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
+          if (patterns.some(pattern => pattern.test(html))) {
+            detectedChatSolutions.push(solution);
+          }
+        }
+
+        console.log('Analysis complete:', {
+          url: validatedUrl,
+          chatSolutions: detectedChatSolutions
+        });
+
+        return new Response(JSON.stringify({
+          status: detectedChatSolutions.length > 0 ? 
+            `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
+            'No chatbot detected',
+          chatSolutions: detectedChatSolutions,
+          lastChecked: new Date().toISOString()
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        });
+
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+
+    } catch (validationError) {
+      console.error('URL validation failed:', validationError);
       return new Response(JSON.stringify({
         status: 'Invalid URL',
-        error: error instanceof Error ? error.message : 'URL validation failed',
+        error: validationError instanceof Error ? validationError.message : 'URL validation failed',
         lastChecked: new Date().toISOString()
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400
       });
-    }
-
-    const normalizedUrl = normalizeUrl(url);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    
-    try {
-      console.log('Fetching URL:', normalizedUrl);
-      const response = await fetch(normalizedUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; ChatbotDetector/1.0)'
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorMessage = `HTTP error! status: ${response.status}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      const html = await response.text();
-      const detectedChatSolutions = [];
-
-      // Check for chat solutions
-      for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
-        if (patterns.some(pattern => pattern.test(html))) {
-          detectedChatSolutions.push(solution);
-        }
-      }
-
-      console.log('Analysis complete:', {
-        url: normalizedUrl,
-        chatSolutions: detectedChatSolutions
-      });
-
-      return new Response(JSON.stringify({
-        status: detectedChatSolutions.length > 0 ? 
-          `Chatbot detected (${detectedChatSolutions.join(', ')})` : 
-          'No chatbot detected',
-        chatSolutions: detectedChatSolutions,
-        lastChecked: new Date().toISOString()
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
-
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
     }
 
   } catch (error) {

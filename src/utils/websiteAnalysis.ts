@@ -5,18 +5,18 @@ function validateUrl(url: string): string {
     throw new Error('URL is required');
   }
 
-  let normalizedUrl = url.trim();
-  if (!normalizedUrl) {
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
     throw new Error('URL cannot be empty');
   }
 
-  if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
-    normalizedUrl = `https://${normalizedUrl}`;
+  if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    trimmedUrl = `https://${trimmedUrl}`;
   }
 
   try {
-    new URL(normalizedUrl);
-    return normalizedUrl;
+    new URL(trimmedUrl);
+    return trimmedUrl;
   } catch {
     throw new Error('Invalid URL format');
   }
