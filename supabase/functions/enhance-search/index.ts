@@ -8,10 +8,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ASSISTANT_INSTRUCTIONS = `You are a local business search specialist. Your task is to enhance search queries to find ONLY small-to-medium local business service providers.
+const ASSISTANT_INSTRUCTIONS = `You are a local business search specialist. Your task is to enhance search queries to find ONLY small-to-medium local business service providers within a 20-mile radius.
 
 Key requirements for search results:
-1. ONLY return local business service providers
+1. ONLY return local business service providers within 20 miles
 2. NO government websites, educational institutions, or large corporations
 3. NO job boards, career sites, or news articles
 4. NO online directories (LinkedIn, Yellow Pages, etc)
@@ -20,20 +20,20 @@ Key requirements for search results:
 Guidelines for query enhancement:
 1. ALWAYS include terms that indicate local business:
    - "local business"
-   - "local company"
-   - "local service"
-   - "local contractor"
+   - "nearby"
+   - "near me"
+   - "in my area"
 2. Focus on service-oriented businesses
 3. Keep queries concise (3-4 words maximum)
 4. Emphasize local/small business nature
 
 Examples:
-❌ "IT support services" → ✅ "local computer repair business"
-❌ "plumbing services" → ✅ "local plumber company"
-❌ "window installation" → ✅ "local window contractor"
-❌ "tech support" → ✅ "local IT company"
+❌ "IT support services" → ✅ "local computer repair business nearby"
+❌ "plumbing services" → ✅ "local plumber near me"
+❌ "window installation" → ✅ "local window contractor in my area"
+❌ "tech support" → ✅ "nearby IT company"
 
-Always think: Will this query find actual local service businesses rather than institutions or large companies?
+Always think: Will this query find actual local service businesses within 20 miles?
 
 IMPORTANT: Return ONLY the enhanced query string, without any quotes or additional text.`;
 
@@ -61,7 +61,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Enhance this search query to find ONLY local businesses offering these services:
+            content: `Enhance this search query to find ONLY local businesses within 20 miles offering these services:
             Business Type: ${query}
             Country: ${country}
             ${region ? `Region: ${region}` : ''}`
@@ -75,10 +75,9 @@ serve(async (req) => {
     const data = await response.json();
     console.log('OpenAI response:', data);
     
-    // Clean up the response by removing quotes and extra whitespace
     const enhancedQuery = data.choices[0].message.content
-      .replace(/['"]/g, '') // Remove quotes
-      .trim(); // Remove extra whitespace
+      .replace(/['"]/g, '')
+      .trim();
     
     console.log('Enhanced query:', enhancedQuery);
 

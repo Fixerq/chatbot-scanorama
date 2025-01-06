@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
+const RADIUS_MILES = 20;
+const METERS_PER_MILE = 1609.34;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,7 +30,6 @@ serve(async (req) => {
       throw new Error('Google API key is not configured');
     }
 
-    // Construct a more natural search query
     let locationQuery = query;
     if (region && country) {
       locationQuery = `${query} ${region} ${country}`;
@@ -38,10 +39,14 @@ serve(async (req) => {
     
     console.log('Using search query:', locationQuery);
 
-    // Search for businesses using Places Text Search
+    // Convert radius to meters for Places API
+    const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
+
+    // Search for businesses using Places Text Search with radius
     const searchParams = new URLSearchParams({
       query: locationQuery,
       type: 'business',
+      radius: radiusMeters.toString(),
       key: GOOGLE_API_KEY,
     });
 
@@ -136,8 +141,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in search-places function:', error);
-    
-    // Return a more detailed error response
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
