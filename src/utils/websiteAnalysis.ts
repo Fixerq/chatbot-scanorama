@@ -28,16 +28,17 @@ function validateUrl(url: string): string {
 
 export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
   try {
+    console.log('Starting analysis for:', url);
+    
     if (!url) {
+      console.error('No URL provided');
       throw new Error('URL is required');
     }
 
-    console.log('Starting analysis for', url);
-    
     // First check cache
     const cachedResult = await getCachedResult(url);
     if (cachedResult) {
-      console.log('Using cached result for', url);
+      console.log('Using cached result for:', url);
       return {
         status: cachedResult.status,
         details: cachedResult.details,
@@ -47,11 +48,11 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
 
     // Validate URL before making the request
     const validatedUrl = validateUrl(url);
-    console.log('Calling analyze-website function for', validatedUrl);
+    console.log('Calling analyze-website function for:', validatedUrl);
 
     // Use Supabase Edge Function to analyze the website
-    const { data: analysisData, error: analysisError } = await supabase
-      .functions.invoke('analyze-website', {
+    const { data: analysisData, error: analysisError } = await supabase.functions
+      .invoke('analyze-website', {
         body: { url: validatedUrl }
       });
 
@@ -61,7 +62,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     }
 
     if (!analysisData) {
-      console.error('No analysis data returned for', url);
+      console.error('No analysis data returned for:', url);
       throw new Error('No analysis data returned');
     }
 
@@ -84,7 +85,7 @@ export const analyzeWebsite = async (url: string): Promise<AnalysisResult> => {
     // Cache the result
     try {
       await cacheResult(url, result);
-      console.log('Successfully cached result for', url);
+      console.log('Successfully cached result for:', url);
     } catch (cacheError) {
       console.error('Error caching result:', cacheError);
       // Continue even if caching fails
