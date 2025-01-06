@@ -95,7 +95,7 @@ serve(async (req) => {
         }
 
         try {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,name,formatted_address&key=${GOOGLE_API_KEY}`;
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,formatted_phone_number,name,formatted_address,rating,business_status&key=${GOOGLE_API_KEY}`;
           const detailsResponse = await fetch(detailsUrl);
           const detailsData = await detailsResponse.json();
 
@@ -106,30 +106,42 @@ serve(async (req) => {
             return null;
           }
 
-          const { website, formatted_phone_number, name, formatted_address } = detailsData.result;
+          const { 
+            website, 
+            formatted_phone_number, 
+            name, 
+            formatted_address,
+            rating,
+            business_status 
+          } = detailsData.result;
 
-          // Skip places without websites
-          if (!website) {
-            console.log('Place missing website:', name);
+          // Accept places that have either a website, phone number, or both
+          if (!website && !formatted_phone_number) {
+            console.log('Place missing both website and phone:', name);
             return null;
           }
 
-          try {
-            new URL(website);
-            return {
-              url: website,
-              phone: formatted_phone_number || 'N/A',
-              status: 'Processing...',
-              details: {
-                title: name || place.name,
-                description: formatted_address || place.formatted_address,
-                lastChecked: new Date().toISOString()
-              }
-            };
-          } catch (error) {
-            console.log('Invalid website URL:', website);
-            return null;
+          let validUrl = website;
+          if (website) {
+            try {
+              new URL(website);
+            } catch (error) {
+              console.log('Invalid website URL:', website);
+              validUrl = null;
+            }
           }
+
+          return {
+            url: validUrl || '',
+            phone: formatted_phone_number || 'N/A',
+            status: business_status || 'OPERATIONAL',
+            details: {
+              title: name || place.name,
+              description: formatted_address || place.formatted_address,
+              rating: rating || null,
+              lastChecked: new Date().toISOString()
+            }
+          };
         } catch (error) {
           console.error('Error fetching place details:', error);
           return null;
@@ -139,11 +151,11 @@ serve(async (req) => {
 
     const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
       result !== null && 
-      result.url && 
-      result.details?.title
+      result.details?.title &&
+      (result.url || result.phone !== 'N/A') // Accept if it has either URL or phone
     );
 
-    console.log(`Found ${validResults.length} valid results with websites`);
+    console.log(`Found ${validResults.length} valid results`);
 
     return new Response(
       JSON.stringify({
