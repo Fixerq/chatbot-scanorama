@@ -39,10 +39,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   };
 
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
-    if (!status) return 'gray';
-    if (hasChatbot) return 'green';
-    if (status.toLowerCase().includes('error')) return 'red';
-    return 'yellow';
+    if (!status) return 'secondary';
+    if (hasChatbot) return 'success';
+    if (status.toLowerCase().includes('error')) return 'destructive';
+    return 'secondary';
   };
 
   const formatChatbotInfo = (result: Result) => {
@@ -58,15 +58,22 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="h-4 w-4 text-muted-foreground" />
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Solutions detected:</p>
-                <ul className="list-disc pl-4">
-                  {result.details.chatSolutions.map((solution, index) => (
-                    <li key={index}>{solution}</li>
-                  ))}
-                </ul>
+              <TooltipContent className="w-[200px]">
+                <div className="space-y-2">
+                  <p className="font-semibold">Chatbot Technologies:</p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {result.details.chatSolutions.map((solution, index) => (
+                      <li key={index} className="text-sm">{solution}</li>
+                    ))}
+                  </ul>
+                  {result.details.lastChecked && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Last checked: {new Date(result.details.lastChecked).toLocaleString()}
+                    </p>
+                  )}
+                </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -112,8 +119,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                 <TableCell>{result.details?.description || 'N/A'}</TableCell>
                 <TableCell>
                   <Badge 
-                    variant={hasChatbot ? "success" : "secondary"}
-                    className={`${hasChatbot ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'}`}
+                    variant={getChatbotStatusColor(result.status, hasChatbot)}
                   >
                     {formatChatbotInfo(result)}
                   </Badge>
