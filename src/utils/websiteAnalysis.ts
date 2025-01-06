@@ -1,5 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
 
+interface WebsiteAnalysisResult {
+  status: string;
+  details: {
+    lastChecked: string;
+    errorDetails?: string;
+    chatSolutions?: string[];
+  };
+}
+
 function validateUrl(url: string): string {
   if (!url || typeof url !== 'string') {
     throw new Error('URL is required');
@@ -22,7 +31,7 @@ function validateUrl(url: string): string {
   }
 }
 
-export const analyzeWebsite = async (url: string) => {
+export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult> => {
   try {
     if (!url) {
       console.error('No URL provided');
@@ -36,7 +45,8 @@ export const analyzeWebsite = async (url: string) => {
     return {
       status: 'Success',
       details: {
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
+        chatSolutions: [] // Initialize empty array for now
       }
     };
 
@@ -48,7 +58,8 @@ export const analyzeWebsite = async (url: string) => {
       status: 'Error',
       details: { 
         errorDetails: errorMessage,
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
+        chatSolutions: []
       }
     };
   }

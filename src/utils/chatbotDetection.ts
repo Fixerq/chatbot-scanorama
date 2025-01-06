@@ -1,4 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { analyzeWebsite } from './websiteAnalysis';
@@ -17,8 +16,8 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
   const result = await analyzeWebsite(url);
   return {
     status: result.status,
-    chatSolutions: result.details?.chatSolutions,
-    lastChecked: result.details?.lastChecked
+    chatSolutions: result.details.chatSolutions || [],
+    lastChecked: result.details.lastChecked
   };
 };
 

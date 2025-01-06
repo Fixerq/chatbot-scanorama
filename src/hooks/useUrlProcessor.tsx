@@ -25,9 +25,17 @@ export const useUrlProcessor = () => {
       for (const chunk of chunks) {
         await Promise.all(chunk.map(async (url) => {
           try {
-            const status = await detectChatbot(url);
+            const chatbotResponse = await detectChatbot(url);
             setResults(prev => prev.map(result => 
-              result.url === url ? { ...result, status } : result
+              result.url === url ? {
+                ...result,
+                status: chatbotResponse.status,
+                details: {
+                  ...result.details,
+                  chatSolutions: chatbotResponse.chatSolutions,
+                  lastChecked: chatbotResponse.lastChecked
+                }
+              } : result
             ));
           } catch (error) {
             console.error(`Error processing ${url}:`, error);
@@ -65,9 +73,17 @@ export const useUrlProcessor = () => {
       for (const chunk of chunks) {
         await Promise.all(chunk.map(async (result) => {
           try {
-            const status = await detectChatbot(result.url);
+            const chatbotResponse = await detectChatbot(result.url);
             setResults(prev => prev.map(r => 
-              r.url === result.url ? { ...r, status } : r
+              r.url === result.url ? {
+                ...r,
+                status: chatbotResponse.status,
+                details: {
+                  ...r.details,
+                  chatSolutions: chatbotResponse.chatSolutions,
+                  lastChecked: chatbotResponse.lastChecked
+                }
+              } : r
             ));
           } catch (error) {
             console.error(`Error processing ${result.url}:`, error);

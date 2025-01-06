@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ChatbotDetectionResponse } from '@/types/chatbot';
 
 export interface Result {
   url: string;
