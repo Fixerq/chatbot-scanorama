@@ -10,15 +10,7 @@ import {
 
 export interface Result {
   url: string;
-  status: string;
   phone?: string;
-  details?: {
-    chatSolutions?: string[];
-    errorDetails?: string;
-    lastChecked?: string;
-    title?: string;
-    description?: string;
-  };
 }
 
 interface ResultsTableProps {
@@ -38,7 +30,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
             <TableHead className="w-[150px]">Phone</TableHead>
-            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -59,7 +50,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                 )}
               </TableCell>
               <TableCell>{result.phone || 'N/A'}</TableCell>
-              <TableCell>{result.status || 'Pending'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

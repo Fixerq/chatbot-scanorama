@@ -30,7 +30,6 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
 
   const validateResults = (results: Result[]): Result[] => {
     return results.filter(result => {
-      // Log the result being validated
       console.log('Validating result:', result);
 
       if (!result.url) {
@@ -43,17 +42,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         return false;
       }
 
-      // Ensure required fields exist with fallbacks
-      return {
-        ...result,
-        status: result.status || 'Pending',
-        details: {
-          ...result.details,
-          title: result.details?.title || 'Unknown',
-          description: result.details?.description || '',
-          lastChecked: result.details?.lastChecked || new Date().toISOString()
-        }
-      };
+      return result;
     });
   };
 
