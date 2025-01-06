@@ -34,6 +34,19 @@ serve(async (req) => {
     const searchQuery = `${query} in ${locationQuery}`;
     console.log('Search query:', searchQuery);
 
+    // Test Google Places API connection
+    try {
+      const testUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=test&key=${GOOGLE_API_KEY}`;
+      const testResponse = await fetch(testUrl);
+      if (!testResponse.ok) {
+        throw new Error(`Google Places API connection test failed: ${testResponse.statusText}`);
+      }
+      console.log('Successfully connected to Google Places API');
+    } catch (error) {
+      console.error('Failed to connect to Google Places API:', error);
+      throw new Error('Unable to connect to Google Places API');
+    }
+
     // Get coordinates for location biasing
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
     const geocodeResponse = await fetch(geocodeUrl);
@@ -65,14 +78,17 @@ serve(async (req) => {
     console.log('Places API URL:', placesUrl.toString());
 
     const placesResponse = await fetch(placesUrl.toString());
+    if (!placesResponse.ok) {
+      throw new Error(`Places API request failed: ${placesResponse.statusText}`);
+    }
+    
     const placesData = await placesResponse.json();
+    console.log('Places API response status:', placesData.status);
 
     if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
       console.error('Places API error:', placesData);
       throw new Error(`Places API failed: ${placesData.error_message || placesData.status}`);
     }
-
-    console.log('Places API response:', placesData);
 
     if (!placesData.results?.length) {
       console.log('No places found');
@@ -97,9 +113,14 @@ serve(async (req) => {
         try {
           const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=website,name,formatted_address,rating,business_status&key=${GOOGLE_API_KEY}`;
           const detailsResponse = await fetch(detailsUrl);
-          const detailsData = await detailsResponse.json();
+          
+          if (!detailsResponse.ok) {
+            console.error(`Failed to fetch details for place ${place.place_id}: ${detailsResponse.statusText}`);
+            return null;
+          }
 
-          console.log('Place details response:', detailsData);
+          const detailsData = await detailsResponse.json();
+          console.log('Place details status:', detailsData.status);
 
           if (detailsData.status !== 'OK' || !detailsData.result) {
             console.log('Invalid place details:', detailsData);
