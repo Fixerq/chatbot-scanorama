@@ -43,7 +43,13 @@ export class FirecrawlService {
         scrapeOptions: {
           formats: ['html'],
           timeout: 30000,
-          extractEmails: true // Enable email extraction
+          selectors: {
+            emails: {
+              selector: 'a[href^="mailto:"]',
+              type: 'text',
+              attribute: 'href'
+            }
+          }
         }
       });
 
@@ -59,8 +65,11 @@ export class FirecrawlService {
       const emails = new Set<string>();
       if (crawlResponse.data && Array.isArray(crawlResponse.data)) {
         crawlResponse.data.forEach(item => {
-          if (item.emails && Array.isArray(item.emails)) {
-            item.emails.forEach((email: string) => emails.add(email));
+          if (item.selectors?.emails) {
+            const extractedEmails = item.selectors.emails
+              .map((email: string) => email.replace('mailto:', ''))
+              .filter((email: string) => email.includes('@'));
+            extractedEmails.forEach((email: string) => emails.add(email));
           }
         });
       }
