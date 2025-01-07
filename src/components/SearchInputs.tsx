@@ -57,7 +57,7 @@ const SearchInputs = ({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 mb-8">
         <Input
           type="text"
           placeholder="Enter state/region (optional)"
