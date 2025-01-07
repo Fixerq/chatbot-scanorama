@@ -1,22 +1,36 @@
 import React from 'react';
+import { Card } from "@/components/ui/card";
 
 const BenefitsSection = () => {
   return (
-    <section className="space-y-8">
-      <div className="max-w-3xl mx-auto space-y-6 text-center mb-12">
-        <h2 className="text-3xl font-bold text-white">
-          Here's the Bottom Line:
+    <section className="relative py-12">
+      {/* Background gradient effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 via-transparent to-cyan-500/5 blur-xl" />
+      
+      <Card className="relative max-w-3xl mx-auto space-y-8 p-8 bg-black/40 backdrop-blur-lg border-cyan-500/20 glow-border">
+        <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-200 animate-gradient glow-text">
+          Listen Up:
         </h2>
-        <p className="text-lg text-cyan-100">
-          Detectify isn't for everyone. It's for people serious about scaling their pipeline and closing deals faster. If you're tired of guessing and ready to get laser-focused on winning clients, this is your unfair advantage.
-        </p>
-        <p className="text-lg text-cyan-100">
-          Don't overthink it. You either want to grow your business, or you don't. Let Detectify do the heavy lifting so you can focus on selling and scaling.
-        </p>
-        <p className="text-lg font-semibold text-cyan-400">
-          Data wins deals. Detectify gives you the data. The rest is up to you.
-        </p>
-      </div>
+        
+        <div className="space-y-6">
+          <p className="text-xl text-cyan-50 animate-fade-in delay-100">
+            If you're trying to sell conversational AI solutions, your biggest challenge isn't just building the product—it's knowing <span className="font-semibold text-cyan-300">who to sell to</span>.
+          </p>
+          
+          <p className="text-xl text-cyan-50 animate-fade-in delay-200">
+            Most businesses waste valuable time chasing leads that go nowhere because they're shooting in the dark.
+          </p>
+          
+          <div className="pt-4 space-y-4 animate-fade-in delay-300">
+            <p className="text-2xl font-bold text-cyan-400">
+              Detectify changes that.
+            </p>
+            <p className="text-xl text-cyan-50">
+              It helps you identify and target businesses already using chatbots, so you can focus on qualified prospects ready for your solution.
+            </p>
+          </div>
+        </div>
+      </Card>
     </section>
   );
 };
