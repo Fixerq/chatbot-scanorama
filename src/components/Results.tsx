@@ -25,7 +25,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
 
   if (!results || results.length === 0) {
     return (
-      <Alert className="bg-black/20 border-cyan-500/20 text-cyan-100 rounded-[1.25rem] backdrop-blur-sm">
+      <Alert className="mt-10 bg-black/20 border-cyan-500/20 text-cyan-100 rounded-[1.25rem] backdrop-blur-sm">
         <AlertDescription className="space-y-4">
           <p>No results found. Try:</p>
           <ul className="list-disc pl-4 space-y-2 text-cyan-200/70">
