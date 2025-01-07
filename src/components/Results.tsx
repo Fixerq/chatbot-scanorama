@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Download, RefreshCw } from 'lucide-react';
 import ResultsTable, { Result } from './ResultsTable';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import BookmarkButton from './BookmarkButton';
 
 interface ResultsProps {
   results: Result[];
@@ -42,6 +43,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           Found {results.length} website{results.length !== 1 ? 's' : ''}
         </p>
         <div className="space-x-2">
+          <BookmarkButton results={results} />
           <Button variant="outline" onClick={handleNewSearch}>
             <RefreshCw className="w-4 h-4 mr-2" />
             New Search
