@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import PricingFeature from './PricingFeature';
+import { Loader2 } from 'lucide-react';
 
 interface PricingCardProps {
   name: string;
@@ -10,6 +11,8 @@ interface PricingCardProps {
   popular?: boolean;
   priceId: string;
   onSubscribe: (priceId: string) => void;
+  isLoading?: boolean;
+  hasSubscription?: boolean;
 }
 
 const PricingCard = ({
@@ -19,7 +22,9 @@ const PricingCard = ({
   features,
   popular,
   priceId,
-  onSubscribe
+  onSubscribe,
+  isLoading = false,
+  hasSubscription = false
 }: PricingCardProps) => {
   return (
     <div
@@ -50,13 +55,23 @@ const PricingCard = ({
 
       <Button
         onClick={() => onSubscribe(priceId)}
+        disabled={isLoading || hasSubscription}
         className={`mt-8 w-full ${
           popular
             ? 'bg-cyan-500 hover:bg-cyan-600 text-black'
             : 'bg-secondary hover:bg-secondary/80 text-foreground'
         }`}
       >
-        Get Started
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Checking...
+          </>
+        ) : hasSubscription ? (
+          'Already Subscribed'
+        ) : (
+          'Get Started'
+        )}
       </Button>
     </div>
   );

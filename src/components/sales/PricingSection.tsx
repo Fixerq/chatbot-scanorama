@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { toast } from "@/hooks/use-toast";
@@ -50,8 +50,57 @@ const plans = [
 const PricingSection = () => {
   const session = useSession();
   const supabase = useSupabaseClient();
+  const [hasSubscription, setHasSubscription] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!session?.access_token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.functions.invoke('check-subscription');
+        
+        if (error) throw error;
+        setHasSubscription(data.hasSubscription);
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        toast({
+          title: "Error",
+          description: "Failed to check subscription status.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSubscription();
+  }, [session, supabase.functions]);
 
   const handleSubscribe = async (priceId: string) => {
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (hasSubscription) {
+      toast({
+        title: "Active Subscription",
+        description: "You already have an active subscription. Please manage your subscription in your account settings.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId }
@@ -89,6 +138,8 @@ const PricingSection = () => {
               key={plan.name}
               {...plan}
               onSubscribe={handleSubscribe}
+              isLoading={isLoading}
+              hasSubscription={hasSubscription}
             />
           ))}
         </div>
