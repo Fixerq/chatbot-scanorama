@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Zap, Rocket } from 'lucide-react';
+import { Search, Zap, Target } from 'lucide-react';
 
 const FeaturesSection = () => {
   return (
@@ -32,7 +32,7 @@ const FeaturesSection = () => {
         <Card className="bg-black/60 backdrop-blur-lg border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300">
           <CardContent className="p-6 space-y-4">
             <div className="rounded-full bg-cyan-500/10 w-12 h-12 flex items-center justify-center">
-              <Rocket className="w-6 h-6 text-cyan-400" />
+              <Target className="w-6 h-6 text-cyan-400" />
             </div>
             <h3 className="text-xl font-semibold text-white">You'll Outperform Your Competitors</h3>
             <p className="text-gray-300">Target smarter with insights about the exact chatbot platforms businesses use.</p>
