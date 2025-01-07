@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,38 +17,8 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     })
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    )
-
-    // Get the session or user object
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user } } = await supabaseClient.auth.getUser(token)
-
-    if (!user?.email) {
-      throw new Error('No email found')
-    }
-
-    // Get or create customer
-    let customer;
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1
-    })
-
-    if (customers.data.length > 0) {
-      customer = customers.data[0]
-    } else {
-      customer = await stripe.customers.create({
-        email: user.email,
-      })
-    }
-
     console.log('Creating payment session...')
     const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
       line_items: [
         {
           price: priceId,
@@ -57,7 +26,7 @@ serve(async (req) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.get('origin')}/signup?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/`,
       billing_address_collection: 'required',
       collect_shipping_address: false,
