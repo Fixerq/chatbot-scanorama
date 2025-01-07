@@ -1,48 +1,61 @@
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { Bot, Search, BarChart3 } from 'lucide-react';
 
 const Header = () => {
-  const navigate = useNavigate();
-  const supabase = useSupabaseClient();
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
-
   return (
-    <div className="relative">
-      <Card className="bg-gradient-to-r from-cyan-500 to-blue-500 border-none shadow-xl">
+    <div className="relative mb-12">
+      <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/30 via-blue-600/30 to-cyan-600/30 rounded-[2rem] blur-xl animate-gradient" />
+      
+      <Card className="relative bg-black/60 backdrop-blur-lg border-none shadow-xl hover:shadow-2xl transition-all duration-500 rounded-[2rem] overflow-hidden">
         <CardContent className="pt-12 pb-14 px-8">
-          <div className="flex flex-col items-center space-y-10">
+          <div className="flex flex-col items-center space-y-10">            
             <div className="text-center space-y-6">
-              <img 
-                src="lovable-uploads/engage-logo.png" 
-                alt="EngageAI Logo" 
-                className="h-16 mx-auto mb-6"
-              />
               <h1 className="text-6xl font-bold text-white animate-fade-in tracking-tight" style={{
                 textShadow: `
                   0 0 30px rgba(6, 182, 212, 0.9),
-                  0 0 60px rgba(6, 182, 212, 0.6),
-                  0 0 110px rgba(6, 182, 212, 0.3)
+                  0 0 60px rgba(6, 182, 212, 0.6)
                 `
               }}>
                 Detectify
               </h1>
-              <p className="text-xl text-cyan-50">
-                Discover and analyze chatbot implementations across the web
+              <p className="text-2xl font-medium text-cyan-400 animate-fade-in delay-100">by EngageAI</p>
+            </div>
+            
+            <div className="max-w-3xl mx-auto">
+              <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-200 font-medium">
+                The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot technologies. Whether you're building a pipeline of potential customers or strategizing how to position your conversational AI assistant, Detectify gives you the insights you need—faster and smarter.
               </p>
             </div>
-            <Button 
-              variant="secondary" 
-              className="bg-white text-blue-600 hover:bg-blue-50"
-              onClick={handleSignOut}
-            >
-              Sign Out
-            </Button>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mt-4">
+              <div className="flex items-center gap-4 p-6 rounded-2xl bg-black/50 backdrop-blur-xl border border-cyan-500/30 shadow-lg hover:shadow-xl transition-all duration-500 group hover:bg-black/60">
+                <Bot className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform duration-500" 
+                     style={{ filter: 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.5))' }} />
+                <div className="text-sm">
+                  <p className="font-semibold text-white mb-1">Local Business Discovery</p>
+                  <p className="text-cyan-100 text-opacity-90">Identify businesses anywhere</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 p-6 rounded-2xl bg-black/50 backdrop-blur-xl border border-cyan-500/30 shadow-lg hover:shadow-xl transition-all duration-500 group hover:bg-black/60">
+                <Search className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform duration-500"
+                       style={{ filter: 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.5))' }} />
+                <div className="text-sm">
+                  <p className="font-semibold text-white mb-1">Website Analysis</p>
+                  <p className="text-cyan-100 text-opacity-90">Detect chatbot technologies</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 p-6 rounded-2xl bg-black/50 backdrop-blur-xl border border-cyan-500/30 shadow-lg hover:shadow-xl transition-all duration-500 group hover:bg-black/60">
+                <BarChart3 className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform duration-500"
+                          style={{ filter: 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.5))' }} />
+                <div className="text-sm">
+                  <p className="font-semibold text-white mb-1">AI-Driven Insights</p>
+                  <p className="text-cyan-100 text-opacity-90">Data-driven prospecting</p>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
