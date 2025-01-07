@@ -14,7 +14,7 @@ const FeaturesSection = () => {
             <div className="rounded-full bg-cyan-500/10 w-12 h-12 flex items-center justify-center">
               <Search className="w-6 h-6 text-cyan-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white">Local Business Discovery</h3>
+            <h3 className="text-xl font-semibold text-white">You're Losing Money on Bad Prospects</h3>
             <p className="text-gray-300">Identify businesses in any location and receive a curated list of URLs.</p>
           </CardContent>
         </Card>
