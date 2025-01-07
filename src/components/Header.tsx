@@ -24,6 +24,31 @@ const Header = () => {
 
   return (
     <div className="space-y-12 mb-12">
+      {/* Navigation Bar */}
+      <header className="w-full flex justify-between items-center px-6 py-3 bg-secondary/50 rounded-lg backdrop-blur-sm border border-cyan-500/10">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" className="gap-2">
+            <Search size={18} />
+            My Searches
+          </Button>
+          <Button variant="outline" className="gap-2">
+            <Bookmark size={18} />
+            My Bookmarks
+          </Button>
+        </div>
+        <div className="flex items-center gap-4">
+          <SubscriptionManager />
+          <Button 
+            variant="destructive"
+            onClick={handleLogout}
+            className="gap-2"
+          >
+            <LogOut size={18} />
+            Logout
+          </Button>
+        </div>
+      </header>
+
       {/* Top Section with Logo and Tagline */}
       <div className="text-center space-y-6">
         <h1 className="text-6xl font-bold text-white glow-text bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-600">
@@ -77,31 +102,6 @@ const Header = () => {
           <p className="text-gray-300">Data-driven prospecting</p>
         </div>
       </div>
-
-      {/* Navigation Bar */}
-      <header className="w-full flex justify-between items-center px-6 py-3 bg-secondary/50 rounded-lg backdrop-blur-sm border border-cyan-500/10">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" className="gap-2">
-            <Search size={18} />
-            My Searches
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Bookmark size={18} />
-            My Bookmarks
-          </Button>
-        </div>
-        <div className="flex items-center gap-4">
-          <SubscriptionManager />
-          <Button 
-            variant="destructive"
-            onClick={handleLogout}
-            className="gap-2"
-          >
-            <LogOut size={18} />
-            Logout
-          </Button>
-        </div>
-      </header>
     </div>
   );
 };
