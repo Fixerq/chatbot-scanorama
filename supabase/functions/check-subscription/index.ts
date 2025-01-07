@@ -47,7 +47,6 @@ serve(async (req) => {
       )
     }
 
-    // Check for any active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customers.data[0].id,
       status: 'active',
@@ -57,14 +56,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         hasSubscription: subscriptions.data.length > 0,
-        subscriptionDetails: subscriptions.data[0] || null
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
-
   } catch (error) {
     console.error('Error checking subscription:', error)
     return new Response(

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import PricingCard from './PricingCard';
 
 const plans = [
@@ -74,11 +74,7 @@ const PricingSection = () => {
         setHasSubscription(data.hasSubscription);
       } catch (error) {
         console.error('Error checking subscription:', error);
-        toast({
-          title: "Error",
-          description: "Failed to check subscription status.",
-          variant: "destructive"
-        });
+        toast.error("Failed to check subscription status.");
       } finally {
         setIsLoading(false);
       }
@@ -89,25 +85,18 @@ const PricingSection = () => {
 
   const handleSubscribe = async (priceId: string) => {
     if (!session) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to subscribe to a plan.",
-        variant: "destructive"
-      });
+      toast.error("Please sign in to subscribe to a plan.");
       navigate('/login');
       return;
     }
 
     if (hasSubscription) {
-      toast({
-        title: "Active Subscription",
-        description: "You already have an active subscription. Please manage your subscription in your account settings.",
-        variant: "destructive"
-      });
+      toast.error("You already have an active subscription. Please manage your subscription in your account settings.");
       return;
     }
 
     try {
+      setIsLoading(true);
       console.log('Creating checkout session for price:', priceId);
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId }
@@ -121,11 +110,9 @@ const PricingSection = () => {
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start checkout process. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Failed to start checkout process. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
