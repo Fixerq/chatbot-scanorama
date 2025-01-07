@@ -5,20 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const Login = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        {/* Welcome Card */}
-        <Card className="border-none shadow-lg bg-white/90 backdrop-blur-sm">
-          <CardHeader className="space-y-4 text-center">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Welcome to EngageAI
+    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
+      <div className="w-full max-w-md">
+        <Card className="card-gradient border-none shadow-xl">
+          <CardHeader className="space-y-2 text-center pb-6">
+            <CardTitle className="text-3xl font-bold glow-text bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              Welcome Back
             </CardTitle>
-            <CardDescription className="text-gray-600">
-              Your AI-powered chatbot detection platform. Sign in to start analyzing websites and discover integrated chat solutions.
+            <CardDescription className="text-muted-foreground text-lg">
+              Sign in to access your dashboard
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-white rounded-lg p-4">
+            <div className="rounded-lg p-4">
               <Auth
                 supabaseClient={supabase}
                 appearance={{
@@ -26,54 +25,33 @@ const Login = () => {
                   variables: {
                     default: {
                       colors: {
-                        brand: '#4F46E5',
-                        brandAccent: '#4338CA',
+                        brand: 'rgb(6 182 212)', // cyan-500
+                        brandAccent: 'rgb(8 145 178)', // cyan-600
+                        brandButtonText: 'white',
+                        defaultButtonBackground: 'rgb(15 23 42)', // slate-900
+                        defaultButtonBackgroundHover: 'rgb(30 41 59)', // slate-800
+                        inputBackground: 'rgb(15 23 42)', // slate-900
+                        inputBorder: 'rgb(51 65 85)', // slate-700
+                        inputBorderHover: 'rgb(71 85 105)', // slate-600
+                        inputBorderFocus: 'rgb(6 182 212)', // cyan-500
                       },
                     },
                   },
                   className: {
                     container: 'w-full',
-                    button: 'w-full px-4 py-2 text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors duration-200',
-                    input: 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-                    label: 'block text-sm font-medium text-gray-700 mb-1',
+                    button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 glow-border',
+                    input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200',
+                    label: 'block text-sm font-medium text-muted-foreground mb-1.5',
+                    loader: 'text-cyan-500',
+                    message: 'text-sm text-red-500 mt-1',
                   },
                 }}
-                theme="default"
-                providers={['google']}
+                theme="dark"
+                providers={[]}
               />
             </div>
           </CardContent>
         </Card>
-
-        {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-          <Card className="bg-white/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Analysis</CardTitle>
-              <CardDescription>
-                Upload CSV files or search websites directly to analyze chat solutions
-              </CardDescription>
-            </CardHeader>
-          </Card>
-          
-          <Card className="bg-white/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">AI-Powered</CardTitle>
-              <CardDescription>
-                Advanced detection of popular chat platforms and custom solutions
-              </CardDescription>
-            </CardHeader>
-          </Card>
-          
-          <Card className="bg-white/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Detailed Reports</CardTitle>
-              <CardDescription>
-                Get comprehensive insights about chat implementations
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
       </div>
     </div>
   );
