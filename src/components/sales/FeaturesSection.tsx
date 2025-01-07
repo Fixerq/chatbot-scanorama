@@ -25,7 +25,7 @@ const FeaturesSection = () => {
               <BarChart3 className="w-6 h-6 text-cyan-400" />
             </div>
             <h3 className="text-xl font-semibold text-white">Speed = Success</h3>
-            <p className="text-gray-300">Detect and analyze chatbot technologies on each site with precision.</p>
+            <p className="text-gray-300">Scan the internet or upload your list. In minutes, get the data you need to close deals.</p>
           </CardContent>
         </Card>
 
