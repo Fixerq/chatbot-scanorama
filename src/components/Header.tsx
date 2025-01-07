@@ -25,7 +25,7 @@ const Header = () => {
             
             <div className="max-w-3xl mx-auto">
               <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-200 font-medium">
-                Detectify by EngageAI helps you find local businesses, uncover their chatbot technologies, and build a pipeline of pre-qualified leads—quickly and effortlessly. Stop guessing and start targeting the right prospects with data-driven insights designed to close deals faster.
+                Target smarter with insights about the exact chatbot platforms businesses use. Detectify by EngageAI helps you find local businesses, uncover their chatbot technologies, and build a pipeline of pre-qualified leads—quickly and effortlessly.
               </p>
             </div>
 
