@@ -18,7 +18,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
 
   if (results.length === 0) {
     return (
-      <Alert className="bg-black/20 border-cyan-500/20 text-cyan-100">
+      <Alert className="bg-black/20 border-cyan-500/20 text-cyan-100 rounded-[1.25rem] backdrop-blur-sm">
         <AlertDescription className="space-y-4">
           <p>No results found. Try:</p>
           <ul className="list-disc pl-4 space-y-2 text-cyan-200/70">
@@ -27,7 +27,11 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
             <li>Removing location-specific terms</li>
             <li>Using different keywords related to your search</li>
           </ul>
-          <Button variant="outline" onClick={handleNewSearch} className="mt-4 border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20">
+          <Button 
+            variant="outline" 
+            onClick={handleNewSearch} 
+            className="mt-4 border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
+          >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try New Search
           </Button>
@@ -37,31 +41,33 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-cyan-200/70">
           Found {results.length} website{results.length !== 1 ? 's' : ''}
         </p>
-        <div className="space-x-2">
+        <div className="space-x-3">
           <BookmarkButton results={results} />
           <Button 
             variant="outline" 
             onClick={handleNewSearch}
-            className="border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20"
+            className="border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             New Search
           </Button>
           <Button 
             onClick={onExport}
-            className="bg-cyan-500 text-black hover:bg-cyan-400 glow"
+            className="bg-cyan-500 text-black hover:bg-cyan-400 glow rounded-full transition-all duration-300"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Results
           </Button>
         </div>
       </div>
-      <ResultsTable results={results} />
+      <div className="rounded-[1.25rem] overflow-hidden">
+        <ResultsTable results={results} />
+      </div>
     </div>
   );
 };
