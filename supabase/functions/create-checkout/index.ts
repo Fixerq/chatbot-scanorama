@@ -29,7 +29,6 @@ serve(async (req) => {
       success_url: `${req.headers.get('origin')}/signup?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/`,
       billing_address_collection: 'required',
-      collect_shipping_address: false,
     })
 
     console.log('Payment session created:', session.id)
