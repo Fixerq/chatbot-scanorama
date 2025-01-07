@@ -23,22 +23,22 @@ const PricingCard = ({
 }: PricingCardProps) => {
   return (
     <div
-      className={`relative rounded-2xl border p-8 shadow-lg ${
-        popular ? 'border-cyan-500 ring-2 ring-cyan-500' : 'border-gray-200'
+      className={`relative rounded-2xl border bg-card p-8 shadow-lg ${
+        popular ? 'border-cyan-500 ring-2 ring-cyan-500' : 'border-gray-700'
       }`}
     >
       {popular && (
-        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-4 py-1 text-sm font-semibold text-white">
+        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-4 py-1 text-sm font-semibold text-black">
           Most Popular
         </span>
       )}
 
       <div className="text-center">
-        <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-        <p className="mt-2 text-sm text-gray-600">{description}</p>
+        <h3 className="text-lg font-semibold text-foreground">{name}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
         <p className="mt-4">
-          <span className="text-4xl font-bold text-gray-900">{price}</span>
-          <span className="text-gray-600">/month</span>
+          <span className="text-4xl font-bold text-foreground">{price}</span>
+          <span className="text-muted-foreground">/month</span>
         </p>
       </div>
 
@@ -50,10 +50,10 @@ const PricingCard = ({
 
       <Button
         onClick={() => onSubscribe(priceId)}
-        className={`mt-8 w-full ${
+        className={`mt-8 w-full text-foreground ${
           popular
-            ? 'bg-cyan-500 hover:bg-cyan-600'
-            : 'bg-gray-800 hover:bg-gray-900'
+            ? 'bg-cyan-500 hover:bg-cyan-600 text-black'
+            : 'bg-secondary hover:bg-secondary/80'
         }`}
       >
         Get Started
