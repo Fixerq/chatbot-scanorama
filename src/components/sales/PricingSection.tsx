@@ -62,9 +62,15 @@ const PricingSection = () => {
       }
 
       try {
+        console.log('Checking subscription status...');
         const { data, error } = await supabase.functions.invoke('check-subscription');
         
-        if (error) throw error;
+        if (error) {
+          console.error('Subscription check error:', error);
+          throw error;
+        }
+        
+        console.log('Subscription status:', data);
         setHasSubscription(data.hasSubscription);
       } catch (error) {
         console.error('Error checking subscription:', error);
@@ -102,16 +108,19 @@ const PricingSection = () => {
     }
 
     try {
+      console.log('Creating checkout session for price:', priceId);
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId }
       });
 
       if (error) throw error;
+      
       if (data?.url) {
+        console.log('Redirecting to checkout:', data.url);
         window.location.href = data.url;
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Checkout error:', error);
       toast({
         title: "Error",
         description: "Failed to start checkout process. Please try again.",
