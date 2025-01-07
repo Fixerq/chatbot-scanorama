@@ -1,53 +1,29 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { toast } from 'sonner';
-import SubscriptionManager from './SubscriptionManager';
-import { Search, Bookmark, LogOut, Download, LineChart, Search as SearchIcon } from 'lucide-react';
+import { Download, Search as SearchIcon, LineChart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Header = () => {
-  const navigate = useNavigate();
-  const supabase = useSupabaseClient();
-
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      navigate('/login');
-      toast.success('Logged out successfully');
-    } catch (error) {
-      console.error('Error logging out:', error);
-      toast.error('Failed to log out');
-    }
-  };
-
   return (
-    <div className="space-y-12 mb-12">
-      {/* Navigation Bar */}
-      <header className="w-full flex justify-between items-center px-6 py-3 bg-secondary/50 rounded-lg backdrop-blur-sm border border-cyan-500/10">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" className="gap-2">
-            <Search size={18} />
-            My Searches
+    <header className="space-y-12 mb-8">
+      {/* Navigation */}
+      <nav className="flex justify-between items-center">
+        <div className="flex items-center space-x-4">
+          <Button variant="link" className="text-cyan-400 hover:text-cyan-300">
+            Dashboard
           </Button>
-          <Button variant="outline" className="gap-2">
-            <Bookmark size={18} />
-            My Bookmarks
+          <Button variant="link" className="text-cyan-400 hover:text-cyan-300">
+            Bookmarks
           </Button>
         </div>
-        <div className="flex items-center gap-4">
-          <SubscriptionManager />
-          <Button 
-            variant="destructive"
-            onClick={handleLogout}
-            className="gap-2"
-          >
-            <LogOut size={18} />
-            Logout
+        <div className="flex items-center space-x-4">
+          <Button variant="link" className="text-cyan-400 hover:text-cyan-300">
+            Settings
+          </Button>
+          <Button variant="link" className="text-cyan-400 hover:text-cyan-300">
+            Help
           </Button>
         </div>
-      </header>
+      </nav>
 
       {/* Top Section with Logo and Tagline */}
       <div className="text-center space-y-6 bg-[#0d1f3a]/50 rounded-lg backdrop-blur-sm border border-cyan-500/10 p-8">
@@ -61,7 +37,7 @@ const Header = () => {
           The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot
           technologies. Whether you're building a pipeline of potential customers or strategizing how to
           position your conversational AI assistant, Detectify gives you the insights you need—faster and
-          smarter.
+          more accurately than ever before.
         </p>
       </div>
 
@@ -71,7 +47,7 @@ const Header = () => {
           <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform">
             <Download size={24} className="glow-text" />
           </div>
-          <h3 className="text-xl font-semibold text-white glow-text">Local Business Discovery</h3>
+          <h3 className="text-xl font-semibold text-white">Business Discovery</h3>
           <p className="text-gray-400/90">Identify businesses anywhere</p>
         </div>
 
@@ -79,7 +55,7 @@ const Header = () => {
           <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform">
             <SearchIcon size={24} className="glow-text" />
           </div>
-          <h3 className="text-xl font-semibold text-white glow-text">Website Analysis</h3>
+          <h3 className="text-xl font-semibold text-white">Chatbot Detection</h3>
           <p className="text-gray-400/90">Detect chatbot technologies</p>
         </div>
 
@@ -87,11 +63,11 @@ const Header = () => {
           <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform">
             <LineChart size={24} className="glow-text" />
           </div>
-          <h3 className="text-xl font-semibold text-white glow-text">AI-Driven Insights</h3>
-          <p className="text-gray-400/90">Data-driven prospecting</p>
+          <h3 className="text-xl font-semibold text-white">Market Analysis</h3>
+          <p className="text-gray-400/90">Generate market insights</p>
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 
