@@ -24,12 +24,24 @@ const BookmarkButton = ({ results }: BookmarkButtonProps) => {
       return;
     }
 
+    // Convert the results to a plain JSON object
+    const jsonResults = results.map(result => ({
+      url: result.url,
+      status: result.status,
+      details: {
+        title: result.details?.title,
+        description: result.details?.description,
+        lastChecked: result.details?.lastChecked,
+        chatSolutions: result.details?.chatSolutions
+      }
+    }));
+
     try {
       const { error } = await supabase.from('bookmarks').insert({
         user_id: user.id,
         name: `Search Results - ${new Date().toLocaleDateString()}`,
         description: `Saved ${results.length} results`,
-        snapshot: { results }
+        snapshot: { results: jsonResults }
       });
 
       if (error) throw error;
