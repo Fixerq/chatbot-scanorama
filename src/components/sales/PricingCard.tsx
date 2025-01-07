@@ -50,10 +50,10 @@ const PricingCard = ({
 
       <Button
         onClick={() => onSubscribe(priceId)}
-        className={`mt-8 w-full text-foreground ${
+        className={`mt-8 w-full ${
           popular
             ? 'bg-cyan-500 hover:bg-cyan-600 text-black'
-            : 'bg-secondary hover:bg-secondary/80'
+            : 'bg-secondary hover:bg-secondary/80 text-foreground'
         }`}
       >
         Get Started
