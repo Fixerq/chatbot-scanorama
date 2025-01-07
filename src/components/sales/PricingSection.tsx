@@ -1,49 +1,48 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { toast } from "@/hooks/use-toast";
+import PricingCard from './PricingCard';
 
 const plans = [
   {
-    name: "Basic",
-    price: "$9",
+    name: "Starter Plan",
+    price: "$97",
     priceId: "price_1QeakhEiWhAkWDnrevEe12PJ",
+    description: "Perfect for small businesses and solo entrepreneurs looking to get started with chatbot prospecting.",
     features: [
-      "Basic lead generation",
-      "10 searches per month",
-      "Email support",
-      "Basic analytics"
+      "500 Website Searches",
+      "Local Business Discovery",
+      "Basic Analytics",
+      "CSV Uploads",
+      "Email Support"
     ]
   },
   {
-    name: "Professional",
-    price: "$29",
+    name: "Pro Plan",
+    price: "$197",
     priceId: "price_1QeakhEiWhAkWDnr2yad4geJ",
     popular: true,
+    description: "Designed for growing teams and mid-sized businesses looking to scale their customer outreach.",
     features: [
-      "Advanced lead generation",
-      "100 searches per month",
-      "Priority email support",
-      "Advanced analytics",
-      "Custom exports",
-      "Team collaboration"
+      "2000 Website Searches",
+      "Advanced Website Analytics",
+      "Multi-Region Discovery",
+      "Priority Email Support",
+      "Customizable Exports"
     ]
   },
   {
-    name: "Enterprise",
-    price: "$99",
+    name: "Premium Plan",
+    price: "$297",
     priceId: "price_1QeakhEiWhAkWDnrnZgRSuyR",
+    description: "The ultimate plan for enterprises and agencies with high-volume prospecting needs.",
     features: [
-      "Enterprise-grade lead generation",
-      "Unlimited searches",
-      "24/7 phone support",
-      "Custom analytics",
-      "API access",
-      "Dedicated account manager",
-      "Custom integrations",
-      "SLA guarantee"
+      "5000 Website Searches",
+      "Comprehensive Analytics",
+      "Global Business Discovery",
+      "CSV Automation",
+      "Dedicated Account Manager"
     ]
   }
 ];
@@ -92,46 +91,11 @@ const PricingSection = () => {
 
         <div className="mt-12 grid gap-8 lg:grid-cols-3">
           {plans.map((plan) => (
-            <div
+            <PricingCard
               key={plan.name}
-              className={`relative rounded-2xl border p-8 shadow-lg ${
-                plan.popular ? 'border-cyan-500 ring-2 ring-cyan-500' : 'border-gray-200'
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-4 py-1 text-sm font-semibold text-white">
-                  Most Popular
-                </span>
-              )}
-
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-                <p className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-gray-600">/month</span>
-                </p>
-              </div>
-
-              <ul className="mt-8 space-y-4">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start">
-                    <Check className="h-5 w-5 text-cyan-500 shrink-0" />
-                    <span className="ml-3 text-gray-600">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Button
-                onClick={() => handleSubscribe(plan.priceId)}
-                className={`mt-8 w-full ${
-                  plan.popular
-                    ? 'bg-cyan-500 hover:bg-cyan-600'
-                    : 'bg-gray-800 hover:bg-gray-900'
-                }`}
-              >
-                Get Started
-              </Button>
-            </div>
+              {...plan}
+              onSubscribe={handleSubscribe}
+            />
           ))}
         </div>
       </div>
