@@ -35,7 +35,7 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
 
   const onLoadMore = () => {
     const nextPage = searchState.currentPage + 1;
-    const newLimit = searchState.resultsLimit + 9;
+    const newLimit = searchState.resultsLimit + 10;
     
     updateSearchState({ 
       currentPage: nextPage,
