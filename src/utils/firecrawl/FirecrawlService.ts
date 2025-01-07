@@ -1,22 +1,16 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse } from './types';
 
-interface ErrorResponse {
-  success: false;
-  error: string;
-}
-
-interface CrawlStatusResponse {
-  success: true;
-  status: string;
-  completed: number;
-  total: number;
-  creditsUsed: number;
-  expiresAt: string;
-  data: any[];
+interface CrawlResult {
+  success: boolean;
+  status?: string;
+  completed?: number;
+  total?: number;
+  creditsUsed?: number;
+  expiresAt?: string;
+  data?: any[];
   emails?: string[];
 }
-
-type CrawlResponse = CrawlStatusResponse | ErrorResponse;
 
 export class FirecrawlService {
   private static API_KEY = 'YOUR_FIRECRAWL_API_KEY'; // This will be replaced with the actual key
@@ -38,19 +32,21 @@ export class FirecrawlService {
       console.log('Making crawl request to Firecrawl API');
       this.initializeApp();
 
-      const crawlResponse = await this.firecrawlApp!.crawlUrl(url, {
-        limit: 1,
-        scrapeOptions: {
-          formats: ['html'],
-          timeout: 30000,
-          selectors: {
-            emails: {
-              selector: 'a[href^="mailto:"]',
-              type: 'text',
-              attribute: 'href'
-            }
+      const scrapeOptions: CrawlScrapeOptions = {
+        formats: ['html'],
+        timeout: 30000,
+        selectors: {
+          emails: {
+            selector: 'a[href^="mailto:"]',
+            type: 'text',
+            attribute: 'href'
           }
         }
+      };
+
+      const crawlResponse = await this.firecrawlApp!.crawlUrl(url, {
+        limit: 1,
+        scrapeOptions
       });
 
       if (!crawlResponse.success) {
