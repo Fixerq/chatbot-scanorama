@@ -41,11 +41,11 @@ const SearchInputs = ({
           placeholder="Enter service provider category (e.g., 'plumbers', 'electricians')"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          className="flex-1"
+          className="premium-input flex-1"
           required
         />
         <Select value={country} onValueChange={onCountryChange}>
-          <SelectTrigger className="w-1/3">
+          <SelectTrigger className="w-1/3 bg-gray-50/50 border-gray-200">
             <SelectValue placeholder="Select country" />
           </SelectTrigger>
           <SelectContent>
@@ -63,12 +63,12 @@ const SearchInputs = ({
           placeholder="Enter state/region (optional)"
           value={region}
           onChange={(e) => onRegionChange(e.target.value)}
-          className="flex-1"
+          className="premium-input flex-1"
         />
         <Button 
           type="submit" 
           disabled={isProcessing || isSearching || !query.trim()} 
-          className="w-32"
+          className="microsoft-button w-32"
         >
           {isSearching ? (
             <>

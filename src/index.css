@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221 83% 53%;
+    --primary: 206 100% 42%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --ring: 206 100% 42%;
     --radius: 0.3rem;
   }
 }
@@ -34,7 +34,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01" on, "ss02" on, "cv01" on, "cv02" on;
-    background: linear-gradient(to bottom right, #f8f9fa, #ffffff);
+    background: linear-gradient(to bottom right, #fafafa, #ffffff);
     min-height: 100vh;
   }
 }
@@ -65,11 +65,42 @@
 .microsoft-button {
   @apply px-5 py-2.5 rounded-sm font-medium transition-all duration-300
          bg-[#0078d4] text-white hover:bg-[#106ebe]
-         disabled:opacity-50 disabled:cursor-not-allowed;
+         disabled:opacity-50 disabled:cursor-not-allowed
+         focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20;
 }
 
 .microsoft-button-secondary {
   @apply px-5 py-2.5 rounded-sm font-medium transition-all duration-300
          bg-gray-100 text-gray-900 hover:bg-gray-200
-         disabled:opacity-50 disabled:cursor-not-allowed;
+         disabled:opacity-50 disabled:cursor-not-allowed
+         focus:outline-none focus:ring-2 focus:ring-gray-200;
+}
+
+.premium-card {
+  @apply bg-white border border-gray-200/80 rounded-sm shadow-sm
+         hover:shadow-md transition-all duration-300
+         backdrop-blur-sm bg-white/80;
+}
+
+.premium-input {
+  @apply bg-gray-50/50 border border-gray-200 rounded-sm px-4 py-2
+         focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20
+         placeholder:text-gray-400;
+}
+
+.premium-table {
+  @apply w-full border-collapse;
+}
+
+.premium-table th {
+  @apply px-4 py-3 text-left text-sm font-medium text-gray-600 bg-gray-50/80
+         border-b border-gray-200;
+}
+
+.premium-table td {
+  @apply px-4 py-3 text-sm text-gray-700 border-b border-gray-100;
+}
+
+.premium-table tr:hover {
+  @apply bg-gray-50/50 transition-colors duration-200;
 }

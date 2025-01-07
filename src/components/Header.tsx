@@ -24,18 +24,18 @@ const Header = () => {
 
   return (
     <div className="space-y-8 mb-12">
-      <header className="w-full flex justify-between items-center px-6 py-4 bg-white border-b border-gray-200 animate-fade-in">
+      <header className="w-full flex justify-between items-center px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-gray-200 animate-fade-in">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
-            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80"
           >
             <Search size={18} />
             My Searches
           </Button>
           <Button 
             variant="ghost" 
-            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100/80"
           >
             <Bookmark size={18} />
             My Bookmarks
@@ -46,7 +46,7 @@ const Header = () => {
           <Button 
             variant="ghost"
             onClick={handleLogout}
-            className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50/80"
           >
             <LogOut size={18} />
             Logout
@@ -54,7 +54,7 @@ const Header = () => {
         </div>
       </header>
 
-      <div className="text-center space-y-6 bg-white border border-gray-200 rounded-sm p-12 animate-fade-in">
+      <div className="text-center space-y-6 premium-card p-12 animate-fade-in">
         <h1 className="text-5xl font-semibold text-gray-900">
           Detectify
         </h1>
@@ -89,9 +89,9 @@ const Header = () => {
         ].map((feature, index) => (
           <div 
             key={index} 
-            className="bg-white border border-gray-200 rounded-sm p-8 space-y-4 transition-all duration-300 hover:shadow-md"
+            className="premium-card p-8 space-y-4"
           >
-            <div className="text-[#0078d4] mb-4 p-3 rounded-sm bg-blue-50 inline-block">
+            <div className="text-[#0078d4] mb-4 p-3 rounded-sm bg-blue-50/50 inline-block">
               {feature.icon}
             </div>
             <h3 className="text-xl font-semibold text-gray-900">

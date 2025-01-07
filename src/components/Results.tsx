@@ -18,7 +18,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
 
   if (results.length === 0) {
     return (
-      <Alert className="bg-white border border-gray-200 rounded-sm">
+      <Alert className="premium-card">
         <AlertDescription className="space-y-4">
           <p className="text-gray-900 font-medium">No results found. Try:</p>
           <ul className="list-disc pl-4 space-y-2 text-gray-600">
@@ -30,7 +30,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           <Button 
             variant="outline" 
             onClick={handleNewSearch} 
-            className="mt-4 microsoft-button-secondary"
+            className="microsoft-button-secondary mt-4"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try New Search
@@ -41,7 +41,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
           Found {results.length} website{results.length !== 1 ? 's' : ''}
@@ -65,7 +65,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           </Button>
         </div>
       </div>
-      <div className="bg-white border border-gray-200 rounded-sm overflow-hidden">
+      <div className="premium-card overflow-hidden">
         <ResultsTable results={results} />
       </div>
     </div>
