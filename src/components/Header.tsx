@@ -21,22 +21,19 @@ const Header = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <header className="flex justify-between items-center mb-8">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline">
-              My Searches
-            </Button>
-            <Button variant="outline">
-              My Bookmarks
-            </Button>
-          </div>
+    <header className="flex justify-between items-center mb-8">
+      <div className="flex items-center space-x-4">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline">
+            My Searches
+          </Button>
+          <Button variant="outline">
+            My Bookmarks
+          </Button>
         </div>
-      </header>
-
-      <div className="flex justify-end space-x-4">
+      </div>
+      <div className="flex items-center space-x-4">
         <SubscriptionManager />
         <Button 
           variant="destructive" 
@@ -45,7 +42,7 @@ const Header = () => {
           Log Out
         </Button>
       </div>
-    </div>
+    </header>
   );
 };
 
