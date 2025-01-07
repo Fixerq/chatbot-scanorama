@@ -18,9 +18,9 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
 
   if (results.length === 0) {
     return (
-      <Alert className="glass-effect border-purple-500/20 text-gray-800 rounded-[1.25rem]">
+      <Alert className="glass-effect rounded-2xl">
         <AlertDescription className="space-y-4">
-          <p>No results found. Try:</p>
+          <p className="text-gray-900 font-medium">No results found. Try:</p>
           <ul className="list-disc pl-4 space-y-2 text-gray-600">
             <li>Using more general search terms</li>
             <li>Checking for spelling mistakes</li>
@@ -30,7 +30,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           <Button 
             variant="outline" 
             onClick={handleNewSearch} 
-            className="mt-4 border-purple-500/20 text-gray-800 hover:bg-purple-500/20 rounded-full transition-all duration-300"
+            className="mt-4 apple-button-secondary"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try New Search
@@ -51,21 +51,21 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           <Button 
             variant="outline" 
             onClick={handleNewSearch}
-            className="border-purple-500/20 text-gray-800 hover:bg-purple-500/20 rounded-full transition-all duration-300"
+            className="apple-button-secondary"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             New Search
           </Button>
           <Button 
             onClick={onExport}
-            className="bg-purple-600 text-white hover:bg-purple-700 rounded-full transition-all duration-300"
+            className="apple-button"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Results
           </Button>
         </div>
       </div>
-      <div className="rounded-[1.25rem] overflow-hidden glass-effect">
+      <div className="rounded-2xl overflow-hidden glass-effect">
         <ResultsTable results={results} />
       </div>
     </div>

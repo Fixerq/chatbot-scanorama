@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
 import SubscriptionManager from './SubscriptionManager';
-import { Search, Bookmark, LogOut, Download, LineChart, Search as SearchIcon } from 'lucide-react';
+import { Search, Bookmark, LogOut } from 'lucide-react';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -24,19 +24,18 @@ const Header = () => {
 
   return (
     <div className="space-y-8 mb-12">
-      {/* Navigation Bar */}
-      <header className="w-full flex justify-between items-center px-6 py-4 glass-effect rounded-lg animate-fade-in">
+      <header className="w-full flex justify-between items-center px-6 py-4 glass-effect rounded-2xl animate-fade-in">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
-            className="gap-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300"
+            className="gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-300"
           >
             <Search size={18} />
             My Searches
           </Button>
           <Button 
             variant="ghost" 
-            className="gap-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300"
+            className="gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-300"
           >
             <Bookmark size={18} />
             My Bookmarks
@@ -55,15 +54,14 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Top Section with Logo and Tagline */}
-      <div className="text-center space-y-6 glass-effect rounded-lg p-12 animate-fade-in delay-100">
-        <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+      <div className="text-center space-y-6 glass-effect rounded-2xl p-12 animate-fade-in delay-100">
+        <h1 className="text-5xl font-bold text-gray-900">
           Detectify
         </h1>
-        <p className="text-xl font-medium text-purple-600">
+        <p className="text-xl font-medium text-gray-600">
           by EngageAI
         </p>
-        <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed bg-purple-50/50 rounded-lg p-6">
+        <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
           The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot
           technologies. Whether you're building a pipeline of potential customers or strategizing how to
           position your conversational AI assistant, Detectify gives you the insights you need—faster and
@@ -71,30 +69,29 @@ const Header = () => {
         </p>
       </div>
 
-      {/* Feature Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in delay-200">
         {[
           {
-            icon: <Download size={24} />,
+            icon: <Search size={24} />,
             title: "Local Business Discovery",
             description: "Identify businesses anywhere"
           },
           {
-            icon: <SearchIcon size={24} />,
+            icon: <Search size={24} />,
             title: "Website Analysis",
             description: "Detect chatbot technologies"
           },
           {
-            icon: <LineChart size={24} />,
+            icon: <Search size={24} />,
             title: "AI-Driven Insights",
             description: "Data-driven prospecting"
           }
         ].map((feature, index) => (
-          <div key={index} className="glass-effect rounded-lg p-8 space-y-4 card-hover">
-            <div className="text-purple-600 mb-4 p-3 rounded-lg bg-purple-50 inline-block transition-transform duration-300 group-hover:scale-110">
+          <div key={index} className="glass-effect rounded-2xl p-8 space-y-4 card-hover">
+            <div className="text-gray-900 mb-4 p-3 rounded-xl bg-gray-50 inline-block">
               {feature.icon}
             </div>
-            <h3 className="text-xl font-semibold text-gray-800">
+            <h3 className="text-xl font-semibold text-gray-900">
               {feature.title}
             </h3>
             <p className="text-gray-600">
