@@ -1,5 +1,5 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse } from './types';
+import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat } from './types';
 
 interface CrawlResult {
   success: boolean;
@@ -33,7 +33,7 @@ export class FirecrawlService {
       this.initializeApp();
 
       const scrapeOptions: CrawlScrapeOptions = {
-        formats: ['html'],
+        formats: ["html" as CrawlFormat],
         timeout: 30000,
         selectors: {
           emails: {

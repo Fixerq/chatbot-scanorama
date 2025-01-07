@@ -21,10 +21,9 @@ export interface SuccessResponse {
 export interface CrawlDocument {
   url: string;
   content?: string;
-  selectors?: {
-    emails?: string[];
-    [key: string]: any;
-  };
+  selectors?: Record<string, string[]>;
+  html?: string;
+  markdown?: string;
 }
 
 export interface CrawlStatusResponse {
@@ -40,8 +39,10 @@ export interface CrawlStatusResponse {
 export type ApiResponse = SuccessResponse | ErrorResponse;
 export type CrawlResponse = CrawlStatusResponse | ErrorResponse;
 
+export type CrawlFormat = "html" | "markdown" | "rawHtml" | "content" | "links" | "screenshot" | "screenshot@fullPage" | "extract";
+
 export interface CrawlScrapeOptions {
-  formats?: string[];
+  formats?: CrawlFormat[];
   timeout?: number;
   selectors?: {
     [key: string]: {
