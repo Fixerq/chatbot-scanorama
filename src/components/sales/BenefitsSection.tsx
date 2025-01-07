@@ -28,7 +28,7 @@ const BenefitsSection = () => {
   return (
     <section className="space-y-8">
       <h2 className="text-3xl font-bold text-center text-white mb-8">
-        Why Choose Detectify?
+        Here's the Bottom Line:
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {benefits.map((benefit, index) => (
