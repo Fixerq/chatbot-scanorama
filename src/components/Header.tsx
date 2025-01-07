@@ -24,6 +24,14 @@ const Header = () => {
     <header className="flex justify-between items-center mb-8">
       <div className="flex items-center space-x-4">
         <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline">
+            My Searches
+          </Button>
+          <Button variant="outline">
+            My Bookmarks
+          </Button>
+        </div>
       </div>
       <div className="flex items-center space-x-4">
         <SubscriptionManager />
