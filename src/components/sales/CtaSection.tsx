@@ -20,9 +20,6 @@ const CtaSection = () => {
         >
           Sign Up and Scale Now
         </Button>
-        <p className="text-cyan-400 text-sm">
-          No credit card required • Cancel anytime
-        </p>
       </div>
     </section>
   );
