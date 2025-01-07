@@ -24,18 +24,18 @@ const Header = () => {
 
   return (
     <div className="space-y-8 mb-12">
-      <header className="w-full flex justify-between items-center px-6 py-4 glass-effect rounded-2xl animate-fade-in">
+      <header className="w-full flex justify-between items-center px-6 py-4 bg-white border-b border-gray-200 animate-fade-in">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
-            className="gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-300"
+            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100"
           >
             <Search size={18} />
             My Searches
           </Button>
           <Button 
             variant="ghost" 
-            className="gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-300"
+            className="gap-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100"
           >
             <Bookmark size={18} />
             My Bookmarks
@@ -46,7 +46,7 @@ const Header = () => {
           <Button 
             variant="ghost"
             onClick={handleLogout}
-            className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 transition-all duration-300"
+            className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
           >
             <LogOut size={18} />
             Logout
@@ -54,11 +54,11 @@ const Header = () => {
         </div>
       </header>
 
-      <div className="text-center space-y-6 glass-effect rounded-2xl p-12 animate-fade-in delay-100">
-        <h1 className="text-5xl font-bold text-gray-900">
+      <div className="text-center space-y-6 bg-white border border-gray-200 rounded-sm p-12 animate-fade-in">
+        <h1 className="text-5xl font-semibold text-gray-900">
           Detectify
         </h1>
-        <p className="text-xl font-medium text-gray-600">
+        <p className="text-xl text-[#0078d4]">
           by EngageAI
         </p>
         <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
@@ -69,7 +69,7 @@ const Header = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in delay-200">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
         {[
           {
             icon: <Search size={24} />,
@@ -87,8 +87,11 @@ const Header = () => {
             description: "Data-driven prospecting"
           }
         ].map((feature, index) => (
-          <div key={index} className="glass-effect rounded-2xl p-8 space-y-4 card-hover">
-            <div className="text-gray-900 mb-4 p-3 rounded-xl bg-gray-50 inline-block">
+          <div 
+            key={index} 
+            className="bg-white border border-gray-200 rounded-sm p-8 space-y-4 transition-all duration-300 hover:shadow-md"
+          >
+            <div className="text-[#0078d4] mb-4 p-3 rounded-sm bg-blue-50 inline-block">
               {feature.icon}
             </div>
             <h3 className="text-xl font-semibold text-gray-900">

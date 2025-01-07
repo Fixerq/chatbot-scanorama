@@ -61,28 +61,28 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <Header />
         
         <div className="space-y-8 animate-fade-in">
           <Tabs defaultValue="search" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="search" className="space-x-2">
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 p-1 rounded-sm">
+              <TabsTrigger value="search" className="space-x-2 data-[state=active]:bg-white rounded-sm">
                 <Search className="w-4 h-4" />
                 <span>Search Websites</span>
               </TabsTrigger>
-              <TabsTrigger value="upload" className="space-x-2">
+              <TabsTrigger value="upload" className="space-x-2 data-[state=active]:bg-white rounded-sm">
                 <Upload className="w-4 h-4" />
                 <span>Upload CSV</span>
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="search" className="space-y-8">
-              <Card>
+              <Card className="border border-gray-200 rounded-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Search className="w-5 h-5 text-blue-600" />
+                    <Search className="w-5 h-5 text-[#0078d4]" />
                     Website Search
                   </CardTitle>
                   <CardDescription>
@@ -99,10 +99,10 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="upload" className="space-y-8">
-              <Card>
+              <Card className="border border-gray-200 rounded-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                    <FileText className="w-5 h-5 text-[#0078d4]" />
                     Bulk URL Analysis
                   </CardTitle>
                   <CardDescription>
@@ -117,7 +117,7 @@ const Index = () => {
           </Tabs>
           
           {isProcessing && (
-            <Card>
+            <Card className="border border-gray-200 rounded-sm">
               <CardContent className="py-6">
                 <ProcessingIndicator />
               </CardContent>
@@ -125,7 +125,7 @@ const Index = () => {
           )}
 
           {results.length > 0 && (
-            <Card className="overflow-hidden">
+            <Card className="border border-gray-200 rounded-sm overflow-hidden">
               <CardContent className="p-6">
                 <Results 
                   results={results}

@@ -18,7 +18,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
 
   if (results.length === 0) {
     return (
-      <Alert className="glass-effect rounded-2xl">
+      <Alert className="bg-white border border-gray-200 rounded-sm">
         <AlertDescription className="space-y-4">
           <p className="text-gray-900 font-medium">No results found. Try:</p>
           <ul className="list-disc pl-4 space-y-2 text-gray-600">
@@ -30,7 +30,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           <Button 
             variant="outline" 
             onClick={handleNewSearch} 
-            className="mt-4 apple-button-secondary"
+            className="mt-4 microsoft-button-secondary"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try New Search
@@ -51,21 +51,21 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           <Button 
             variant="outline" 
             onClick={handleNewSearch}
-            className="apple-button-secondary"
+            className="microsoft-button-secondary"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             New Search
           </Button>
           <Button 
             onClick={onExport}
-            className="apple-button"
+            className="microsoft-button"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Results
           </Button>
         </div>
       </div>
-      <div className="rounded-2xl overflow-hidden glass-effect">
+      <div className="bg-white border border-gray-200 rounded-sm overflow-hidden">
         <ResultsTable results={results} />
       </div>
     </div>
