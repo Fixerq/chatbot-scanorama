@@ -19,6 +19,7 @@ const Header = () => {
               }}>
                 The Smarter Way to Sell Conversational AI.
               </h1>
+              <h2 className="text-4xl font-bold text-cyan-400 animate-fade-in delay-75">Detectify</h2>
               <p className="text-2xl font-medium text-cyan-400 animate-fade-in delay-100">by EngageAI</p>
             </div>
             
