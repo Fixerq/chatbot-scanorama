@@ -11,6 +11,11 @@ const Header = () => {
         <CardContent className="pt-12 pb-14 px-8">
           <div className="flex flex-col items-center space-y-10">            
             <div className="text-center space-y-6">
+              <img 
+                src="/lovable-uploads/engage-logo.png" 
+                alt="EngageAI Logo" 
+                className="h-16 mx-auto mb-6"
+              />
               <h1 className="text-6xl font-bold text-white animate-fade-in tracking-tight" style={{
                 textShadow: `
                   0 0 30px rgba(6, 182, 212, 0.9),
