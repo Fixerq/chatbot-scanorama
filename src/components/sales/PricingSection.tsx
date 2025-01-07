@@ -49,15 +49,9 @@ const plans = [
 
 const PricingSection = () => {
   const session = useSession();
-  const navigate = useNavigate();
   const supabase = useSupabaseClient();
 
   const handleSubscribe = async (priceId: string) => {
-    if (!session) {
-      navigate('/login');
-      return;
-    }
-
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId }

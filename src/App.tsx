@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Login from '@/pages/Login';
+import Signup from '@/pages/Signup';
 import Index from '@/pages/Index';
 import SalesPage from '@/pages/SalesPage';
 
@@ -40,6 +41,10 @@ const AppRoutes = () => {
         <Route 
           path="/login" 
           element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
+        />
+        <Route 
+          path="/signup" 
+          element={session ? <Navigate to="/dashboard" replace /> : <Signup />} 
         />
         
         {/* Protected routes */}
