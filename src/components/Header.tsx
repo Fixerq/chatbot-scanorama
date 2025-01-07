@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
 import SubscriptionManager from './SubscriptionManager';
-import { Search, Bookmark, LogOut } from 'lucide-react';
+import { Search, Bookmark, LogOut, Download, LineChart, Search as SearchIcon } from 'lucide-react';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -51,13 +51,13 @@ const Header = () => {
 
       {/* Top Section with Logo and Tagline */}
       <div className="text-center space-y-6">
-        <h1 className="text-6xl font-bold text-white glow-text bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-600">
+        <h1 className="text-6xl font-bold text-white glow-text bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-cyan-600 animate-gradient">
           Detectify
         </h1>
-        <p className="text-xl font-medium text-cyan-400">
+        <p className="text-xl font-medium text-cyan-400 glow-text">
           by EngageAI
         </p>
-        <p className="text-lg text-gray-300 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-lg text-gray-400/90 max-w-3xl mx-auto leading-relaxed backdrop-blur-sm rounded-lg p-4">
           The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot
           technologies. Whether you're building a pipeline of potential customers or strategizing how to
           position your conversational AI assistant, Detectify gives you the insights you need—faster and
@@ -67,39 +67,28 @@ const Header = () => {
 
       {/* Feature Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card-gradient rounded-xl p-6 space-y-3 backdrop-blur-sm border border-cyan-500/10">
-          <div className="text-cyan-400 mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+        <div className="card-gradient rounded-xl p-8 space-y-4 backdrop-blur-sm border border-cyan-500/10 hover:border-cyan-500/30 transition-all group">
+          <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform">
+            <Download size={24} className="glow-text" />
           </div>
-          <h3 className="text-xl font-semibold text-white">Local Business Discovery</h3>
-          <p className="text-gray-300">Identify businesses anywhere</p>
+          <h3 className="text-xl font-semibold text-white glow-text">Local Business Discovery</h3>
+          <p className="text-gray-400/90">Identify businesses anywhere</p>
         </div>
 
-        <div className="card-gradient rounded-xl p-6 space-y-3 backdrop-blur-sm border border-cyan-500/10">
-          <div className="text-cyan-400 mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+        <div className="card-gradient rounded-xl p-8 space-y-4 backdrop-blur-sm border border-cyan-500/10 hover:border-cyan-500/30 transition-all group">
+          <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform">
+            <SearchIcon size={24} className="glow-text" />
           </div>
-          <h3 className="text-xl font-semibold text-white">Website Analysis</h3>
-          <p className="text-gray-300">Detect chatbot technologies</p>
+          <h3 className="text-xl font-semibold text-white glow-text">Website Analysis</h3>
+          <p className="text-gray-400/90">Detect chatbot technologies</p>
         </div>
 
-        <div className="card-gradient rounded-xl p-6 space-y-3 backdrop-blur-sm border border-cyan-500/10">
-          <div className="text-cyan-400 mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 20V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M12 20V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 20V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+        <div className="card-gradient rounded-xl p-8 space-y-4 backdrop-blur-sm border border-cyan-500/10 hover:border-cyan-500/30 transition-all group">
+          <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform">
+            <LineChart size={24} className="glow-text" />
           </div>
-          <h3 className="text-xl font-semibold text-white">AI-Driven Insights</h3>
-          <p className="text-gray-300">Data-driven prospecting</p>
+          <h3 className="text-xl font-semibold text-white glow-text">AI-Driven Insights</h3>
+          <p className="text-gray-400/90">Data-driven prospecting</p>
         </div>
       </div>
     </div>
