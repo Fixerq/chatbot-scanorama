@@ -33,7 +33,7 @@
   }
   body {
     @apply bg-gradient-to-br from-[#0a192f] via-[#0d1f3a] to-[#0a192f] min-h-screen text-foreground;
-    background-size: 200% 200%;
+    background-size: 400% 400%;
     animation: gradientBG 15s ease infinite;
   }
 }
