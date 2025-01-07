@@ -8,7 +8,7 @@ interface LoadMoreButtonProps {
 
 const LoadMoreButton = ({ onLoadMore, isProcessing }: LoadMoreButtonProps) => {
   return (
-    <div className="flex justify-center my-10">
+    <div className="flex justify-center my-20">
       <Button 
         onClick={onLoadMore}
         disabled={isProcessing}
