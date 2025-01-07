@@ -25,7 +25,7 @@ const Header = () => {
             
             <div className="max-w-3xl mx-auto">
               <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-200 font-medium">
-                Target smarter with insights about the exact chatbot platforms businesses use. Detectify by EngageAI helps you find local businesses, uncover their chatbot technologies, and build a pipeline of pre-qualified leads—quickly and effortlessly.
+                Listen, if you're trying to sell conversational AI solutions, your biggest challenge isn't just building the product—it's knowing who to sell to. Most businesses waste time chasing leads that go nowhere because they're shooting in the dark. Detectify changes that by helping you identify and target businesses already using chatbots, so you can focus on qualified prospects ready for your solution.
               </p>
             </div>
 
