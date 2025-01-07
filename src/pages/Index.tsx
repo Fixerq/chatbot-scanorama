@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUrlProcessor } from '@/hooks/useUrlProcessor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Search, FileText } from 'lucide-react';
-import SalesPage from '@/components/SalesPage';
 
 const Index = () => {
   const { 
@@ -54,7 +53,6 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <Header />
-        <SalesPage />
         
         <div className="space-y-8 animate-fade-in">
           <Tabs defaultValue="upload" className="w-full">

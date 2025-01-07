@@ -8,6 +8,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Login from '@/pages/Login';
 import Index from '@/pages/Index';
+import SalesPage from '@/pages/SalesPage';
 
 const queryClient = new QueryClient();
 
@@ -31,12 +32,19 @@ const AppRoutes = () => {
   return (
     <Router>
       <Routes>
+        {/* Public routes */}
+        <Route 
+          path="/" 
+          element={session ? <Navigate to="/dashboard" replace /> : <SalesPage />} 
+        />
         <Route 
           path="/login" 
-          element={session ? <Navigate to="/" replace /> : <Login />} 
+          element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
         />
+        
+        {/* Protected routes */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Index />
