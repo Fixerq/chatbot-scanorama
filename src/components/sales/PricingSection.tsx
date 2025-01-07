@@ -111,26 +111,34 @@ const PricingSection = () => {
   };
 
   return (
-    <section className="py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-foreground sm:text-4xl">
+    <section className="relative py-24 overflow-hidden">
+      {/* Background gradient with animation */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background animate-gradient opacity-80" />
+      
+      {/* Glowing orbs for visual interest */}
+      <div className="absolute -top-40 -left-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-200" />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center space-y-4 animate-fade-in">
+          <h2 className="text-4xl font-bold text-foreground sm:text-5xl glow-text">
             Choose Your Plan
           </h2>
-          <p className="mt-4 text-xl text-muted-foreground">
+          <p className="mt-4 text-xl text-muted-foreground max-w-2xl mx-auto">
             Select the perfect plan for your business needs
           </p>
         </div>
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <PricingCard
-              key={plan.name}
-              {...plan}
-              onSubscribe={handleSubscribe}
-              isLoading={isLoading}
-              hasSubscription={hasSubscription}
-            />
+        <div className="mt-16 grid gap-8 lg:grid-cols-3 animate-fade-in delay-100">
+          {plans.map((plan, index) => (
+            <div key={plan.name} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+              <PricingCard
+                {...plan}
+                onSubscribe={handleSubscribe}
+                isLoading={isLoading}
+                hasSubscription={hasSubscription}
+              />
+            </div>
           ))}
         </div>
       </div>
