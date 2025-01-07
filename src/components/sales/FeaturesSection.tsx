@@ -15,7 +15,7 @@ const FeaturesSection = () => {
               <Search className="w-6 h-6 text-cyan-400" />
             </div>
             <h3 className="text-xl font-semibold text-white">You're Losing Money on Bad Prospects</h3>
-            <p className="text-gray-300">Identify businesses in any location and receive a curated list of URLs.</p>
+            <p className="text-gray-300">Find highly qualified leads already investing in chatbot technology and ready to buy.</p>
           </CardContent>
         </Card>
 
