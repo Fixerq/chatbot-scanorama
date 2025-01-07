@@ -1,25 +1,19 @@
-import React from 'react';
-import FileUpload from '@/components/FileUpload';
+import React, { useState } from 'react';
+import FileUpload from "@/components/FileUpload";
+import Header from "@/components/Header";
+import SearchFormContainer from "@/components/SearchFormContainer";
+import ProcessingIndicator from "@/components/ProcessingIndicator";
+import Results from "@/components/Results";
+import { Result } from '@/components/ResultsTable';
 import { processCSV, exportToCSV } from '@/utils/chatbotDetection';
 import { toast } from 'sonner';
-import CsvInstructions from '@/components/CsvInstructions';
-import Header from '@/components/Header';
-import Results from '@/components/Results';
-import SearchFormContainer from '@/components/SearchFormContainer';
-import ProcessingIndicator from '@/components/ProcessingIndicator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUrlProcessor } from '@/hooks/useUrlProcessor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Search, FileText } from 'lucide-react';
 
 const Index = () => {
-  const { 
-    results, 
-    isProcessing, 
-    processUrls, 
-    processSearchResults, 
-    clearResults 
-  } = useUrlProcessor();
+  const [results, setResults] = useState<Result[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileAccepted = async (content: string) => {
     const urls = processCSV(content);
@@ -34,11 +28,28 @@ const Index = () => {
       return;
     }
 
-    await processUrls(urls);
+    setIsProcessing(true);
+    try {
+      // Process URLs logic here
+      setResults([]); // Replace with actual results
+    } catch (error) {
+      console.error('Error processing URLs:', error);
+      toast.error('Failed to process URLs');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSearchResults = (newResults: Result[]) => {
+    setResults(newResults);
+  };
+
+  const handleExport = () => {
+    exportToCSV(results);
   };
 
   const handleNewSearch = () => {
-    clearResults();
+    setResults([]);
     const tabsList = document.querySelector('[role="tablist"]') as HTMLElement;
     if (tabsList) {
       const searchTab = tabsList.querySelector('[value="search"]') as HTMLElement;
@@ -78,8 +89,7 @@ const Index = () => {
                     Upload a CSV file containing multiple URLs to analyze their chatbot implementations in bulk.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <CsvInstructions />
+                <CardContent>
                   <FileUpload onFileAccepted={handleFileAccepted} />
                 </CardContent>
               </Card>
@@ -98,8 +108,8 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <SearchFormContainer 
-                    onResults={processSearchResults} 
-                    isProcessing={isProcessing} 
+                    onResults={handleSearchResults}
+                    isProcessing={isProcessing}
                   />
                 </CardContent>
               </Card>
@@ -118,8 +128,8 @@ const Index = () => {
             <Card className="overflow-hidden">
               <CardContent className="p-6">
                 <Results 
-                  results={results} 
-                  onExport={() => exportToCSV(results)}
+                  results={results}
+                  onExport={handleExport}
                   onNewSearch={handleNewSearch}
                 />
               </CardContent>
