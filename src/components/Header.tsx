@@ -50,14 +50,14 @@ const Header = () => {
       </header>
 
       {/* Top Section with Logo and Tagline */}
-      <div className="text-center space-y-6">
+      <div className="text-center space-y-6 bg-secondary/50 rounded-lg backdrop-blur-sm border border-cyan-500/10 p-8">
         <h1 className="text-6xl font-bold text-white glow-text bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-cyan-600 animate-gradient">
           Detectify
         </h1>
         <p className="text-xl font-medium text-cyan-400 glow-text">
           by EngageAI
         </p>
-        <p className="text-lg text-gray-400/90 max-w-3xl mx-auto leading-relaxed backdrop-blur-sm rounded-lg p-4">
+        <p className="text-lg text-gray-400/90 max-w-3xl mx-auto leading-relaxed">
           The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot
           technologies. Whether you're building a pipeline of potential customers or strategizing how to
           position your conversational AI assistant, Detectify gives you the insights you need—faster and
