@@ -7,7 +7,7 @@ interface FileUploadProps {
   onFileAccepted: (content: string) => void;
 }
 
-export const FileUpload = ({ onFileAccepted }: FileUploadProps) => {
+const FileUpload = ({ onFileAccepted }: FileUploadProps) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
