@@ -57,7 +57,7 @@ const Header = () => {
         <p className="text-xl font-medium text-cyan-400 glow-text">
           by EngageAI
         </p>
-        <p className="text-lg text-gray-400/90 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-lg text-gray-400/90 max-w-3xl mx-auto leading-relaxed backdrop-blur-sm rounded-lg p-4">
           The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot
           technologies. Whether you're building a pipeline of potential customers or strategizing how to
           position your conversational AI assistant, Detectify gives you the insights you need—faster and
