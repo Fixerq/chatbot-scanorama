@@ -1,5 +1,5 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat } from './types';
+import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat, CrawlDocument } from './types';
 
 interface CrawlResult {
   success: boolean;
@@ -8,12 +8,12 @@ interface CrawlResult {
   total?: number;
   creditsUsed?: number;
   expiresAt?: string;
-  data?: any[];
+  data?: CrawlDocument[];
   emails?: string[];
 }
 
 export class FirecrawlService {
-  private static API_KEY = 'YOUR_FIRECRAWL_API_KEY'; // This will be replaced with the actual key
+  private static API_KEY = 'YOUR_FIRECRAWL_API_KEY';
   private static firecrawlApp: FirecrawlApp | null = null;
   private static MAX_API_LIMIT = 10;
 
@@ -47,20 +47,20 @@ export class FirecrawlService {
       const crawlResponse = await this.firecrawlApp!.crawlUrl(url, {
         limit: 1,
         scrapeOptions
-      });
+      }) as CrawlResponse;
 
       if (!crawlResponse.success) {
-        console.error('Crawl failed:', 'error' in crawlResponse ? crawlResponse.error : 'Unknown error');
+        console.error('Crawl failed:', (crawlResponse as ErrorResponse).error);
         return { 
           success: false, 
-          error: 'error' in crawlResponse ? crawlResponse.error : 'Failed to crawl website' 
+          error: (crawlResponse as ErrorResponse).error || 'Failed to crawl website' 
         };
       }
 
       // Extract emails from the crawl response
       const emails = new Set<string>();
       if (crawlResponse.data && Array.isArray(crawlResponse.data)) {
-        crawlResponse.data.forEach(item => {
+        crawlResponse.data.forEach((item: CrawlDocument) => {
           if (item.selectors?.emails) {
             const extractedEmails = item.selectors.emails
               .map((email: string) => email.replace('mailto:', ''))

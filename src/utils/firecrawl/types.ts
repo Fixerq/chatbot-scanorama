@@ -42,7 +42,7 @@ export type CrawlResponse = CrawlStatusResponse | ErrorResponse;
 export type CrawlFormat = "html" | "markdown" | "rawHtml" | "content" | "links" | "screenshot" | "screenshot@fullPage" | "extract";
 
 export interface CrawlScrapeOptions {
-  formats?: CrawlFormat[];
+  formats: CrawlFormat[];  // Changed to required field
   timeout?: number;
   selectors?: {
     [key: string]: {
