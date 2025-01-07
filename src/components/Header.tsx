@@ -21,19 +21,19 @@ const Header = () => {
   };
 
   return (
-    <header className="flex justify-between items-center mb-8">
-      <div className="flex items-center space-x-4">
+    <header className="w-full flex justify-between items-center mb-8 px-4 py-2">
+      <div className="flex items-center gap-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="flex items-center space-x-2">
+        <nav className="flex items-center gap-3">
           <Button variant="outline">
             My Searches
           </Button>
           <Button variant="outline">
             My Bookmarks
           </Button>
-        </div>
+        </nav>
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-4">
         <SubscriptionManager />
         <Button 
           variant="destructive" 
