@@ -13,6 +13,7 @@ interface CrawlStatusResponse {
   creditsUsed: number;
   expiresAt: string;
   data: any[];
+  emails?: string[];
 }
 
 type CrawlResponse = CrawlStatusResponse | ErrorResponse;
@@ -41,7 +42,8 @@ export class FirecrawlService {
         limit: 1,
         scrapeOptions: {
           formats: ['html'],
-          timeout: 30000
+          timeout: 30000,
+          extractEmails: true // Enable email extraction
         }
       });
 
@@ -53,73 +55,26 @@ export class FirecrawlService {
         };
       }
 
-      if (!crawlResponse.data?.[0]?.html) {
-        return {
-          success: false,
-          error: 'No HTML content retrieved'
-        };
+      // Extract emails from the crawl response
+      const emails = new Set<string>();
+      if (crawlResponse.data && Array.isArray(crawlResponse.data)) {
+        crawlResponse.data.forEach(item => {
+          if (item.emails && Array.isArray(item.emails)) {
+            item.emails.forEach((email: string) => emails.add(email));
+          }
+        });
       }
 
       console.log('Crawl successful:', crawlResponse);
       return { 
         success: true,
-        data: crawlResponse 
+        data: {
+          ...crawlResponse,
+          emails: Array.from(emails)
+        }
       };
     } catch (error) {
       console.error('Error during crawl:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to connect to Firecrawl API' 
-      };
-    }
-  }
-
-  static async searchWebsites(
-    query: string, 
-    country: string, 
-    region?: string, 
-    limit: number = 10
-  ): Promise<{ success: boolean; urls?: string[]; error?: string; hasMore?: boolean }> {
-    try {
-      this.initializeApp();
-      console.log('Search params:', { query, country, region, limit });
-
-      const searchQuery = `${query} ${country} ${region || ''}`.trim();
-      const requestLimit = Math.min(this.MAX_API_LIMIT, limit);
-
-      const response = await this.firecrawlApp!.search(searchQuery, { 
-        limit: requestLimit,
-        options: {
-          country: country,
-          region: region || undefined
-        }
-      });
-
-      if (!response.success) {
-        console.error('Search failed:', 'error' in response ? response.error : 'Unknown error');
-        return { 
-          success: false, 
-          error: 'error' in response ? response.error : 'Search failed'
-        };
-      }
-
-      const urls = response.data.map(result => result.url);
-      const hasMore = urls.length >= requestLimit;
-      const limitedUrls = urls.slice(0, requestLimit);
-
-      console.log('Search results:', {
-        totalResults: urls.length,
-        limitedResults: limitedUrls.length,
-        hasMore
-      });
-
-      return { 
-        success: true,
-        urls: limitedUrls,
-        hasMore
-      };
-    } catch (error) {
-      console.error('Error during search:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to connect to Firecrawl API' 
