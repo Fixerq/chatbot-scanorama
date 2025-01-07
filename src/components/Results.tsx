@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, RefreshCw, Filter, SortAsc } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import ResultsTable, { Result } from './ResultsTable';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import BookmarkButton from './BookmarkButton';
@@ -19,8 +19,63 @@ interface ResultsProps {
 }
 
 const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
+  const [filteredResults, setFilteredResults] = useState<Result[]>(results);
+  const [filterValue, setFilterValue] = useState('all');
+  const [sortValue, setSortValue] = useState('name');
+
+  // Update filtered results when main results change
+  React.useEffect(() => {
+    handleFilter(filterValue);
+  }, [results, filterValue]);
+
   const handleNewSearch = () => {
     onNewSearch();
+  };
+
+  const handleFilter = (value: string) => {
+    setFilterValue(value);
+    let filtered = [...results];
+
+    switch (value) {
+      case 'chatbot':
+        filtered = results.filter(r => r.details?.chatSolutions && r.details.chatSolutions.length > 0);
+        break;
+      case 'no-chatbot':
+        filtered = results.filter(r => !r.details?.chatSolutions || r.details.chatSolutions.length === 0);
+        break;
+      default:
+        filtered = results;
+    }
+
+    // Apply current sort after filtering
+    handleSort(sortValue, filtered);
+  };
+
+  const handleSort = (value: string, resultsToSort = filteredResults) => {
+    setSortValue(value);
+    let sorted = [...resultsToSort];
+
+    switch (value) {
+      case 'name':
+        sorted.sort((a, b) => {
+          const nameA = a.details?.title || '';
+          const nameB = b.details?.title || '';
+          return nameA.localeCompare(nameB);
+        });
+        break;
+      case 'url':
+        sorted.sort((a, b) => (a.url || '').localeCompare(b.url || ''));
+        break;
+      case 'status':
+        sorted.sort((a, b) => {
+          const statusA = a.status || '';
+          const statusB = b.status || '';
+          return statusA.localeCompare(statusB);
+        });
+        break;
+    }
+
+    setFilteredResults(sorted);
   };
 
   if (!results || results.length === 0) {
@@ -62,7 +117,10 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Select defaultValue="all">
+            <Select 
+              value={filterValue} 
+              onValueChange={handleFilter}
+            >
               <SelectTrigger className="w-[140px] h-9 border-cyan-500/20 text-cyan-100 bg-black/20">
                 <SelectValue placeholder="Filter by" />
               </SelectTrigger>
@@ -72,7 +130,10 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
                 <SelectItem value="no-chatbot">No Chatbot</SelectItem>
               </SelectContent>
             </Select>
-            <Select defaultValue="name">
+            <Select 
+              value={sortValue} 
+              onValueChange={(value) => handleSort(value)}
+            >
               <SelectTrigger className="w-[140px] h-9 border-cyan-500/20 text-cyan-100 bg-black/20">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -104,7 +165,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
         </div>
       </div>
       <div className="rounded-[1.25rem] overflow-hidden">
-        <ResultsTable results={results} />
+        <ResultsTable results={filteredResults} />
       </div>
     </div>
   );
