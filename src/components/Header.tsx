@@ -25,7 +25,13 @@ const Header = () => {
             
             <div className="max-w-3xl mx-auto">
               <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-200 font-medium">
-                Listen, if you're trying to sell conversational AI solutions, your biggest challenge isn't just building the product—it's knowing who to sell to. Most businesses waste time chasing leads that go nowhere because they're shooting in the dark. Detectify changes that by helping you identify and target businesses already using chatbots, so you can focus on qualified prospects ready for your solution.
+                Listen, if you're trying to sell conversational AI solutions, your biggest challenge isn't just building the product—it's knowing who to sell to.
+              </p>
+              <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-300 font-medium mt-4">
+                Most businesses waste valuable time chasing leads that go nowhere because they're shooting in the dark.
+              </p>
+              <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-400 font-medium mt-4">
+                Detectify changes that. It helps you identify and target businesses already using chatbots, so you can focus on qualified prospects ready for your solution.
               </p>
             </div>
 
