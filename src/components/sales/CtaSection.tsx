@@ -18,7 +18,7 @@ const CtaSection = () => {
           className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold px-8 py-6 rounded-full text-lg transition-all duration-300 hover:scale-105"
           onClick={() => navigate('/login')}
         >
-          Start Your Free Trial Today
+          Sign Up and Scale Now
         </Button>
         <p className="text-cyan-400 text-sm">
           No credit card required • Cancel anytime
