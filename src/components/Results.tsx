@@ -18,10 +18,10 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
 
   if (results.length === 0) {
     return (
-      <Alert className="bg-black/20 border-cyan-500/20 text-cyan-100 rounded-[1.25rem] backdrop-blur-sm">
+      <Alert className="glass-effect border-purple-500/20 text-gray-800 rounded-[1.25rem]">
         <AlertDescription className="space-y-4">
           <p>No results found. Try:</p>
-          <ul className="list-disc pl-4 space-y-2 text-cyan-200/70">
+          <ul className="list-disc pl-4 space-y-2 text-gray-600">
             <li>Using more general search terms</li>
             <li>Checking for spelling mistakes</li>
             <li>Removing location-specific terms</li>
@@ -30,7 +30,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           <Button 
             variant="outline" 
             onClick={handleNewSearch} 
-            className="mt-4 border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
+            className="mt-4 border-purple-500/20 text-gray-800 hover:bg-purple-500/20 rounded-full transition-all duration-300"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try New Search
@@ -43,7 +43,7 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-cyan-200/70">
+        <p className="text-sm text-gray-600">
           Found {results.length} website{results.length !== 1 ? 's' : ''}
         </p>
         <div className="space-x-3">
@@ -51,21 +51,21 @@ const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
           <Button 
             variant="outline" 
             onClick={handleNewSearch}
-            className="border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
+            className="border-purple-500/20 text-gray-800 hover:bg-purple-500/20 rounded-full transition-all duration-300"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             New Search
           </Button>
           <Button 
             onClick={onExport}
-            className="bg-cyan-500 text-black hover:bg-cyan-400 glow rounded-full transition-all duration-300"
+            className="bg-purple-600 text-white hover:bg-purple-700 rounded-full transition-all duration-300"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Results
           </Button>
         </div>
       </div>
-      <div className="rounded-[1.25rem] overflow-hidden">
+      <div className="rounded-[1.25rem] overflow-hidden glass-effect">
         <ResultsTable results={results} />
       </div>
     </div>
