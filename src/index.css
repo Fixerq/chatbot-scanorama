@@ -4,26 +4,26 @@
  
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 213 31% 91%;
-    --card: 222 47% 11%;
-    --card-foreground: 213 31% 91%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 196 100% 50%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 213 31% 91%;
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 196 100% 50%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 196 100% 50%;
-    --radius: 1.5rem;
+    --background: 252 252 254;
+    --foreground: 26 31 44;
+    --card: 255 255 255;
+    --card-foreground: 26 31 44;
+    --popover: 255 255 255;
+    --popover-foreground: 26 31 44;
+    --primary: 139 92 246;
+    --primary-foreground: 255 255 255;
+    --secondary: 244 244 245;
+    --secondary-foreground: 26 31 44;
+    --muted: 244 244 245;
+    --muted-foreground: 107 114 128;
+    --accent: 139 92 246;
+    --accent-foreground: 255 255 255;
+    --destructive: 234 56 76;
+    --destructive-foreground: 255 255 255;
+    --border: 229 231 235;
+    --input: 229 231 235;
+    --ring: 139 92 246;
+    --radius: 0.75rem;
   }
 }
 
@@ -32,64 +32,39 @@
     @apply border-border;
   }
   body {
-    @apply bg-gradient-to-br from-[#0a192f] via-[#0d1f3a] to-[#0a192f] min-h-screen text-foreground;
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
+    @apply bg-gradient-to-br from-white via-purple-50/30 to-white min-h-screen text-foreground;
+    background-size: 200% 200%;
+    animation: subtleGradient 15s ease infinite;
   }
 }
 
-@keyframes gradientBG {
+@keyframes subtleGradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
-.glow {
-  box-shadow: 0 0 20px theme('colors.cyan.400/40'),
-              0 0 40px theme('colors.cyan.400/20'),
-              0 0 60px theme('colors.cyan.400/10');
-  transition: all 0.3s ease;
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-1;
 }
 
-.glow:hover {
-  box-shadow: 0 0 25px theme('colors.cyan.400/50'),
-              0 0 50px theme('colors.cyan.400/30'),
-              0 0 75px theme('colors.cyan.400/20');
+.glass-effect {
+  @apply bg-white/80 backdrop-blur-md border border-white/20;
 }
 
-.glow-text {
-  text-shadow: 0 0 15px theme('colors.cyan.400/50'),
-               0 0 30px theme('colors.cyan.400/30'),
-               0 0 45px theme('colors.cyan.400/20');
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
-.glow-border {
-  box-shadow: inset 0 0 20px theme('colors.cyan.400/20'),
-              0 0 20px theme('colors.cyan.400/20');
-  transition: all 0.3s ease;
-}
-
-.glow-border:hover {
-  box-shadow: inset 0 0 25px theme('colors.cyan.400/30'),
-              0 0 25px theme('colors.cyan.400/30');
-}
-
-.card-gradient {
-  background: linear-gradient(
-    135deg,
-    rgba(6, 182, 212, 0.15) 0%,
-    rgba(6, 182, 212, 0.05) 100%
-  );
-  backdrop-filter: blur(12px);
-  transition: all 0.3s ease;
-}
-
-.card-gradient:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(6, 182, 212, 0.2) 0%,
-    rgba(6, 182, 212, 0.08) 100%
-  );
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .delay-100 {

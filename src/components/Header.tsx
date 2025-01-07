@@ -23,20 +23,20 @@ const Header = () => {
   };
 
   return (
-    <div className="space-y-12 mb-12">
+    <div className="space-y-8 mb-12">
       {/* Navigation Bar */}
-      <header className="w-full flex justify-between items-center px-6 py-4 bg-[#0d1f3a]/50 rounded-[1.25rem] backdrop-blur-sm border border-cyan-500/20 shadow-lg animate-fade-in">
+      <header className="w-full flex justify-between items-center px-6 py-4 glass-effect rounded-lg animate-fade-in">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
-            className="gap-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10 transition-all duration-300"
+            className="gap-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300"
           >
             <Search size={18} />
             My Searches
           </Button>
           <Button 
             variant="ghost" 
-            className="gap-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-400/10 transition-all duration-300"
+            className="gap-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-all duration-300"
           >
             <Bookmark size={18} />
             My Bookmarks
@@ -47,7 +47,7 @@ const Header = () => {
           <Button 
             variant="ghost"
             onClick={handleLogout}
-            className="gap-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 transition-all duration-300"
+            className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 transition-all duration-300"
           >
             <LogOut size={18} />
             Logout
@@ -56,14 +56,14 @@ const Header = () => {
       </header>
 
       {/* Top Section with Logo and Tagline */}
-      <div className="text-center space-y-8 bg-[#0d1f3a]/50 rounded-[1.25rem] backdrop-blur-sm border border-cyan-500/20 p-12 shadow-lg animate-fade-in delay-100">
-        <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-600 animate-gradient glow-text">
+      <div className="text-center space-y-6 glass-effect rounded-lg p-12 animate-fade-in delay-100">
+        <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
           Detectify
         </h1>
-        <p className="text-xl font-medium text-cyan-400 glow-text">
+        <p className="text-xl font-medium text-purple-600">
           by EngageAI
         </p>
-        <p className="text-lg text-gray-300/90 max-w-3xl mx-auto leading-relaxed bg-[#0d1f3a]/50 backdrop-blur-sm rounded-[1rem] p-6 border border-cyan-500/20">
+        <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed bg-purple-50/50 rounded-lg p-6">
           The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot
           technologies. Whether you're building a pipeline of potential customers or strategizing how to
           position your conversational AI assistant, Detectify gives you the insights you need—faster and
@@ -73,29 +73,35 @@ const Header = () => {
 
       {/* Feature Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in delay-200">
-        <div className="bg-[#0d1f3a]/50 rounded-[1.25rem] p-8 space-y-4 backdrop-blur-sm border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 group shadow-lg hover:shadow-cyan-500/5">
-          <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform duration-300">
-            <Download size={24} className="glow-text" />
+        {[
+          {
+            icon: <Download size={24} />,
+            title: "Local Business Discovery",
+            description: "Identify businesses anywhere"
+          },
+          {
+            icon: <SearchIcon size={24} />,
+            title: "Website Analysis",
+            description: "Detect chatbot technologies"
+          },
+          {
+            icon: <LineChart size={24} />,
+            title: "AI-Driven Insights",
+            description: "Data-driven prospecting"
+          }
+        ].map((feature, index) => (
+          <div key={index} className="glass-effect rounded-lg p-8 space-y-4 card-hover">
+            <div className="text-purple-600 mb-4 p-3 rounded-lg bg-purple-50 inline-block transition-transform duration-300 group-hover:scale-110">
+              {feature.icon}
+            </div>
+            <h3 className="text-xl font-semibold text-gray-800">
+              {feature.title}
+            </h3>
+            <p className="text-gray-600">
+              {feature.description}
+            </p>
           </div>
-          <h3 className="text-xl font-semibold text-white glow-text">Local Business Discovery</h3>
-          <p className="text-gray-300/90">Identify businesses anywhere</p>
-        </div>
-
-        <div className="bg-[#0d1f3a]/50 rounded-[1.25rem] p-8 space-y-4 backdrop-blur-sm border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 group shadow-lg hover:shadow-cyan-500/5">
-          <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform duration-300">
-            <SearchIcon size={24} className="glow-text" />
-          </div>
-          <h3 className="text-xl font-semibold text-white glow-text">Website Analysis</h3>
-          <p className="text-gray-300/90">Detect chatbot technologies</p>
-        </div>
-
-        <div className="bg-[#0d1f3a]/50 rounded-[1.25rem] p-8 space-y-4 backdrop-blur-sm border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 group shadow-lg hover:shadow-cyan-500/5">
-          <div className="text-cyan-400 mb-4 p-3 rounded-lg bg-cyan-400/10 inline-block group-hover:scale-110 transition-transform duration-300">
-            <LineChart size={24} className="glow-text" />
-          </div>
-          <h3 className="text-xl font-semibold text-white glow-text">AI-Driven Insights</h3>
-          <p className="text-gray-300/90">Data-driven prospecting</p>
-        </div>
+        ))}
       </div>
     </div>
   );
