@@ -17,14 +17,14 @@ const Header = () => {
                   0 0 60px rgba(6, 182, 212, 0.6)
                 `
               }}>
-                Detectify
+                The Smarter Way to Sell Conversational AI.
               </h1>
               <p className="text-2xl font-medium text-cyan-400 animate-fade-in delay-100">by EngageAI</p>
             </div>
             
             <div className="max-w-3xl mx-auto">
               <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-200 font-medium">
-                The ultimate AI-powered tool for discovering local businesses and analyzing their chatbot technologies. Whether you're building a pipeline of potential customers or strategizing how to position your conversational AI assistant, Detectify gives you the insights you need—faster and smarter.
+                Detectify by EngageAI helps you find local businesses, uncover their chatbot technologies, and build a pipeline of pre-qualified leads—quickly and effortlessly. Stop guessing and start targeting the right prospects with data-driven insights designed to close deals faster.
               </p>
             </div>
 
