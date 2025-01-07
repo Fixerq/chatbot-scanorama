@@ -5,9 +5,15 @@ import { Search, Zap, Target } from 'lucide-react';
 const FeaturesSection = () => {
   return (
     <section className="space-y-8">
-      <h2 className="text-3xl font-bold text-center text-white mb-8">
-        Why Detectify Is Your Unfair Advantage
-      </h2>
+      <div className="text-center space-y-4 mb-12">
+        <h2 className="text-3xl font-bold text-white mb-8">
+          Why Detectify Is Your Unfair Advantage
+        </h2>
+        <p className="text-xl text-cyan-100 max-w-2xl mx-auto">
+          Detectify users report saving hours on prospecting and doubling their sales pipeline efficiency.
+        </p>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-black/60 backdrop-blur-lg border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300">
           <CardContent className="p-6 space-y-4">

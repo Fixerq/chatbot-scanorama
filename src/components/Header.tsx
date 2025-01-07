@@ -17,21 +17,15 @@ const Header = () => {
                   0 0 60px rgba(6, 182, 212, 0.6)
                 `
               }}>
-                The Smarter Way to Sell Conversational AI.
+                Find, Target, and Close Qualified Leads Faster
               </h1>
               <h2 className="text-4xl font-bold text-cyan-400 animate-fade-in delay-75">Detectify</h2>
               <p className="text-2xl font-medium text-cyan-400 animate-fade-in delay-100">by EngageAI</p>
             </div>
             
             <div className="max-w-3xl mx-auto">
-              <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-200 font-medium">
-                Listen, if you're trying to sell conversational AI solutions, your biggest challenge isn't just building the product—it's knowing who to sell to.
-              </p>
-              <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-300 font-medium mt-4">
-                Most businesses waste valuable time chasing leads that go nowhere because they're shooting in the dark.
-              </p>
-              <p className="text-white/90 text-center leading-relaxed text-lg animate-fade-in delay-400 font-medium mt-4">
-                Detectify changes that. It helps you identify and target businesses already using chatbots, so you can focus on qualified prospects ready for your solution.
+              <p className="text-white/90 text-center leading-relaxed text-xl animate-fade-in delay-200 font-medium">
+                Identify businesses already using chatbot technologies and get the data you need to close deals smarter.
               </p>
             </div>
 
@@ -39,27 +33,27 @@ const Header = () => {
               <div className="flex items-center gap-4 p-6 rounded-2xl bg-black/50 backdrop-blur-xl border border-cyan-500/30 shadow-lg hover:shadow-xl transition-all duration-500 group hover:bg-black/60">
                 <Bot className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform duration-500" 
                      style={{ filter: 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.5))' }} />
-                <div className="text-sm">
-                  <p className="font-semibold text-white mb-1">Local Business Discovery</p>
-                  <p className="text-cyan-100 text-opacity-90">Identify businesses anywhere</p>
+                <div>
+                  <p className="font-semibold text-white mb-2">Local Business Discovery</p>
+                  <p className="text-cyan-100 text-opacity-90 text-sm">Search and discover businesses in any location, tailored to your niche.</p>
                 </div>
               </div>
               
               <div className="flex items-center gap-4 p-6 rounded-2xl bg-black/50 backdrop-blur-xl border border-cyan-500/30 shadow-lg hover:shadow-xl transition-all duration-500 group hover:bg-black/60">
                 <Search className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform duration-500"
                        style={{ filter: 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.5))' }} />
-                <div className="text-sm">
-                  <p className="font-semibold text-white mb-1">Website Analysis</p>
-                  <p className="text-cyan-100 text-opacity-90">Detect chatbot technologies</p>
+                <div>
+                  <p className="font-semibold text-white mb-2">Website Analysis</p>
+                  <p className="text-cyan-100 text-opacity-90 text-sm">Identify existing chatbot platforms to tailor your pitch.</p>
                 </div>
               </div>
               
               <div className="flex items-center gap-4 p-6 rounded-2xl bg-black/50 backdrop-blur-xl border border-cyan-500/30 shadow-lg hover:shadow-xl transition-all duration-500 group hover:bg-black/60">
                 <BarChart3 className="w-12 h-12 text-cyan-400 group-hover:scale-110 transition-transform duration-500"
                           style={{ filter: 'drop-shadow(0 0 10px rgba(6, 182, 212, 0.5))' }} />
-                <div className="text-sm">
-                  <p className="font-semibold text-white mb-1">AI-Driven Insights</p>
-                  <p className="text-cyan-100 text-opacity-90">Data-driven prospecting</p>
+                <div>
+                  <p className="font-semibold text-white mb-2">AI-Driven Insights</p>
+                  <p className="text-cyan-100 text-opacity-90 text-sm">Leverage data to streamline prospecting and close faster.</p>
                 </div>
               </div>
             </div>

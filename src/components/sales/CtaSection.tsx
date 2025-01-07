@@ -11,14 +11,19 @@ const CtaSection = () => {
         Ready to Transform Your Prospecting?
       </h2>
       <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-        Join forward-thinking companies using Detectify to revolutionize their sales process.
+        Join hundreds of forward-thinking companies using Detectify to revolutionize their sales process.
       </p>
-      <Button 
-        className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold px-8 py-6 rounded-full text-lg transition-all duration-300 hover:scale-105"
-        onClick={() => navigate('/login')}
-      >
-        Get Started Now
-      </Button>
+      <div className="space-y-8">
+        <Button 
+          className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold px-8 py-6 rounded-full text-lg transition-all duration-300 hover:scale-105"
+          onClick={() => navigate('/login')}
+        >
+          Start Your Free Trial Today
+        </Button>
+        <p className="text-cyan-400 text-sm">
+          No credit card required • Cancel anytime
+        </p>
+      </div>
     </section>
   );
 };
