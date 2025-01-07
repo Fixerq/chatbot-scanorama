@@ -6,17 +6,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import BookmarkButton from './BookmarkButton';
 
 interface ResultsProps {
-  results: Result[];
+  results?: Result[];
   onExport: () => void;
   onNewSearch: () => void;
 }
 
-const Results = ({ results, onExport, onNewSearch }: ResultsProps) => {
+const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const handleNewSearch = () => {
     onNewSearch();
   };
 
-  if (results.length === 0) {
+  if (!results || results.length === 0) {
     return (
       <Alert className="bg-black/20 border-cyan-500/20 text-cyan-100 rounded-[1.25rem] backdrop-blur-sm">
         <AlertDescription className="space-y-4">
