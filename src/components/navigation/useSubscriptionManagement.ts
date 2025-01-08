@@ -13,18 +13,28 @@ export const useSubscriptionManagement = () => {
       
       const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription');
       
-      if (subscriptionError) throw subscriptionError;
+      if (subscriptionError) {
+        console.error('Subscription check error:', subscriptionError);
+        throw subscriptionError;
+      }
 
-      if (subscriptionData.hasSubscription) {
+      console.log('Subscription status:', subscriptionData);
+
+      if (subscriptionData?.hasSubscription) {
         // Create portal session for existing subscribers
         console.log('Creating portal session...');
         const { data: portalData, error: portalError } = await supabase.functions.invoke('create-portal-session');
         
-        if (portalError) throw portalError;
+        if (portalError) {
+          console.error('Portal session error:', portalError);
+          throw portalError;
+        }
         
         if (portalData?.url) {
           console.log('Redirecting to portal:', portalData.url);
           window.location.href = portalData.url;
+        } else {
+          throw new Error('No portal URL received');
         }
       } else {
         // Create checkout session for new subscribers
@@ -33,11 +43,16 @@ export const useSubscriptionManagement = () => {
           body: { priceId: 'price_1QeakhEiWhAkWDnr2yad4geJ' } // Pro plan price ID
         });
         
-        if (checkoutError) throw checkoutError;
+        if (checkoutError) {
+          console.error('Checkout session error:', checkoutError);
+          throw checkoutError;
+        }
         
         if (checkoutData?.url) {
           console.log('Redirecting to checkout:', checkoutData.url);
           window.location.href = checkoutData.url;
+        } else {
+          throw new Error('No checkout URL received');
         }
       }
     } catch (error) {
