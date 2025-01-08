@@ -42,18 +42,27 @@ serve(async (req) => {
     // Convert radius to meters for Places API
     const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
 
-    // Search for businesses using Places Text Search with radius
+    // Search for businesses using Places Text Search
     const searchParams = new URLSearchParams({
       query: locationQuery,
-      type: 'business',
-      radius: radiusMeters.toString(),
       key: GOOGLE_API_KEY,
     });
 
-    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?${searchParams.toString()}`;
+    const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
     console.log('Making Places API request:', searchUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
 
-    const searchResponse = await fetch(searchUrl);
+    const searchResponse = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri',
+      },
+      body: JSON.stringify({
+        textQuery: locationQuery,
+        maxResultCount: 10,
+      })
+    });
     
     if (!searchResponse.ok) {
       console.error('Places API error:', {
@@ -64,72 +73,42 @@ serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
-    console.log('Places API response status:', searchData.status);
+    console.log('Places API response:', searchData);
 
-    if (searchData.status !== 'OK' && searchData.status !== 'ZERO_RESULTS') {
-      console.error('Places API error:', searchData);
-      throw new Error(`Places API error: ${searchData.status}`);
+    if (!searchData.places) {
+      console.log('No places found');
+      return new Response(
+        JSON.stringify({ 
+          results: [],
+          hasMore: false
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
 
-    // Get details for each place
-    const placesWithDetails = await Promise.all(
-      (searchData.results || []).slice(0, 10).map(async (place: any) => {
-        if (!place.place_id) return null;
-
-        try {
-          const detailsParams = new URLSearchParams({
-            place_id: place.place_id,
-            fields: 'website,name,formatted_address',
-            key: GOOGLE_API_KEY,
-          });
-
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${detailsParams.toString()}`;
-          const detailsResponse = await fetch(detailsUrl);
-          
-          if (!detailsResponse.ok) {
-            console.error('Place Details API error:', {
-              status: detailsResponse.status,
-              statusText: detailsResponse.statusText
-            });
-            return null;
-          }
-
-          const detailsData = await detailsResponse.json();
-
-          if (detailsData.status === 'OK' && detailsData.result?.website) {
-            return {
-              url: detailsData.result.website,
-              name: detailsData.result.name,
-              address: detailsData.result.formatted_address,
-            };
-          }
-        } catch (error) {
-          console.error('Error fetching place details:', error);
-        }
-        return null;
-      })
-    );
-
-    // Filter out places without websites and format response
-    const validResults = placesWithDetails
-      .filter((place): place is NonNullable<typeof place> => 
-        place !== null && Boolean(place.url)
-      )
-      .map(place => ({
-        url: place.url,
+    // Format results
+    const results = searchData.places
+      .filter((place: any) => place.websiteUri)
+      .map((place: any) => ({
+        url: place.websiteUri,
         details: {
-          title: place.name,
-          description: place.address,
+          title: place.displayName?.text || '',
+          description: place.formattedAddress || '',
           lastChecked: new Date().toISOString()
         }
       }));
 
-    console.log(`Found ${validResults.length} businesses with websites`);
+    console.log(`Found ${results.length} businesses with websites`);
 
     return new Response(
       JSON.stringify({
-        results: validResults,
-        hasMore: Boolean(searchData.next_page_token)
+        results,
+        hasMore: searchData.places.length >= 10
       }),
       { 
         headers: { 

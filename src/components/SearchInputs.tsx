@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { COUNTRIES } from '@/constants/countries';
 
 interface SearchInputsProps {
   query: string;
@@ -19,7 +20,6 @@ interface SearchInputsProps {
   onRegionChange: (value: string) => void;
   isProcessing: boolean;
   isSearching: boolean;
-  countries: string[];
 }
 
 const SearchInputs = ({
@@ -31,7 +31,6 @@ const SearchInputs = ({
   onRegionChange,
   isProcessing,
   isSearching,
-  countries,
 }: SearchInputsProps) => {
   return (
     <div className="space-y-4">
@@ -49,9 +48,9 @@ const SearchInputs = ({
             <SelectValue placeholder="Select country" />
           </SelectTrigger>
           <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country} value={country}>
-                {country}
+            {COUNTRIES.map((countryOption) => (
+              <SelectItem key={countryOption} value={countryOption}>
+                {countryOption}
               </SelectItem>
             ))}
           </SelectContent>
