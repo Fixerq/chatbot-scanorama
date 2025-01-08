@@ -1,8 +1,15 @@
 import React from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
+import { useSearchLimits } from '@/hooks/useSearchLimits';
 import SearchInputs from './SearchInputs';
-import ApiKeyInput from './ApiKeyInput';
-import { COUNTRIES } from '../constants/countries';
+import ProcessingIndicator from './ProcessingIndicator';
+import { Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SearchFormProps {
   query: string;
@@ -31,9 +38,12 @@ const SearchForm = ({
   onApiKeyChange,
   onSubmit
 }: SearchFormProps) => {
+  const { searchesLeft, isLoading } = useSearchLimits();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) {
+    if (searchesLeft === 0) {
+      toast.error('You have reached your search limit for this month');
       return;
     }
     onSubmit();
@@ -41,22 +51,52 @@ const SearchForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <ApiKeyInput
-          value={apiKey}
-          onChange={onApiKeyChange}
-        />
-        <SearchInputs
-          query={query}
-          country={country}
-          region={region}
-          onQueryChange={onQueryChange}
-          onCountryChange={onCountryChange}
-          onRegionChange={onRegionChange}
-          isProcessing={isProcessing}
-          isSearching={isSearching}
-          countries={COUNTRIES}
-        />
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-cyan-100">Search Businesses</h2>
+        {!isLoading && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 text-sm text-cyan-200/70">
+                  <Info className="w-4 h-4" />
+                  {searchesLeft !== null ? (
+                    <span>{searchesLeft} searches remaining this month</span>
+                  ) : (
+                    <span>Loading search limit...</span>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Your search limit resets at the start of each month</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+
+      <SearchInputs
+        query={query}
+        country={country}
+        region={region}
+        apiKey={apiKey}
+        onQueryChange={onQueryChange}
+        onCountryChange={onCountryChange}
+        onRegionChange={onRegionChange}
+        onApiKeyChange={onApiKeyChange}
+      />
+
+      <div className="flex justify-end">
+        <Button
+          type="submit"
+          disabled={isProcessing || isSearching || searchesLeft === 0}
+          className="bg-cyan-500 text-black hover:bg-cyan-400 glow rounded-full transition-all duration-300"
+        >
+          {isProcessing || isSearching ? (
+            <ProcessingIndicator />
+          ) : (
+            'Search'
+          )}
+        </Button>
       </div>
     </form>
   );
