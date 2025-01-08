@@ -4,6 +4,7 @@ import { useSearchLimits } from '@/hooks/useSearchLimits';
 import SearchInputs from './SearchInputs';
 import ProcessingIndicator from './ProcessingIndicator';
 import { Info } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
   TooltipContent,
@@ -39,11 +40,16 @@ const SearchForm = ({
   onSubmit
 }: SearchFormProps) => {
   const { searchesLeft, isLoading } = useSearchLimits();
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchesLeft === 0) {
-      toast.error('You have reached your search limit for this month');
+      toast({
+        title: "Search limit reached",
+        description: "You have reached your search limit for this month",
+        variant: "destructive"
+      });
       return;
     }
     onSubmit();
@@ -78,11 +84,11 @@ const SearchForm = ({
         query={query}
         country={country}
         region={region}
-        apiKey={apiKey}
+        isProcessing={isProcessing}
+        isSearching={isSearching}
         onQueryChange={onQueryChange}
         onCountryChange={onCountryChange}
         onRegionChange={onRegionChange}
-        onApiKeyChange={onApiKeyChange}
       />
 
       <div className="flex justify-end">

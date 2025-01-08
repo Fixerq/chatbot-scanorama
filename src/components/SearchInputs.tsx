@@ -15,11 +15,11 @@ interface SearchInputsProps {
   query: string;
   country: string;
   region: string;
+  isProcessing: boolean;
+  isSearching: boolean;
   onQueryChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
-  isProcessing: boolean;
-  isSearching: boolean;
 }
 
 const SearchInputs = ({
