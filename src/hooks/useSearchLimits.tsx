@@ -30,7 +30,7 @@ export const useSearchLimits = () => {
       }
 
       // Default to 'starter' if no subscription found
-      const userLevel = subscriptionData?.level || 'starter';
+      const userLevel = subscriptionData?.level ?? 'starter';
       console.log('User subscription level:', userLevel);
 
       // Get max searches for this level
