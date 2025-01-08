@@ -34,15 +34,22 @@ export const useSubscriptionManagement = () => {
   }, [supabase, session]);
 
   const handleSubscriptionAction = async () => {
+    if (!session?.user?.id) {
+      toast.error("Please sign in to manage your subscription");
+      return;
+    }
+
     try {
       setIsSubscriptionLoading(true);
       console.log('Checking subscription status...');
       
-      const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription');
+      const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription', {
+        body: { userId: session.user.id }
+      });
       
       if (subscriptionError) {
         console.error('Subscription check error:', subscriptionError);
-        throw subscriptionError;
+        throw new Error('Failed to check subscription status');
       }
 
       console.log('Subscription status:', subscriptionData);
@@ -50,41 +57,46 @@ export const useSubscriptionManagement = () => {
       if (subscriptionData?.hasSubscription) {
         // Create portal session for existing subscribers
         console.log('Creating portal session...');
-        const { data: portalData, error: portalError } = await supabase.functions.invoke('create-portal-session');
+        const { data: portalData, error: portalError } = await supabase.functions.invoke('create-portal-session', {
+          body: { userId: session.user.id }
+        });
         
         if (portalError) {
           console.error('Portal session error:', portalError);
-          throw portalError;
+          throw new Error('Failed to create portal session');
         }
         
-        if (portalData?.url) {
-          console.log('Redirecting to portal:', portalData.url);
-          window.location.href = portalData.url;
-        } else {
+        if (!portalData?.url) {
           throw new Error('No portal URL received');
         }
+
+        console.log('Redirecting to portal:', portalData.url);
+        window.location.href = portalData.url;
       } else {
         // Create checkout session for new subscribers
         console.log('Creating checkout session...');
         const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
-          body: { priceId: 'price_1QeakhEiWhAkWDnr2yad4geJ' } // Pro plan price ID
+          body: { 
+            priceId: 'price_1QeakhEiWhAkWDnr2yad4geJ',
+            userId: session.user.id 
+          }
         });
         
         if (checkoutError) {
           console.error('Checkout session error:', checkoutError);
-          throw checkoutError;
+          throw new Error('Failed to create checkout session');
         }
         
-        if (checkoutData?.url) {
-          console.log('Redirecting to checkout:', checkoutData.url);
-          window.location.href = checkoutData.url;
-        } else {
+        if (!checkoutData?.url) {
           throw new Error('No checkout URL received');
         }
+
+        console.log('Redirecting to checkout:', checkoutData.url);
+        window.location.href = checkoutData.url;
       }
     } catch (error) {
       console.error('Subscription management error:', error);
-      toast.error("Failed to manage subscription. Please try again.");
+      toast.error(error instanceof Error ? error.message : "Failed to manage subscription. Please try again.");
     } finally {
       setIsSubscriptionLoading(false);
     }
