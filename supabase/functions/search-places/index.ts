@@ -50,7 +50,7 @@ serve(async (req) => {
       textQuery: locationQuery,
       languageCode: 'en',
       ...(countryCode && { 
-        locationRestriction: { 
+        locationBias: { 
           rectangle: getCountryBounds(countryCode) 
         }
       })
@@ -172,18 +172,28 @@ function getCountryCode(country: string): string | null {
 // Helper function to get approximate country bounds
 function getCountryBounds(countryCode: string) {
   // Approximate bounds for countries using the correct field names for the Places API
-  const bounds: { [key: string]: { highLat: number; lowLat: number; highLng: number; lowLng: number } } = {
-    'US': { lowLat: 24.396308, lowLng: -125.000000, highLat: 49.384358, highLng: -66.934570 },
-    'GB': { lowLat: 49.674, lowLng: -8.649, highLat: 61.061, highLng: 1.762 },
-    'CA': { lowLat: 41.676, lowLng: -141.001, highLat: 83.111, highLng: -52.619 },
-    'AU': { lowLat: -43.644, lowLng: 112.911, highLat: -10.706, highLng: 153.639 },
+  const bounds: { [key: string]: { southwest: { latitude: number; longitude: number }; northeast: { latitude: number; longitude: number } } } = {
+    'US': {
+      southwest: { latitude: 24.396308, longitude: -125.000000 },
+      northeast: { latitude: 49.384358, longitude: -66.934570 }
+    },
+    'GB': {
+      southwest: { latitude: 49.674, longitude: -8.649 },
+      northeast: { latitude: 61.061, longitude: 1.762 }
+    },
+    'CA': {
+      southwest: { latitude: 41.676, longitude: -141.001 },
+      northeast: { latitude: 83.111, longitude: -52.619 }
+    },
+    'AU': {
+      southwest: { latitude: -43.644, longitude: 112.911 },
+      northeast: { latitude: -10.706, longitude: 153.639 }
+    }
     // Add more countries as needed
   };
 
   return bounds[countryCode] || {
-    lowLat: -90,
-    lowLng: -180,
-    highLat: 90,
-    highLng: 180
+    southwest: { latitude: -90, longitude: -180 },
+    northeast: { latitude: 90, longitude: 180 }
   };
 }
