@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
-const RADIUS_MILES = 20;
-const METERS_PER_MILE = 1609.34;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,22 +40,19 @@ serve(async (req) => {
     
     console.log('Using search query:', locationQuery);
 
-    // Convert radius to meters for Places API
-    const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
-
     // Get country code for components parameter
     const countryCode = getCountryCode(country);
     
-    // Build search parameters with components restriction
-    const searchParams = new URLSearchParams({
+    const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
+    console.log('Making Places API request to:', searchUrl);
+
+    const requestBody = {
       textQuery: locationQuery,
       languageCode: 'en',
-      ...(countryCode && { locationBias: { ipBias: {} }, regionCode: countryCode }),
-      key: GOOGLE_API_KEY,
-    });
+      ...(countryCode && { locationRestriction: { rectangle: getCountryBounds(countryCode) } })
+    };
 
-    const searchUrl = `https://places.googleapis.com/v1/places:searchText?${searchParams.toString()}`;
-    console.log('Making Places API request:', searchUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
     const searchResponse = await fetch(searchUrl, {
       method: 'POST',
@@ -66,11 +61,7 @@ serve(async (req) => {
         'X-Goog-Api-Key': GOOGLE_API_KEY,
         'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.websiteUri,places.id'
       },
-      body: JSON.stringify({
-        textQuery: locationQuery,
-        languageCode: 'en',
-        ...(countryCode && { locationBias: { ipBias: {} }, regionCode: countryCode })
-      })
+      body: JSON.stringify(requestBody)
     });
     
     if (!searchResponse.ok) {
@@ -89,7 +80,7 @@ serve(async (req) => {
     console.log('Places API response:', searchData);
 
     if (!searchData.places) {
-      console.error('No places found in response:', searchData);
+      console.log('No places found in response:', searchData);
       return new Response(
         JSON.stringify({
           results: [],
@@ -121,7 +112,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         results: validResults,
-        hasMore: validResults.length >= 10 // Places API v1 returns up to 20 results by default
+        hasMore: validResults.length >= 10
       }),
       { 
         headers: { 
@@ -172,4 +163,23 @@ function getCountryCode(country: string): string | null {
   };
 
   return countryMap[country] || null;
+}
+
+// Helper function to get approximate country bounds
+function getCountryBounds(countryCode: string) {
+  // Approximate bounds for countries
+  const bounds: { [key: string]: { south: number; west: number; north: number; east: number } } = {
+    'US': { south: 24.396308, west: -125.000000, north: 49.384358, east: -66.934570 },
+    'GB': { south: 49.674, west: -8.649, north: 61.061, east: 1.762 },
+    'CA': { south: 41.676, west: -141.001, north: 83.111, east: -52.619 },
+    'AU': { south: -43.644, west: 112.911, north: -10.706, east: 153.639 },
+    // Add more countries as needed
+  };
+
+  return bounds[countryCode] || {
+    south: -90,
+    west: -180,
+    north: 90,
+    east: 180
+  };
 }
