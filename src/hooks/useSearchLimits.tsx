@@ -42,6 +42,7 @@ export const useSearchLimits = () => {
       const remaining = Math.max(0, maxSearches - (searchesUsed || 0));
       
       setSearchesLeft(remaining);
+      console.log('Updated searches left:', remaining);
     } catch (error) {
       console.error('Error fetching search limits:', error);
       toast.error('Could not fetch search limit information');
@@ -53,7 +54,7 @@ export const useSearchLimits = () => {
   // Initial fetch
   useEffect(() => {
     fetchSearchLimits();
-  }, [supabase, session]);
+  }, [session]);
 
   // Subscribe to changes in analyzed_urls table
   useEffect(() => {
@@ -68,7 +69,8 @@ export const useSearchLimits = () => {
           schema: 'public',
           table: 'analyzed_urls'
         },
-        () => {
+        (payload) => {
+          console.log('Received real-time update:', payload);
           fetchSearchLimits();
         }
       )
