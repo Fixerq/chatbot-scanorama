@@ -6,13 +6,19 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { RecentSearchDialog } from './navigation/RecentSearchDialog';
 import { useSubscriptionManagement } from './navigation/useSubscriptionManagement';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const NavigationBar = () => {
   const navigate = useNavigate();
   const session = useSession();
   const supabase = useSupabaseClient();
   const [isSearchesOpen, setIsSearchesOpen] = useState(false);
-  const { handleSubscriptionAction, isSubscriptionLoading } = useSubscriptionManagement();
+  const { handleSubscriptionAction, isSubscriptionLoading, currentPlan } = useSubscriptionManagement();
 
   const handleLogout = async () => {
     try {
@@ -23,6 +29,11 @@ const NavigationBar = () => {
       console.error('Error logging out:', error);
       toast.error('Failed to log out');
     }
+  };
+
+  const formatPlanName = (plan: string | null) => {
+    if (!plan) return 'No Plan';
+    return plan.charAt(0).toUpperCase() + plan.slice(1) + ' Plan';
   };
 
   return (
@@ -47,22 +58,32 @@ const NavigationBar = () => {
             <span className="hidden sm:inline">Recent Searches</span>
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            onClick={handleSubscriptionAction}
-            disabled={isSubscriptionLoading}
-          >
-            {isSubscriptionLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CreditCard className="h-4 w-4" />
-            )}
-            <span className="hidden sm:inline">
-              {isSubscriptionLoading ? 'Loading...' : 'Subscription'}
-            </span>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleSubscriptionAction}
+                  disabled={isSubscriptionLoading}
+                >
+                  {isSubscriptionLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">
+                    {isSubscriptionLoading ? 'Loading...' : formatPlanName(currentPlan)}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Current Plan: {formatPlanName(currentPlan)}</p>
+                <p className="text-xs text-muted-foreground">Click to manage subscription</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <Button
             variant="ghost"

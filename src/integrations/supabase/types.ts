@@ -81,11 +81,36 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_levels: {
+        Row: {
+          created_at: string
+          features: Json
+          id: string
+          level: Database["public"]["Enums"]["subscription_level"]
+          max_searches: number
+        }
+        Insert: {
+          created_at?: string
+          features?: Json
+          id?: string
+          level: Database["public"]["Enums"]["subscription_level"]
+          max_searches: number
+        }
+        Update: {
+          created_at?: string
+          features?: Json
+          id?: string
+          level?: Database["public"]["Enums"]["subscription_level"]
+          max_searches?: number
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
           current_period_end: string | null
           id: string
+          level: Database["public"]["Enums"]["subscription_level"] | null
           plan_id: string | null
           status: string
           stripe_customer_id: string | null
@@ -97,6 +122,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          level?: Database["public"]["Enums"]["subscription_level"] | null
           plan_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -108,6 +134,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          level?: Database["public"]["Enums"]["subscription_level"] | null
           plan_id?: string | null
           status?: string
           stripe_customer_id?: string | null
@@ -140,7 +167,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      subscription_level: "starter" | "pro" | "premium"
     }
     CompositeTypes: {
       [_ in never]: never
