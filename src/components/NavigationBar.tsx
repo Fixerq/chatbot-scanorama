@@ -30,6 +30,7 @@ const NavigationBar = () => {
   const supabase = useSupabaseClient();
   const [isSearchesOpen, setIsSearchesOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -42,8 +43,26 @@ const NavigationBar = () => {
     }
   };
 
-  const handleManageSubscription = () => {
-    toast.info('Subscription management coming soon');
+  const handleManageSubscription = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Creating checkout session...');
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId: 'price_1QeakhEiWhAkWDnr2yad4geJ' } // Pro plan price ID
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        console.log('Redirecting to checkout:', data.url);
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error("Failed to start checkout process. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRecentSearches = async () => {
@@ -105,9 +124,12 @@ const NavigationBar = () => {
               size="sm"
               className="gap-2"
               onClick={handleManageSubscription}
+              disabled={isLoading}
             >
               <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Subscription</span>
+              <span className="hidden sm:inline">
+                {isLoading ? 'Loading...' : 'Subscription'}
+              </span>
             </Button>
 
             <Button
