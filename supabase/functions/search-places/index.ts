@@ -82,7 +82,7 @@ serve(async (req) => {
       const errorText = await searchResponse.text();
       console.error('Error response:', errorText);
       
-      throw new Error(`Places API request failed: ${searchResponse.statusText} - ${errorText}`);
+      throw new Error(`Places API error: ${searchResponse.statusText} - ${errorText}`);
     }
 
     const searchData = await searchResponse.json();
