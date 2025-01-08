@@ -1,35 +1,37 @@
 import { useState, useEffect } from 'react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
 
 export const useSubscriptionManagement = () => {
   const supabase = useSupabaseClient();
+  const session = useSession();
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCurrentPlan = async () => {
+      if (!session?.user?.id) return;
+      
       try {
         const { data: subscriptionData, error: subscriptionError } = await supabase
           .from('subscriptions')
           .select('level')
-          .single();
+          .eq('user_id', session.user.id)
+          .maybeSingle();
 
         if (subscriptionError) {
           console.error('Error fetching subscription:', subscriptionError);
           return;
         }
 
-        if (subscriptionData?.level) {
-          setCurrentPlan(subscriptionData.level);
-        }
+        setCurrentPlan(subscriptionData?.level || 'starter');
       } catch (error) {
         console.error('Error fetching subscription plan:', error);
       }
     };
 
     fetchCurrentPlan();
-  }, [supabase]);
+  }, [supabase, session]);
 
   const handleSubscriptionAction = async () => {
     try {
