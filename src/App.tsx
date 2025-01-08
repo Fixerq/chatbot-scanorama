@@ -44,7 +44,7 @@ const AppRoutes = () => {
         />
         <Route 
           path="/signup" 
-          element={session ? <Navigate to="/dashboard" replace /> : <Signup />} 
+          element={<Signup />} 
         />
         
         {/* Protected routes */}
