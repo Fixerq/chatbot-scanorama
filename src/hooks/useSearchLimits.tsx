@@ -46,7 +46,7 @@ export const useSearchLimits = () => {
       const { count: searchesUsed, error: countError } = await supabase
         .from('analyzed_urls')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id) // Add user_id filter
+        .eq('user_id', session.user.id)
         .gte('created_at', startOfMonth.toISOString());
 
       if (countError) {
@@ -91,7 +91,7 @@ export const useSearchLimits = () => {
           event: '*',
           schema: 'public',
           table: 'analyzed_urls',
-          filter: `user_id=eq.${session.user.id}` // Add filter for user's records
+          filter: `user_id=eq.${session.user.id}`
         },
         (payload) => {
           console.log('Received real-time update for analyzed_urls:', payload);
