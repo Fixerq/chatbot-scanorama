@@ -10,7 +10,7 @@ export const useSearchLimits = () => {
 
   const fetchSearchLimits = async () => {
     if (!session?.user?.id) {
-      console.log('No user session found');
+      console.error('No user session found');
       setSearchesLeft(0);
       setIsLoading(false);
       return;
@@ -24,6 +24,7 @@ export const useSearchLimits = () => {
         .from('subscriptions')
         .select('level')
         .eq('user_id', session.user.id)
+        .eq('status', 'active')
         .maybeSingle();
 
       if (subscriptionError) {
@@ -31,7 +32,7 @@ export const useSearchLimits = () => {
         throw subscriptionError;
       }
 
-      // Default to 'starter' if no subscription found
+      // Default to 'starter' if no active subscription found
       const userLevel = subscriptionData?.level ?? 'starter';
       console.log('User subscription level:', userLevel);
 
@@ -40,15 +41,14 @@ export const useSearchLimits = () => {
         .from('subscription_levels')
         .select('max_searches')
         .eq('level', userLevel)
-        .maybeSingle();
+        .single();
 
       if (levelError) {
         console.error('Error fetching subscription level:', levelError);
         throw levelError;
       }
 
-      // Default to 10 searches if no level data found
-      const maxSearches = levelData?.max_searches ?? 10;
+      const maxSearches = levelData.max_searches;
       console.log('Max searches allowed:', maxSearches);
 
       // Get count of searches made this month
@@ -56,7 +56,7 @@ export const useSearchLimits = () => {
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const { count: searchesUsed, error: countError } = await supabase
+      const { count, error: countError } = await supabase
         .from('analyzed_urls')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', session.user.id)
@@ -67,9 +67,10 @@ export const useSearchLimits = () => {
         throw countError;
       }
 
+      const searchesUsed = count || 0;
       console.log('Searches used this month:', searchesUsed);
       
-      const remaining = Math.max(0, maxSearches - (searchesUsed || 0));
+      const remaining = Math.max(0, maxSearches - searchesUsed);
       console.log('Calculated remaining searches:', remaining);
       
       setSearchesLeft(remaining);
@@ -84,8 +85,10 @@ export const useSearchLimits = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchSearchLimits();
-  }, [session]);
+    if (session?.user?.id) {
+      fetchSearchLimits();
+    }
+  }, [session?.user?.id]);
 
   // Subscribe to changes in analyzed_urls table
   useEffect(() => {
@@ -102,8 +105,8 @@ export const useSearchLimits = () => {
           table: 'analyzed_urls',
           filter: `user_id=eq.${session.user.id}`
         },
-        (payload) => {
-          console.log('Received real-time update for analyzed_urls:', payload);
+        () => {
+          console.log('Received analyzed_urls change, refetching limits');
           fetchSearchLimits();
         }
       )
@@ -113,7 +116,11 @@ export const useSearchLimits = () => {
       console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [session]);
+  }, [session?.user?.id]);
 
-  return { searchesLeft, isLoading, refetchLimits: fetchSearchLimits };
+  return { 
+    searchesLeft, 
+    isLoading, 
+    refetchLimits: fetchSearchLimits 
+  };
 };
