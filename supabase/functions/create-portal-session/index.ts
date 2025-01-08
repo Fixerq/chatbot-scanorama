@@ -8,19 +8,23 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  );
-
   try {
+    // Get the user from the authorization header
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabaseClient.auth.getUser(token);
+    
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    );
 
-    if (!user?.email) {
-      throw new Error('No email found');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !user?.email) {
+      throw new Error('Authentication required');
     }
+
+    console.log('Creating portal session for user:', user.email);
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
@@ -33,14 +37,18 @@ serve(async (req) => {
     });
 
     if (customers.data.length === 0) {
+      console.log('No customer found for email:', user.email);
       throw new Error('No customer found');
     }
 
-    // Create customer portal session
+    console.log('Found customer:', customers.data[0].id);
+
     const session = await stripe.billingPortal.sessions.create({
       customer: customers.data[0].id,
       return_url: `${req.headers.get('origin')}/dashboard`,
     });
+
+    console.log('Created portal session:', session.url);
 
     return new Response(
       JSON.stringify({ url: session.url }),

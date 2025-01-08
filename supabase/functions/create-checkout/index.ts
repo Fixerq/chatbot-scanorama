@@ -32,6 +32,8 @@ serve(async (req) => {
       throw new Error('Authentication required');
     }
 
+    console.log('Creating checkout session for user:', user.email);
+
     // Check if customer exists
     const customers = await stripe.customers.list({
       email: user.email,
@@ -40,6 +42,7 @@ serve(async (req) => {
 
     let customerId;
     if (customers.data.length === 0) {
+      console.log('Creating new customer for:', user.email);
       // Create a new customer if one doesn't exist
       const customer = await stripe.customers.create({
         email: user.email,
@@ -50,7 +53,10 @@ serve(async (req) => {
       customerId = customer.id;
     } else {
       customerId = customers.data[0].id;
+      console.log('Found existing customer:', customerId);
     }
+
+    console.log('Creating checkout session with price:', priceId);
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -67,6 +73,8 @@ serve(async (req) => {
       payment_method_types: ['card'],
       allow_promotion_codes: true,
     });
+
+    console.log('Created checkout session:', session.id);
 
     return new Response(
       JSON.stringify({ url: session.url }),
