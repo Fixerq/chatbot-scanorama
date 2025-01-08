@@ -47,28 +47,43 @@ serve(async (req) => {
       console.error('Error analyzing website:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // Important change: Always return 200 status code but include error information
-      // This prevents the Supabase client from treating it as a failed request
+      // Map specific errors to appropriate status codes and messages
+      let status = 'Error analyzing website';
+      let httpStatus = 500;
+
+      if (errorMessage.includes('blocks automated access')) {
+        status = 'Website blocks automated access';
+        httpStatus = 403;
+      } else if (errorMessage.includes('not found')) {
+        status = 'Website not found';
+        httpStatus = 404;
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
+        status = 'Request timed out';
+        httpStatus = 408;
+      } else if (errorMessage.includes('Invalid URL')) {
+        status = 'Invalid URL format';
+        httpStatus = 400;
+      }
+
       return new Response(JSON.stringify({
-        status: 'Error analyzing website',
+        status,
         error: errorMessage,
         lastChecked: new Date().toISOString()
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 // Changed from httpStatus to always return 200
+        status: httpStatus
       });
     }
 
   } catch (error) {
     console.error('Error processing request:', error);
-    // Even for invalid requests, return 200 with error information
     return new Response(JSON.stringify({
       status: 'Invalid request',
       error: error instanceof Error ? error.message : 'Unknown error',
       lastChecked: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200 // Changed from 400 to 200
+      status: 400
     });
   }
 });

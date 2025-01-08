@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
+const RADIUS_MILES = 20;
+const METERS_PER_MILE = 1609.34;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,98 +17,109 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate API key
-    if (!GOOGLE_API_KEY) {
-      console.error('Google API key not found in environment variables');
-      throw new Error('Google API key is not configured');
-    }
-
     const { query, country, region } = await req.json() as SearchRequest;
     console.log('Received search request:', { query, country, region });
 
-    // Build location query
+    if (!GOOGLE_API_KEY) {
+      console.error('Google API key not found');
+      throw new Error('Google API key is not configured');
+    }
+
     let locationQuery = query;
     if (region && country) {
-      locationQuery = `${query} in ${region}, ${country}`;
+      locationQuery = `${query} ${region} ${country}`;
     } else if (country) {
-      locationQuery = `${query} in ${country}`;
+      locationQuery = `${query} ${country}`;
     }
     
     console.log('Using search query:', locationQuery);
 
-    // Get country code for components parameter
-    const countryCode = getCountryCode(country);
-    
-    const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
-    console.log('Making Places API request to:', searchUrl);
+    // Convert radius to meters for Places API
+    const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
 
-    const requestBody = {
-      textQuery: locationQuery,
-      languageCode: 'en',
-      ...(countryCode && { 
-        locationBias: { 
-          rectangle: getCountryBounds(countryCode) 
-        }
-      })
-    };
-
-    console.log('Request body:', JSON.stringify(requestBody, null, 2));
-
-    const searchResponse = await fetch(searchUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.websiteUri,places.id'
-      },
-      body: JSON.stringify(requestBody)
+    // Search for businesses using Places Text Search with radius
+    const searchParams = new URLSearchParams({
+      query: locationQuery,
+      type: 'business',
+      radius: radiusMeters.toString(),
+      key: GOOGLE_API_KEY,
     });
+
+    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?${searchParams.toString()}`;
+    console.log('Making Places API request:', searchUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
+
+    const searchResponse = await fetch(searchUrl);
     
     if (!searchResponse.ok) {
       console.error('Places API error:', {
         status: searchResponse.status,
-        statusText: searchResponse.statusText,
+        statusText: searchResponse.statusText
       });
-      
-      const errorText = await searchResponse.text();
-      console.error('Error response:', errorText);
-      
-      throw new Error(`Places API error: ${searchResponse.statusText} - ${errorText}`);
+      throw new Error(`Places API request failed: ${searchResponse.statusText}`);
     }
 
     const searchData = await searchResponse.json();
-    console.log('Places API response:', searchData);
+    console.log('Places API response status:', searchData.status);
 
-    if (!searchData.places) {
-      console.log('No places found in response:', searchData);
-      return new Response(
-        JSON.stringify({
-          results: [],
-          hasMore: false
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+    if (searchData.status !== 'OK' && searchData.status !== 'ZERO_RESULTS') {
+      console.error('Places API error:', searchData);
+      throw new Error(`Places API error: ${searchData.status}`);
     }
 
-    // Format the results
-    const validResults = searchData.places
-      .filter((place: any) => place.websiteUri)
-      .map((place: any) => ({
-        url: place.websiteUri,
+    // Get details for each place
+    const placesWithDetails = await Promise.all(
+      (searchData.results || []).slice(0, 10).map(async (place: any) => {
+        if (!place.place_id) return null;
+
+        try {
+          const detailsParams = new URLSearchParams({
+            place_id: place.place_id,
+            fields: 'website,name,formatted_address',
+            key: GOOGLE_API_KEY,
+          });
+
+          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${detailsParams.toString()}`;
+          const detailsResponse = await fetch(detailsUrl);
+          
+          if (!detailsResponse.ok) {
+            console.error('Place Details API error:', {
+              status: detailsResponse.status,
+              statusText: detailsResponse.statusText
+            });
+            return null;
+          }
+
+          const detailsData = await detailsResponse.json();
+
+          if (detailsData.status === 'OK' && detailsData.result?.website) {
+            return {
+              url: detailsData.result.website,
+              name: detailsData.result.name,
+              address: detailsData.result.formatted_address,
+            };
+          }
+        } catch (error) {
+          console.error('Error fetching place details:', error);
+        }
+        return null;
+      })
+    );
+
+    // Filter out places without websites and format response
+    const validResults = placesWithDetails
+      .filter((place): place is NonNullable<typeof place> => 
+        place !== null && Boolean(place.url)
+      )
+      .map(place => ({
+        url: place.url,
         details: {
-          title: place.displayName?.text || 'Unknown Business',
-          description: place.formattedAddress || '',
+          title: place.name,
+          description: place.address,
           lastChecked: new Date().toISOString()
         }
       }));
@@ -116,7 +129,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         results: validResults,
-        hasMore: validResults.length >= 10
+        hasMore: Boolean(searchData.next_page_token)
       }),
       { 
         headers: { 
@@ -145,55 +158,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Helper function to get country code
-function getCountryCode(country: string): string | null {
-  const countryMap: { [key: string]: string } = {
-    'United States': 'US',
-    'United Kingdom': 'GB',
-    'Canada': 'CA',
-    'Australia': 'AU',
-    'Germany': 'DE',
-    'France': 'FR',
-    'Spain': 'ES',
-    'Italy': 'IT',
-    'Japan': 'JP',
-    'Brazil': 'BR',
-    'India': 'IN',
-    'China': 'CN',
-    'Singapore': 'SG',
-    'Netherlands': 'NL',
-    'Sweden': 'SE'
-  };
-
-  return countryMap[country] || null;
-}
-
-// Helper function to get approximate country bounds
-function getCountryBounds(countryCode: string) {
-  // Approximate bounds for countries using the correct field names for the Places API
-  const bounds: { [key: string]: { southwest: { latitude: number; longitude: number }; northeast: { latitude: number; longitude: number } } } = {
-    'US': {
-      southwest: { latitude: 24.396308, longitude: -125.000000 },
-      northeast: { latitude: 49.384358, longitude: -66.934570 }
-    },
-    'GB': {
-      southwest: { latitude: 49.674, longitude: -8.649 },
-      northeast: { latitude: 61.061, longitude: 1.762 }
-    },
-    'CA': {
-      southwest: { latitude: 41.676, longitude: -141.001 },
-      northeast: { latitude: 83.111, longitude: -52.619 }
-    },
-    'AU': {
-      southwest: { latitude: -43.644, longitude: 112.911 },
-      northeast: { latitude: -10.706, longitude: 153.639 }
-    }
-    // Add more countries as needed
-  };
-
-  return bounds[countryCode] || {
-    southwest: { latitude: -90, longitude: -180 },
-    northeast: { latitude: 90, longitude: 180 }
-  };
-}
