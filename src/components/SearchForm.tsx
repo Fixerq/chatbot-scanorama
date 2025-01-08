@@ -39,15 +39,16 @@ const SearchForm = ({
   onApiKeyChange,
   onSubmit
 }: SearchFormProps) => {
-  const { searchesLeft, isLoading } = useSearchLimits();
+  const { searchesLeft, isLoading, refetchLimits } = useSearchLimits();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchesLeft === 0) {
       toast.error('You have reached your search limit for this month');
       return;
     }
-    onSubmit();
+    await onSubmit();
+    refetchLimits();
   };
 
   return (
