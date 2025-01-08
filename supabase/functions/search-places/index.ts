@@ -35,9 +35,9 @@ serve(async (req) => {
     // Build location query
     let locationQuery = query;
     if (region && country) {
-      locationQuery = `${query} ${region} ${country}`;
+      locationQuery = `${query} in ${region}, ${country}`;
     } else if (country) {
-      locationQuery = `${query} ${country}`;
+      locationQuery = `${query} in ${country}`;
     }
     
     console.log('Using search query:', locationQuery);
@@ -50,17 +50,28 @@ serve(async (req) => {
     
     // Build search parameters with components restriction
     const searchParams = new URLSearchParams({
-      query: locationQuery,
-      type: 'business',
-      radius: radiusMeters.toString(),
+      textQuery: locationQuery,
+      languageCode: 'en',
+      ...(countryCode && { locationBias: { ipBias: {} }, regionCode: countryCode }),
       key: GOOGLE_API_KEY,
-      ...(countryCode && { components: `country:${countryCode}` }),
     });
 
-    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?${searchParams.toString()}`;
+    const searchUrl = `https://places.googleapis.com/v1/places:searchText?${searchParams.toString()}`;
     console.log('Making Places API request:', searchUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
 
-    const searchResponse = await fetch(searchUrl);
+    const searchResponse = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.websiteUri,places.id'
+      },
+      body: JSON.stringify({
+        textQuery: locationQuery,
+        languageCode: 'en',
+        ...(countryCode && { locationBias: { ipBias: {} }, regionCode: countryCode })
+      })
+    });
     
     if (!searchResponse.ok) {
       console.error('Places API error:', {
@@ -75,68 +86,32 @@ serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
-    console.log('Places API response status:', searchData.status);
+    console.log('Places API response:', searchData);
 
-    if (searchData.status === 'REQUEST_DENIED') {
-      console.error('Places API request denied. Full response:', searchData);
-      throw new Error(`Places API request denied: ${searchData.error_message || 'No error message provided'}`);
-    }
-
-    if (searchData.status !== 'OK' && searchData.status !== 'ZERO_RESULTS') {
-      console.error('Places API error:', searchData);
-      throw new Error(`Places API error: ${searchData.status}`);
-    }
-
-    // Get details for each place
-    const placesWithDetails = await Promise.all(
-      (searchData.results || []).slice(0, 10).map(async (place: any) => {
-        if (!place.place_id) return null;
-
-        try {
-          const detailsParams = new URLSearchParams({
-            place_id: place.place_id,
-            fields: 'website,name,formatted_address',
-            key: GOOGLE_API_KEY,
-          });
-
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?${detailsParams.toString()}`;
-          const detailsResponse = await fetch(detailsUrl);
-          
-          if (!detailsResponse.ok) {
-            console.error('Place Details API error:', {
-              status: detailsResponse.status,
-              statusText: detailsResponse.statusText,
-              placeId: place.place_id
-            });
-            return null;
-          }
-
-          const detailsData = await detailsResponse.json();
-
-          if (detailsData.status === 'OK' && detailsData.result?.website) {
-            return {
-              url: detailsData.result.website,
-              name: detailsData.result.name,
-              address: detailsData.result.formatted_address,
-            };
-          }
-        } catch (error) {
-          console.error('Error fetching place details:', error);
+    if (!searchData.places) {
+      console.error('No places found in response:', searchData);
+      return new Response(
+        JSON.stringify({
+          results: [],
+          hasMore: false
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
         }
-        return null;
-      })
-    );
+      );
+    }
 
-    // Filter out places without websites and format response
-    const validResults = placesWithDetails
-      .filter((place): place is NonNullable<typeof place> => 
-        place !== null && Boolean(place.url)
-      )
-      .map(place => ({
-        url: place.url,
+    // Format the results
+    const validResults = searchData.places
+      .filter((place: any) => place.websiteUri)
+      .map((place: any) => ({
+        url: place.websiteUri,
         details: {
-          title: place.name,
-          description: place.address,
+          title: place.displayName?.text || 'Unknown Business',
+          description: place.formattedAddress || '',
           lastChecked: new Date().toISOString()
         }
       }));
@@ -146,7 +121,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         results: validResults,
-        hasMore: Boolean(searchData.next_page_token)
+        hasMore: validResults.length >= 10 // Places API v1 returns up to 20 results by default
       }),
       { 
         headers: { 
