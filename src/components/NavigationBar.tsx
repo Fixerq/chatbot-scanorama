@@ -31,6 +31,7 @@ const NavigationBar = () => {
   const [isSearchesOpen, setIsSearchesOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -45,7 +46,7 @@ const NavigationBar = () => {
 
   const handleManageSubscription = async () => {
     try {
-      setIsLoading(true);
+      setIsSubscriptionLoading(true);
       console.log('Creating checkout session...');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId: 'price_1QeakhEiWhAkWDnr2yad4geJ' } // Pro plan price ID
@@ -56,17 +57,20 @@ const NavigationBar = () => {
       if (data?.url) {
         console.log('Redirecting to checkout:', data.url);
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
       }
     } catch (error) {
       console.error('Checkout error:', error);
       toast.error("Failed to start checkout process. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubscriptionLoading(false);
     }
   };
 
   const handleRecentSearches = async () => {
     try {
+      setIsLoading(true);
       const { data: searches, error } = await supabase
         .from('analyzed_urls')
         .select('*')
@@ -83,6 +87,8 @@ const NavigationBar = () => {
     } catch (error) {
       console.error('Error accessing recent searches:', error);
       toast.error('Could not load recent searches. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -114,9 +120,12 @@ const NavigationBar = () => {
               size="sm"
               className="gap-2"
               onClick={handleRecentSearches}
+              disabled={isLoading}
             >
               <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Recent Searches</span>
+              <span className="hidden sm:inline">
+                {isLoading ? 'Loading...' : 'Recent Searches'}
+              </span>
             </Button>
 
             <Button
@@ -124,11 +133,11 @@ const NavigationBar = () => {
               size="sm"
               className="gap-2"
               onClick={handleManageSubscription}
-              disabled={isLoading}
+              disabled={isSubscriptionLoading}
             >
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">
-                {isLoading ? 'Loading...' : 'Subscription'}
+                {isSubscriptionLoading ? 'Loading...' : 'Subscription'}
               </span>
             </Button>
 
