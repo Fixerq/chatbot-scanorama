@@ -17,7 +17,7 @@ export const useSearchLimits = () => {
         .from('subscriptions')
         .select('level')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
       if (subscriptionError) {
         console.error('Error fetching subscription:', subscriptionError);
@@ -32,7 +32,7 @@ export const useSearchLimits = () => {
         .from('subscription_levels')
         .select('max_searches')
         .eq('level', userLevel)
-        .single();
+        .maybeSingle();
 
       if (levelError) {
         console.error('Error fetching subscription level:', levelError);
