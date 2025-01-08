@@ -17,19 +17,22 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, country, region } = await req.json() as SearchRequest;
-    console.log('Received search request:', { query, country, region });
-
+    // Validate API key
     if (!GOOGLE_API_KEY) {
-      console.error('Google API key not found');
+      console.error('Google API key not found in environment variables');
       throw new Error('Google API key is not configured');
     }
 
+    const { query, country, region } = await req.json() as SearchRequest;
+    console.log('Received search request:', { query, country, region });
+
+    // Build location query
     let locationQuery = query;
     if (region && country) {
       locationQuery = `${query} ${region} ${country}`;
@@ -42,12 +45,16 @@ serve(async (req) => {
     // Convert radius to meters for Places API
     const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
 
-    // Search for businesses using Places Text Search with radius
+    // Get country code for components parameter
+    const countryCode = getCountryCode(country);
+    
+    // Build search parameters with components restriction
     const searchParams = new URLSearchParams({
       query: locationQuery,
       type: 'business',
       radius: radiusMeters.toString(),
       key: GOOGLE_API_KEY,
+      ...(countryCode && { components: `country:${countryCode}` }),
     });
 
     const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?${searchParams.toString()}`;
@@ -58,13 +65,22 @@ serve(async (req) => {
     if (!searchResponse.ok) {
       console.error('Places API error:', {
         status: searchResponse.status,
-        statusText: searchResponse.statusText
+        statusText: searchResponse.statusText,
       });
-      throw new Error(`Places API request failed: ${searchResponse.statusText}`);
+      
+      const errorText = await searchResponse.text();
+      console.error('Error response:', errorText);
+      
+      throw new Error(`Places API request failed: ${searchResponse.statusText} - ${errorText}`);
     }
 
     const searchData = await searchResponse.json();
     console.log('Places API response status:', searchData.status);
+
+    if (searchData.status === 'REQUEST_DENIED') {
+      console.error('Places API request denied. Full response:', searchData);
+      throw new Error(`Places API request denied: ${searchData.error_message || 'No error message provided'}`);
+    }
 
     if (searchData.status !== 'OK' && searchData.status !== 'ZERO_RESULTS') {
       console.error('Places API error:', searchData);
@@ -89,7 +105,8 @@ serve(async (req) => {
           if (!detailsResponse.ok) {
             console.error('Place Details API error:', {
               status: detailsResponse.status,
-              statusText: detailsResponse.statusText
+              statusText: detailsResponse.statusText,
+              placeId: place.place_id
             });
             return null;
           }
@@ -158,3 +175,26 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to get country code
+function getCountryCode(country: string): string | null {
+  const countryMap: { [key: string]: string } = {
+    'United States': 'US',
+    'United Kingdom': 'GB',
+    'Canada': 'CA',
+    'Australia': 'AU',
+    'Germany': 'DE',
+    'France': 'FR',
+    'Spain': 'ES',
+    'Italy': 'IT',
+    'Japan': 'JP',
+    'Brazil': 'BR',
+    'India': 'IN',
+    'China': 'CN',
+    'Singapore': 'SG',
+    'Netherlands': 'NL',
+    'Sweden': 'SE'
+  };
+
+  return countryMap[country] || null;
+}
