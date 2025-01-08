@@ -25,9 +25,27 @@ const NavigationBar = () => {
     toast.info('Subscription management coming soon');
   };
 
-  const handleRecentSearches = () => {
-    // This will be implemented later to show recent searches
-    toast.info('Recent searches coming soon');
+  const handleRecentSearches = async () => {
+    try {
+      // This will be implemented later to show recent searches
+      const { data: recentSearches, error } = await supabase
+        .from('analyzed_urls')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching recent searches:', error);
+        throw error;
+      }
+
+      // For now, just show the count of recent searches
+      const searchCount = recentSearches?.length ?? 0;
+      toast.info(`You have ${searchCount} recent searches. Full history view coming soon!`);
+    } catch (error) {
+      console.error('Error accessing recent searches:', error);
+      toast.error('Could not load recent searches. Please try again later.');
+    }
   };
 
   return (
