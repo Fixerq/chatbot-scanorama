@@ -17,6 +17,8 @@ export const useSearchLimits = () => {
     }
 
     try {
+      console.log('Fetching search limits for user:', session.user.id);
+
       // Get user's subscription level
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
@@ -89,6 +91,7 @@ export const useSearchLimits = () => {
   useEffect(() => {
     if (!session?.user?.id) return;
 
+    console.log('Setting up real-time subscription for analyzed_urls');
     const channel = supabase
       .channel('analyzed_urls_changes')
       .on(
@@ -107,6 +110,7 @@ export const useSearchLimits = () => {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [session]);
