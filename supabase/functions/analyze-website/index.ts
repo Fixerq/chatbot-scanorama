@@ -47,14 +47,14 @@ serve(async (req) => {
       console.error('Error analyzing website:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // Determine appropriate status code and message
+      // Map specific errors to appropriate status codes and messages
       let status = 'Error analyzing website';
       let httpStatus = 500;
 
-      if (errorMessage.includes('403')) {
+      if (errorMessage.includes('blocks automated access')) {
         status = 'Website blocks automated access';
         httpStatus = 403;
-      } else if (errorMessage.includes('404')) {
+      } else if (errorMessage.includes('not found')) {
         status = 'Website not found';
         httpStatus = 404;
       } else if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
