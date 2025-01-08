@@ -17,10 +17,9 @@ interface SearchInputsProps {
   onQueryChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
-  isProcessing: boolean;
-  isSearching: boolean;
-  countries: string[];
 }
+
+const COUNTRIES = ['United States', 'Canada', 'United Kingdom', 'Australia']; // Default list of countries
 
 const SearchInputs = ({
   query,
@@ -29,9 +28,6 @@ const SearchInputs = ({
   onQueryChange,
   onCountryChange,
   onRegionChange,
-  isProcessing,
-  isSearching,
-  countries,
 }: SearchInputsProps) => {
   return (
     <div className="space-y-4">
@@ -49,15 +45,15 @@ const SearchInputs = ({
             <SelectValue placeholder="Select country" />
           </SelectTrigger>
           <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country} value={country}>
-                {country}
+            {COUNTRIES.map((countryOption) => (
+              <SelectItem key={countryOption} value={countryOption}>
+                {countryOption}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      <div className="flex gap-2 mb-8">
+      <div className="flex gap-2">
         <Input
           type="text"
           placeholder="Enter state/region (optional)"
@@ -65,23 +61,6 @@ const SearchInputs = ({
           onChange={(e) => onRegionChange(e.target.value)}
           className="flex-1"
         />
-        <Button 
-          type="submit" 
-          disabled={isProcessing || isSearching || !query.trim()} 
-          className="w-32"
-        >
-          {isSearching ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Searching
-            </>
-          ) : (
-            <>
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </>
-          )}
-        </Button>
       </div>
     </div>
   );

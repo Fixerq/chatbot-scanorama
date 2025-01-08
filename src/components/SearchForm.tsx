@@ -4,6 +4,7 @@ import { useSearchLimits } from '@/hooks/useSearchLimits';
 import SearchInputs from './SearchInputs';
 import ProcessingIndicator from './ProcessingIndicator';
 import { Info } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
@@ -78,11 +79,9 @@ const SearchForm = ({
         query={query}
         country={country}
         region={region}
-        apiKey={apiKey}
         onQueryChange={onQueryChange}
         onCountryChange={onCountryChange}
         onRegionChange={onRegionChange}
-        onApiKeyChange={onApiKeyChange}
       />
 
       <div className="flex justify-end">
