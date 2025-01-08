@@ -13,36 +13,59 @@ export const useSearchLimits = () => {
 
     try {
       // Get user's subscription level
-      const { data: subscriptionData } = await supabase
+      const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
         .select('level')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
+      if (subscriptionError) {
+        console.error('Error fetching subscription:', subscriptionError);
+        throw subscriptionError;
+      }
+
       const userLevel = subscriptionData?.level || 'starter';
 
       // Get max searches for this level
-      const { data: levelData } = await supabase
+      const { data: levelData, error: levelError } = await supabase
         .from('subscription_levels')
         .select('max_searches')
         .eq('level', userLevel)
         .maybeSingle();
+
+      if (levelError) {
+        console.error('Error fetching subscription level:', levelError);
+        throw levelError;
+      }
 
       // Get count of searches made this month
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const { count: searchesUsed } = await supabase
+      const { count: searchesUsed, error: countError } = await supabase
         .from('analyzed_urls')
         .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id) // Add user_id filter
         .gte('created_at', startOfMonth.toISOString());
+
+      if (countError) {
+        console.error('Error counting searches:', countError);
+        throw countError;
+      }
 
       const maxSearches = levelData?.max_searches || 10;
       const remaining = Math.max(0, maxSearches - (searchesUsed || 0));
       
+      console.log('Search limits calculation:', {
+        userLevel,
+        maxSearches,
+        searchesUsed,
+        remaining,
+        startOfMonth: startOfMonth.toISOString()
+      });
+      
       setSearchesLeft(remaining);
-      console.log('Updated searches left:', remaining);
     } catch (error) {
       console.error('Error fetching search limits:', error);
       toast.error('Could not fetch search limit information');
@@ -67,10 +90,11 @@ export const useSearchLimits = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'analyzed_urls'
+          table: 'analyzed_urls',
+          filter: `user_id=eq.${session.user.id}` // Add filter for user's records
         },
         (payload) => {
-          console.log('Received real-time update:', payload);
+          console.log('Received real-time update for analyzed_urls:', payload);
           fetchSearchLimits();
         }
       )
