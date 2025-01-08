@@ -49,7 +49,11 @@ serve(async (req) => {
     const requestBody = {
       textQuery: locationQuery,
       languageCode: 'en',
-      ...(countryCode && { locationRestriction: { rectangle: getCountryBounds(countryCode) } })
+      ...(countryCode && { 
+        locationRestriction: { 
+          rectangle: getCountryBounds(countryCode) 
+        }
+      })
     };
 
     console.log('Request body:', JSON.stringify(requestBody, null, 2));
@@ -167,19 +171,19 @@ function getCountryCode(country: string): string | null {
 
 // Helper function to get approximate country bounds
 function getCountryBounds(countryCode: string) {
-  // Approximate bounds for countries
-  const bounds: { [key: string]: { south: number; west: number; north: number; east: number } } = {
-    'US': { south: 24.396308, west: -125.000000, north: 49.384358, east: -66.934570 },
-    'GB': { south: 49.674, west: -8.649, north: 61.061, east: 1.762 },
-    'CA': { south: 41.676, west: -141.001, north: 83.111, east: -52.619 },
-    'AU': { south: -43.644, west: 112.911, north: -10.706, east: 153.639 },
+  // Approximate bounds for countries using the correct field names for the Places API
+  const bounds: { [key: string]: { highLat: number; lowLat: number; highLng: number; lowLng: number } } = {
+    'US': { lowLat: 24.396308, lowLng: -125.000000, highLat: 49.384358, highLng: -66.934570 },
+    'GB': { lowLat: 49.674, lowLng: -8.649, highLat: 61.061, highLng: 1.762 },
+    'CA': { lowLat: 41.676, lowLng: -141.001, highLat: 83.111, highLng: -52.619 },
+    'AU': { lowLat: -43.644, lowLng: 112.911, highLat: -10.706, highLng: 153.639 },
     // Add more countries as needed
   };
 
   return bounds[countryCode] || {
-    south: -90,
-    west: -180,
-    north: 90,
-    east: 180
+    lowLat: -90,
+    lowLng: -180,
+    highLat: 90,
+    highLng: 180
   };
 }
