@@ -41,11 +41,16 @@ export const useSearchLimits = () => {
         .from('subscription_levels')
         .select('max_searches')
         .eq('level', userLevel)
-        .single();
+        .maybeSingle();
 
       if (levelError) {
         console.error('Error fetching subscription level:', levelError);
         throw levelError;
+      }
+
+      if (!levelData) {
+        console.error('No subscription level data found for level:', userLevel);
+        throw new Error(`No subscription level found for ${userLevel}`);
       }
 
       const maxSearches = levelData.max_searches;
