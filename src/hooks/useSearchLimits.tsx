@@ -17,7 +17,7 @@ export const useSearchLimits = () => {
         .from('subscriptions')
         .select('level')
         .eq('user_id', session.user.id)
-        .maybeSingle();
+        .single();
 
       if (subscriptionError) {
         console.error('Error fetching subscription:', subscriptionError);
@@ -25,18 +25,22 @@ export const useSearchLimits = () => {
       }
 
       const userLevel = subscriptionData?.level || 'starter';
+      console.log('User subscription level:', userLevel);
 
       // Get max searches for this level
       const { data: levelData, error: levelError } = await supabase
         .from('subscription_levels')
         .select('max_searches')
         .eq('level', userLevel)
-        .maybeSingle();
+        .single();
 
       if (levelError) {
         console.error('Error fetching subscription level:', levelError);
         throw levelError;
       }
+
+      const maxSearches = levelData?.max_searches || 10;
+      console.log('Max searches allowed:', maxSearches);
 
       // Get count of searches made this month
       const startOfMonth = new Date();
@@ -54,21 +58,16 @@ export const useSearchLimits = () => {
         throw countError;
       }
 
-      const maxSearches = levelData?.max_searches || 10;
-      const remaining = Math.max(0, maxSearches - (searchesUsed || 0));
+      console.log('Searches used this month:', searchesUsed);
       
-      console.log('Search limits calculation:', {
-        userLevel,
-        maxSearches,
-        searchesUsed,
-        remaining,
-        startOfMonth: startOfMonth.toISOString()
-      });
+      const remaining = Math.max(0, maxSearches - (searchesUsed || 0));
+      console.log('Calculated remaining searches:', remaining);
       
       setSearchesLeft(remaining);
     } catch (error) {
       console.error('Error fetching search limits:', error);
       toast.error('Could not fetch search limit information');
+      setSearchesLeft(0); // Set to 0 on error to prevent unlimited searches
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +102,7 @@ export const useSearchLimits = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, session]);
+  }, [session]);
 
   return { searchesLeft, isLoading, refetchLimits: fetchSearchLimits };
 };
