@@ -9,7 +9,12 @@ export const useSearchLimits = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSearchLimits = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {
+      console.log('No user session found');
+      setSearchesLeft(0);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Get user's subscription level
@@ -24,6 +29,7 @@ export const useSearchLimits = () => {
         throw subscriptionError;
       }
 
+      // Default to 'starter' if no subscription found
       const userLevel = subscriptionData?.level || 'starter';
       console.log('User subscription level:', userLevel);
 
@@ -39,7 +45,8 @@ export const useSearchLimits = () => {
         throw levelError;
       }
 
-      const maxSearches = levelData?.max_searches || 10;
+      // Default to 10 searches if no level data found
+      const maxSearches = levelData?.max_searches ?? 10;
       console.log('Max searches allowed:', maxSearches);
 
       // Get count of searches made this month
