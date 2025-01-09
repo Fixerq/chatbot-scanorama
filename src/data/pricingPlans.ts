@@ -35,6 +35,10 @@ export const pricingPlans: PricingPlansData = {
     features: [
       "Unlimited searches",
       "All Premium features",
+      "Comprehensive Analytics",
+      "Global Business Discovery",
+      "CSV Uploads",
+      "Priority Support",
       "Early access to new features"
     ],
     priceId: "price_1QfP20EiWhAkWDnrDhllA5a1",
