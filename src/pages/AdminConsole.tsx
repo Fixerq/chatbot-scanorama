@@ -13,12 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-
-interface User {
-  id: string;
-  email: string;
-  created_at: string;
-}
+import { User } from '@supabase/supabase-js';
 
 interface Subscription {
   id: string;
