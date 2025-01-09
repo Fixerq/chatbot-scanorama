@@ -11,11 +11,11 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { priceId } = await req.json();
+    const { priceId, returnUrl } = await req.json();
 
     // Get the user from the authorization header
     const authHeader = req.headers.get('Authorization')!;
@@ -56,7 +56,10 @@ serve(async (req) => {
       console.log('Found existing customer:', customerId);
     }
 
-    console.log('Creating checkout session with price:', priceId);
+    // Determine if this is the Founders plan (one-time payment) or a subscription
+    const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
+    
+    console.log('Creating checkout session with price:', priceId, 'Mode:', isFoundersPlan ? 'payment' : 'subscription');
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -66,9 +69,9 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/dashboard`,
+      mode: isFoundersPlan ? 'payment' : 'subscription',
+      success_url: `${returnUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${returnUrl}/dashboard`,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
       allow_promotion_codes: true,
