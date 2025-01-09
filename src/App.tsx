@@ -43,7 +43,7 @@ const AppRoutes = () => {
       }
       
       if (event === 'SIGNED_OUT') {
-        navigate('/login');
+        navigate('/');
       }
     });
 
@@ -52,7 +52,7 @@ const AppRoutes = () => {
       if (event === 'SIGNED_OUT' && !session) {
         console.log('Session expired or refresh token invalid');
         toast.error('Your session has expired. Please sign in again.');
-        navigate('/login');
+        navigate('/');
       }
     });
 
@@ -66,7 +66,7 @@ const AppRoutes = () => {
       {/* Public routes */}
       <Route 
         path="/" 
-        element={session ? <Navigate to="/dashboard" replace /> : <SalesPage />} 
+        element={<SalesPage />} 
       />
       <Route 
         path="/login" 
