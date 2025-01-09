@@ -28,7 +28,6 @@ serve(async (req) => {
       );
     }
 
-    // Extract the token from the Bearer header
     const token = authHeader.split(' ')[1];
     if (!token) {
       console.error('No token found in Authorization header');
@@ -43,13 +42,11 @@ serve(async (req) => {
 
     console.log('Token extracted from auth header');
 
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
-    // Get user with the token
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
@@ -99,7 +96,6 @@ serve(async (req) => {
     let customerId;
     if (customers.data.length === 0) {
       console.log('Creating new customer for:', user.email);
-      // Create a new customer if one doesn't exist
       const customer = await stripe.customers.create({
         email: user.email,
         metadata: {
