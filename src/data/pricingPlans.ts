@@ -29,7 +29,7 @@ export const pricingPlans: PricingPlansData = {
     price: "$97",
     description: "Limited time offer",
     features: [
-      "Lifetime access",
+      "Unlimited searches",
       "All Pro features",
       "Early access to new features"
     ],
