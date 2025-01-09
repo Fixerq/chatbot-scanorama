@@ -15,11 +15,17 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, returnUrl } = await req.json();
-
+    console.log('Received checkout request');
+    
     // Get the user from the authorization header
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      throw new Error('No authorization header');
+    }
+    
     const token = authHeader.replace('Bearer ', '');
+    console.log('Got auth token');
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -29,10 +35,19 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user?.email) {
+      console.error('Error getting user:', userError);
       throw new Error('Authentication required');
     }
 
-    console.log('Creating checkout session for user:', user.email);
+    console.log('Got user:', user.email);
+
+    const { priceId, returnUrl } = await req.json();
+    if (!priceId || !returnUrl) {
+      console.error('Missing required parameters');
+      throw new Error('Missing required parameters: priceId and returnUrl are required');
+    }
+
+    console.log('Creating checkout session for price:', priceId);
 
     // Check if customer exists
     const customers = await stripe.customers.list({
@@ -87,9 +102,12 @@ serve(async (req) => {
       },
     );
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error('Error in checkout process:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
