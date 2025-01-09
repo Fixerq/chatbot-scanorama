@@ -14,18 +14,29 @@ const RegisterAndOrder = () => {
   const navigate = useNavigate();
   const session = useSession();
   const supabase = useSupabaseClient();
+  const [loading, setLoading] = useState(false);
   const priceId = searchParams.get('priceId');
   const planName = searchParams.get('planName');
 
   useEffect(() => {
-    if (session && priceId) {
+    if (session?.access_token && priceId) {
       handleCheckout();
     }
-  }, [session]);
+  }, [session?.access_token]);
 
   const handleCheckout = async () => {
+    if (!session?.access_token) {
+      console.error('No access token available');
+      return;
+    }
+
+    setLoading(true);
     try {
+      console.log('Creating checkout session for price:', priceId);
       const { data, error } = await supabase.functions.invoke('create-checkout', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        },
         body: { 
           priceId,
           returnUrl: window.location.origin
@@ -37,13 +48,16 @@ const RegisterAndOrder = () => {
         throw error;
       }
       
-      if (data?.url) {
-        console.log('Redirecting to checkout:', data.url);
-        window.location.href = data.url;
+      if (!data?.url) {
+        throw new Error('No checkout URL received');
       }
+
+      console.log('Redirecting to checkout:', data.url);
+      window.location.href = data.url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      toast.error('Failed to create checkout session. Please try again.');
+      toast.error('Failed to process subscription. Please try again.');
+      setLoading(false);
     }
   };
 
