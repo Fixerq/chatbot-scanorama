@@ -139,8 +139,7 @@ const PricingSection = () => {
             features={[
               "5000 searches per month",
               "Advanced chat detection",
-              "Priority support",
-              "Custom integrations"
+              "Priority support"
             ]}
             popular
             priceId="price_1QfP3LEiWhAkWDnrTYVVFBk9"
@@ -156,8 +155,7 @@ const PricingSection = () => {
             features={[
               "Lifetime access",
               "All Pro features",
-              "Early access to new features",
-              "Custom development hours"
+              "Early access to new features"
             ]}
             special
             priceId="price_1QfP20EiWhAkWDnrDhllA5a1"
