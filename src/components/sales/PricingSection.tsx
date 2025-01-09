@@ -20,7 +20,11 @@ const PricingSection = () => {
 
       try {
         console.log('Checking subscription status...');
-        const { data, error } = await supabase.functions.invoke('check-subscription');
+        const { data, error } = await supabase.functions.invoke('check-subscription', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        });
         
         if (error) {
           console.error('Subscription check error:', error);
@@ -52,6 +56,9 @@ const PricingSection = () => {
       if (session) {
         // If user is logged in, proceed with checkout
         const { data, error } = await supabase.functions.invoke('create-checkout', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          },
           body: { 
             priceId,
             returnUrl: window.location.origin
