@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import PricingFeature from './PricingFeature';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Crown } from 'lucide-react';
 
 interface PricingCardProps {
   name: string;
@@ -9,6 +9,7 @@ interface PricingCardProps {
   description: string;
   features: string[];
   popular?: boolean;
+  special?: boolean;
   priceId: string;
   onSubscribe: (priceId: string) => void;
   isLoading?: boolean;
@@ -21,6 +22,7 @@ const PricingCard = ({
   description,
   features,
   popular,
+  special,
   priceId,
   onSubscribe,
   isLoading = false,
@@ -29,12 +31,20 @@ const PricingCard = ({
   return (
     <div
       className={`relative rounded-2xl border bg-card p-8 shadow-lg ${
-        popular ? 'border-cyan-500 ring-2 ring-cyan-500' : 'border-gray-700'
+        popular ? 'border-cyan-500 ring-2 ring-cyan-500' : 
+        special ? 'border-amber-500 ring-2 ring-amber-500' : 
+        'border-gray-700'
       }`}
     >
       {popular && (
         <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-4 py-1 text-sm font-semibold text-black">
           Most Popular
+        </span>
+      )}
+      {special && (
+        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-4 py-1 text-sm font-semibold text-black flex items-center gap-1">
+          <Crown className="w-4 h-4" />
+          Exclusive
         </span>
       )}
 
@@ -57,7 +67,9 @@ const PricingCard = ({
         onClick={() => onSubscribe(priceId)}
         disabled={isLoading || hasSubscription}
         className={`mt-8 w-full ${
-          popular
+          special
+            ? 'bg-amber-500 hover:bg-amber-600 text-black'
+            : popular
             ? 'bg-cyan-500 hover:bg-cyan-600 text-black'
             : 'bg-secondary hover:bg-secondary/80 text-foreground'
         }`}

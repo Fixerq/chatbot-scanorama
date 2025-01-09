@@ -44,6 +44,21 @@ const plans = [
       "CSV Automation",
       "Dedicated Account Manager"
     ]
+  },
+  {
+    name: "Founders Plan",
+    price: "$497",
+    priceId: "price_1QeakhEiWhAkWDnrFounders",
+    special: true,
+    description: "Exclusive lifetime access with unlimited features for early supporters.",
+    features: [
+      "Unlimited Website Searches",
+      "Advanced Analytics Dashboard",
+      "Priority Support",
+      "Early Access to Features",
+      "Lifetime Updates",
+      "Custom Integration Support"
+    ]
   }
 ];
 
@@ -110,7 +125,7 @@ const PricingSection = () => {
     }
   };
 
-  return (
+return (
     <section className="relative py-24 overflow-hidden">
       {/* Background gradient with animation */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background animate-gradient opacity-80" />
@@ -129,7 +144,7 @@ const PricingSection = () => {
           </p>
         </div>
 
-        <div className="mt-16 grid gap-8 lg:grid-cols-3 animate-fade-in delay-100">
+        <div className="mt-16 grid gap-8 lg:grid-cols-4 animate-fade-in delay-100">
           {plans.map((plan, index) => (
             <div key={plan.name} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
               <PricingCard
