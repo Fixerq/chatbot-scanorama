@@ -43,9 +43,6 @@ export const useSubscriptionManagement = () => {
 
     try {
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        },
         body: { 
           priceId: 'price_1QfP20EiWhAkWDnrDhllA5a1',
           returnUrl: window.location.origin
