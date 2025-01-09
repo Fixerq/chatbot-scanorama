@@ -87,26 +87,16 @@ serve(async (req) => {
 
     console.log('Creating checkout session for price:', priceId);
 
-    // Check if customer exists
-    const customers = await stripe.customers.list({
+    // Always create a new customer
+    console.log('Creating new customer for:', user.email);
+    const customer = await stripe.customers.create({
       email: user.email,
-      limit: 1
+      metadata: {
+        supabaseUUID: user.id
+      }
     });
-
-    let customerId;
-    if (customers.data.length === 0) {
-      console.log('Creating new customer for:', user.email);
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          supabaseUUID: user.id
-        }
-      });
-      customerId = customer.id;
-    } else {
-      customerId = customers.data[0].id;
-      console.log('Found existing customer:', customerId);
-    }
+    
+    console.log('Created new customer:', customer.id);
 
     // Determine if this is the Founders plan (one-time payment) or a subscription
     const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
@@ -114,7 +104,7 @@ serve(async (req) => {
     console.log('Creating checkout session with price:', priceId, 'Mode:', isFoundersPlan ? 'payment' : 'subscription');
 
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+      customer: customer.id,
       line_items: [
         {
           price: priceId,
