@@ -3,7 +3,6 @@ import Header from '@/components/Header';
 import FeaturesSection from '@/components/sales/FeaturesSection';
 import BenefitsSection from '@/components/sales/BenefitsSection';
 import PricingSection from '@/components/sales/PricingSection';
-import CtaSection from '@/components/sales/CtaSection';
 
 const SalesPage = () => {
   return (
@@ -18,10 +17,6 @@ const SalesPage = () => {
       </div>
       
       <PricingSection />
-      
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <CtaSection />
-      </div>
     </div>
   );
 };
