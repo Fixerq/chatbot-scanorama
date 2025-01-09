@@ -170,7 +170,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      subscription_level: "starter" | "pro" | "premium"
+      subscription_level: "starter" | "pro" | "premium" | "founders"
     }
     CompositeTypes: {
       [_ in never]: never

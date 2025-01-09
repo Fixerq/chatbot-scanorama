@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Bot, Search, BarChart3 } from 'lucide-react';
+import { Bot, Search, BarChart3, Crown } from 'lucide-react';
 
 const Header = () => {
   return (
@@ -11,6 +11,10 @@ const Header = () => {
         <CardContent className="pt-12 pb-14 px-8">
           <div className="flex flex-col items-center space-y-10">            
             <div className="text-center space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-400/20 mb-4">
+                <Crown className="w-5 h-5 text-cyan-400" />
+                <span className="text-cyan-400 font-semibold">Founders Plan Now Available</span>
+              </div>
               <h1 className="text-6xl font-bold text-white animate-fade-in tracking-tight" style={{
                 textShadow: `
                   0 0 30px rgba(6, 182, 212, 0.9),
@@ -56,6 +60,12 @@ const Header = () => {
                   <p className="text-cyan-100 text-opacity-90 text-sm">Leverage data to streamline prospecting and close faster.</p>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-8 p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-400/20">
+              <p className="text-cyan-100 text-center text-sm">
+                <span className="font-semibold">Founders Plan Benefits:</span> Unlimited Searches • Advanced Analytics • Priority Support • Early Access
+              </p>
             </div>
           </div>
         </CardContent>
