@@ -85,6 +85,12 @@ const PricingSection = () => {
   }, [session, supabase.functions]);
 
   const handleSubscribe = async (priceId: string) => {
+    if (!session) {
+      toast.error("Please sign in to subscribe to a plan");
+      navigate('/login');
+      return;
+    }
+
     if (hasSubscription) {
       toast.error("You already have an active subscription. Please manage your subscription in your account settings.");
       return;
@@ -93,11 +99,18 @@ const PricingSection = () => {
     try {
       setIsLoading(true);
       console.log('Creating checkout session for price:', priceId);
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId }
+        body: { 
+          priceId,
+          returnUrl: window.location.origin
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Checkout error:', error);
+        throw error;
+      }
       
       if (data?.url) {
         console.log('Redirecting to checkout:', data.url);
