@@ -22,7 +22,7 @@ export const pricingPlans: PricingPlansData = {
       "5000 Website Searches",
       "Comprehensive Analytics",
       "Global Business Discovery",
-      "CSV Automation",
+      "CSV Uploads",
       "Priority Support"
     ],
     priceId: "price_1QfP3LEiWhAkWDnrTYVVFBk9",
