@@ -88,7 +88,10 @@ const PricingSection = () => {
     switch (priceId) {
       case 'price_1QfP20EiWhAkWDnrDhllA5a1':
         return 'Founders Plan';
-      // Add other price IDs and their corresponding names
+      case 'price_1QfP3LEiWhAkWDnrTYVVFBk9':
+        return 'Pro Plan';
+      case 'price_1QfP4KEiWhAkWDnrNXFYWR9L':
+        return 'Starter Plan';
       default:
         return 'Selected Plan';
     }
@@ -116,7 +119,7 @@ const PricingSection = () => {
               "Basic chat detection",
               "Email support"
             ]}
-            priceId="price_starter"
+            priceId="price_1QfP4KEiWhAkWDnrNXFYWR9L"
             onSubscribe={handleSubscribe}
             isLoading={isLoading}
             hasSubscription={hasSubscription}
@@ -134,7 +137,7 @@ const PricingSection = () => {
               "Custom integrations"
             ]}
             popular
-            priceId="price_pro"
+            priceId="price_1QfP3LEiWhAkWDnrTYVVFBk9"
             onSubscribe={handleSubscribe}
             isLoading={isLoading}
             hasSubscription={hasSubscription}
