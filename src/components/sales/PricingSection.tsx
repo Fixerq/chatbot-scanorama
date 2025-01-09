@@ -1,58 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
-import { toast } from "sonner";
 import PricingCard from './PricingCard';
-
-const plans = [
-  {
-    name: "Starter Plan",
-    price: "$97",
-    priceId: "price_1QeakhEiWhAkWDnrevEe12PJ",
-    description: "Perfect for small businesses and solo entrepreneurs looking to get started with chatbot prospecting.",
-    features: [
-      "500 Website Searches",
-      "Local Business Discovery",
-      "Basic Analytics",
-      "CSV Uploads",
-      "Email Support"
-    ]
-  },
-  {
-    name: "Premium Plan",
-    price: "$297",
-    priceId: "price_1QeakhEiWhAkWDnrnZgRSuyR",
-    description: "The ultimate plan for enterprises and agencies with high-volume prospecting needs.",
-    features: [
-      "5000 Website Searches",
-      "Comprehensive Analytics",
-      "Global Business Discovery",
-      "CSV Automation",
-      "Dedicated Account Manager"
-    ]
-  },
-  {
-    name: "Founders Plan",
-    price: "$97",
-    priceId: "price_1QfP20EiWhAkWDnrDhllA5a1",
-    special: true,
-    description: "One-time payment for exclusive lifetime access with unlimited features.",
-    features: [
-      "Unlimited Website Searches",
-      "Advanced Analytics Dashboard",
-      "Priority Support",
-      "Early Access to Features",
-      "Lifetime Updates",
-      "Custom Integration Support"
-    ]
-  }
-];
+import { toast } from 'sonner';
 
 const PricingSection = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSubscription, setHasSubscription] = useState(false);
   const session = useSession();
   const supabase = useSupabaseClient();
-  const [hasSubscription, setHasSubscription] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,75 +41,122 @@ const PricingSection = () => {
   }, [session, supabase.functions]);
 
   const handleSubscribe = async (priceId: string) => {
-    if (!session) {
-      toast.error("Please sign in to subscribe to a plan");
-      navigate('/login');
-      return;
-    }
-
     if (hasSubscription) {
       toast.error("You already have an active subscription. Please manage your subscription in your account settings.");
       return;
     }
 
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      console.log('Creating checkout session for price:', priceId);
-      
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          priceId,
-          returnUrl: window.location.origin
-        }
-      });
+      if (session) {
+        // If user is logged in, proceed with checkout
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { 
+            priceId,
+            returnUrl: window.location.origin
+          }
+        });
 
-      if (error) {
-        console.error('Checkout error:', error);
-        throw error;
-      }
-      
-      if (data?.url) {
-        console.log('Redirecting to checkout:', data.url);
-        window.location.href = data.url;
+        if (error) {
+          console.error('Checkout error:', error);
+          throw error;
+        }
+        
+        if (data?.url) {
+          console.log('Redirecting to checkout:', data.url);
+          window.location.href = data.url;
+        }
+      } else {
+        // If user is not logged in, redirect to registration page with product info
+        const planName = getPlanName(priceId);
+        const params = new URLSearchParams({
+          priceId,
+          planName,
+        });
+        navigate(`/register-and-order?${params.toString()}`);
       }
     } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error("Failed to start checkout process. Please try again.");
+      console.error('Error in subscription process:', error);
+      toast.error('Failed to process subscription. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <section className="relative py-24 overflow-hidden">
-      {/* Background gradient with animation */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background animate-gradient opacity-80" />
-      
-      {/* Glowing orbs for visual interest */}
-      <div className="absolute -top-40 -left-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-200" />
+  const getPlanName = (priceId: string): string => {
+    switch (priceId) {
+      case 'price_1QfP20EiWhAkWDnrDhllA5a1':
+        return 'Founders Plan';
+      // Add other price IDs and their corresponding names
+      default:
+        return 'Selected Plan';
+    }
+  };
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-4 animate-fade-in">
-          <h2 className="text-4xl font-bold text-foreground sm:text-5xl glow-text">
-            Choose Your Plan
+  return (
+    <section className="py-16 px-4 sm:px-6 lg:px-8 animate-fade-in">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl">
+            Simple, transparent pricing
           </h2>
-          <p className="mt-4 text-xl text-muted-foreground max-w-2xl mx-auto">
-            Select the perfect plan for your business needs
+          <p className="mt-4 text-xl text-muted-foreground">
+            Choose the plan that's right for you
           </p>
         </div>
 
-        <div className="mt-16 grid gap-8 lg:grid-cols-3 animate-fade-in delay-100">
-          {plans.map((plan, index) => (
-            <div key={plan.name} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-              <PricingCard
-                {...plan}
-                onSubscribe={handleSubscribe}
-                isLoading={isLoading}
-                hasSubscription={hasSubscription}
-              />
-            </div>
-          ))}
+        <div className="grid gap-8 lg:grid-cols-3 lg:gap-12 max-w-6xl mx-auto">
+          <PricingCard
+            name="Starter"
+            price="$0"
+            description="Perfect for trying out our service"
+            features={[
+              "5 searches per month",
+              "Basic chat detection",
+              "Email support"
+            ]}
+            priceId="price_starter"
+            onSubscribe={handleSubscribe}
+            isLoading={isLoading}
+            hasSubscription={hasSubscription}
+          />
+          
+          <PricingCard
+            name="Pro"
+            price="$49"
+            description="For businesses that need more"
+            features={[
+              "Unlimited searches",
+              "Advanced chat detection",
+              "Priority support",
+              "API access",
+              "Custom integrations"
+            ]}
+            popular
+            priceId="price_pro"
+            onSubscribe={handleSubscribe}
+            isLoading={isLoading}
+            hasSubscription={hasSubscription}
+          />
+          
+          <PricingCard
+            name="Founders"
+            price="$999"
+            description="Limited time offer"
+            features={[
+              "Lifetime access",
+              "All Pro features",
+              "Early access to new features",
+              "Direct support line",
+              "Custom development hours"
+            ]}
+            special
+            priceId="price_1QfP20EiWhAkWDnrDhllA5a1"
+            onSubscribe={handleSubscribe}
+            isLoading={isLoading}
+            hasSubscription={hasSubscription}
+          />
         </div>
       </div>
     </section>

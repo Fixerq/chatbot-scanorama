@@ -12,6 +12,7 @@ import Signup from '@/pages/Signup';
 import Success from '@/pages/Success';
 import Index from '@/pages/Index';
 import SalesPage from '@/pages/SalesPage';
+import RegisterAndOrder from '@/pages/RegisterAndOrder';
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,10 @@ const AppRoutes = () => {
       <Route 
         path="/success" 
         element={<Success />} 
+      />
+      <Route 
+        path="/register-and-order" 
+        element={<RegisterAndOrder />} 
       />
       
       {/* Protected routes */}
