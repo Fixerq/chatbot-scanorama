@@ -33,10 +33,10 @@ const plans = [
   },
   {
     name: "Founders Plan",
-    price: "$497",
+    price: "$97",
     priceId: "price_1QeakhEiWhAkWDnrFounders",
     special: true,
-    description: "Exclusive lifetime access with unlimited features for early supporters.",
+    description: "One-time payment for exclusive lifetime access with unlimited features.",
     features: [
       "Unlimited Website Searches",
       "Advanced Analytics Dashboard",
