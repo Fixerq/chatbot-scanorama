@@ -112,7 +112,7 @@ const PricingSection = () => {
         <div className="grid gap-8 lg:grid-cols-3 lg:gap-12 max-w-6xl mx-auto">
           <PricingCard
             name="Starter"
-            price="$0"
+            price="$9"
             description="Perfect for trying out our service"
             features={[
               "5 searches per month",
@@ -145,7 +145,7 @@ const PricingSection = () => {
           
           <PricingCard
             name="Founders"
-            price="$999"
+            price="$97"
             description="Limited time offer"
             features={[
               "Lifetime access",
