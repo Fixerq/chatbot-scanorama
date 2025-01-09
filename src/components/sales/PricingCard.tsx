@@ -53,7 +53,7 @@ const PricingCard = ({
         <p className="mt-2 text-sm text-muted-foreground">{description}</p>
         <p className="mt-4">
           <span className="text-4xl font-bold text-foreground">{price}</span>
-          <span className="text-muted-foreground">{price.includes('$97') ? ' one-time' : '/month'}</span>
+          <span className="text-muted-foreground">/month</span>
         </p>
       </div>
 
