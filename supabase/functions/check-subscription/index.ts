@@ -24,11 +24,11 @@ serve(async (req) => {
       throw new Error('Authentication required')
     }
 
+    console.log('Checking subscription for user:', user.email)
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     })
-
-    console.log('Checking subscription for user:', user.email)
 
     // Get customer by email
     const customers = await stripe.customers.list({
