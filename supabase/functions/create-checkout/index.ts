@@ -17,7 +17,6 @@ serve(async (req) => {
   try {
     console.log('Received checkout request');
     
-    // Get the authorization header and format it properly
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('No authorization header provided');
@@ -30,9 +29,7 @@ serve(async (req) => {
       );
     }
 
-    // Ensure the token is properly formatted
-    const token = authHeader.replace('Bearer ', '');
-    console.log('Got auth token');
+    console.log('Auth header received:', authHeader);
 
     // Create Supabase client
     const supabaseClient = createClient(
@@ -40,8 +37,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
-    // Get user with properly formatted token
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    // Get user with the full auth header
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader);
     
     if (userError) {
       console.error('Error getting user:', userError);
