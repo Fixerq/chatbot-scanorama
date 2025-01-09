@@ -6,6 +6,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Check, Crown } from "lucide-react";
 
@@ -15,6 +16,7 @@ const RegisterAndOrder = () => {
   const session = useSession();
   const supabase = useSupabaseClient();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const priceId = searchParams.get('priceId');
   const planName = searchParams.get('planName');
 
@@ -23,6 +25,27 @@ const RegisterAndOrder = () => {
       handleCheckout();
     }
   }, [session?.access_token]);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        console.log('User signed in:', session?.user?.email);
+        if (priceId) {
+          handleCheckout();
+        }
+      }
+      if (event === 'USER_UPDATED') {
+        console.log('User updated:', session?.user?.email);
+      }
+      if (event === 'SIGNED_OUT') {
+        setError(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [priceId]);
 
   const handleCheckout = async () => {
     if (!session?.access_token) {
@@ -107,9 +130,15 @@ const RegisterAndOrder = () => {
             <Separator className="my-4" />
           </CardHeader>
           <CardContent className="px-6 pb-8">
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="rounded-lg">
               <Auth
                 supabaseClient={supabase}
+                view="sign_up"
                 appearance={{
                   theme: ThemeSupa,
                   variables: {
