@@ -4,13 +4,18 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     // Get the user from the authorization header
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
+    
     const token = authHeader.replace('Bearer ', '')
     
     const supabaseClient = createClient(
@@ -21,7 +26,14 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
 
     if (userError || !user?.email) {
-      throw new Error('Authentication required')
+      console.error('Auth error:', userError)
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      )
     }
 
     console.log('Checking subscription for user:', user.email)
@@ -57,9 +69,20 @@ serve(async (req) => {
 
     console.log('Subscription status:', subscriptions.data.length > 0 ? 'Active' : 'None')
 
+    // Also check for one-time payments (Founders plan)
+    const payments = await stripe.paymentIntents.list({
+      customer: customers.data[0].id,
+      limit: 1
+    })
+
+    const hasFoundersPlan = payments.data.some(payment => 
+      payment.status === 'succeeded' && 
+      payment.amount === 9700 // $97.00
+    )
+
     return new Response(
       JSON.stringify({ 
-        hasSubscription: subscriptions.data.length > 0,
+        hasSubscription: subscriptions.data.length > 0 || hasFoundersPlan,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

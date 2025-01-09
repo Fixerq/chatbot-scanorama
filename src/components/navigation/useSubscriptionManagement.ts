@@ -43,7 +43,6 @@ export const useSubscriptionManagement = () => {
       setIsSubscriptionLoading(true);
       console.log('Checking subscription status...');
       
-      // Pass the authorization header with the session access token
       const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -52,28 +51,35 @@ export const useSubscriptionManagement = () => {
       
       if (subscriptionError) {
         console.error('Subscription check error:', subscriptionError);
-        throw new Error('Failed to check subscription status');
+        toast.error('Failed to check subscription status. Please try again.');
+        return;
+      }
+
+      if (!subscriptionData) {
+        toast.error('Invalid response from subscription check');
+        return;
       }
 
       console.log('Subscription status:', subscriptionData);
 
-      if (subscriptionData?.hasSubscription) {
+      if (subscriptionData.hasSubscription) {
         // Create portal session for existing subscribers
         console.log('Creating portal session...');
         const { data: portalData, error: portalError } = await supabase.functions.invoke('create-portal-session', {
           headers: {
             Authorization: `Bearer ${session.access_token}`
-          },
-          body: { userId: session.user.id }
+          }
         });
         
         if (portalError) {
           console.error('Portal session error:', portalError);
-          throw new Error('Failed to create portal session');
+          toast.error('Failed to access subscription portal. Please try again.');
+          return;
         }
         
         if (!portalData?.url) {
-          throw new Error('No portal URL received');
+          toast.error('Unable to access subscription portal');
+          return;
         }
 
         console.log('Redirecting to portal:', portalData.url);
@@ -86,18 +92,20 @@ export const useSubscriptionManagement = () => {
             Authorization: `Bearer ${session.access_token}`
           },
           body: { 
-            priceId: 'price_1QeakhEiWhAkWDnr2yad4geJ',
+            priceId: 'price_1QfP20EiWhAkWDnrDhllA5a1',
             userId: session.user.id 
           }
         });
         
         if (checkoutError) {
           console.error('Checkout session error:', checkoutError);
-          throw new Error('Failed to create checkout session');
+          toast.error('Failed to create checkout session. Please try again.');
+          return;
         }
         
         if (!checkoutData?.url) {
-          throw new Error('No checkout URL received');
+          toast.error('Unable to create checkout session');
+          return;
         }
 
         console.log('Redirecting to checkout:', checkoutData.url);
@@ -105,7 +113,7 @@ export const useSubscriptionManagement = () => {
       }
     } catch (error) {
       console.error('Subscription management error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to manage subscription. Please try again.");
+      toast.error('Failed to manage subscription. Please try again.');
     } finally {
       setIsSubscriptionLoading(false);
     }
