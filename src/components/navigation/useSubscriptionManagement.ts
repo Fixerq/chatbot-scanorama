@@ -43,8 +43,11 @@ export const useSubscriptionManagement = () => {
       setIsSubscriptionLoading(true);
       console.log('Checking subscription status...');
       
+      // Pass the authorization header with the session access token
       const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription', {
-        body: { userId: session.user.id }
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
       
       if (subscriptionError) {
@@ -58,6 +61,9 @@ export const useSubscriptionManagement = () => {
         // Create portal session for existing subscribers
         console.log('Creating portal session...');
         const { data: portalData, error: portalError } = await supabase.functions.invoke('create-portal-session', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          },
           body: { userId: session.user.id }
         });
         
@@ -76,6 +82,9 @@ export const useSubscriptionManagement = () => {
         // Create checkout session for new subscribers
         console.log('Creating checkout session...');
         const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`
+          },
           body: { 
             priceId: 'price_1QeakhEiWhAkWDnr2yad4geJ',
             userId: session.user.id 
