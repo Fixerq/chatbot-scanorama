@@ -3,12 +3,14 @@ import { PricingPlansData } from '@/types/pricing';
 export const pricingPlans: PricingPlansData = {
   starter: {
     name: "Starter",
-    price: "$9",
-    description: "Perfect for trying out our service",
+    price: "$97",
+    description: "Perfect for small businesses and solo entrepreneurs looking to get started with chatbot prospecting",
     features: [
-      "5 searches per month",
-      "Basic chat detection",
-      "Email support"
+      "500 Website Searches",
+      "Local Business Discovery",
+      "Basic Analytics",
+      "CSV Uploads",
+      "Email Support"
     ],
     priceId: "price_1QfP4KEiWhAkWDnrNXFYWR9L"
   },
