@@ -19,20 +19,6 @@ const plans = [
     ]
   },
   {
-    name: "Pro Plan",
-    price: "$197",
-    priceId: "price_1QeakhEiWhAkWDnr2yad4geJ",
-    popular: true,
-    description: "Designed for growing teams and mid-sized businesses looking to scale their customer outreach.",
-    features: [
-      "2000 Website Searches",
-      "Advanced Website Analytics",
-      "Multi-Region Discovery",
-      "Priority Email Support",
-      "Customizable Exports"
-    ]
-  },
-  {
     name: "Premium Plan",
     price: "$297",
     priceId: "price_1QeakhEiWhAkWDnrnZgRSuyR",
@@ -125,7 +111,7 @@ const PricingSection = () => {
     }
   };
 
-return (
+  return (
     <section className="relative py-24 overflow-hidden">
       {/* Background gradient with animation */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background animate-gradient opacity-80" />
@@ -144,7 +130,7 @@ return (
           </p>
         </div>
 
-        <div className="mt-16 grid gap-8 lg:grid-cols-4 animate-fade-in delay-100">
+        <div className="mt-16 grid gap-8 lg:grid-cols-3 animate-fade-in delay-100">
           {plans.map((plan, index) => (
             <div key={plan.name} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
               <PricingCard
