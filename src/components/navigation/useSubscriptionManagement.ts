@@ -39,10 +39,10 @@ export const useSubscriptionManagement = () => {
       return;
     }
 
+    setIsSubscriptionLoading(true);
+
     try {
-      setIsSubscriptionLoading(true);
-      console.log('Checking subscription status...');
-      
+      // Only check subscription status when the button is clicked
       const { data: subscriptionData, error: subscriptionError } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -64,7 +64,6 @@ export const useSubscriptionManagement = () => {
 
       if (subscriptionData.hasSubscription) {
         // Create portal session for existing subscribers
-        console.log('Creating portal session...');
         const { data: portalData, error: portalError } = await supabase.functions.invoke('create-portal-session', {
           headers: {
             Authorization: `Bearer ${session.access_token}`
@@ -82,18 +81,16 @@ export const useSubscriptionManagement = () => {
           return;
         }
 
-        console.log('Redirecting to portal:', portalData.url);
         window.location.href = portalData.url;
       } else {
         // Create checkout session for new subscribers
-        console.log('Creating checkout session...');
         const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
           headers: {
             Authorization: `Bearer ${session.access_token}`
           },
           body: { 
             priceId: 'price_1QfP20EiWhAkWDnrDhllA5a1',
-            userId: session.user.id 
+            returnUrl: window.location.origin
           }
         });
         
@@ -108,7 +105,6 @@ export const useSubscriptionManagement = () => {
           return;
         }
 
-        console.log('Redirecting to checkout:', checkoutData.url);
         window.location.href = checkoutData.url;
       }
     } catch (error) {
