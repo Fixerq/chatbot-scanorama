@@ -42,7 +42,6 @@ export const useSubscriptionManagement = () => {
     setIsSubscriptionLoading(true);
 
     try {
-      // Create checkout session for new subscribers
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${session.access_token}`

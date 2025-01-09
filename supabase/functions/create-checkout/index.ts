@@ -17,26 +17,42 @@ serve(async (req) => {
   try {
     console.log('Received checkout request');
     
-    // Get the user from the authorization header
+    // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('No authorization header provided');
       throw new Error('No authorization header');
     }
-    
-    const token = authHeader.replace('Bearer ', '');
-    console.log('Got auth token');
-    
+
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    // Get user session
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader);
     
-    if (userError || !user?.email) {
+    if (userError) {
       console.error('Error getting user:', userError);
-      throw new Error('Authentication required');
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed', details: userError }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (!user?.email) {
+      console.error('No user email found');
+      return new Response(
+        JSON.stringify({ error: 'User email required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Got user:', user.email);
@@ -44,7 +60,13 @@ serve(async (req) => {
     const { priceId, returnUrl } = await req.json();
     if (!priceId || !returnUrl) {
       console.error('Missing required parameters');
-      throw new Error('Missing required parameters: priceId and returnUrl are required');
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: priceId and returnUrl are required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Creating checkout session for price:', priceId);
@@ -110,7 +132,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: error instanceof Error && error.message.includes('Authentication') ? 401 : 400,
       },
     );
   }
