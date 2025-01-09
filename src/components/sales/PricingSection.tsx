@@ -157,7 +157,6 @@ const PricingSection = () => {
               "Lifetime access",
               "All Pro features",
               "Early access to new features",
-              "Direct support line",
               "Custom development hours"
             ]}
             special
