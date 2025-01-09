@@ -2,10 +2,22 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSession } from '@supabase/auth-helpers-react';
 
 const Login = () => {
+  const session = useSession();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (session) {
+      navigate('/dashboard');
+    }
+  }, [session, navigate]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in bg-gradient-to-br from-[#0a192f] via-[#0d1f3a] to-[#0a192f]">
       <div className="w-full max-w-md">
         <Card className="card-gradient border-none shadow-xl">
           <CardHeader className="space-y-2 text-center pb-6">
