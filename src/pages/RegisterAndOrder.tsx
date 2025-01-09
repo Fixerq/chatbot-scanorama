@@ -4,7 +4,10 @@ import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Check, Crown } from "lucide-react";
 
 const RegisterAndOrder = () => {
   const [searchParams] = useSearchParams();
@@ -46,13 +49,13 @@ const RegisterAndOrder = () => {
 
   if (!priceId || !planName) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md card-gradient border-none shadow-xl">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
+        <Card className="w-full max-w-md border-none shadow-xl bg-gradient-to-br from-card to-card/90">
           <CardHeader className="space-y-2 text-center">
             <CardTitle className="text-2xl font-bold text-foreground">
               Invalid Request
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-lg">
               Missing required product information. Please select a plan from our pricing page.
             </CardDescription>
           </CardHeader>
@@ -61,20 +64,36 @@ const RegisterAndOrder = () => {
     );
   }
 
+  const getPlanIcon = () => {
+    if (planName.toLowerCase().includes('founder')) {
+      return <Crown className="w-8 h-8 text-amber-500" />;
+    }
+    return <Check className="w-8 h-8 text-cyan-500" />;
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
-      <div className="w-full max-w-md">
-        <Card className="card-gradient border-none shadow-xl">
-          <CardHeader className="space-y-2 text-center pb-6">
-            <CardTitle className="text-3xl font-bold glow-text bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              Complete Your Order
-            </CardTitle>
-            <CardDescription className="text-muted-foreground text-lg">
-              {`Sign up to continue with ${planName}`}
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80 animate-fade-in">
+      <div className="w-full max-w-xl">
+        <Card className="border-none shadow-xl bg-gradient-to-br from-card to-card/90">
+          <CardHeader className="space-y-4 text-center pb-8">
+            <div className="flex justify-center">
+              {getPlanIcon()}
+            </div>
+            <div>
+              <Badge variant="secondary" className="mb-3 text-sm">
+                Selected Plan
+              </Badge>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                {planName}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-lg text-muted-foreground">
+              Create your account to continue
             </CardDescription>
+            <Separator className="my-4" />
           </CardHeader>
-          <CardContent>
-            <div className="rounded-lg p-4">
+          <CardContent className="px-6 pb-8">
+            <div className="rounded-lg">
               <Auth
                 supabaseClient={supabase}
                 appearance={{
@@ -96,11 +115,12 @@ const RegisterAndOrder = () => {
                   },
                   className: {
                     container: 'w-full',
-                    button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 glow-border',
+                    button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg',
                     input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200',
                     label: 'block text-sm font-medium text-muted-foreground mb-1.5',
                     loader: 'text-cyan-500',
                     message: 'text-sm text-red-500 mt-1',
+                    anchor: 'text-cyan-500 hover:text-cyan-400 transition-colors duration-200',
                   },
                 }}
                 theme="dark"
