@@ -15,13 +15,15 @@ export const pricingPlans: PricingPlansData = {
     priceId: "price_1QfP4KEiWhAkWDnrNXFYWR9L"
   },
   pro: {
-    name: "Pro",
+    name: "Premium",
     price: "$297",
-    description: "For businesses that need more",
+    description: "The ultimate plan for enterprises and agencies with high-volume prospecting needs",
     features: [
-      "5000 searches per month",
-      "Advanced chat detection",
-      "Priority support"
+      "5000 Website Searches",
+      "Comprehensive Analytics",
+      "Global Business Discovery",
+      "CSV Automation",
+      "Priority Support"
     ],
     priceId: "price_1QfP3LEiWhAkWDnrTYVVFBk9",
     popular: true
@@ -32,7 +34,7 @@ export const pricingPlans: PricingPlansData = {
     description: "Limited time offer",
     features: [
       "Unlimited searches",
-      "All Pro features",
+      "All Premium features",
       "Early access to new features"
     ],
     priceId: "price_1QfP20EiWhAkWDnrDhllA5a1",
