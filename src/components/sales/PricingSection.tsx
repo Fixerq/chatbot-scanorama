@@ -134,13 +134,12 @@ const PricingSection = () => {
           
           <PricingCard
             name="Pro"
-            price="$29"
+            price="$297"
             description="For businesses that need more"
             features={[
-              "100 searches per month",
+              "5000 searches per month",
               "Advanced chat detection",
               "Priority support",
-              "API access",
               "Custom integrations"
             ]}
             popular
