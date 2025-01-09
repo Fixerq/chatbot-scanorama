@@ -13,6 +13,7 @@ import Success from '@/pages/Success';
 import Index from '@/pages/Index';
 import SalesPage from '@/pages/SalesPage';
 import RegisterAndOrder from '@/pages/RegisterAndOrder';
+import AdminConsole from '@/pages/AdminConsole';
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Index />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminConsole />
           </ProtectedRoute>
         }
       />
