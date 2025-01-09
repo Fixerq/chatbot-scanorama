@@ -42,8 +42,6 @@ export const useSubscriptionManagement = () => {
     setIsSubscriptionLoading(true);
 
     try {
-      console.log('Creating checkout session with token:', session.access_token);
-      
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
         body: { 
           priceId: 'price_1QfP20EiWhAkWDnrDhllA5a1',
