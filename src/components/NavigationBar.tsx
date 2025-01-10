@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { RecentSearchDialog } from './navigation/RecentSearchDialog';
 import { useSubscriptionManagement } from './navigation/useSubscriptionManagement';
+import { SubscriptionStatus } from './SubscriptionStatus';
 import {
   Tooltip,
   TooltipContent,
@@ -31,11 +32,6 @@ const NavigationBar = () => {
     }
   };
 
-  const formatPlanName = (plan: string | null) => {
-    if (!plan) return 'No Plan';
-    return plan.charAt(0).toUpperCase() + plan.slice(1) + ' Plan';
-  };
-
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
@@ -48,6 +44,8 @@ const NavigationBar = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <SubscriptionStatus />
+          
           <Button
             variant="ghost"
             size="sm"
@@ -74,13 +72,12 @@ const NavigationBar = () => {
                     <CreditCard className="h-4 w-4" />
                   )}
                   <span className="hidden sm:inline">
-                    {isSubscriptionLoading ? 'Loading...' : formatPlanName(currentPlan)}
+                    Manage Subscription
                   </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Current Plan: {formatPlanName(currentPlan)}</p>
-                <p className="text-xs text-muted-foreground">Click to manage subscription</p>
+                <p>Click to manage your subscription</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

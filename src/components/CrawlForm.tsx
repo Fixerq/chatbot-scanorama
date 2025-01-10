@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { FirecrawlService } from '@/utils/firecrawl/FirecrawlService';
 import { Card } from "@/components/ui/card";
 import EmailResults from './EmailResults';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
+import { toast } from 'sonner';
 
 interface CrawlResult {
   success: boolean;
@@ -24,9 +26,31 @@ export const CrawlForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [crawlResult, setCrawlResult] = useState<CrawlResult | null>(null);
+  const { subscriptionData } = useSubscriptionStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!subscriptionData) {
+      toast({
+        title: "Error",
+        description: "Unable to verify subscription status",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (subscriptionData.searchesRemaining === 0) {
+      toast({
+        title: "Search limit reached",
+        description: "Please upgrade your plan to continue searching",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+    
     setIsLoading(true);
     setProgress(0);
     setCrawlResult(null);
@@ -86,11 +110,17 @@ export const CrawlForm = () => {
         )}
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || (subscriptionData?.searchesRemaining === 0)}
           className="w-full bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200"
         >
           {isLoading ? "Crawling..." : "Start Crawl"}
         </Button>
+        
+        {subscriptionData && subscriptionData.searchesRemaining !== -1 && (
+          <p className="text-sm text-muted-foreground text-center">
+            {subscriptionData.searchesRemaining} searches remaining
+          </p>
+        )}
       </form>
 
       {crawlResult && (
@@ -106,7 +136,6 @@ export const CrawlForm = () => {
             </div>
           </Card>
           
-          {/* Display email results */}
           {crawlResult.emails && <EmailResults emails={crawlResult.emails} />}
         </>
       )}
