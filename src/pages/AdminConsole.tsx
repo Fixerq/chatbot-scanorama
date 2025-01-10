@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { User } from '@supabase/supabase-js';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface Subscription {
   id: string;
@@ -36,25 +37,41 @@ const AdminConsole = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdminChecking, setIsAdminChecking] = useState(true);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserSearches, setNewUserSearches] = useState('10');
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('user_id')
-        .single();
+      try {
+        setIsAdminChecking(true);
+        const { data: adminData, error: adminError } = await supabase
+          .from('admin_users')
+          .select('user_id')
+          .single();
 
-      if (adminError || !adminData) {
-        toast.error('Unauthorized access');
+        if (adminError || !adminData) {
+          console.error('Admin check error:', adminError);
+          toast.error('You do not have admin access');
+          navigate('/dashboard');
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('Admin check error:', error);
+        toast.error('Failed to verify admin status');
         navigate('/dashboard');
-        return;
+        return false;
+      } finally {
+        setIsAdminChecking(false);
       }
     };
 
     const fetchCustomerData = async () => {
       try {
+        const isAdmin = await checkAdminStatus();
+        if (!isAdmin) return;
+
         // Fetch users
         const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
         if (userError) throw userError;
@@ -114,7 +131,6 @@ const AdminConsole = () => {
       }
     };
 
-    checkAdminStatus();
     fetchCustomerData();
   }, [navigate]);
 
@@ -179,8 +195,22 @@ const AdminConsole = () => {
     return new Date(date).toLocaleDateString();
   };
 
+  if (isAdminChecking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Verifying admin access...</span>
+      </div>
+    );
+  }
+
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading customer data...</span>
+      </div>
+    );
   }
 
   return (
