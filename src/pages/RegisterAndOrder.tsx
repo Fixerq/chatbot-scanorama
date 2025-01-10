@@ -34,27 +34,33 @@ const RegisterAndOrder = () => {
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN') {
-        console.log('User authenticated:', session?.user?.email);
+        console.log('User signed in:', session?.user?.email);
         
-        const updateProfile = async () => {
-          if (firstName && lastName && session?.user?.id) {
+        if (session?.user?.id && (firstName || lastName)) {
+          try {
             const { error: updateError } = await supabase
               .from('profiles')
-              .update({ first_name: firstName, last_name: lastName })
+              .update({ 
+                first_name: firstName || null, 
+                last_name: lastName || null 
+              })
               .eq('id', session.user.id);
 
             if (updateError) {
               console.error('Error updating profile:', updateError);
               toast.error('Failed to update profile information');
+            } else {
+              console.log('Profile updated successfully');
             }
+          } catch (error) {
+            console.error('Error in profile update:', error);
+            toast.error('Failed to update profile information');
           }
+        }
 
-          if (priceId) {
-            handleCheckout();
-          }
-        };
-
-        updateProfile();
+        if (priceId) {
+          handleCheckout();
+        }
       }
     });
 
