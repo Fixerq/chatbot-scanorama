@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Crown } from "lucide-react";
+import { canSendEmail, getTimeUntilNextEmail } from '@/utils/emailRateLimits';
 
 const RegisterAndOrder = () => {
   const [searchParams] = useSearchParams();
@@ -64,21 +65,13 @@ const RegisterAndOrder = () => {
 
               if (updateError) {
                 console.error('Error updating profile:', updateError);
-                toast({
-                  title: "Error",
-                  description: "Failed to update profile information",
-                  variant: "destructive",
-                });
+                toast.error("Failed to update profile information");
               } else {
                 console.log('Profile updated successfully');
               }
             } catch (error) {
               console.error('Error in profile update:', error);
-              toast({
-                title: "Error",
-                description: "Failed to update profile information",
-                variant: "destructive",
-              });
+              toast.error("Failed to update profile information");
             }
           }
           console.log('Waiting for email verification...');
@@ -88,18 +81,19 @@ const RegisterAndOrder = () => {
           // Check URL hash for email confirmation error
           const errorMessage = window.location.hash;
           if (errorMessage.includes('error=email_confirmation')) {
-            toast({
-              title: "Email Rate Limit",
-              description: "Too many confirmation emails sent. Please wait a few minutes before trying again.",
-              variant: "destructive",
-            });
+            const email = searchParams.get('email');
+            if (email && !canSendEmail(email)) {
+              const waitTime = Math.ceil(getTimeUntilNextEmail(email) / 1000);
+              toast.error(`Please wait ${waitTime} seconds before requesting another confirmation email.`);
+            } else {
+              toast.error("Too many confirmation emails sent. Please wait a few minutes before trying again.");
+            }
           }
           break;
 
         case 'USER_UPDATED':
         case 'TOKEN_REFRESHED':
         case 'PASSWORD_RECOVERY':
-          // Handle other auth events if needed
           console.log('Auth event handled:', event);
           break;
 
