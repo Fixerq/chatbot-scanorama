@@ -31,32 +31,36 @@ const RegisterAndOrder = () => {
   }, [session?.access_token]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_UP' || event === 'SIGNED_IN') {
         console.log('User authenticated:', session?.user?.email);
         
-        if (firstName && lastName) {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ first_name: firstName, last_name: lastName })
-            .eq('id', session?.user?.id);
+        const updateProfile = async () => {
+          if (firstName && lastName && session?.user?.id) {
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ first_name: firstName, last_name: lastName })
+              .eq('id', session.user.id);
 
-          if (updateError) {
-            console.error('Error updating profile:', updateError);
-            toast.error('Failed to update profile information');
+            if (updateError) {
+              console.error('Error updating profile:', updateError);
+              toast.error('Failed to update profile information');
+            }
           }
-        }
 
-        if (priceId) {
-          handleCheckout();
-        }
+          if (priceId) {
+            handleCheckout();
+          }
+        };
+
+        updateProfile();
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [firstName, lastName, priceId]);
+  }, [firstName, lastName, priceId, session?.user?.id]);
 
   const handleCheckout = async () => {
     if (!session?.access_token) {
