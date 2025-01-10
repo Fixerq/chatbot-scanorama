@@ -14,6 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User } from '@supabase/supabase-js';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface Subscription {
   id: string;
@@ -34,6 +36,8 @@ const AdminConsole = () => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserSearches, setNewUserSearches] = useState('10');
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -114,6 +118,63 @@ const AdminConsole = () => {
     fetchCustomerData();
   }, [navigate]);
 
+  const handleUpdateSearchVolume = async (userId: string, newTotal: number) => {
+    try {
+      // Get current subscription level
+      const { data: currentSub } = await supabase
+        .from('subscriptions')
+        .select('level')
+        .eq('user_id', userId)
+        .single();
+
+      // Update the subscription_levels table for this level
+      await supabase
+        .from('subscription_levels')
+        .upsert({
+          level: currentSub?.level || 'starter',
+          max_searches: newTotal,
+          features: []
+        });
+
+      toast.success('Search volume updated successfully');
+      
+      // Refresh the customer data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating search volume:', error);
+      toast.error('Failed to update search volume');
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // Create user in auth
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        email: newUserEmail,
+        email_confirm: true,
+        password: Math.random().toString(36).slice(-8), // Generate random password
+      });
+
+      if (userError) throw userError;
+
+      // Update their search volume
+      if (userData.user) {
+        await handleUpdateSearchVolume(userData.user.id, parseInt(newUserSearches));
+      }
+
+      toast.success('User created successfully');
+      setNewUserEmail('');
+      setNewUserSearches('10');
+      
+      // Refresh the customer data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error('Failed to create user');
+    }
+  };
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString();
   };
@@ -131,7 +192,38 @@ const AdminConsole = () => {
         <Tabs defaultValue="customers" className="w-full">
           <TabsList>
             <TabsTrigger value="customers">Customers</TabsTrigger>
+            <TabsTrigger value="create">Create User</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="create">
+            <form onSubmit={handleCreateUser} className="space-y-4 max-w-md">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium mb-1">
+                  Email Address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="searches" className="block text-sm font-medium mb-1">
+                  Number of Searches
+                </label>
+                <Input
+                  id="searches"
+                  type="number"
+                  value={newUserSearches}
+                  onChange={(e) => setNewUserSearches(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit">Create User</Button>
+            </form>
+          </TabsContent>
 
           <TabsContent value="customers">
             <div className="rounded-md border">
@@ -143,6 +235,7 @@ const AdminConsole = () => {
                     <TableHead>Status</TableHead>
                     <TableHead>Searches</TableHead>
                     <TableHead>Subscription End</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -164,6 +257,19 @@ const AdminConsole = () => {
                         {customer.subscription.current_period_end 
                           ? formatDate(customer.subscription.current_period_end)
                           : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          defaultValue={customer.totalSearches}
+                          className="w-24 inline-block mr-2"
+                          onBlur={(e) => {
+                            const newValue = parseInt(e.target.value);
+                            if (newValue !== customer.totalSearches) {
+                              handleUpdateSearchVolume(customer.user.id, newValue);
+                            }
+                          }}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
