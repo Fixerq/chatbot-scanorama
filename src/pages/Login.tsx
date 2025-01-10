@@ -13,14 +13,46 @@ const Login = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
 
-  useEffect(() => {
-    if (session) {
-      navigate('/dashboard');
+  const checkAdminStatus = async (userId: string) => {
+    try {
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!adminError && adminData) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
     }
+  };
+
+  useEffect(() => {
+    const handleSession = async () => {
+      if (session) {
+        const isAdmin = await checkAdminStatus(session.user.id);
+        if (isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    };
+
+    handleSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
-        navigate('/dashboard');
+      if (event === 'SIGNED_IN' && session) {
+        const isAdmin = await checkAdminStatus(session.user.id);
+        if (isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
       }
       
       // Clear errors on sign out
