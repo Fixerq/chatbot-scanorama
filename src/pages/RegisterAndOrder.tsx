@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Crown } from "lucide-react";
 
 const RegisterAndOrder = () => {
@@ -45,7 +45,7 @@ const RegisterAndOrder = () => {
   }, [session?.access_token]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN') {
@@ -63,19 +63,39 @@ const RegisterAndOrder = () => {
 
             if (updateError) {
               console.error('Error updating profile:', updateError);
-              toast.error('Failed to update profile information');
+              toast({
+                title: "Error",
+                description: "Failed to update profile information",
+                variant: "destructive",
+              });
             } else {
               console.log('Profile updated successfully');
             }
           } catch (error) {
             console.error('Error in profile update:', error);
-            toast.error('Failed to update profile information');
+            toast({
+              title: "Error",
+              description: "Failed to update profile information",
+              variant: "destructive",
+            });
           }
         }
 
         // Don't automatically redirect to checkout here
         // Wait for email verification
         console.log('Waiting for email verification...');
+      }
+
+      // Handle auth errors
+      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+        const errorMessage = window.location.hash;
+        if (errorMessage.includes('error=email_confirmation')) {
+          toast({
+            title: "Email Rate Limit",
+            description: "Too many confirmation emails sent. Please wait a few minutes before trying again.",
+            variant: "destructive",
+          });
+        }
       }
     });
 
@@ -117,7 +137,11 @@ const RegisterAndOrder = () => {
       window.location.href = data.url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      toast.error('Failed to process subscription. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to process subscription. Please try again.",
+        variant: "destructive",
+      });
       setLoading(false);
     }
   };
