@@ -135,6 +135,11 @@ const AdminConsole = () => {
               .eq('user_id', profile.id)
               .gte('created_at', startOfMonth.toISOString());
 
+            // Fetch email for this user
+            const { data: emailData } = await supabase.functions.invoke('get-customer-email', {
+              body: { userId: profile.id }
+            });
+
             const totalSearches = levelsMap.get(subscription.level || 'starter') || 0;
             const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
 
@@ -143,7 +148,7 @@ const AdminConsole = () => {
               subscription,
               searchesRemaining: remaining,
               totalSearches,
-              email: profile.id // Using profile ID as email for now
+              email: emailData?.email || profile.id // Fallback to ID if email fetch fails
             };
           })
         );
@@ -271,42 +276,12 @@ const AdminConsole = () => {
             <TabsTrigger value="create">Create User</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="create">
-            <form onSubmit={handleCreateUser} className="space-y-4 max-w-md">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-1">
-                  Email Address
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="searches" className="block text-sm font-medium mb-1">
-                  Number of Searches
-                </label>
-                <Input
-                  id="searches"
-                  type="number"
-                  value={newUserSearches}
-                  onChange={(e) => setNewUserSearches(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit">Create User</Button>
-            </form>
-          </TabsContent>
-
           <TabsContent value="customers">
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User ID</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Searches</TableHead>
@@ -317,7 +292,7 @@ const AdminConsole = () => {
                 <TableBody>
                   {customers.map((customer) => (
                     <TableRow key={customer.profile.id}>
-                      <TableCell>{customer.profile.id}</TableCell>
+                      <TableCell>{customer.email}</TableCell>
                       <TableCell className="capitalize">{customer.subscription.level || 'starter'}</TableCell>
                       <TableCell>
                         <Badge 
@@ -352,6 +327,36 @@ const AdminConsole = () => {
                 </TableBody>
               </Table>
             </div>
+          </TabsContent>
+
+          <TabsContent value="create">
+            <form onSubmit={handleCreateUser} className="space-y-4 max-w-md">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium mb-1">
+                  Email Address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="searches" className="block text-sm font-medium mb-1">
+                  Number of Searches
+                </label>
+                <Input
+                  id="searches"
+                  type="number"
+                  value={newUserSearches}
+                  onChange={(e) => setNewUserSearches(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit">Create User</Button>
+            </form>
           </TabsContent>
         </Tabs>
       </div>
