@@ -116,7 +116,7 @@ const RegisterAndOrder = () => {
         <Card className="border-none shadow-xl bg-gradient-to-br from-card to-card/90">
           <CardHeader className="space-y-4 text-center pb-8">
             <div className="flex justify-center">
-              {planName.toLowerCase().includes('founder') ? (
+              {planName?.toLowerCase().includes('founder') ? (
                 <Crown className="w-8 h-8 text-amber-500" />
               ) : null}
             </div>
@@ -142,7 +142,7 @@ const RegisterAndOrder = () => {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="John"
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-slate-900 border-slate-700 text-white"
                 />
               </div>
               <div className="space-y-2">
@@ -153,7 +153,7 @@ const RegisterAndOrder = () => {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Doe"
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-slate-900 border-slate-700 text-white"
                 />
               </div>
             </div>
@@ -175,7 +175,13 @@ const RegisterAndOrder = () => {
                         inputBorder: 'rgb(51 65 85)',
                         inputBorderHover: 'rgb(71 85 105)',
                         inputBorderFocus: 'rgb(6 182 212)',
+                        inputText: 'white',
                       },
+                    },
+                  },
+                  style: {
+                    input: {
+                      color: 'white',
                     },
                   },
                 }}
