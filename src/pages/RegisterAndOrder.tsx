@@ -31,9 +31,8 @@ const RegisterAndOrder = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_UP') {
-        console.log('User signed up:', session?.user?.email);
-        toast.success("Registration successful! Please check your email for confirmation.");
+      if (event === 'SIGNED_UP' || event === 'SIGNED_IN') {
+        console.log('User authenticated:', session?.user?.email);
         
         if (firstName && lastName) {
           const { error: updateError } = await supabase
@@ -46,8 +45,7 @@ const RegisterAndOrder = () => {
             toast.error('Failed to update profile information');
           }
         }
-      } else if (event === 'SIGNED_IN') {
-        console.log('User signed in:', session?.user?.email);
+
         if (priceId) {
           handleCheckout();
         }
