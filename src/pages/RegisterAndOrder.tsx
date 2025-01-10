@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { AuthChangeEvent } from '@supabase/supabase-js';
+import type { AuthChangeEvent } from '@supabase/supabase-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ const RegisterAndOrder = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
-      if (event === AuthChangeEvent.SIGNED_UP || event === AuthChangeEvent.SIGNED_IN) {
+      if (event === 'SIGNED_UP' || event === 'SIGNED_IN') {
         console.log('User authenticated:', session?.user?.email);
         
         if (firstName && lastName) {
