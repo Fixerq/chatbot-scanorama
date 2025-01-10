@@ -13,10 +13,15 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User } from '@supabase/supabase-js';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+
+interface Profile {
+  id: string;
+  created_at: string;
+  api_key: string | null;
+}
 
 interface Subscription {
   id: string;
@@ -27,10 +32,11 @@ interface Subscription {
 }
 
 interface CustomerData {
-  user: User;
+  profile: Profile;
   subscription: Subscription;
   searchesRemaining: number;
   totalSearches: number;
+  email?: string;
 }
 
 const AdminConsole = () => {
@@ -72,52 +78,64 @@ const AdminConsole = () => {
         const isAdmin = await checkAdminStatus();
         if (!isAdmin) return;
 
-        // Fetch users
-        const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-        if (userError) throw userError;
+        // Fetch profiles instead of using auth.admin
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            *,
+            subscriptions (
+              id,
+              user_id,
+              status,
+              level,
+              current_period_end
+            )
+          `);
 
-        // Fetch subscriptions and search data for each user
+        if (profilesError) throw profilesError;
+
+        // Fetch subscription levels for search limits
+        const { data: subscriptionLevels } = await supabase
+          .from('subscription_levels')
+          .select('*');
+
+        const levelsMap = new Map(
+          subscriptionLevels?.map(level => [level.level, level.max_searches]) || []
+        );
+
+        // Get searches used this month for each user
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
         const customersData: CustomerData[] = await Promise.all(
-          userData.users.map(async (user) => {
-            // Get subscription data
-            const { data: subscriptionData } = await supabase
-              .from('subscriptions')
-              .select('*')
-              .eq('user_id', user.id)
-              .maybeSingle();
-
-            // Get subscription level details
-            const { data: levelData } = await supabase
-              .from('subscription_levels')
-              .select('max_searches')
-              .eq('level', subscriptionData?.level || 'starter')
-              .maybeSingle();
-
-            // Get searches used this month
-            const startOfMonth = new Date();
-            startOfMonth.setDate(1);
-            startOfMonth.setHours(0, 0, 0, 0);
+          (profilesData || []).map(async (profile) => {
+            const subscription = profile.subscriptions?.[0] || {
+              id: '',
+              user_id: profile.id,
+              status: 'inactive',
+              level: 'starter',
+              current_period_end: null
+            };
 
             const { count: searchesUsed } = await supabase
               .from('analyzed_urls')
               .select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id)
+              .eq('user_id', profile.id)
               .gte('created_at', startOfMonth.toISOString());
 
-            const totalSearches = levelData?.max_searches || 0;
+            const totalSearches = levelsMap.get(subscription.level) || 0;
             const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
 
+            // Get user email from auth metadata
+            const { data: userData } = await supabase.auth.admin.getUserById(profile.id);
+            
             return {
-              user,
-              subscription: subscriptionData || {
-                id: '',
-                user_id: user.id,
-                status: 'inactive',
-                level: 'starter',
-                current_period_end: null
-              },
+              profile,
+              subscription,
               searchesRemaining: remaining,
-              totalSearches
+              totalSearches,
+              email: userData?.user?.email
             };
           })
         );
@@ -270,8 +288,8 @@ const AdminConsole = () => {
                 </TableHeader>
                 <TableBody>
                   {customers.map((customer) => (
-                    <TableRow key={customer.user.id}>
-                      <TableCell>{customer.user.email}</TableCell>
+                    <TableRow key={customer.profile.id}>
+                      <TableCell>{customer.email}</TableCell>
                       <TableCell className="capitalize">{customer.subscription.level}</TableCell>
                       <TableCell>
                         <Badge 
@@ -296,7 +314,7 @@ const AdminConsole = () => {
                           onBlur={(e) => {
                             const newValue = parseInt(e.target.value);
                             if (newValue !== customer.totalSearches) {
-                              handleUpdateSearchVolume(customer.user.id, newValue);
+                              handleUpdateSearchVolume(customer.profile.id, newValue);
                             }
                           }}
                         />
