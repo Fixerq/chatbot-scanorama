@@ -32,7 +32,7 @@ const RegisterAndOrder = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
-      if (event === 'SIGNED_UP' || event === 'SIGNED_IN') {
+      if (event === AuthChangeEvent.SIGNED_UP || event === AuthChangeEvent.SIGNED_IN) {
         console.log('User authenticated:', session?.user?.email);
         
         if (firstName && lastName) {
