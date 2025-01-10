@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Check, Crown } from "lucide-react";
 
@@ -17,6 +19,8 @@ const RegisterAndOrder = () => {
   const supabase = useSupabaseClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const priceId = searchParams.get('priceId');
   const planName = searchParams.get('planName');
 
@@ -27,9 +31,21 @@ const RegisterAndOrder = () => {
   }, [session?.access_token]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         console.log('User signed in:', session?.user?.email);
+        // Update profile with first and last name
+        if (firstName && lastName) {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ first_name: firstName, last_name: lastName })
+            .eq('id', session?.user?.id);
+
+          if (updateError) {
+            console.error('Error updating profile:', updateError);
+            toast.error('Failed to update profile information');
+          }
+        }
         if (priceId) {
           handleCheckout();
         }
@@ -45,7 +61,7 @@ const RegisterAndOrder = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [priceId]);
+  }, [firstName, lastName, priceId]);
 
   const handleCheckout = async () => {
     if (!session?.access_token) {
@@ -135,41 +151,67 @@ const RegisterAndOrder = () => {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <div className="rounded-lg">
-              <Auth
-                supabaseClient={supabase}
-                view="sign_up"
-                appearance={{
-                  theme: ThemeSupa,
-                  variables: {
-                    default: {
-                      colors: {
-                        brand: 'rgb(6 182 212)',
-                        brandAccent: 'rgb(8 145 178)',
-                        brandButtonText: 'white',
-                        defaultButtonBackground: 'rgb(15 23 42)',
-                        defaultButtonBackgroundHover: 'rgb(30 41 59)',
-                        inputBackground: 'rgb(15 23 42)',
-                        inputBorder: 'rgb(51 65 85)',
-                        inputBorderHover: 'rgb(71 85 105)',
-                        inputBorderFocus: 'rgb(6 182 212)',
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
+                    className="bg-slate-900 border-slate-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                    className="bg-slate-900 border-slate-700"
+                  />
+                </div>
+              </div>
+              <div className="rounded-lg">
+                <Auth
+                  supabaseClient={supabase}
+                  view="sign_up"
+                  appearance={{
+                    theme: ThemeSupa,
+                    variables: {
+                      default: {
+                        colors: {
+                          brand: 'rgb(6 182 212)',
+                          brandAccent: 'rgb(8 145 178)',
+                          brandButtonText: 'white',
+                          defaultButtonBackground: 'rgb(15 23 42)',
+                          defaultButtonBackgroundHover: 'rgb(30 41 59)',
+                          inputBackground: 'rgb(15 23 42)',
+                          inputBorder: 'rgb(51 65 85)',
+                          inputBorderHover: 'rgb(71 85 105)',
+                          inputBorderFocus: 'rgb(6 182 212)',
+                        },
                       },
                     },
-                  },
-                  className: {
-                    container: 'w-full',
-                    button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg',
-                    input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200',
-                    label: 'block text-sm font-medium text-muted-foreground mb-1.5',
-                    loader: 'text-cyan-500',
-                    message: 'text-sm text-red-500 mt-1',
-                    anchor: 'text-cyan-500 hover:text-cyan-400 transition-colors duration-200',
-                  },
-                }}
-                theme="dark"
-                providers={[]}
-                redirectTo={`${window.location.origin}/register-and-order?priceId=${priceId}&planName=${planName}`}
-              />
+                    className: {
+                      container: 'w-full',
+                      button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg',
+                      input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200',
+                      label: 'block text-sm font-medium text-muted-foreground mb-1.5',
+                      loader: 'text-cyan-500',
+                      message: 'text-sm text-red-500 mt-1',
+                      anchor: 'text-cyan-500 hover:text-cyan-400 transition-colors duration-200',
+                    },
+                  }}
+                  theme="dark"
+                  providers={[]}
+                  redirectTo={`${window.location.origin}/register-and-order?priceId=${priceId}&planName=${planName}`}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -85,17 +85,23 @@ export type Database = {
         Row: {
           api_key: string | null
           created_at: string
+          first_name: string | null
           id: string
+          last_name: string | null
         }
         Insert: {
           api_key?: string | null
           created_at?: string
+          first_name?: string | null
           id: string
+          last_name?: string | null
         }
         Update: {
           api_key?: string | null
           created_at?: string
+          first_name?: string | null
           id?: string
+          last_name?: string | null
         }
         Relationships: []
       }
