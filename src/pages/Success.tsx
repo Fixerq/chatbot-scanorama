@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Crown, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 
 const Success = () => {
   const [searchParams] = useSearchParams();
@@ -54,20 +55,28 @@ const Success = () => {
       <div className="w-full max-w-md">
         <Card className="card-gradient border-none shadow-xl">
           <CardHeader className="space-y-2 text-center pb-6">
+            <div className="flex justify-center mb-4">
+              <Crown className="h-12 w-12 text-amber-500" />
+            </div>
             <CardTitle className="text-3xl font-bold glow-text bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              Payment Successful!
+              Welcome to Detectify!
             </CardTitle>
             <CardDescription className="text-muted-foreground text-lg">
-              {customerEmail ? `Thank you for your purchase! Please complete your registration to get started.` : 'Thank you for your purchase!'}
+              {customerEmail ? `Thank you for joining us, ${customerEmail}!` : 'Thank you for your purchase!'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            <div className="bg-slate-800/50 rounded-lg p-4">
+              <h3 className="text-lg font-medium mb-2">Your Subscription</h3>
+              <SubscriptionStatus />
+            </div>
             <div className="text-center">
               <Button
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/dashboard')}
                 className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
               >
-                Complete Registration
+                Go to Dashboard
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </CardContent>

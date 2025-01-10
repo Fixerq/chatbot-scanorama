@@ -73,7 +73,7 @@ serve(async (req) => {
 
     console.log('Got user:', user.email);
 
-    const { priceId, returnUrl } = await req.json();
+    const { priceId, returnUrl, customerName } = await req.json();
     if (!priceId || !returnUrl) {
       console.error('Missing required parameters');
       return new Response(
@@ -87,10 +87,11 @@ serve(async (req) => {
 
     console.log('Creating checkout session for price:', priceId);
 
-    // Always create a new customer
+    // Always create a new customer with the provided name
     console.log('Creating new customer for:', user.email);
     const customer = await stripe.customers.create({
       email: user.email,
+      name: customerName,
       metadata: {
         supabaseUUID: user.id
       }
@@ -112,8 +113,8 @@ serve(async (req) => {
         },
       ],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${returnUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl}/dashboard`,
+      success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${returnUrl}`,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
       allow_promotion_codes: true,

@@ -4,13 +4,11 @@ import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Check, Crown } from "lucide-react";
+import { Crown } from "lucide-react";
 
 const RegisterAndOrder = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +19,7 @@ const RegisterAndOrder = () => {
   const [error, setError] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  
   const priceId = searchParams.get('priceId');
   const planName = searchParams.get('planName');
 
@@ -34,7 +33,6 @@ const RegisterAndOrder = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         console.log('User signed in:', session?.user?.email);
-        // Update profile with first and last name
         if (firstName && lastName) {
           const { error: updateError } = await supabase
             .from('profiles')
@@ -49,12 +47,6 @@ const RegisterAndOrder = () => {
         if (priceId) {
           handleCheckout();
         }
-      }
-      if (event === 'USER_UPDATED') {
-        console.log('User updated:', session?.user?.email);
-      }
-      if (event === 'SIGNED_OUT') {
-        setError(null);
       }
     });
 
@@ -78,7 +70,8 @@ const RegisterAndOrder = () => {
         },
         body: { 
           priceId,
-          returnUrl: window.location.origin
+          returnUrl: `${window.location.origin}/success`,
+          customerName: `${firstName} ${lastName}`.trim()
         }
       });
 
@@ -117,101 +110,77 @@ const RegisterAndOrder = () => {
     );
   }
 
-  const getPlanIcon = () => {
-    if (planName.toLowerCase().includes('founder')) {
-      return <Crown className="w-8 h-8 text-amber-500" />;
-    }
-    return <Check className="w-8 h-8 text-cyan-500" />;
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
       <div className="w-full max-w-xl">
         <Card className="border-none shadow-xl bg-gradient-to-br from-card to-card/90">
           <CardHeader className="space-y-4 text-center pb-8">
             <div className="flex justify-center">
-              {getPlanIcon()}
+              {planName.toLowerCase().includes('founder') ? (
+                <Crown className="w-8 h-8 text-amber-500" />
+              ) : null}
             </div>
-            <div>
-              <Badge variant="secondary" className="mb-3 text-sm">
-                Selected Plan
-              </Badge>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                {planName}
-              </CardTitle>
-            </div>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              Complete Registration
+            </CardTitle>
             <CardDescription className="text-lg text-muted-foreground">
-              Create your account to continue
+              You selected the {planName}
             </CardDescription>
-            <Separator className="my-4" />
           </CardHeader>
-          <CardContent className="px-6 pb-8">
+          <CardContent className="space-y-6 px-6 pb-8">
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="John"
-                    className="bg-slate-900 border-slate-700"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Doe"
-                    className="bg-slate-900 border-slate-700"
-                  />
-                </div>
-              </div>
-              <div className="rounded-lg">
-                <Auth
-                  supabaseClient={supabase}
-                  view="sign_up"
-                  appearance={{
-                    theme: ThemeSupa,
-                    variables: {
-                      default: {
-                        colors: {
-                          brand: 'rgb(6 182 212)',
-                          brandAccent: 'rgb(8 145 178)',
-                          brandButtonText: 'white',
-                          defaultButtonBackground: 'rgb(15 23 42)',
-                          defaultButtonBackgroundHover: 'rgb(30 41 59)',
-                          inputBackground: 'rgb(15 23 42)',
-                          inputBorder: 'rgb(51 65 85)',
-                          inputBorderHover: 'rgb(71 85 105)',
-                          inputBorderFocus: 'rgb(6 182 212)',
-                        },
-                      },
-                    },
-                    className: {
-                      container: 'w-full',
-                      button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg',
-                      input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200',
-                      label: 'block text-sm font-medium text-muted-foreground mb-1.5',
-                      loader: 'text-cyan-500',
-                      message: 'text-sm text-red-500 mt-1',
-                      anchor: 'text-cyan-500 hover:text-cyan-400 transition-colors duration-200',
-                    },
-                  }}
-                  theme="dark"
-                  providers={[]}
-                  redirectTo={`${window.location.origin}/register-and-order?priceId=${priceId}&planName=${planName}`}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="John"
+                  className="bg-slate-900 border-slate-700"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Doe"
+                  className="bg-slate-900 border-slate-700"
+                />
+              </div>
+            </div>
+            <div className="rounded-lg">
+              <Auth
+                supabaseClient={supabase}
+                view="sign_up"
+                appearance={{
+                  theme: ThemeSupa,
+                  variables: {
+                    default: {
+                      colors: {
+                        brand: 'rgb(6 182 212)',
+                        brandAccent: 'rgb(8 145 178)',
+                        brandButtonText: 'white',
+                        defaultButtonBackground: 'rgb(15 23 42)',
+                        defaultButtonBackgroundHover: 'rgb(30 41 59)',
+                        inputBackground: 'rgb(15 23 42)',
+                        inputBorder: 'rgb(51 65 85)',
+                        inputBorderHover: 'rgb(71 85 105)',
+                        inputBorderFocus: 'rgb(6 182 212)',
+                      },
+                    },
+                  },
+                }}
+                providers={[]}
+              />
             </div>
           </CardContent>
         </Card>
