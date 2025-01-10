@@ -78,23 +78,24 @@ const AdminConsole = () => {
         const isAdmin = await checkAdminStatus();
         if (!isAdmin) return;
 
-        // Fetch profiles with their subscriptions
+        // First, fetch all profiles
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select(`
-            *,
-            subscriptions (
-              id,
-              user_id,
-              status,
-              level,
-              current_period_end
-            )
-          `);
+          .select('*');
 
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
           throw profilesError;
+        }
+
+        // Then, fetch all subscriptions
+        const { data: subscriptionsData, error: subscriptionsError } = await supabase
+          .from('subscriptions')
+          .select('*');
+
+        if (subscriptionsError) {
+          console.error('Error fetching subscriptions:', subscriptionsError);
+          throw subscriptionsError;
         }
 
         // Fetch subscription levels for search limits
@@ -116,10 +117,11 @@ const AdminConsole = () => {
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
+        // Map profiles to customer data
         const customersData: CustomerData[] = await Promise.all(
           (profilesData || []).map(async (profile) => {
-            // Get the subscription data from the joined query
-            const subscription = profile.subscriptions?.[0] || {
+            // Find the corresponding subscription
+            const subscription = subscriptionsData?.find(sub => sub.user_id === profile.id) || {
               id: '',
               user_id: profile.id,
               status: 'inactive',
@@ -136,7 +138,6 @@ const AdminConsole = () => {
             const totalSearches = levelsMap.get(subscription.level || 'starter') || 0;
             const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
 
-            // Get user email from profiles table
             return {
               profile,
               subscription,
