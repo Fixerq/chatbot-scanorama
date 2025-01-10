@@ -18,7 +18,7 @@ interface RegistrationFormProps {
 }
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess, isLoading }) => {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegistrationFormData>();
+  const { register, handleSubmit, formState: { errors } } = useForm<RegistrationFormData>();
 
   const onSubmit = async (data: RegistrationFormData) => {
     if (data.password !== data.confirmPassword) {
