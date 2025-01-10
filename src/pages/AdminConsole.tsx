@@ -23,10 +23,16 @@ interface Subscription {
   current_period_end: string | null;
 }
 
+interface CustomerData {
+  user: User;
+  subscription: Subscription;
+  searchesRemaining: number;
+  totalSearches: number;
+}
+
 const AdminConsole = () => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -43,30 +49,69 @@ const AdminConsole = () => {
       }
     };
 
-    const fetchData = async () => {
+    const fetchCustomerData = async () => {
       try {
         // Fetch users
         const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
         if (userError) throw userError;
 
-        // Fetch subscriptions
-        const { data: subscriptionData, error: subscriptionError } = await supabase
-          .from('subscriptions')
-          .select('*');
-        if (subscriptionError) throw subscriptionError;
+        // Fetch subscriptions and search data for each user
+        const customersData: CustomerData[] = await Promise.all(
+          userData.users.map(async (user) => {
+            // Get subscription data
+            const { data: subscriptionData } = await supabase
+              .from('subscriptions')
+              .select('*')
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-        setUsers(userData.users);
-        setSubscriptions(subscriptionData);
+            // Get subscription level details
+            const { data: levelData } = await supabase
+              .from('subscription_levels')
+              .select('max_searches')
+              .eq('level', subscriptionData?.level || 'starter')
+              .maybeSingle();
+
+            // Get searches used this month
+            const startOfMonth = new Date();
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
+
+            const { count: searchesUsed } = await supabase
+              .from('analyzed_urls')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', user.id)
+              .gte('created_at', startOfMonth.toISOString());
+
+            const totalSearches = levelData?.max_searches || 0;
+            const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
+
+            return {
+              user,
+              subscription: subscriptionData || {
+                id: '',
+                user_id: user.id,
+                status: 'inactive',
+                level: 'starter',
+                current_period_end: null
+              },
+              searchesRemaining: remaining,
+              totalSearches
+            };
+          })
+        );
+
+        setCustomers(customersData);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Failed to load admin data');
+        toast.error('Failed to load customer data');
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAdminStatus();
-    fetchData();
+    fetchCustomerData();
   }, [navigate]);
 
   const formatDate = (date: string) => {
@@ -83,63 +128,41 @@ const AdminConsole = () => {
       <div className="container py-8">
         <h1 className="text-4xl font-bold mb-8">Admin Console</h1>
         
-        <Tabs defaultValue="users" className="w-full">
+        <Tabs defaultValue="customers" className="w-full">
           <TabsList>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+            <TabsTrigger value="customers">Customers</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users">
+          <TabsContent value="customers">
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{formatDate(user.created_at)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Active</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="subscriptions">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User ID</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Expiry</TableHead>
+                    <TableHead>Searches</TableHead>
+                    <TableHead>Subscription End</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {subscriptions.map((sub) => (
-                    <TableRow key={sub.id}>
-                      <TableCell>{sub.user_id}</TableCell>
-                      <TableCell className="capitalize">{sub.level}</TableCell>
+                  {customers.map((customer) => (
+                    <TableRow key={customer.user.id}>
+                      <TableCell>{customer.user.email}</TableCell>
+                      <TableCell className="capitalize">{customer.subscription.level}</TableCell>
                       <TableCell>
                         <Badge 
-                          variant={sub.status === 'active' ? 'default' : 'secondary'}
+                          variant={customer.subscription.status === 'active' ? 'default' : 'secondary'}
                         >
-                          {sub.status}
+                          {customer.subscription.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {sub.current_period_end 
-                          ? formatDate(sub.current_period_end)
+                        {customer.searchesRemaining} / {customer.totalSearches}
+                      </TableCell>
+                      <TableCell>
+                        {customer.subscription.current_period_end 
+                          ? formatDate(customer.subscription.current_period_end)
                           : 'N/A'}
                       </TableCell>
                     </TableRow>
