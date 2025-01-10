@@ -1,78 +1,14 @@
-import { useState } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { executeSearch, loadMore } from '@/utils/searchOperations';
 import { toast } from 'sonner';
-import { SearchResults } from '@/types/search';
-import { detectChatbot } from '@/utils/chatbotDetection';
-import { ChatbotDetectionResponse } from '@/types/chatbot';
-
-interface SearchOperationsState {
-  results: SearchResults;
-  isSearching: boolean;
-}
+import { useSearchResults } from './useSearchResults';
+import { useSearchValidation } from './useSearchValidation';
+import { useChatbotAnalysis } from './useChatbotAnalysis';
 
 export const useSearchOperations = (onResults: (results: Result[]) => void) => {
-  const [state, setState] = useState<SearchOperationsState>({
-    results: {
-      currentResults: [],
-      hasMore: false,
-    },
-    isSearching: false,
-  });
-
-  const isValidUrl = (url: string): boolean => {
-    if (!url) return false;
-    try {
-      new URL(url.startsWith('http') ? url : `https://${url}`);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const validateResults = (results: Result[]): Result[] => {
-    return results.filter(result => {
-      if (!result?.url) {
-        console.log('Missing URL:', result);
-        return false;
-      }
-
-      if (!isValidUrl(result.url)) {
-        console.log('Invalid URL format:', result.url);
-        return false;
-      }
-
-      return true;
-    });
-  };
-
-  const analyzeChatbots = async (results: Result[]): Promise<Result[]> => {
-    const analyzedResults = await Promise.all(
-      results.map(async (result) => {
-        if (!result.url) return result;
-
-        try {
-          const response: ChatbotDetectionResponse = await detectChatbot(result.url);
-          return {
-            ...result,
-            status: response.status,
-            details: {
-              ...result.details,
-              chatSolutions: response.chatSolutions || [],
-              lastChecked: response.lastChecked
-            }
-          };
-        } catch (error) {
-          console.error(`Error analyzing ${result.url}:`, error);
-          return {
-            ...result,
-            status: 'Error analyzing URL'
-          };
-        }
-      })
-    );
-    return analyzedResults;
-  };
+  const { results, isSearching, setIsSearching, updateResults } = useSearchResults(onResults);
+  const { validateSearchParams } = useSearchValidation();
+  const { analyzeChatbots } = useChatbotAnalysis();
 
   const handleSearch = async (
     query: string,
@@ -81,74 +17,35 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     apiKey: string,
     resultsLimit: number
   ) => {
-    if (!query.trim()) {
-      toast.error('Please enter a search query');
-      return;
-    }
+    if (!validateSearchParams(query, country)) return;
 
-    if (!country) {
-      toast.error('Please select a country');
-      return;
-    }
-
-    setState(prev => ({ ...prev, isSearching: true }));
+    setIsSearching(true);
     
     try {
-      // Clear previous results before new search
-      setState(prev => ({
-        ...prev,
-        results: {
-          currentResults: [],
-          hasMore: false,
-        }
-      }));
-      
       const searchResult = await executeSearch(
         query,
         country,
         region,
         apiKey,
         resultsLimit,
-        [] // Pass empty array as current results for new search
+        []
       );
-      
-      if (searchResult) {
-        console.log('Raw search results:', searchResult);
-        const validResults = validateResults(searchResult.newResults);
-        console.log('Valid results:', validResults.length);
-        
-        if (validResults.length === 0) {
-          toast.info('No results found. Try adjusting your search terms or location.');
-          setState(prev => ({
-            ...prev,
-            results: {
-              currentResults: [],
-              hasMore: false,
-            }
-          }));
-          onResults([]);
-          return;
-        }
 
-        toast.info('Analyzing websites for chatbots...');
-        const analyzedResults = await analyzeChatbots(validResults);
-        console.log('Analyzed results:', analyzedResults);
-        
-        setState(prev => ({
-          ...prev,
-          results: {
-            currentResults: analyzedResults,
-            hasMore: searchResult.hasMore,
-          }
-        }));
-        onResults(analyzedResults);
-        toast.success(`Found and analyzed ${analyzedResults.length} results`);
+      if (!searchResult) {
+        toast.error('Search failed. Please try again.');
+        return;
       }
+
+      toast.info('Analyzing websites for chatbots...');
+      const analyzedResults = await analyzeChatbots(searchResult.newResults);
+      
+      updateResults(analyzedResults, searchResult.hasMore);
+      toast.success(`Found and analyzed ${analyzedResults.length} results`);
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Search failed. Please try again.');
     } finally {
-      setState(prev => ({ ...prev, isSearching: false }));
+      setIsSearching(false);
     }
   };
 
@@ -164,35 +61,18 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         query,
         country,
         region,
-        state.results.currentResults,
+        results.currentResults,
         newLimit
       );
 
       if (moreResults?.newResults.length) {
-        console.log('Raw more results:', moreResults);
-        const validNewResults = validateResults(moreResults.newResults);
-        console.log('Valid new results:', validNewResults.length);
+        const analyzedNewResults = await analyzeChatbots(moreResults.newResults);
+        const updatedResults = [...results.currentResults, ...analyzedNewResults];
         
-        const existingUrls = new Set(state.results.currentResults.map(r => r.url));
-        const uniqueResults = validNewResults.filter(result => !existingUrls.has(result.url));
-        
-        if (uniqueResults.length > 0) {
-          toast.info('Analyzing new websites for chatbots...');
-          const analyzedNewResults = await analyzeChatbots(uniqueResults);
-          const updatedResults = [...state.results.currentResults, ...analyzedNewResults];
-          
-          setState(prev => ({
-            ...prev,
-            results: {
-              currentResults: updatedResults,
-              hasMore: moreResults.hasMore,
-            }
-          }));
-          onResults(updatedResults);
-          toast.success(`Loaded and analyzed ${analyzedNewResults.length} more results`);
-        } else {
-          toast.info('No more new results found');
-        }
+        updateResults(updatedResults, moreResults.hasMore);
+        toast.success(`Loaded and analyzed ${analyzedNewResults.length} more results`);
+      } else {
+        toast.info('No more new results found');
       }
     } catch (error) {
       console.error('Load more error:', error);
@@ -201,8 +81,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   };
 
   return {
-    results: state.results,
-    isSearching: state.isSearching,
+    results,
+    isSearching,
     handleSearch,
     handleLoadMore,
   };
