@@ -29,7 +29,7 @@ const Login = () => {
       }
 
       // Handle auth errors through the event listener
-      if (event === 'USER_DELETED') {
+      if (event === 'USER_DELETED' as any) {
         setError('User account has been deleted.');
       }
     });
