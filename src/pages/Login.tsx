@@ -23,9 +23,14 @@ const Login = () => {
         navigate('/dashboard');
       }
       
-      // Handle authentication errors
-      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+      // Clear errors on sign out
+      if (event === 'SIGNED_OUT') {
         setError('');
+      }
+
+      // Handle auth errors through the event listener
+      if (event === 'USER_DELETED') {
+        setError('User account has been deleted.');
       }
     });
 
@@ -33,22 +38,6 @@ const Login = () => {
       subscription.unsubscribe();
     };
   }, [session, navigate]);
-
-  // Error handler function
-  const handleAuthError = (error: AuthError) => {
-    console.error('Auth error:', error);
-    
-    switch (error.message) {
-      case 'Invalid login credentials':
-        setError('Invalid email or password. Please check your credentials and try again.');
-        break;
-      case 'Email not confirmed':
-        setError('Please verify your email address before signing in.');
-        break;
-      default:
-        setError(error.message);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in bg-gradient-to-br from-[#0a192f] via-[#0d1f3a] to-[#0a192f]">
@@ -99,7 +88,6 @@ const Login = () => {
                 }}
                 theme="dark"
                 providers={[]}
-                onError={handleAuthError}
               />
             </div>
           </CardContent>
