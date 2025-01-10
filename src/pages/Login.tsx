@@ -2,19 +2,53 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthError } from '@supabase/supabase-js';
 
 const Login = () => {
   const session = useSession();
   const navigate = useNavigate();
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
     if (session) {
       navigate('/dashboard');
     }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN') {
+        navigate('/dashboard');
+      }
+      
+      // Handle authentication errors
+      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+        setError('');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [session, navigate]);
+
+  // Error handler function
+  const handleAuthError = (error: AuthError) => {
+    console.error('Auth error:', error);
+    
+    switch (error.message) {
+      case 'Invalid login credentials':
+        setError('Invalid email or password. Please check your credentials and try again.');
+        break;
+      case 'Email not confirmed':
+        setError('Please verify your email address before signing in.');
+        break;
+      default:
+        setError(error.message);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in bg-gradient-to-br from-[#0a192f] via-[#0d1f3a] to-[#0a192f]">
@@ -29,6 +63,11 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="rounded-lg p-4">
               <Auth
                 supabaseClient={supabase}
@@ -60,6 +99,7 @@ const Login = () => {
                 }}
                 theme="dark"
                 providers={[]}
+                onError={handleAuthError}
               />
             </div>
           </CardContent>
