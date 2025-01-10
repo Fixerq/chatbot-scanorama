@@ -48,54 +48,64 @@ const RegisterAndOrder = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
       
-      if (event === 'SIGNED_IN') {
-        console.log('User signed in:', session?.user?.email);
-        
-        if (session?.user?.id && (firstName || lastName)) {
-          try {
-            const { error: updateError } = await supabase
-              .from('profiles')
-              .update({ 
-                first_name: firstName || null, 
-                last_name: lastName || null 
-              })
-              .eq('id', session.user.id);
+      switch (event) {
+        case 'SIGNED_IN':
+          console.log('User signed in:', session?.user?.email);
+          
+          if (session?.user?.id && (firstName || lastName)) {
+            try {
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ 
+                  first_name: firstName || null, 
+                  last_name: lastName || null 
+                })
+                .eq('id', session.user.id);
 
-            if (updateError) {
-              console.error('Error updating profile:', updateError);
+              if (updateError) {
+                console.error('Error updating profile:', updateError);
+                toast({
+                  title: "Error",
+                  description: "Failed to update profile information",
+                  variant: "destructive",
+                });
+              } else {
+                console.log('Profile updated successfully');
+              }
+            } catch (error) {
+              console.error('Error in profile update:', error);
               toast({
                 title: "Error",
                 description: "Failed to update profile information",
                 variant: "destructive",
               });
-            } else {
-              console.log('Profile updated successfully');
             }
-          } catch (error) {
-            console.error('Error in profile update:', error);
+          }
+          console.log('Waiting for email verification...');
+          break;
+
+        case 'SIGNED_OUT':
+          // Check URL hash for email confirmation error
+          const errorMessage = window.location.hash;
+          if (errorMessage.includes('error=email_confirmation')) {
             toast({
-              title: "Error",
-              description: "Failed to update profile information",
+              title: "Email Rate Limit",
+              description: "Too many confirmation emails sent. Please wait a few minutes before trying again.",
               variant: "destructive",
             });
           }
-        }
+          break;
 
-        // Don't automatically redirect to checkout here
-        // Wait for email verification
-        console.log('Waiting for email verification...');
-      }
+        case 'USER_UPDATED':
+        case 'TOKEN_REFRESHED':
+        case 'PASSWORD_RECOVERY':
+          // Handle other auth events if needed
+          console.log('Auth event handled:', event);
+          break;
 
-      // Handle auth errors
-      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
-        const errorMessage = window.location.hash;
-        if (errorMessage.includes('error=email_confirmation')) {
-          toast({
-            title: "Email Rate Limit",
-            description: "Too many confirmation emails sent. Please wait a few minutes before trying again.",
-            variant: "destructive",
-          });
-        }
+        default:
+          console.log('Unhandled auth event:', event);
+          break;
       }
     });
 
