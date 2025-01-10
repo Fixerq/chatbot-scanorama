@@ -27,10 +27,33 @@ export class FirecrawlService {
     }
   }
 
+  private static formatUrl(url: string): string {
+    try {
+      // Remove any trailing colons
+      url = url.replace(/:$/, '');
+      
+      // If the URL doesn't start with http:// or https://, add https://
+      if (!url.match(/^https?:\/\//i)) {
+        url = 'https://' + url;
+      }
+      
+      // Validate the URL
+      new URL(url);
+      return url;
+    } catch (error) {
+      console.error('Invalid URL format:', error);
+      throw new Error('Invalid URL format');
+    }
+  }
+
   static async crawlWebsite(url: string): Promise<{ success: boolean; error?: string; data?: any }> {
     try {
       console.log('Making crawl request to Firecrawl API');
       this.initializeApp();
+
+      // Format and validate the URL before making the request
+      const formattedUrl = this.formatUrl(url);
+      console.log('Formatted URL:', formattedUrl);
 
       const scrapeOptions: CrawlScrapeOptions = {
         formats: ["html" as CrawlFormat],
@@ -44,7 +67,7 @@ export class FirecrawlService {
         }
       };
 
-      const crawlResponse = await this.firecrawlApp!.crawlUrl(url, {
+      const crawlResponse = await this.firecrawlApp!.crawlUrl(formattedUrl, {
         limit: 1,
         scrapeOptions
       }) as CrawlResponse;
