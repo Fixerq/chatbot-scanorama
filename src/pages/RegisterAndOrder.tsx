@@ -141,11 +141,7 @@ const RegisterAndOrder = () => {
       window.location.href = data.url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process subscription. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to process subscription. Please try again.");
       setLoading(false);
     }
   };
