@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import RegistrationForm from '@/components/auth/RegistrationForm';
 import SubscriptionHandler from '@/components/subscription/SubscriptionHandler';
+import { toast } from 'sonner';
 
 const RegisterAndOrder = () => {
   const [loading, setLoading] = useState(false);
@@ -14,37 +15,38 @@ const RegisterAndOrder = () => {
   };
 
   const handleSubscription = async () => {
-    if (!registeredEmail) return;
+    if (!registeredEmail) {
+      toast.error('Please complete registration first');
+      return;
+    }
     
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        throw new Error('No authenticated user found');
+        toast.error('Please sign in to continue');
+        navigate('/login');
+        return;
       }
 
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
+        body: {
           email: registeredEmail,
           returnUrl: window.location.origin + '/success',
-        }),
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create checkout session');
-      }
+      if (checkoutError) throw checkoutError;
 
-      const data = await response.json();
-      window.location.href = data.url;
-    } catch (error) {
+      if (checkoutData?.url) {
+        window.location.href = checkoutData.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
       console.error('Error creating checkout session:', error);
-      throw error;
+      toast.error(error.message || 'Failed to process subscription. Please try again.');
     } finally {
       setLoading(false);
     }
