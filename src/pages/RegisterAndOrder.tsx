@@ -24,6 +24,21 @@ const RegisterAndOrder = () => {
   const planName = searchParams.get('planName');
 
   useEffect(() => {
+    // Check if this is a redirect back from email verification
+    const handleEmailVerification = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        console.log('Email verified, proceeding with checkout...');
+        if (priceId) {
+          await handleCheckout();
+        }
+      }
+    };
+
+    handleEmailVerification();
+  }, []);
+
+  useEffect(() => {
     if (session?.access_token && priceId) {
       handleCheckout();
     }
@@ -58,9 +73,9 @@ const RegisterAndOrder = () => {
           }
         }
 
-        if (priceId) {
-          handleCheckout();
-        }
+        // Don't automatically redirect to checkout here
+        // Wait for email verification
+        console.log('Waiting for email verification...');
       }
     });
 
