@@ -73,8 +73,6 @@ const RegisterAndOrder = () => {
           }
         }
 
-        // Don't automatically redirect to checkout here
-        // Wait for email verification
         console.log('Waiting for email verification...');
       }
     });
@@ -93,13 +91,16 @@ const RegisterAndOrder = () => {
     setLoading(true);
     try {
       console.log('Creating checkout session for price:', priceId);
+      // Ensure proper URL construction by removing any trailing colons
+      const returnUrl = new URL('/success', window.location.origin).toString();
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${session.access_token}`
         },
         body: { 
           priceId,
-          returnUrl: `${window.location.origin}/success`,
+          returnUrl,
           customerName: `${firstName} ${lastName}`.trim()
         }
       });
