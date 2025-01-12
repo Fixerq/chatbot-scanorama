@@ -20,6 +20,13 @@
         ERROR: 'ERROR'
       };
 
+      // Allowed origins
+      const ALLOWED_ORIGINS = [
+        'https://detectify.engageai.pro',
+        'http://localhost:8080',
+        'http://localhost:3000'
+      ];
+
       // Handle incoming messages
       channel.onmessage = function(event) {
         try {
@@ -27,6 +34,13 @@
           
           if (!event.data || !event.data.type) {
             console.warn('Invalid message format');
+            return;
+          }
+
+          // Validate origin
+          const origin = event.origin || window.location.origin;
+          if (!ALLOWED_ORIGINS.includes(origin)) {
+            console.error('Invalid origin:', origin);
             return;
           }
 

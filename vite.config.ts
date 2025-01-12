@@ -3,12 +3,11 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: true, // This will allow proper network access
+    host: true,
     port: 8080,
-    strictPort: true, // Ensure we always use port 8080
+    strictPort: true,
   },
   plugins: [
     react(),
@@ -20,4 +19,5 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  base: mode === 'production' ? 'https://detectify.engageai.pro/' : '/',
 }));
