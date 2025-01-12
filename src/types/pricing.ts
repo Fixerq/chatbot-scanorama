@@ -4,6 +4,7 @@ export type PricingPlan = {
   description: string;
   features: string[];
   priceId: string;
+  productId: string;
   popular?: boolean;
   special?: boolean;
 };

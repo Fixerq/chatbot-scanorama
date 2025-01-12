@@ -10,7 +10,7 @@ export const useSubscription = () => {
   const supabase = useSupabaseClient();
   const navigate = useNavigate();
 
-  const handleSubscribe = async (priceId: string) => {
+  const handleSubscribe = async (priceId: string, productId: string) => {
     if (hasSubscription) {
       toast.error("You already have an active subscription");
       return;
@@ -27,6 +27,7 @@ export const useSubscription = () => {
           },
           body: { 
             priceId,
+            productId,
             returnUrl: window.location.origin
           }
         });
@@ -42,6 +43,7 @@ export const useSubscription = () => {
         const { data, error } = await supabase.functions.invoke('create-guest-checkout', {
           body: { 
             priceId,
+            productId,
             successUrl: `${window.location.origin}/register-and-order`,
             cancelUrl: window.location.origin
           }

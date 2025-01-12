@@ -11,7 +11,8 @@ interface PricingCardProps {
   popular?: boolean;
   special?: boolean;
   priceId: string;
-  onSubscribe: (priceId: string) => void;
+  productId: string;
+  onSubscribe: (priceId: string, productId: string) => void;
   isLoading?: boolean;
   hasSubscription?: boolean;
 }
@@ -24,6 +25,7 @@ const PricingCard = ({
   popular,
   special,
   priceId,
+  productId,
   onSubscribe,
   isLoading = false,
   hasSubscription = false
@@ -64,7 +66,7 @@ const PricingCard = ({
       </ul>
 
       <Button
-        onClick={() => onSubscribe(priceId)}
+        onClick={() => onSubscribe(priceId, productId)}
         disabled={isLoading || hasSubscription}
         className={`mt-8 w-full ${
           special
