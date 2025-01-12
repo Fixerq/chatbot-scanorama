@@ -27,8 +27,10 @@ export const RegistrationForm = ({
       if (event === 'SIGNED_IN' && session?.user?.id) {
         console.log('User signed up, waiting for profile creation...');
         
-        // Wait a bit to ensure the trigger has created the profile
-        setTimeout(async () => {
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        const updateProfile = async () => {
           try {
             // First check if profile exists
             const { data: profile, error: fetchError } = await supabase
@@ -40,9 +42,13 @@ export const RegistrationForm = ({
             if (fetchError) throw fetchError;
             
             if (!profile) {
-              console.error('Profile not found after signup');
-              toast.error('Profile creation failed');
-              return;
+              if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`Profile not found, retry attempt ${retryCount}`);
+                setTimeout(updateProfile, 1000);
+                return;
+              }
+              throw new Error('Profile creation failed after retries');
             }
 
             console.log('Profile found, updating with names:', { firstName, lastName });
@@ -63,13 +69,17 @@ export const RegistrationForm = ({
             const authError = error as AuthError;
             console.error('Error updating profile:', authError);
             
-            if (authError.message?.includes('timeout')) {
+            if (authError.message?.includes('Failed to fetch')) {
+              toast.error('Connection error. Please check your internet connection and try again.');
+            } else if (authError.message?.includes('timeout')) {
               toast.error('Connection timeout. Please try again.');
             } else {
-              toast.error('Failed to update profile information');
+              toast.error('Failed to update profile information. Please try again.');
             }
           }
-        }, 1000);
+        };
+
+        await updateProfile();
       }
     });
 
@@ -110,7 +120,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          redirectTo={window.location.origin}
+          redirectTo={`${window.location.origin}/dashboard`}
         />
       </div>
     </div>
