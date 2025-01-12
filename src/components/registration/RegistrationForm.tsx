@@ -1,6 +1,6 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { SupabaseClient, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { NameFields } from './NameFields';
@@ -23,11 +23,11 @@ export const RegistrationForm = ({
   priceId 
 }: RegistrationFormProps) => {
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user?.id) {
-        console.log('User signed up, updating profile...');
+        console.log('User signed up, updating profile with names:', firstName, lastName);
         
         try {
           // Update profile with names
@@ -39,13 +39,17 @@ export const RegistrationForm = ({
             })
             .eq('id', session.user.id);
 
-          if (updateError) throw updateError;
+          if (updateError) {
+            console.error('Profile update error:', updateError);
+            throw updateError;
+          }
           
           console.log('Profile updated successfully');
           
-          // If we have a priceId, redirect to Stripe checkout
+          // If we have a priceId, create checkout session
           if (priceId) {
             console.log('Creating checkout session for price:', priceId);
+            
             const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
               body: { 
                 priceId,
@@ -63,6 +67,7 @@ export const RegistrationForm = ({
             }
             
             if (!checkoutData?.url) {
+              console.error('No checkout URL received');
               toast.error('Unable to create checkout session');
               return;
             }
