@@ -92,8 +92,14 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          redirectTo={window.location.origin}
-          defaultEmail={customerEmail || undefined}
+          supabaseClientOptions={{
+            emailRedirectTo: window.location.origin,
+            defaultEmailRedirectTo: window.location.origin,
+            emailRedirectToCallback: window.location.origin,
+            data: {
+              email: customerEmail || undefined
+            }
+          }}
         />
       </div>
     </div>
