@@ -19,5 +19,5 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: mode === 'production' ? 'https://detectify.engageai.pro/' : '/',
+  base: mode === 'production' ? 'https://detectifys.engageai.pro/' : '/',
 }));

@@ -13,4 +13,4 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Access-Control-Allow-Origin = "https://detectify.engageai.pro"
+    Access-Control-Allow-Origin = "https://detectifys.engageai.pro"
