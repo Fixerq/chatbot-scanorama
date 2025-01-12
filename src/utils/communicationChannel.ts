@@ -25,35 +25,49 @@ declare global {
   }
 }
 
+// Get current origin
+function getCurrentOrigin(): string {
+  return window.location.origin;
+}
+
+// Validate origin
+function isValidOrigin(origin: string): boolean {
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
 // Handle element updates
 function handleElementUpdate(data: any) {
   console.log('Handling element update:', data);
-  if (window.parent && window.parent.postMessage) {
+  const targetOrigin = getCurrentOrigin();
+  if (window.parent && window.parent.postMessage && isValidOrigin(targetOrigin)) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.ELEMENTS_UPDATED,
       success: true
-    }, { targetOrigin: '*' });
+    }, targetOrigin);
   }
 }
 
 // Handle selector toggle
 function handleSelectorToggle(data: any) {
   console.log('Handling selector toggle:', data);
-  if (window.parent && window.parent.postMessage) {
+  const targetOrigin = getCurrentOrigin();
+  if (window.parent && window.parent.postMessage && isValidOrigin(targetOrigin)) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.SELECTOR_TOGGLED,
       success: true
-    }, { targetOrigin: '*' });
+    }, targetOrigin);
   }
 }
 
 // Initialize communication channel
 export function initializeCommunication() {
+  console.log('Initializing communication channel from origin:', getCurrentOrigin());
+  
   // Handle incoming messages
   window.addEventListener('message', function(event) {
     try {
       // Check if origin is allowed
-      if (!ALLOWED_ORIGINS.includes(event.origin)) {
+      if (!isValidOrigin(event.origin)) {
         console.warn('Message received from unauthorized origin:', event.origin);
         return;
       }
@@ -78,11 +92,12 @@ export function initializeCommunication() {
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      if (event.source && 'postMessage' in event.source) {
-        event.source.postMessage({
+      const targetOrigin = event.origin;
+      if (event.source && 'postMessage' in event.source && isValidOrigin(targetOrigin)) {
+        (event.source as Window).postMessage({
           type: MESSAGE_TYPES.ERROR,
           error: (error as Error).message
-        }, { targetOrigin: event.origin });
+        }, targetOrigin);
       }
     }
   });
@@ -91,8 +106,11 @@ export function initializeCommunication() {
   window.sendMessage = function(message: any) {
     try {
       console.log('Sending message:', message);
-      if (window.parent && window.parent.postMessage) {
-        window.parent.postMessage(message, { targetOrigin: '*' });
+      const targetOrigin = getCurrentOrigin();
+      if (window.parent && window.parent.postMessage && isValidOrigin(targetOrigin)) {
+        window.parent.postMessage(message, targetOrigin);
+      } else {
+        console.warn('Invalid target origin or missing postMessage support');
       }
     } catch (error) {
       console.error('Error sending message:', error);
