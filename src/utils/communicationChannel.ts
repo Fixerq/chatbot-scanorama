@@ -9,13 +9,8 @@ export const MESSAGE_TYPES = {
 
 // Allowed origins
 export const ALLOWED_ORIGINS = [
-  'https://detectifys.engageai.pro',
   'https://detectify.engageai.pro',
-  'http://localhost:8080',
-  'http://localhost:3000',
-  'https://gptengineer.app',
-  'https://lovable.dev',
-  'https://cdn.gpteng.co'
+  'https://detectifys.engageai.pro'
 ];
 
 // Message interface

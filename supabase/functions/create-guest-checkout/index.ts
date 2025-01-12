@@ -8,8 +8,15 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 });
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      }
+    });
   }
 
   try {
@@ -42,7 +49,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ url: session.url }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
         status: 200,
       },
     );
@@ -51,7 +61,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         status: 400,
       },
     );
