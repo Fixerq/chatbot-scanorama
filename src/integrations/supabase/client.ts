@@ -17,9 +17,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'x-my-custom-header': 'my-app-name',
+      'Content-Type': 'application/json'
     },
-    // Add fetch options for timeout
     fetch: (url, options = {}) => {
       return fetch(url, {
         ...options,

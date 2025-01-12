@@ -11,18 +11,16 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
+      headers: corsHeaders
     });
   }
 
   try {
+    console.log('Received guest checkout request');
     const { priceId, successUrl, cancelUrl } = await req.json();
     
     if (!priceId || !successUrl || !cancelUrl) {
+      console.error('Missing required parameters');
       throw new Error('Missing required parameters');
     }
 
@@ -36,7 +34,7 @@ serve(async (req) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}&planName=${encodeURIComponent(getPlanName(priceId))}`,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
@@ -49,10 +47,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ url: session.url }),
       {
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     );
@@ -61,12 +56,22 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       },
     );
   }
 });
+
+function getPlanName(priceId: string): string {
+  switch (priceId) {
+    case 'price_1QfP20EiWhAkWDnrDhllA5a1':
+      return 'Founders Plan';
+    case 'price_1QfP3LEiWhAkWDnrTYVVFBk9':
+      return 'Pro Plan';
+    case 'price_1QfP4KEiWhAkWDnrNXFYWR9L':
+      return 'Starter Plan';
+    default:
+      return 'Selected Plan';
+  }
+}
