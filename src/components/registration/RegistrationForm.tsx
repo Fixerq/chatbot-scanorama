@@ -92,7 +92,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          options={{
+          supabaseAuthClientOptions={{
             emailRedirectTo: window.location.origin,
             defaultEmail: customerEmail || undefined
           }}
