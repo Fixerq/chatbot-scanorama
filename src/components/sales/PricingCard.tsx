@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { PricingFeature } from "./PricingFeature";
+import PricingFeature from "./PricingFeature";
 import { Crown } from "lucide-react";
 
 interface PricingCardProps {
