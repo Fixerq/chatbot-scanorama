@@ -78,7 +78,6 @@ const AdminConsole = () => {
         const isAdmin = await checkAdminStatus();
         if (!isAdmin) return;
 
-        // First, fetch all profiles
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*');
@@ -88,7 +87,6 @@ const AdminConsole = () => {
           throw profilesError;
         }
 
-        // Then, fetch all subscriptions
         const { data: subscriptionsData, error: subscriptionsError } = await supabase
           .from('subscriptions')
           .select('*');
@@ -98,7 +96,6 @@ const AdminConsole = () => {
           throw subscriptionsError;
         }
 
-        // Fetch subscription levels for search limits
         const { data: subscriptionLevels, error: levelsError } = await supabase
           .from('subscription_levels')
           .select('*');
@@ -112,15 +109,12 @@ const AdminConsole = () => {
           subscriptionLevels?.map(level => [level.level, level.max_searches]) || []
         );
 
-        // Get searches used this month for each user
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
-        // Map profiles to customer data
         const customersData: CustomerData[] = await Promise.all(
           (profilesData || []).map(async (profile) => {
-            // Find the corresponding subscription
             const subscription = subscriptionsData?.find(sub => sub.user_id === profile.id) || {
               id: '',
               user_id: profile.id,
@@ -135,10 +129,13 @@ const AdminConsole = () => {
               .eq('user_id', profile.id)
               .gte('created_at', startOfMonth.toISOString());
 
-            // Fetch email for this user
-            const { data: emailData } = await supabase.functions.invoke('get-customer-email', {
+            const { data: emailData, error: emailError } = await supabase.functions.invoke('get-customer-email', {
               body: { userId: profile.id }
             });
+
+            if (emailError) {
+              console.error('Error fetching email:', emailError);
+            }
 
             const totalSearches = levelsMap.get(subscription.level || 'starter') || 0;
             const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
@@ -148,7 +145,7 @@ const AdminConsole = () => {
               subscription,
               searchesRemaining: remaining,
               totalSearches,
-              email: emailData?.email || profile.id // Fallback to ID if email fetch fails
+              email: emailData?.email || profile.id
             };
           })
         );
@@ -167,7 +164,6 @@ const AdminConsole = () => {
 
   const handleUpdateSearchVolume = async (userId: string, newTotal: number) => {
     try {
-      // Get current subscription level
       const { data: currentSub } = await supabase
         .from('subscriptions')
         .select('level')
@@ -178,7 +174,6 @@ const AdminConsole = () => {
         throw new Error('No subscription level found');
       }
 
-      // Update the subscription_levels table for this level
       const { error: updateError } = await supabase
         .from('subscription_levels')
         .upsert({
@@ -192,8 +187,6 @@ const AdminConsole = () => {
       }
 
       toast.success('Search volume updated successfully');
-      
-      // Refresh the customer data
       window.location.reload();
     } catch (error) {
       console.error('Error updating search volume:', error);
@@ -204,7 +197,6 @@ const AdminConsole = () => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Create profile directly
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert([
@@ -215,7 +207,6 @@ const AdminConsole = () => {
 
       if (profileError) throw profileError;
 
-      // Create subscription for the new user
       if (profileData) {
         const { error: subscriptionError } = await supabase
           .from('subscriptions')
@@ -233,8 +224,6 @@ const AdminConsole = () => {
       toast.success('User created successfully');
       setNewUserEmail('');
       setNewUserSearches('10');
-      
-      // Refresh the customer data
       window.location.reload();
     } catch (error) {
       console.error('Error creating user:', error);
