@@ -28,7 +28,8 @@ export const RegistrationForm = ({
         console.log('User signed up, waiting for profile creation...');
         
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 5; // Increased retries
+        const retryDelay = 2000; // 2 seconds between retries
         
         const updateProfile = async () => {
           try {
@@ -39,13 +40,16 @@ export const RegistrationForm = ({
               .eq('id', session.user.id)
               .maybeSingle();
 
-            if (fetchError) throw fetchError;
+            if (fetchError) {
+              console.error('Error fetching profile:', fetchError);
+              throw fetchError;
+            }
             
             if (!profile) {
               if (retryCount < maxRetries) {
                 retryCount++;
-                console.log(`Profile not found, retry attempt ${retryCount}`);
-                setTimeout(updateProfile, 1000);
+                console.log(`Profile not found, retry attempt ${retryCount} in ${retryDelay}ms`);
+                setTimeout(updateProfile, retryDelay);
                 return;
               }
               throw new Error('Profile creation failed after retries');
@@ -69,10 +73,15 @@ export const RegistrationForm = ({
             const authError = error as AuthError;
             console.error('Error updating profile:', authError);
             
-            if (authError.message?.includes('Failed to fetch')) {
-              toast.error('Connection error. Please check your internet connection and try again.');
-            } else if (authError.message?.includes('timeout')) {
-              toast.error('Connection timeout. Please try again.');
+            if (retryCount < maxRetries) {
+              retryCount++;
+              console.log(`Error occurred, retrying (${retryCount}/${maxRetries})...`);
+              setTimeout(updateProfile, retryDelay);
+              return;
+            }
+            
+            if (authError.message?.includes('timeout') || authError.message?.includes('Failed to fetch')) {
+              toast.error('Connection timeout. Please try again or check your internet connection.');
             } else {
               toast.error('Failed to update profile information. Please try again.');
             }
