@@ -8,7 +8,7 @@
     <meta name="author" content="EngageAI" />
     <meta property="og:image" content="/og-image.png" />
     <script>
-      // Configure allowed origins for postMessage
+      // Configure allowed origins for postMessage with proper port
       window.ALLOWED_ORIGINS = [
         "https://detectify.engageai.pro",
         "https://lovable.dev",
@@ -16,15 +16,47 @@
         "https://gptengineer.app"
       ];
       
-      // Add message event listener with origin validation
-      window.addEventListener("message", (event) => {
-        if (!window.ALLOWED_ORIGINS.includes(event.origin)) {
-          console.warn(`Blocked message from untrusted origin: ${event.origin}`);
-          return;
+      // Add message event listener with origin validation and error handling
+      window.addEventListener("message", function(event) {
+        try {
+          // Check if origin is allowed
+          if (!window.ALLOWED_ORIGINS.includes(event.origin)) {
+            console.warn(`Blocked message from untrusted origin: ${event.origin}`);
+            return;
+          }
+
+          // Validate message data
+          if (!event.data) {
+            console.warn('Received empty message');
+            return;
+          }
+
+          // Process the message
+          console.log("Received message:", event.data);
+          
+          // Handle specific message types if needed
+          if (event.data.type === 'UPDATE_SELECTED_ELEMENTS' || 
+              event.data.type === 'TOGGLE_SELECTOR') {
+            // Process these specific message types
+            console.log(`Processing ${event.data.type} message`);
+          }
+        } catch (error) {
+          console.error('Error processing message:', error);
         }
-        // Process the message
-        console.log("Received message:", event.data);
       });
+
+      // Helper function to safely send messages
+      window.sendMessage = function(message, targetOrigin) {
+        try {
+          if (!window.ALLOWED_ORIGINS.includes(targetOrigin)) {
+            console.warn(`Attempted to send message to untrusted origin: ${targetOrigin}`);
+            return;
+          }
+          window.postMessage(message, targetOrigin);
+        } catch (error) {
+          console.error('Error sending message:', error);
+        }
+      };
     </script>
   </head>
 
