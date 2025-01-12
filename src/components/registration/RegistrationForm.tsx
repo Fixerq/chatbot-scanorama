@@ -1,6 +1,6 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient, AuthError } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { NameFields } from './NameFields';
@@ -22,8 +22,8 @@ export const RegistrationForm = ({
 }: RegistrationFormProps) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_UP') {
-        console.log('User signed up:', session?.user.id);
+      if (event === 'SIGNED_IN' && session?.user.id) {
+        console.log('User signed in:', session.user.id);
         try {
           const { error: updateError } = await supabase
             .from('profiles')
@@ -31,12 +31,13 @@ export const RegistrationForm = ({
               first_name: firstName,
               last_name: lastName
             })
-            .eq('id', session?.user.id);
+            .eq('id', session.user.id);
 
           if (updateError) throw updateError;
           toast.success('Registration successful!');
         } catch (error) {
-          console.error('Error updating profile:', error);
+          const authError = error as AuthError;
+          console.error('Error updating profile:', authError);
           toast.error('Failed to update profile information');
         }
       }
