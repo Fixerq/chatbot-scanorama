@@ -16,59 +16,40 @@ const RegisterAndOrder = () => {
   const [error, setError] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   
   const priceId = searchParams.get('priceId');
   const planName = searchParams.get('planName');
+  const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
-    if (session?.user) {
-      console.log('User is authenticated:', session.user);
-      if (priceId) {
-        handleCheckout();
-      } else {
-        navigate('/dashboard');
-      }
-    }
-  }, [session]);
+    const getCustomerDetails = async () => {
+      if (!sessionId) return;
 
-  const handleCheckout = async () => {
-    if (!session?.access_token) {
-      console.error('No access token available');
-      return;
-    }
+      try {
+        setLoading(true);
+        const { data, error } = await supabase.functions.invoke('get-customer-details', {
+          body: { sessionId }
+        });
 
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const returnUrl = `${window.location.origin}/success`;
-      
-      const { data, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: { 
-          priceId,
-          returnUrl,
-          customerName: `${firstName} ${lastName}`.trim()
+        if (error) throw error;
+
+        if (data?.customer) {
+          const names = data.customer.name?.split(' ') || ['', ''];
+          setFirstName(names[0] || '');
+          setLastName(names.slice(1).join(' ') || '');
+          setCustomerEmail(data.customer.email || null);
         }
-      });
-
-      if (checkoutError) throw checkoutError;
-      
-      if (!data?.url) {
-        throw new Error('No checkout URL received');
+      } catch (error) {
+        console.error('Error fetching customer details:', error);
+        toast.error('Failed to fetch customer information');
+      } finally {
+        setLoading(false);
       }
+    };
 
-      console.log('Redirecting to checkout:', data.url);
-      window.location.href = data.url;
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast.error('Failed to process subscription. Please try again.');
-      setError('Failed to create checkout session. Please try again.');
-      setLoading(false);
-    }
-  };
+    getCustomerDetails();
+  }, [sessionId, supabase.functions]);
 
   if (!priceId || !planName) {
     return (
@@ -101,7 +82,7 @@ const RegisterAndOrder = () => {
             {loading ? (
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto"></div>
-                <p className="mt-2 text-muted-foreground">Processing...</p>
+                <p className="mt-2 text-muted-foreground">Loading customer details...</p>
               </div>
             ) : (
               <RegistrationForm
@@ -111,6 +92,7 @@ const RegisterAndOrder = () => {
                 setFirstName={setFirstName}
                 setLastName={setLastName}
                 priceId={priceId}
+                customerEmail={customerEmail}
               />
             )}
           </CardContent>

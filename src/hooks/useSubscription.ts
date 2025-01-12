@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -10,42 +10,9 @@ export const useSubscription = () => {
   const supabase = useSupabaseClient();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkSubscription = async () => {
-      if (!session?.access_token) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        console.log('Checking subscription status...');
-        const { data, error } = await supabase.functions.invoke('check-subscription', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`
-          }
-        });
-        
-        if (error) {
-          console.error('Subscription check error:', error);
-          throw error;
-        }
-        
-        console.log('Subscription status:', data);
-        setHasSubscription(data.hasSubscription);
-      } catch (error) {
-        console.error('Error checking subscription:', error);
-        toast.error("Failed to check subscription status.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkSubscription();
-  }, [session, supabase.functions]);
-
   const handleSubscribe = async (priceId: string) => {
     if (hasSubscription) {
-      toast.error("You already have an active subscription. Please manage your subscription in your account settings.");
+      toast.error("You already have an active subscription");
       return;
     }
 
@@ -53,6 +20,7 @@ export const useSubscription = () => {
     
     try {
       if (session) {
+        // If user is logged in, proceed with normal checkout
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           headers: {
             Authorization: `Bearer ${session.access_token}`
@@ -63,22 +31,31 @@ export const useSubscription = () => {
           }
         });
 
-        if (error) {
-          console.error('Checkout error:', error);
-          throw error;
-        }
+        if (error) throw error;
         
         if (data?.url) {
           console.log('Redirecting to checkout:', data.url);
           window.location.href = data.url;
         }
       } else {
-        const planName = getPlanName(priceId);
-        const params = new URLSearchParams({
-          priceId,
-          planName,
+        // If user is not logged in, create a guest checkout session
+        const { data, error } = await supabase.functions.invoke('create-guest-checkout', {
+          body: { 
+            priceId,
+            successUrl: `${window.location.origin}/register-and-order`,
+            cancelUrl: window.location.origin
+          }
         });
-        navigate(`/register-and-order?${params.toString()}`);
+
+        if (error) {
+          console.error('Guest checkout error:', error);
+          throw error;
+        }
+        
+        if (data?.url) {
+          console.log('Redirecting to guest checkout:', data.url);
+          window.location.href = data.url;
+        }
       }
     } catch (error) {
       console.error('Error in subscription process:', error);

@@ -12,6 +12,7 @@ interface RegistrationFormProps {
   setFirstName: (value: string) => void;
   setLastName: (value: string) => void;
   priceId?: string;
+  customerEmail?: string | null;
 }
 
 export const RegistrationForm = ({ 
@@ -20,7 +21,8 @@ export const RegistrationForm = ({
   lastName, 
   setFirstName, 
   setLastName,
-  priceId 
+  priceId,
+  customerEmail 
 }: RegistrationFormProps) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -30,7 +32,6 @@ export const RegistrationForm = ({
         console.log('User signed up, updating profile with names:', firstName, lastName);
         
         try {
-          // Update profile with names
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
@@ -45,38 +46,8 @@ export const RegistrationForm = ({
           }
           
           console.log('Profile updated successfully');
+          toast.success('Registration successful!');
           
-          // If we have a priceId, create checkout session
-          if (priceId) {
-            console.log('Creating checkout session for price:', priceId);
-            
-            const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
-              body: { 
-                priceId,
-                returnUrl: window.location.origin + '/success'
-              },
-              headers: {
-                Authorization: `Bearer ${session.access_token}`
-              }
-            });
-            
-            if (checkoutError) {
-              console.error('Checkout session error:', checkoutError);
-              toast.error('Failed to create checkout session. Please try again.');
-              return;
-            }
-            
-            if (!checkoutData?.url) {
-              console.error('No checkout URL received');
-              toast.error('Unable to create checkout session');
-              return;
-            }
-
-            console.log('Redirecting to checkout:', checkoutData.url);
-            window.location.href = checkoutData.url;
-          } else {
-            toast.success('Registration successful!');
-          }
         } catch (error) {
           console.error('Error in registration process:', error);
           toast.error('Failed to complete registration. Please try again.');
@@ -121,6 +92,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
+          defaultValues={customerEmail ? { email: customerEmail } : undefined}
         />
       </div>
     </div>
