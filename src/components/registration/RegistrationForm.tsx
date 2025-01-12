@@ -92,7 +92,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          defaultValues={customerEmail ? { email: customerEmail } : undefined}
+          defaultEmail={customerEmail || undefined}
         />
       </div>
     </div>
