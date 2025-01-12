@@ -22,27 +22,45 @@ const RegisterAndOrder = () => {
   const planName = searchParams.get('planName');
   const sessionId = searchParams.get('session_id');
 
+  console.log('RegisterAndOrder: Initial params:', { priceId, planName, sessionId });
+
   useEffect(() => {
     const getCustomerDetails = async () => {
-      if (!sessionId) return;
+      if (!sessionId) {
+        console.log('No session ID provided');
+        return;
+      }
 
       try {
         setLoading(true);
+        console.log('Fetching customer details for session:', sessionId);
+        
         const { data, error } = await supabase.functions.invoke('get-customer-details', {
           body: { sessionId }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching customer details:', error);
+          throw error;
+        }
+
+        console.log('Customer details received:', data);
 
         if (data?.customer) {
           const names = data.customer.name?.split(' ') || ['', ''];
           setFirstName(names[0] || '');
           setLastName(names.slice(1).join(' ') || '');
           setCustomerEmail(data.customer.email || null);
+          console.log('Customer details set:', { 
+            firstName: names[0], 
+            lastName: names.slice(1).join(' '), 
+            email: data.customer.email 
+          });
         }
       } catch (error) {
-        console.error('Error fetching customer details:', error);
+        console.error('Error in getCustomerDetails:', error);
         toast.error('Failed to fetch customer information');
+        setError('Failed to fetch customer information. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -52,6 +70,7 @@ const RegisterAndOrder = () => {
   }, [sessionId, supabase.functions]);
 
   if (!priceId || !planName) {
+    console.log('Missing required parameters');
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
         <Card className="w-full max-w-md border-none shadow-xl bg-gradient-to-br from-card to-card/90">
