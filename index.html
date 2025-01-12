@@ -7,6 +7,25 @@
     <meta name="description" content="Discover and analyze chatbot technologies across local businesses with Detectify by EngageAI. The ultimate tool for data-driven prospecting in conversational AI." />
     <meta name="author" content="EngageAI" />
     <meta property="og:image" content="/og-image.png" />
+    <script>
+      // Configure allowed origins for postMessage
+      window.ALLOWED_ORIGINS = [
+        "https://detectify.engageai.pro",
+        "https://lovable.dev",
+        "http://localhost:8080",
+        "https://gptengineer.app"
+      ];
+      
+      // Add message event listener with origin validation
+      window.addEventListener("message", (event) => {
+        if (!window.ALLOWED_ORIGINS.includes(event.origin)) {
+          console.warn(`Blocked message from untrusted origin: ${event.origin}`);
+          return;
+        }
+        // Process the message
+        console.log("Received message:", event.data);
+      });
+    </script>
   </head>
 
   <body>
