@@ -62,7 +62,13 @@ export const RegistrationForm = ({
           } catch (error) {
             const authError = error as AuthError;
             console.error('Error updating profile:', authError);
-            toast.error('Failed to update profile information');
+            
+            // Handle timeout specifically
+            if (authError.message?.includes('timeout')) {
+              toast.error('Connection timeout. Please try again.');
+            } else {
+              toast.error('Failed to update profile information');
+            }
           }
         }, 1000);
       }
@@ -105,7 +111,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          redirectTo={`${window.location.origin}/dashboard`}
+          redirectTo={window.location.origin + '/dashboard'}
         />
       </div>
     </div>
