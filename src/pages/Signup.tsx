@@ -42,7 +42,7 @@ const Signup = () => {
       if (event === 'SIGNED_IN') {
         toast.success('Successfully signed up!');
         navigate('/dashboard');
-      } else if (event === 'SIGNED_UP') {
+      } else if (event === 'USER_UPDATED') {
         toast.success('Account created successfully!');
       }
     });
