@@ -110,6 +110,7 @@ const RegisterAndOrder = () => {
                 lastName={lastName}
                 setFirstName={setFirstName}
                 setLastName={setLastName}
+                priceId={priceId}
               />
             )}
           </CardContent>

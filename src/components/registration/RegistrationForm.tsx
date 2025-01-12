@@ -11,6 +11,7 @@ interface RegistrationFormProps {
   lastName: string;
   setFirstName: (value: string) => void;
   setLastName: (value: string) => void;
+  priceId?: string;
 }
 
 export const RegistrationForm = ({ 
@@ -18,7 +19,8 @@ export const RegistrationForm = ({
   firstName, 
   lastName, 
   setFirstName, 
-  setLastName 
+  setLastName,
+  priceId 
 }: RegistrationFormProps) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
@@ -28,12 +30,11 @@ export const RegistrationForm = ({
         console.log('User signed up, waiting for profile creation...');
         
         let retryCount = 0;
-        const maxRetries = 7; // Increased retries
-        const retryDelay = 3000; // 3 seconds between retries
+        const maxRetries = 7;
+        const retryDelay = 3000;
         
         const updateProfile = async () => {
           try {
-            // First check if profile exists
             const { data: profile, error: fetchError } = await supabase
               .from('profiles')
               .select('*')
@@ -68,7 +69,35 @@ export const RegistrationForm = ({
             if (updateError) throw updateError;
             
             console.log('Profile updated successfully');
-            toast.success('Registration successful!');
+            
+            // If we have a priceId, redirect to Stripe checkout
+            if (priceId) {
+              console.log('Creating checkout session for price:', priceId);
+              const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
+                body: { 
+                  priceId,
+                  returnUrl: window.location.origin + '/success'
+                },
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`
+                }
+              });
+              
+              if (checkoutError) {
+                console.error('Checkout session error:', checkoutError);
+                toast.error('Failed to create checkout session. Please try again.');
+                return;
+              }
+              
+              if (!checkoutData?.url) {
+                toast.error('Unable to create checkout session');
+                return;
+              }
+
+              window.location.href = checkoutData.url;
+            } else {
+              toast.success('Registration successful!');
+            }
           } catch (error) {
             const authError = error as AuthError;
             console.error('Error updating profile:', authError);
@@ -95,7 +124,7 @@ export const RegistrationForm = ({
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase, firstName, lastName]);
+  }, [supabase, firstName, lastName, priceId]);
 
   return (
     <div className="space-y-6">
@@ -129,7 +158,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          redirectTo={window.location.origin + '/dashboard'}
+          redirectTo={window.location.origin + '/success'}
         />
       </div>
     </div>
