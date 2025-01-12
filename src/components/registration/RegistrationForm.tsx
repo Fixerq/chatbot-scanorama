@@ -63,7 +63,6 @@ export const RegistrationForm = ({
             const authError = error as AuthError;
             console.error('Error updating profile:', authError);
             
-            // Handle timeout specifically
             if (authError.message?.includes('timeout')) {
               toast.error('Connection timeout. Please try again.');
             } else {
@@ -111,7 +110,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          redirectTo={window.location.origin + '/dashboard'}
+          redirectTo={window.location.origin}
         />
       </div>
     </div>
