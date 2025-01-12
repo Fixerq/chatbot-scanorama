@@ -92,10 +92,8 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          authOptions={{
-            emailRedirectTo: window.location.origin,
-            defaultEmail: customerEmail || undefined
-          }}
+          redirectTo={window.location.origin}
+          defaultEmail={customerEmail || undefined}
         />
       </div>
     </div>
