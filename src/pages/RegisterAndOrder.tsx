@@ -24,63 +24,15 @@ const RegisterAndOrder = () => {
   const planName = searchParams.get('planName');
 
   useEffect(() => {
-    // Check if this is a redirect back from email verification
-    const handleEmailVerification = async () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        console.log('Email verified, proceeding with checkout...');
-        if (priceId) {
-          await handleCheckout();
-        }
+    if (session?.user) {
+      console.log('User is authenticated:', session.user);
+      if (priceId) {
+        handleCheckout();
+      } else {
+        navigate('/dashboard');
       }
-    };
-
-    handleEmailVerification();
-  }, []);
-
-  useEffect(() => {
-    if (session?.access_token && priceId) {
-      handleCheckout();
     }
-  }, [session?.access_token]);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      console.log('Auth event:', event);
-      
-      if (event === 'SIGNED_IN') {
-        console.log('User signed in:', session?.user?.email);
-        
-        if (session?.user?.id && (firstName || lastName)) {
-          try {
-            const { error: updateError } = await supabase
-              .from('profiles')
-              .update({ 
-                first_name: firstName || null, 
-                last_name: lastName || null 
-              })
-              .eq('id', session.user.id);
-
-            if (updateError) {
-              console.error('Error updating profile:', updateError);
-              toast.error('Failed to update profile information');
-            } else {
-              console.log('Profile updated successfully');
-            }
-          } catch (error) {
-            console.error('Error in profile update:', error);
-            toast.error('Failed to update profile information');
-          }
-        }
-
-        console.log('Waiting for email verification...');
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [firstName, lastName, priceId, session?.user?.id]);
+  }, [session]);
 
   const handleCheckout = async () => {
     if (!session?.access_token) {
@@ -90,9 +42,7 @@ const RegisterAndOrder = () => {
 
     setLoading(true);
     try {
-      console.log('Creating checkout session for price:', priceId);
-      // Ensure proper URL construction by removing any trailing colons
-      const returnUrl = new URL('/success', window.location.origin).toString();
+      const returnUrl = `${window.location.origin}/success`;
       
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
@@ -105,10 +55,7 @@ const RegisterAndOrder = () => {
         }
       });
 
-      if (error) {
-        console.error('Checkout error:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       if (!data?.url) {
         throw new Error('No checkout URL received');
@@ -146,9 +93,9 @@ const RegisterAndOrder = () => {
         <Card className="border-none shadow-xl bg-gradient-to-br from-card to-card/90">
           <CardHeader className="space-y-4 text-center pb-8">
             <div className="flex justify-center">
-              {planName?.toLowerCase().includes('founder') ? (
+              {planName?.toLowerCase().includes('founder') && (
                 <Crown className="w-8 h-8 text-amber-500" />
-              ) : null}
+              )}
             </div>
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
               Complete Registration
@@ -209,13 +156,9 @@ const RegisterAndOrder = () => {
                       },
                     },
                   },
-                  style: {
-                    input: {
-                      color: 'white',
-                    },
-                  },
                 }}
                 providers={[]}
+                redirectTo={`${window.location.origin}/dashboard`}
               />
             </div>
           </CardContent>
