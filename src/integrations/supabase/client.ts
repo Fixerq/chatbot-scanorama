@@ -12,7 +12,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'pkce'
+    flowType: 'pkce',
+    storage: localStorage
   },
   global: {
     headers: {
@@ -26,5 +27,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10
     }
+  },
+  // Add timeout configuration
+  httpOptions: {
+    timeout: 30000 // 30 seconds timeout
   }
 });

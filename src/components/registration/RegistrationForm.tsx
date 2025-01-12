@@ -28,8 +28,8 @@ export const RegistrationForm = ({
         console.log('User signed up, waiting for profile creation...');
         
         let retryCount = 0;
-        const maxRetries = 5; // Increased retries
-        const retryDelay = 2000; // 2 seconds between retries
+        const maxRetries = 7; // Increased retries
+        const retryDelay = 3000; // 3 seconds between retries
         
         const updateProfile = async () => {
           try {
@@ -48,7 +48,7 @@ export const RegistrationForm = ({
             if (!profile) {
               if (retryCount < maxRetries) {
                 retryCount++;
-                console.log(`Profile not found, retry attempt ${retryCount} in ${retryDelay}ms`);
+                console.log(`Profile not found, retry attempt ${retryCount}/${maxRetries} in ${retryDelay}ms`);
                 setTimeout(updateProfile, retryDelay);
                 return;
               }
@@ -129,7 +129,7 @@ export const RegistrationForm = ({
             },
           }}
           providers={[]}
-          redirectTo={`${window.location.origin}/dashboard`}
+          redirectTo={window.location.origin + '/dashboard'}
         />
       </div>
     </div>
