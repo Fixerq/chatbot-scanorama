@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { corsHeaders } from "../_shared/cors.ts";
 import Stripe from "https://esm.sh/stripe@13.3.0?target=deno";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
@@ -104,6 +103,9 @@ serve(async (req) => {
     
     console.log('Creating checkout session with price:', priceId, 'Mode:', isFoundersPlan ? 'payment' : 'subscription');
 
+    // Ensure returnUrl ends with /register-and-order
+    const baseUrl = returnUrl.endsWith('/register-and-order') ? returnUrl : `${returnUrl}/register-and-order`;
+    
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       line_items: [
@@ -113,7 +115,7 @@ serve(async (req) => {
         },
       ],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+      success_url: `${baseUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
       cancel_url: `${returnUrl}`,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
