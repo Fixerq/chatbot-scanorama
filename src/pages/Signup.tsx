@@ -38,13 +38,13 @@ const Signup = () => {
   }, [sessionId, supabase.functions]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event); // Add logging to help debug
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      console.log('Auth event:', event); // Keep logging to help debug
       
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_UP') {
         toast.success('Successfully signed up!');
         navigate('/dashboard');
-      } else if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+      } else if (event === 'USER_UPDATED') {
         toast.success('Account created successfully!');
         navigate('/dashboard');
       }
