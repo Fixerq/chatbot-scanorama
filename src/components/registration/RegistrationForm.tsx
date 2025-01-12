@@ -22,24 +22,49 @@ export const RegistrationForm = ({
 }: RegistrationFormProps) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user.id) {
-        console.log('User signed in:', session.user.id);
-        try {
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              first_name: firstName,
-              last_name: lastName
-            })
-            .eq('id', session.user.id);
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_UP' && session?.user?.id) {
+        console.log('User signed up, waiting for profile creation...');
+        
+        // Wait a bit to ensure the trigger has created the profile
+        setTimeout(async () => {
+          try {
+            // First check if profile exists
+            const { data: profile, error: fetchError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle();
 
-          if (updateError) throw updateError;
-          toast.success('Registration successful!');
-        } catch (error) {
-          const authError = error as AuthError;
-          console.error('Error updating profile:', authError);
-          toast.error('Failed to update profile information');
-        }
+            if (fetchError) throw fetchError;
+            
+            if (!profile) {
+              console.error('Profile not found after signup');
+              toast.error('Profile creation failed');
+              return;
+            }
+
+            console.log('Profile found, updating with names:', { firstName, lastName });
+
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                first_name: firstName,
+                last_name: lastName
+              })
+              .eq('id', session.user.id);
+
+            if (updateError) throw updateError;
+            
+            console.log('Profile updated successfully');
+            toast.success('Registration successful!');
+          } catch (error) {
+            const authError = error as AuthError;
+            console.error('Error updating profile:', authError);
+            toast.error('Failed to update profile information');
+          }
+        }, 1000);
       }
     });
 
