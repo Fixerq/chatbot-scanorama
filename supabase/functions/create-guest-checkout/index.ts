@@ -10,21 +10,19 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      headers: corsHeaders
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     console.log('Received guest checkout request');
-    const { priceId, successUrl, cancelUrl } = await req.json();
+    const { priceId, productId, successUrl, cancelUrl } = await req.json();
     
     if (!priceId || !successUrl || !cancelUrl) {
       console.error('Missing required parameters');
       throw new Error('Missing required parameters');
     }
 
-    console.log('Creating guest checkout session for price:', priceId);
+    console.log('Creating guest checkout session for price:', priceId, 'product:', productId);
 
     const session = await stripe.checkout.sessions.create({
       line_items: [

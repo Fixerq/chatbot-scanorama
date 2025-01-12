@@ -1,94 +1,81 @@
-import React from 'react';
 import { Button } from "@/components/ui/button";
-import PricingFeature from './PricingFeature';
-import { Loader2, Crown } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { PricingFeature } from "./PricingFeature";
+import { Crown } from "lucide-react";
 
 interface PricingCardProps {
   name: string;
   price: string;
   description: string;
   features: string[];
-  popular?: boolean;
-  special?: boolean;
   priceId: string;
   productId: string;
+  popular?: boolean;
+  special?: boolean;
   onSubscribe: (priceId: string, productId: string) => void;
-  isLoading?: boolean;
-  hasSubscription?: boolean;
+  isLoading: boolean;
+  hasSubscription: boolean;
 }
 
-const PricingCard = ({
+export const PricingCard = ({
   name,
   price,
   description,
   features,
-  popular,
-  special,
   priceId,
   productId,
+  popular,
+  special,
   onSubscribe,
-  isLoading = false,
-  hasSubscription = false
+  isLoading,
+  hasSubscription
 }: PricingCardProps) => {
-  return (
-    <div
-      className={`relative rounded-2xl border bg-card p-8 shadow-lg ${
-        popular ? 'border-cyan-500 ring-2 ring-cyan-500' : 
-        special ? 'border-amber-500 ring-2 ring-amber-500' : 
-        'border-gray-700'
-      }`}
-    >
-      {popular && (
-        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-cyan-500 px-4 py-1 text-sm font-semibold text-black">
-          Most Popular
-        </span>
-      )}
-      {special && (
-        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-4 py-1 text-sm font-semibold text-black flex items-center gap-1">
-          <Crown className="w-4 h-4" />
-          Exclusive
-        </span>
-      )}
+  const handleClick = () => {
+    console.log('Subscribing to plan:', { name, priceId, productId });
+    onSubscribe(priceId, productId);
+  };
 
-      <div className="text-center">
-        <h3 className="text-lg font-semibold text-foreground">{name}</h3>
-        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-        <p className="mt-4">
-          <span className="text-4xl font-bold text-foreground">{price}</span>
-          <span className="text-muted-foreground">{special ? '/one time' : '/month'}</span>
-        </p>
+  return (
+    <Card className={`relative flex flex-col justify-between ${popular ? 'border-cyan-500 shadow-cyan-500/20 shadow-lg scale-105' : ''}`}>
+      {popular && (
+        <div className="absolute -top-4 left-0 right-0 flex justify-center">
+          <span className="bg-cyan-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+            Most Popular
+          </span>
+        </div>
+      )}
+      
+      <div>
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            {special && <Crown className="w-8 h-8 text-amber-500" />}
+          </div>
+          <h3 className="text-2xl font-bold">{name}</h3>
+          <p className="text-3xl font-bold">
+            {price}
+            <span className="text-base font-normal text-muted-foreground">/mo</span>
+          </p>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {features.map((feature, index) => (
+            <PricingFeature key={index} text={feature} />
+          ))}
+        </CardContent>
       </div>
 
-      <ul className="mt-8 space-y-4">
-        {features.map((feature) => (
-          <PricingFeature key={feature} feature={feature} />
-        ))}
-      </ul>
-
-      <Button
-        onClick={() => onSubscribe(priceId, productId)}
-        disabled={isLoading || hasSubscription}
-        className={`mt-8 w-full ${
-          special
-            ? 'bg-amber-500 hover:bg-amber-600 text-black'
-            : popular
-            ? 'bg-cyan-500 hover:bg-cyan-600 text-black'
-            : 'bg-secondary hover:bg-secondary/80 text-foreground'
-        }`}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Checking...
-          </>
-        ) : hasSubscription ? (
-          'Already Subscribed'
-        ) : (
-          'Get Started'
-        )}
-      </Button>
-    </div>
+      <CardFooter>
+        <Button 
+          className="w-full" 
+          size="lg"
+          variant={popular ? "default" : "outline"}
+          onClick={handleClick}
+          disabled={isLoading || hasSubscription}
+        >
+          {isLoading ? "Processing..." : "Subscribe Now"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
-
-export default PricingCard;

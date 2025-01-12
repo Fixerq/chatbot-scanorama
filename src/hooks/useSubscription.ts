@@ -17,10 +17,12 @@ export const useSubscription = () => {
     }
 
     setIsLoading(true);
+    console.log('Starting subscription process for:', { priceId, productId });
     
     try {
       if (session) {
         // If user is logged in, proceed with normal checkout
+        console.log('Creating checkout session for logged in user');
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           headers: {
             Authorization: `Bearer ${session.access_token}`
@@ -32,7 +34,10 @@ export const useSubscription = () => {
           }
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Checkout error:', error);
+          throw error;
+        }
         
         if (data?.url) {
           console.log('Redirecting to checkout:', data.url);
@@ -40,11 +45,12 @@ export const useSubscription = () => {
         }
       } else {
         // If user is not logged in, create a guest checkout session
+        console.log('Creating guest checkout session');
         const { data, error } = await supabase.functions.invoke('create-guest-checkout', {
           body: { 
             priceId,
             productId,
-            successUrl: `${window.location.origin}/register-and-order`,
+            successUrl: `${window.location.origin}/register-and-order?priceId=${priceId}&planName=${getPlanName(priceId)}`,
             cancelUrl: window.location.origin
           }
         });
