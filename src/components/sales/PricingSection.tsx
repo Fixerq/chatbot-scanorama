@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import PricingCard from './PricingCard';
+import { PricingCard } from './PricingCard';
 import PricingSectionHeader from './PricingSectionHeader';
 import { useSubscription } from '@/hooks/useSubscription';
 import { pricingPlans } from '@/data/pricingPlans';

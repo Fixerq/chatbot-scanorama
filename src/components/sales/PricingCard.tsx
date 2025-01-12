@@ -79,3 +79,5 @@ export const PricingCard = ({
     </Card>
   );
 };
+
+export default PricingCard;
