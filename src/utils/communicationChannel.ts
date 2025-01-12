@@ -51,7 +51,7 @@ function handleElementUpdate(data: any) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.ELEMENTS_UPDATED,
       success: true
-    }, targetOrigin);
+    }, { targetOrigin });
   }
 }
 
@@ -63,7 +63,7 @@ function handleSelectorToggle(data: any) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.SELECTOR_TOGGLED,
       success: true
-    }, targetOrigin);
+    }, { targetOrigin });
   }
 }
 
@@ -105,7 +105,7 @@ export function initializeCommunication() {
         (event.source as Window).postMessage({
           type: MESSAGE_TYPES.ERROR,
           error: (error as Error).message
-        }, targetOrigin);
+        }, { targetOrigin });
       }
     }
   });
@@ -116,7 +116,7 @@ export function initializeCommunication() {
       console.log('Sending message:', message);
       const targetOrigin = getCurrentOrigin();
       if (window.parent && window.parent.postMessage && isValidOrigin(targetOrigin)) {
-        window.parent.postMessage(message, targetOrigin);
+        window.parent.postMessage(message, { targetOrigin });
       } else {
         console.warn('Invalid target origin or missing postMessage support');
       }
