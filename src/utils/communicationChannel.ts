@@ -18,10 +18,18 @@ export const ALLOWED_ORIGINS = [
   'https://cdn.gpteng.co'
 ];
 
+// Message interface
+interface CommunicationMessage {
+  type: string;
+  data?: any;
+  success?: boolean;
+  error?: string;
+}
+
 // Declare the window interface extension
 declare global {
   interface Window {
-    sendMessage: (message: any) => void;
+    sendMessage: (message: CommunicationMessage) => void;
   }
 }
 
@@ -72,7 +80,7 @@ export function initializeCommunication() {
         return;
       }
 
-      const data = event.data;
+      const data = event.data as CommunicationMessage;
       console.log('Received message:', data);
       
       if (!data || !data.type) {
@@ -103,7 +111,7 @@ export function initializeCommunication() {
   });
 
   // Helper function to send messages
-  window.sendMessage = function(message: any) {
+  window.sendMessage = function(message: CommunicationMessage) {
     try {
       console.log('Sending message:', message);
       const targetOrigin = getCurrentOrigin();
