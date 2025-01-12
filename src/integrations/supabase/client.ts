@@ -19,6 +19,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     headers: {
       'x-my-custom-header': 'my-app-name',
     },
+    // Add fetch options for timeout
+    fetch: (url, options = {}) => {
+      return fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout(30000) // 30 seconds timeout
+      });
+    }
   },
   db: {
     schema: 'public'
@@ -27,9 +34,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10
     }
-  },
-  // Add timeout configuration
-  httpOptions: {
-    timeout: 30000 // 30 seconds timeout
   }
 });
