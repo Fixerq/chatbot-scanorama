@@ -1,6 +1,8 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { NameFields } from './NameFields';
 
 interface RegistrationFormProps {
@@ -18,6 +20,33 @@ export const RegistrationForm = ({
   setFirstName, 
   setLastName 
 }: RegistrationFormProps) => {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_UP') {
+        console.log('User signed up:', session?.user.id);
+        try {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              first_name: firstName,
+              last_name: lastName
+            })
+            .eq('id', session?.user.id);
+
+          if (updateError) throw updateError;
+          toast.success('Registration successful!');
+        } catch (error) {
+          console.error('Error updating profile:', error);
+          toast.error('Failed to update profile information');
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase, firstName, lastName]);
+
   return (
     <div className="space-y-6">
       <NameFields

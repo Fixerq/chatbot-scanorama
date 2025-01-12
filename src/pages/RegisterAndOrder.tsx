@@ -38,10 +38,12 @@ const RegisterAndOrder = () => {
     }
 
     setLoading(true);
+    setError(null);
+    
     try {
       const returnUrl = `${window.location.origin}/success`;
       
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${session.access_token}`
         },
@@ -52,7 +54,7 @@ const RegisterAndOrder = () => {
         }
       });
 
-      if (error) throw error;
+      if (checkoutError) throw checkoutError;
       
       if (!data?.url) {
         throw new Error('No checkout URL received');
@@ -63,6 +65,7 @@ const RegisterAndOrder = () => {
     } catch (error) {
       console.error('Error creating checkout session:', error);
       toast.error('Failed to process subscription. Please try again.');
+      setError('Failed to create checkout session. Please try again.');
       setLoading(false);
     }
   };
@@ -71,7 +74,7 @@ const RegisterAndOrder = () => {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
         <Card className="w-full max-w-md border-none shadow-xl bg-gradient-to-br from-card to-card/90">
-          <CardContent className="space-y-2 text-center">
+          <CardContent className="space-y-2 text-center p-6">
             <h2 className="text-2xl font-bold text-foreground">
               Invalid Request
             </h2>
@@ -95,13 +98,20 @@ const RegisterAndOrder = () => {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <RegistrationForm
-              supabase={supabase}
-              firstName={firstName}
-              lastName={lastName}
-              setFirstName={setFirstName}
-              setLastName={setLastName}
-            />
+            {loading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Processing...</p>
+              </div>
+            ) : (
+              <RegistrationForm
+                supabase={supabase}
+                firstName={firstName}
+                lastName={lastName}
+                setFirstName={setFirstName}
+                setLastName={setLastName}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
