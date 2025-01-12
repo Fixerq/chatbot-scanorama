@@ -113,7 +113,7 @@ serve(async (req) => {
         },
       ],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${returnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+      success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
       cancel_url: `${returnUrl}`,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
