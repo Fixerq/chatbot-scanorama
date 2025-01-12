@@ -8,7 +8,7 @@
     <meta name="author" content="EngageAI" />
     <meta property="og:image" content="/og-image.png" />
     <script>
-      // Configure allowed origins for postMessage with proper port
+      // Configure allowed origins with proper validation
       window.ALLOWED_ORIGINS = [
         "https://detectify.engageai.pro",
         "https://lovable.dev",
@@ -16,11 +16,19 @@
         "https://gptengineer.app"
       ];
       
-      // Add message event listener with origin validation and error handling
+      // Helper function to validate origins
+      function isAllowedOrigin(origin) {
+        return window.ALLOWED_ORIGINS.includes(origin);
+      }
+
+      // Add message event listener with proper validation and error handling
       window.addEventListener("message", function(event) {
         try {
+          // Log incoming message for debugging
+          console.log("Received message from origin:", event.origin);
+          
           // Check if origin is allowed
-          if (!window.ALLOWED_ORIGINS.includes(event.origin)) {
+          if (!isAllowedOrigin(event.origin)) {
             console.warn(`Blocked message from untrusted origin: ${event.origin}`);
             return;
           }
@@ -31,32 +39,72 @@
             return;
           }
 
-          // Process the message
-          console.log("Received message:", event.data);
+          // Process the message based on type
+          console.log("Processing message:", event.data);
           
-          // Handle specific message types if needed
-          if (event.data.type === 'UPDATE_SELECTED_ELEMENTS' || 
-              event.data.type === 'TOGGLE_SELECTOR') {
-            // Process these specific message types
-            console.log(`Processing ${event.data.type} message`);
+          if (event.data.type === 'UPDATE_SELECTED_ELEMENTS') {
+            // Handle element updates
+            if (event.source && event.source.window) {
+              event.source.postMessage({ 
+                type: 'ELEMENTS_UPDATED',
+                success: true 
+              }, event.origin);
+            }
+          } else if (event.data.type === 'TOGGLE_SELECTOR') {
+            // Handle selector toggle
+            if (event.source && event.source.window) {
+              event.source.postMessage({ 
+                type: 'SELECTOR_TOGGLED',
+                success: true 
+              }, event.origin);
+            }
           }
+
+          // Broadcast to parent if exists
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(event.data, '*');
+          }
+
         } catch (error) {
           console.error('Error processing message:', error);
+          // Notify sender of error if possible
+          if (event.source && event.source.window) {
+            event.source.postMessage({ 
+              type: 'ERROR',
+              error: error.message 
+            }, event.origin);
+          }
         }
       });
 
       // Helper function to safely send messages
-      window.sendMessage = function(message, targetOrigin) {
+      window.sendMessage = function(message, targetWindow, targetOrigin) {
         try {
-          if (!window.ALLOWED_ORIGINS.includes(targetOrigin)) {
+          // Validate target origin
+          if (!isAllowedOrigin(targetOrigin)) {
             console.warn(`Attempted to send message to untrusted origin: ${targetOrigin}`);
             return;
           }
-          window.postMessage(message, targetOrigin);
+
+          // Ensure we have a valid target window
+          if (!targetWindow || typeof targetWindow.postMessage !== 'function') {
+            console.error('Invalid target window for postMessage');
+            return;
+          }
+
+          // Send the message
+          console.log(`Sending message to ${targetOrigin}:`, message);
+          targetWindow.postMessage(message, targetOrigin);
+          
         } catch (error) {
           console.error('Error sending message:', error);
         }
       };
+
+      // Initialize message handling
+      console.log('Message handling initialized');
+      console.log('Current origin:', window.location.origin);
+      console.log('Allowed origins:', window.ALLOWED_ORIGINS);
     </script>
   </head>
 
