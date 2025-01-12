@@ -47,7 +47,41 @@ export const RegistrationForm = ({
           
           console.log('Profile updated successfully');
           toast.success('Registration successful!');
-          
+
+          // If we have a priceId, create a checkout session
+          if (priceId) {
+            console.log('Creating checkout session for price:', priceId);
+            try {
+              const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke(
+                'create-checkout',
+                {
+                  headers: {
+                    Authorization: `Bearer ${session.access_token}`
+                  },
+                  body: {
+                    priceId,
+                    returnUrl: window.location.origin
+                  }
+                }
+              );
+
+              if (checkoutError) {
+                console.error('Checkout error:', checkoutError);
+                throw checkoutError;
+              }
+
+              if (checkoutData?.url) {
+                console.log('Redirecting to checkout:', checkoutData.url);
+                window.location.href = checkoutData.url;
+              } else {
+                console.error('No checkout URL received');
+                throw new Error('No checkout URL received');
+              }
+            } catch (error) {
+              console.error('Error creating checkout session:', error);
+              toast.error('Failed to create checkout session. Please try again.');
+            }
+          }
         } catch (error) {
           console.error('Error in registration process:', error);
           toast.error('Failed to complete registration. Please try again.');

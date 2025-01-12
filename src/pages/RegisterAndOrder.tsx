@@ -22,12 +22,12 @@ const RegisterAndOrder = () => {
   const planName = searchParams.get('planName');
   const sessionId = searchParams.get('session_id');
 
-  console.log('RegisterAndOrder: Initial params:', { priceId, planName, sessionId });
+  console.log('RegisterAndOrder: Initial render with params:', { priceId, planName, sessionId });
 
   useEffect(() => {
     const getCustomerDetails = async () => {
       if (!sessionId) {
-        console.log('No session ID provided');
+        console.log('No session ID provided, skipping customer details fetch');
         return;
       }
 
@@ -70,7 +70,7 @@ const RegisterAndOrder = () => {
   }, [sessionId, supabase.functions]);
 
   if (!priceId || !planName) {
-    console.log('Missing required parameters');
+    console.error('Missing required parameters:', { priceId, planName });
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
         <Card className="w-full max-w-md border-none shadow-xl bg-gradient-to-br from-card to-card/90">
