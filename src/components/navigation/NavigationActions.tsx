@@ -1,13 +1,15 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Search, CreditCard, LogOut, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Loader2, Search, Settings } from 'lucide-react';
 import { SubscriptionStatus } from '../SubscriptionStatus';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 
 interface NavigationActionsProps {
   onSearchClick: () => void;
@@ -20,57 +22,62 @@ export const NavigationActions = ({
   onSearchClick,
   onSubscriptionClick,
   onLogout,
-  isSubscriptionLoading
+  isSubscriptionLoading,
 }: NavigationActionsProps) => {
+  const navigate = useNavigate();
+  const supabase = useSupabaseClient();
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: adminData } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .single();
+      
+      setIsAdmin(!!adminData);
+    };
+
+    checkAdminStatus();
+  }, [supabase]);
+
   return (
     <div className="flex items-center gap-4">
-      <SubscriptionStatus />
-      
       <Button
         variant="ghost"
-        size="sm"
-        className="gap-2"
+        size="icon"
         onClick={onSearchClick}
+        className="h-9 w-9"
       >
         <Search className="h-4 w-4" />
-        <span className="hidden sm:inline">Recent Searches</span>
       </Button>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={onSubscriptionClick}
-              disabled={isSubscriptionLoading}
-            >
-              {isSubscriptionLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CreditCard className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">
-                Manage Subscription
-              </span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Click to manage your subscription</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <SubscriptionStatus />
 
-      <Button
-        variant="ghost"
-        size="sm"
-        className="gap-2"
-        onClick={onLogout}
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="hidden sm:inline">Logout</span>
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {isAdmin && (
+            <DropdownMenuItem onClick={() => navigate('/admin')}>
+              Admin Panel
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={onSubscriptionClick}>
+            {isSubscriptionLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Manage Subscription'
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onLogout}>
+            Logout
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 };
