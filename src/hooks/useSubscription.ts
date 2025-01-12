@@ -11,13 +11,15 @@ export const useSubscription = () => {
   const navigate = useNavigate();
 
   const handleSubscribe = async (priceId: string, productId: string) => {
+    console.log('Starting subscription process:', { priceId, productId, hasSubscription, session: !!session });
+    
     if (hasSubscription) {
+      console.log('Subscription already exists');
       toast.error("You already have an active subscription");
       return;
     }
 
     setIsLoading(true);
-    console.log('Starting subscription process for:', { priceId, productId });
     
     try {
       if (session) {
@@ -42,6 +44,9 @@ export const useSubscription = () => {
         if (data?.url) {
           console.log('Redirecting to checkout:', data.url);
           window.location.href = data.url;
+        } else {
+          console.error('No checkout URL received');
+          throw new Error('No checkout URL received');
         }
       } else {
         // If user is not logged in, create a guest checkout session
@@ -63,6 +68,9 @@ export const useSubscription = () => {
         if (data?.url) {
           console.log('Redirecting to guest checkout:', data.url);
           window.location.href = data.url;
+        } else {
+          console.error('No guest checkout URL received');
+          throw new Error('No guest checkout URL received');
         }
       }
     } catch (error) {
