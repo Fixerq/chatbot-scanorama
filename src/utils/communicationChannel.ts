@@ -18,6 +18,13 @@ export const ALLOWED_ORIGINS = [
   'https://cdn.gpteng.co'
 ];
 
+// Declare the window interface extension
+declare global {
+  interface Window {
+    sendMessage: (message: any) => void;
+  }
+}
+
 // Handle element updates
 function handleElementUpdate(data: any) {
   console.log('Handling element update:', data);
@@ -25,7 +32,7 @@ function handleElementUpdate(data: any) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.ELEMENTS_UPDATED,
       success: true
-    }, '*');
+    }, { targetOrigin: '*' });
   }
 }
 
@@ -36,7 +43,7 @@ function handleSelectorToggle(data: any) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.SELECTOR_TOGGLED,
       success: true
-    }, '*');
+    }, { targetOrigin: '*' });
   }
 }
 
@@ -71,11 +78,11 @@ export function initializeCommunication() {
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      if (event.source && event.source.postMessage) {
+      if (event.source && 'postMessage' in event.source) {
         event.source.postMessage({
           type: MESSAGE_TYPES.ERROR,
-          error: error.message
-        }, event.origin);
+          error: (error as Error).message
+        }, { targetOrigin: event.origin });
       }
     }
   });
@@ -85,7 +92,7 @@ export function initializeCommunication() {
     try {
       console.log('Sending message:', message);
       if (window.parent && window.parent.postMessage) {
-        window.parent.postMessage(message, '*');
+        window.parent.postMessage(message, { targetOrigin: '*' });
       }
     } catch (error) {
       console.error('Error sending message:', error);
