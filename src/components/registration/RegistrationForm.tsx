@@ -1,6 +1,6 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { SupabaseClient, AuthError } from '@supabase/supabase-js';
+import { SupabaseClient, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { NameFields } from './NameFields';
@@ -21,10 +21,10 @@ export const RegistrationForm = ({
   setLastName 
 }: RegistrationFormProps) => {
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
-      if (event === 'SIGNED_UP' && session?.user?.id) {
+      if (event === 'SIGNED_IN' && session?.user?.id) {
         console.log('User signed up, waiting for profile creation...');
         
         // Wait a bit to ensure the trigger has created the profile
