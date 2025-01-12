@@ -5,12 +5,14 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Signup = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const supabase = useSupabaseClient();
   const [customerEmail, setCustomerEmail] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
@@ -35,6 +37,19 @@ const Signup = () => {
     getCustomerEmail();
   }, [sessionId, supabase.functions]);
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        toast.success('Successfully signed up!');
+        navigate('/dashboard');
+      } else if (event === 'SIGNED_UP') {
+        toast.success('Account created successfully!');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, supabase.auth]);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
       <div className="w-full max-w-md">
@@ -48,6 +63,11 @@ const Signup = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
             <div className="rounded-lg p-4">
               <Auth
                 supabaseClient={supabase}
