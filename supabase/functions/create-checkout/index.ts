@@ -9,7 +9,6 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 });
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -114,7 +113,7 @@ serve(async (req) => {
         },
       ],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${returnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
       cancel_url: `${returnUrl}`,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
