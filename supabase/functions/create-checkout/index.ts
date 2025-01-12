@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@13.3.0?target=deno";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { corsHeaders } from "../_shared/cors.ts";
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
@@ -72,7 +73,7 @@ serve(async (req) => {
 
     console.log('Got user:', user.email);
 
-    const { priceId, returnUrl, customerName } = await req.json();
+    const { priceId, returnUrl } = await req.json();
     if (!priceId || !returnUrl) {
       console.error('Missing required parameters');
       return new Response(
@@ -90,7 +91,6 @@ serve(async (req) => {
     console.log('Creating new customer for:', user.email);
     const customer = await stripe.customers.create({
       email: user.email,
-      name: customerName,
       metadata: {
         supabaseUUID: user.id
       }
