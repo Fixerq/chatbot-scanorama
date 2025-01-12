@@ -32,78 +32,76 @@
       ];
 
       // Handle incoming messages
-      channel.onmessage = function(event) {
+      window.addEventListener('message', function(event) {
         try {
-          console.log('Received message:', event.data);
+          // Check if origin is allowed
+          if (!ALLOWED_ORIGINS.includes(event.origin)) {
+            console.warn('Message received from unauthorized origin:', event.origin);
+            return;
+          }
+
+          const data = event.data;
+          console.log('Received message:', data);
           
-          if (!event.data || !event.data.type) {
+          if (!data || !data.type) {
             console.warn('Invalid message format');
             return;
           }
 
-          // Validate origin
-          const origin = event.origin || window.location.origin;
-          if (!ALLOWED_ORIGINS.includes(origin)) {
-            console.error('Invalid origin:', origin);
-            return;
-          }
-
-          switch(event.data.type) {
+          switch(data.type) {
             case MESSAGE_TYPES.UPDATE_ELEMENTS:
-              handleElementUpdate(event.data);
+              handleElementUpdate(data);
               break;
             case MESSAGE_TYPES.TOGGLE_SELECTOR:
-              handleSelectorToggle(event.data);
+              handleSelectorToggle(data);
               break;
             default:
-              console.log('Unhandled message type:', event.data.type);
+              console.log('Unhandled message type:', data.type);
           }
         } catch (error) {
           console.error('Error processing message:', error);
-          channel.postMessage({
-            type: MESSAGE_TYPES.ERROR,
-            error: error.message
-          });
+          if (event.source && event.source.postMessage) {
+            event.source.postMessage({
+              type: MESSAGE_TYPES.ERROR,
+              error: error.message
+            }, event.origin);
+          }
         }
-      };
+      });
 
       // Handle element updates
       function handleElementUpdate(data) {
         console.log('Handling element update:', data);
-        channel.postMessage({
-          type: MESSAGE_TYPES.ELEMENTS_UPDATED,
-          success: true
-        });
+        if (window.parent && window.parent.postMessage) {
+          window.parent.postMessage({
+            type: MESSAGE_TYPES.ELEMENTS_UPDATED,
+            success: true
+          }, '*');
+        }
       }
 
       // Handle selector toggle
       function handleSelectorToggle(data) {
         console.log('Handling selector toggle:', data);
-        channel.postMessage({
-          type: MESSAGE_TYPES.SELECTOR_TOGGLED,
-          success: true
-        });
+        if (window.parent && window.parent.postMessage) {
+          window.parent.postMessage({
+            type: MESSAGE_TYPES.SELECTOR_TOGGLED,
+            success: true
+          }, '*');
+        }
       }
 
       // Helper function to send messages
       window.sendMessage = function(message) {
         try {
           console.log('Sending message:', message);
-          channel.postMessage(message);
+          if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage(message, '*');
+          }
         } catch (error) {
           console.error('Error sending message:', error);
         }
       };
-
-      // Error handling
-      channel.onmessageerror = function(error) {
-        console.error('Channel error:', error);
-      };
-
-      // Cleanup on page unload
-      window.addEventListener('unload', () => {
-        channel.close();
-      });
 
       console.log('Communication channel initialized');
     </script>
