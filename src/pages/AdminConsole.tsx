@@ -17,24 +17,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useSession } from '@supabase/auth-helpers-react';
-
-interface Profile {
-  id: string;
-  created_at: string;
-  api_key: string | null;
-}
-
-interface Subscription {
-  id: string;
-  user_id: string;
-  status: string;
-  level: string | null;
-  current_period_end: string | null;
-}
+import { useAdminStatus } from '@/hooks/useAdminStatus';
 
 interface CustomerData {
-  profile: Profile;
-  subscription: Subscription;
+  profile: {
+    id: string;
+    created_at: string;
+    api_key: string | null;
+  };
+  subscription: {
+    id: string;
+    user_id: string;
+    status: string;
+    level: string | null;
+    current_period_end: string | null;
+  };
   searchesRemaining: number;
   totalSearches: number;
   email: string;
@@ -43,68 +40,34 @@ interface CustomerData {
 const AdminConsole = () => {
   const navigate = useNavigate();
   const session = useSession();
+  const { isAdmin, isChecking } = useAdminStatus();
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdminChecking, setIsAdminChecking] = useState(true);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserSearches, setNewUserSearches] = useState('10');
 
-  const checkAdminStatus = async () => {
-    try {
-      setIsAdminChecking(true);
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('user_id')
-        .single();
-
-      if (adminError || !adminData) {
-        console.error('Admin check error:', adminError);
-        toast.error('You do not have admin access');
-        navigate('/dashboard');
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('Admin check error:', error);
-      toast.error('Failed to verify admin status');
-      navigate('/dashboard');
-      return false;
-    } finally {
-      setIsAdminChecking(false);
-    }
-  };
-
   const fetchCustomerData = async () => {
-    try {
-      const isAdmin = await checkAdminStatus();
-      if (!isAdmin) return;
+    if (!session || !isAdmin) return;
 
+    try {
+      setIsLoading(true);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
-      }
+      if (profilesError) throw profilesError;
 
       const { data: subscriptionsData, error: subscriptionsError } = await supabase
         .from('subscriptions')
         .select('*');
 
-      if (subscriptionsError) {
-        console.error('Error fetching subscriptions:', subscriptionsError);
-        throw subscriptionsError;
-      }
+      if (subscriptionsError) throw subscriptionsError;
 
       const { data: subscriptionLevels, error: levelsError } = await supabase
         .from('subscription_levels')
         .select('*');
 
-      if (levelsError) {
-        console.error('Error fetching subscription levels:', levelsError);
-        throw levelsError;
-      }
+      if (levelsError) throw levelsError;
 
       const levelsMap = new Map(
         subscriptionLevels?.map(level => [level.level, level.max_searches]) || []
@@ -130,13 +93,9 @@ const AdminConsole = () => {
             .eq('user_id', profile.id)
             .gte('created_at', startOfMonth.toISOString());
 
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('get-customer-email', {
+          const { data: emailData } = await supabase.functions.invoke('get-customer-email', {
             body: { userId: profile.id }
           });
-
-          if (emailError) {
-            console.error('Error fetching email:', emailError);
-          }
 
           const totalSearches = levelsMap.get(subscription.level || 'starter') || 0;
           const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
@@ -167,10 +126,10 @@ const AdminConsole = () => {
     }
 
     fetchCustomerData();
-  }, [navigate, session]);
+  }, [session, isAdmin]);
 
   const handleUpdateSearchVolume = async (userId: string, newTotal: number) => {
-    if (!session) {
+    if (!session || !isAdmin) {
       toast.error('Please log in again');
       navigate('/login');
       return;
@@ -187,7 +146,6 @@ const AdminConsole = () => {
         throw new Error('No subscription level found');
       }
 
-      // First check if the level exists
       const { data: existingLevel } = await supabase
         .from('subscription_levels')
         .select('id')
@@ -195,7 +153,6 @@ const AdminConsole = () => {
         .single();
 
       if (existingLevel) {
-        // Update existing level
         const { error: updateError } = await supabase
           .from('subscription_levels')
           .update({ max_searches: newTotal })
@@ -203,7 +160,6 @@ const AdminConsole = () => {
 
         if (updateError) throw updateError;
       } else {
-        // Insert new level
         const { error: insertError } = await supabase
           .from('subscription_levels')
           .insert({
@@ -216,11 +172,7 @@ const AdminConsole = () => {
       }
 
       toast.success('Search volume updated successfully');
-      // Refresh the page instead of reloading to maintain session
-      const isAdmin = await checkAdminStatus();
-      if (isAdmin) {
-        fetchCustomerData();
-      }
+      fetchCustomerData();
     } catch (error) {
       console.error('Error updating search volume:', error);
       toast.error('Failed to update search volume');
@@ -268,13 +220,17 @@ const AdminConsole = () => {
     return new Date(date).toLocaleDateString();
   };
 
-  if (isAdminChecking) {
+  if (isChecking) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
         <span className="ml-2">Verifying admin access...</span>
       </div>
     );
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   if (isLoading) {
