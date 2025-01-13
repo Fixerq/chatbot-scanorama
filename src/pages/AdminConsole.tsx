@@ -49,122 +49,122 @@ const AdminConsole = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserSearches, setNewUserSearches] = useState('10');
 
+  const checkAdminStatus = async () => {
+    try {
+      setIsAdminChecking(true);
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .single();
+
+      if (adminError || !adminData) {
+        console.error('Admin check error:', adminError);
+        toast.error('You do not have admin access');
+        navigate('/dashboard');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Admin check error:', error);
+      toast.error('Failed to verify admin status');
+      navigate('/dashboard');
+      return false;
+    } finally {
+      setIsAdminChecking(false);
+    }
+  };
+
+  const fetchCustomerData = async () => {
+    try {
+      const isAdmin = await checkAdminStatus();
+      if (!isAdmin) return;
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      const { data: subscriptionsData, error: subscriptionsError } = await supabase
+        .from('subscriptions')
+        .select('*');
+
+      if (subscriptionsError) {
+        console.error('Error fetching subscriptions:', subscriptionsError);
+        throw subscriptionsError;
+      }
+
+      const { data: subscriptionLevels, error: levelsError } = await supabase
+        .from('subscription_levels')
+        .select('*');
+
+      if (levelsError) {
+        console.error('Error fetching subscription levels:', levelsError);
+        throw levelsError;
+      }
+
+      const levelsMap = new Map(
+        subscriptionLevels?.map(level => [level.level, level.max_searches]) || []
+      );
+
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const customersData: CustomerData[] = await Promise.all(
+        (profilesData || []).map(async (profile) => {
+          const subscription = subscriptionsData?.find(sub => sub.user_id === profile.id) || {
+            id: '',
+            user_id: profile.id,
+            status: 'inactive',
+            level: 'starter',
+            current_period_end: null
+          };
+
+          const { count: searchesUsed } = await supabase
+            .from('analyzed_urls')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', profile.id)
+            .gte('created_at', startOfMonth.toISOString());
+
+          const { data: emailData, error: emailError } = await supabase.functions.invoke('get-customer-email', {
+            body: { userId: profile.id }
+          });
+
+          if (emailError) {
+            console.error('Error fetching email:', emailError);
+          }
+
+          const totalSearches = levelsMap.get(subscription.level || 'starter') || 0;
+          const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
+
+          return {
+            profile,
+            subscription,
+            searchesRemaining: remaining,
+            totalSearches,
+            email: emailData?.email || profile.id
+          };
+        })
+      );
+
+      setCustomers(customersData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load customer data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!session) {
       navigate('/login');
       return;
     }
-
-    const checkAdminStatus = async () => {
-      try {
-        setIsAdminChecking(true);
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('user_id')
-          .single();
-
-        if (adminError || !adminData) {
-          console.error('Admin check error:', adminError);
-          toast.error('You do not have admin access');
-          navigate('/dashboard');
-          return false;
-        }
-        return true;
-      } catch (error) {
-        console.error('Admin check error:', error);
-        toast.error('Failed to verify admin status');
-        navigate('/dashboard');
-        return false;
-      } finally {
-        setIsAdminChecking(false);
-      }
-    };
-
-    const fetchCustomerData = async () => {
-      try {
-        const isAdmin = await checkAdminStatus();
-        if (!isAdmin) return;
-
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*');
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-          throw profilesError;
-        }
-
-        const { data: subscriptionsData, error: subscriptionsError } = await supabase
-          .from('subscriptions')
-          .select('*');
-
-        if (subscriptionsError) {
-          console.error('Error fetching subscriptions:', subscriptionsError);
-          throw subscriptionsError;
-        }
-
-        const { data: subscriptionLevels, error: levelsError } = await supabase
-          .from('subscription_levels')
-          .select('*');
-
-        if (levelsError) {
-          console.error('Error fetching subscription levels:', levelsError);
-          throw levelsError;
-        }
-
-        const levelsMap = new Map(
-          subscriptionLevels?.map(level => [level.level, level.max_searches]) || []
-        );
-
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-
-        const customersData: CustomerData[] = await Promise.all(
-          (profilesData || []).map(async (profile) => {
-            const subscription = subscriptionsData?.find(sub => sub.user_id === profile.id) || {
-              id: '',
-              user_id: profile.id,
-              status: 'inactive',
-              level: 'starter',
-              current_period_end: null
-            };
-
-            const { count: searchesUsed } = await supabase
-              .from('analyzed_urls')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', profile.id)
-              .gte('created_at', startOfMonth.toISOString());
-
-            const { data: emailData, error: emailError } = await supabase.functions.invoke('get-customer-email', {
-              body: { userId: profile.id }
-            });
-
-            if (emailError) {
-              console.error('Error fetching email:', emailError);
-            }
-
-            const totalSearches = levelsMap.get(subscription.level || 'starter') || 0;
-            const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
-
-            return {
-              profile,
-              subscription,
-              searchesRemaining: remaining,
-              totalSearches,
-              email: emailData?.email || profile.id
-            };
-          })
-        );
-
-        setCustomers(customersData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load customer data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
     fetchCustomerData();
   }, [navigate, session]);
