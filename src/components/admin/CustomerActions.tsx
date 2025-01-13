@@ -17,14 +17,21 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
       setIsUpdating(true);
       
       // Update the user's subscription with new total searches
-      const { error: updateError } = await supabase
+      const { data: updatedSubscription, error: updateError } = await supabase
         .from('subscriptions')
         .update({ total_searches: newTotal })
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('total_searches')
+        .single();
 
       if (updateError) {
         console.error('Error updating search volume:', updateError);
         toast.error('Failed to update search volume');
+        return;
+      }
+
+      if (!updatedSubscription) {
+        toast.error('No subscription found for this user');
         return;
       }
 
