@@ -66,69 +66,74 @@ serve(async (req) => {
 
     // Check if customer already exists
     console.log('Checking for existing customer with email:', user.email);
-    const existingCustomers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
-
-    let customerId;
-    if (existingCustomers.data.length > 0) {
-      customerId = existingCustomers.data[0].id;
-      console.log('Found existing customer:', customerId);
-      
-      // Check if customer already has an active subscription
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: 'active',
-        price: priceId,
+    let customerId: string;
+    
+    try {
+      const customers = await stripe.customers.list({
+        email: user.email,
         limit: 1,
       });
 
-      if (subscriptions.data.length > 0) {
-        console.error('Customer already has an active subscription');
-        throw new Error('You already have an active subscription for this plan');
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        console.log('Found existing customer:', customerId);
+        
+        // Check for active subscription
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'active',
+          price: priceId,
+          limit: 1,
+        });
+
+        if (subscriptions.data.length > 0) {
+          console.error('Customer already has an active subscription');
+          throw new Error('You already have an active subscription for this plan');
+        }
+      } else {
+        // Create new customer
+        const newCustomer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            supabaseUUID: user.id,
+          },
+        });
+        customerId = newCustomer.id;
+        console.log('Created new customer:', customerId);
       }
-    } else {
-      // Create a new customer
-      const newCustomer = await stripe.customers.create({
-        email: user.email,
+
+      // Determine if this is the Founders plan
+      const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
+      console.log('Is Founders plan:', isFoundersPlan);
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: isFoundersPlan ? 'payment' : 'subscription',
+        success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+        cancel_url: returnUrl,
+        billing_address_collection: 'required',
+        payment_method_types: ['card'],
+        allow_promotion_codes: true,
         metadata: {
-          supabaseUUID: user.id,
+          userId: user.id,
         },
       });
-      customerId = newCustomer.id;
-      console.log('Created new customer:', customerId);
+
+      console.log('Created checkout session:', session.id);
+
+      return new Response(
+        JSON.stringify({ url: session.url }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    } catch (stripeError) {
+      console.error('Stripe operation error:', stripeError);
+      throw stripeError;
     }
-
-    // Determine if this is the Founders plan
-    const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
-    console.log('Is Founders plan:', isFoundersPlan);
-
-    // Create checkout session
-    console.log('Creating checkout session with mode:', isFoundersPlan ? 'payment' : 'subscription');
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
-      cancel_url: returnUrl,
-      billing_address_collection: 'required',
-      payment_method_types: ['card'],
-      allow_promotion_codes: true,
-      metadata: {
-        userId: user.id,
-      },
-    });
-
-    console.log('Created checkout session:', session.id);
-
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    );
   } catch (error) {
     console.error('Error in checkout process:', error);
     return new Response(
