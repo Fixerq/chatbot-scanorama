@@ -12,7 +12,7 @@ export const pricingPlans: PricingPlansData = {
       "CSV Uploads",
       "Email Support"
     ],
-    priceId: "price_1OgbYxEiWhAkWDnrGvBPWxZq",
+    priceId: "price_1QeakhEiWhAkWDnrevEe12PJ",
     productId: "prod_PQfP4KEiWhAkWDnr"
   },
   pro: {
