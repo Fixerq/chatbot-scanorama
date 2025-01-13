@@ -24,25 +24,27 @@ interface CustomerTableProps {
 export const CustomerTable = ({ customers, onCustomerUpdate, isLoading }: CustomerTableProps) => {
   const handleUpdateSearchVolume = async (userId: string, newTotal: number) => {
     try {
-      const { data: currentSub } = await supabase
+      // Update the subscription_levels table for this specific user's subscription
+      const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
         .select('level')
         .eq('user_id', userId)
         .single();
 
-      if (!currentSub?.level) {
-        throw new Error('No subscription level found');
+      if (subscriptionError) {
+        console.error('Error fetching subscription:', subscriptionError);
+        throw new Error('Failed to fetch subscription');
       }
 
-      const { data: subscriptionLevel, error: levelError } = await supabase
+      const { error: updateError } = await supabase
         .from('subscription_levels')
         .update({ max_searches: newTotal })
-        .eq('level', currentSub.level)
+        .eq('level', subscriptionData.level)
         .select()
         .single();
 
-      if (levelError) {
-        console.error('Error updating subscription level:', levelError);
+      if (updateError) {
+        console.error('Error updating subscription level:', updateError);
         throw new Error('Failed to update subscription level');
       }
 
