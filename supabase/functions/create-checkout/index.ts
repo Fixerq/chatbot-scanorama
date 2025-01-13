@@ -64,6 +64,10 @@ serve(async (req) => {
       throw new Error('Missing required parameters: priceId and returnUrl are required');
     }
 
+    // Sanitize and validate return URL
+    const sanitizedReturnUrl = new URL(returnUrl).toString().replace(/\/$/, '');
+    console.log('Sanitized return URL:', sanitizedReturnUrl);
+
     // Check if customer already exists
     console.log('Checking for existing customer with email:', user.email);
     let customerId: string;
@@ -106,13 +110,13 @@ serve(async (req) => {
       const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
       console.log('Is Founders plan:', isFoundersPlan);
 
-      // Create checkout session
+      // Create checkout session with sanitized URL
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
         mode: isFoundersPlan ? 'payment' : 'subscription',
-        success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
-        cancel_url: returnUrl,
+        success_url: `${sanitizedReturnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+        cancel_url: sanitizedReturnUrl,
         billing_address_collection: 'required',
         payment_method_types: ['card'],
         allow_promotion_codes: true,
