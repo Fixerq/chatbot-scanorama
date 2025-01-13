@@ -10,7 +10,10 @@ export const MESSAGE_TYPES = {
 // Allowed origins
 export const ALLOWED_ORIGINS = [
   'https://detectify.engageai.pro',
-  'https://detectifys.engageai.pro'
+  'https://detectifys.engageai.pro',
+  'https://gptengineer.app',
+  'http://localhost:3000',
+  'https://lovable.dev'
 ];
 
 // Message interface
@@ -35,7 +38,7 @@ function getCurrentOrigin(): string {
 
 // Validate origin
 function isValidOrigin(origin: string): boolean {
-  return ALLOWED_ORIGINS.includes(origin);
+  return ALLOWED_ORIGINS.includes(origin) || origin === getCurrentOrigin();
 }
 
 // Handle element updates
