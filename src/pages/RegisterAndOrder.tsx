@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
@@ -10,7 +10,6 @@ import { RegistrationForm } from '@/components/registration/RegistrationForm';
 const RegisterAndOrder = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const session = useSession();
   const supabase = useSupabaseClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
