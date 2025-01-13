@@ -1,8 +1,7 @@
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CustomerActionsProps {
   userId: string;
@@ -11,37 +10,32 @@ interface CustomerActionsProps {
 }
 
 export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: CustomerActionsProps) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const handleUpdateSearchVolume = async (newTotal: number) => {
     try {
-      // First, get the user's subscription to ensure it exists
-      const { data: subscriptionData, error: subscriptionError } = await supabase
-        .from('subscriptions')
-        .select('id, level')
-        .eq('user_id', userId)
-        .single();
-
-      if (subscriptionError) {
-        console.error('Error fetching subscription:', subscriptionError);
-        throw new Error('Failed to fetch subscription');
-      }
-
-      // Update the subscription level's max searches
+      setIsUpdating(true);
+      
+      // Update the user's subscription with new total searches
       const { error: updateError } = await supabase
-        .from('subscription_levels')
-        .update({ max_searches: newTotal })
-        .eq('level', subscriptionData.level)
+        .from('subscriptions')
+        .update({ total_searches: newTotal })
+        .eq('user_id', userId)
         .select();
 
       if (updateError) {
-        console.error('Error updating subscription level:', updateError);
-        throw new Error('Failed to update subscription level');
+        console.error('Error updating search volume:', updateError);
+        toast.error('Failed to update search volume');
+        return;
       }
 
       toast.success('Search volume updated successfully');
-      onCustomerUpdate();
+      onCustomerUpdate(); // Refresh the table data
     } catch (error) {
-      console.error('Error updating search volume:', error);
-      toast.error('Failed to update search volume');
+      console.error('Error in handleUpdateSearchVolume:', error);
+      toast.error('An error occurred while updating search volume');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -52,35 +46,44 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
         .delete()
         .eq('id', userId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Error deleting user:', deleteError);
+        toast.error('Failed to delete user');
+        return;
+      }
 
       toast.success('User deleted successfully');
-      onCustomerUpdate();
+      onCustomerUpdate(); // Refresh the table data
     } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      console.error('Error in handleDeleteUser:', error);
+      toast.error('An error occurred while deleting the user');
     }
   };
 
   return (
-    <div className="space-x-2">
-      <Input
-        type="number"
-        defaultValue={totalSearches}
-        className="w-24 inline-block mr-2"
-        onBlur={(e) => {
-          const newValue = parseInt(e.target.value);
-          if (newValue !== totalSearches) {
-            handleUpdateSearchVolume(newValue);
-          }
-        }}
-      />
-      <Button
-        variant="destructive"
-        size="icon"
+    <div className="flex items-center gap-2">
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => handleUpdateSearchVolume(totalSearches + 10)}
+        disabled={isUpdating}
+      >
+        +10 Searches
+      </Button>
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => handleUpdateSearchVolume(totalSearches - 10)}
+        disabled={isUpdating || totalSearches < 10}
+      >
+        -10 Searches
+      </Button>
+      <Button 
+        variant="destructive" 
+        size="sm"
         onClick={handleDeleteUser}
       >
-        <Trash2 className="h-4 w-4" />
+        Delete User
       </Button>
     </div>
   );
