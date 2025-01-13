@@ -7,7 +7,7 @@ export const MESSAGE_TYPES = {
   ERROR: 'ERROR'
 };
 
-// Allowed origins
+// Allowed origins - primary origin should be first
 export const ALLOWED_ORIGINS = [
   'https://detectify.engageai.pro',
   'https://detectifys.engageai.pro',
@@ -31,6 +31,11 @@ declare global {
   }
 }
 
+// Get primary origin (first in ALLOWED_ORIGINS)
+function getPrimaryOrigin(): string {
+  return ALLOWED_ORIGINS[0];
+}
+
 // Get current origin
 function getCurrentOrigin(): string {
   return window.location.origin;
@@ -38,14 +43,14 @@ function getCurrentOrigin(): string {
 
 // Validate origin
 function isValidOrigin(origin: string): boolean {
-  return ALLOWED_ORIGINS.includes(origin) || origin === getCurrentOrigin();
+  return ALLOWED_ORIGINS.includes(origin);
 }
 
 // Handle element updates
 function handleElementUpdate(data: any) {
   console.log('Handling element update:', data);
-  const targetOrigin = getCurrentOrigin();
-  if (window.parent && window.parent.postMessage && isValidOrigin(targetOrigin)) {
+  const targetOrigin = getPrimaryOrigin();
+  if (window.parent && window.parent.postMessage) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.ELEMENTS_UPDATED,
       success: true
@@ -56,8 +61,8 @@ function handleElementUpdate(data: any) {
 // Handle selector toggle
 function handleSelectorToggle(data: any) {
   console.log('Handling selector toggle:', data);
-  const targetOrigin = getCurrentOrigin();
-  if (window.parent && window.parent.postMessage && isValidOrigin(targetOrigin)) {
+  const targetOrigin = getPrimaryOrigin();
+  if (window.parent && window.parent.postMessage) {
     window.parent.postMessage({
       type: MESSAGE_TYPES.SELECTOR_TOGGLED,
       success: true
@@ -98,8 +103,8 @@ export function initializeCommunication() {
       }
     } catch (error) {
       console.error('Error processing message:', error);
-      const targetOrigin = event.origin;
-      if (event.source && 'postMessage' in event.source && isValidOrigin(targetOrigin)) {
+      const targetOrigin = getPrimaryOrigin();
+      if (event.source && 'postMessage' in event.source) {
         (event.source as Window).postMessage({
           type: MESSAGE_TYPES.ERROR,
           error: (error as Error).message
@@ -112,11 +117,11 @@ export function initializeCommunication() {
   window.sendMessage = function(message: CommunicationMessage) {
     try {
       console.log('Sending message:', message);
-      const targetOrigin = getCurrentOrigin();
-      if (window.parent && window.parent.postMessage && isValidOrigin(targetOrigin)) {
+      const targetOrigin = getPrimaryOrigin();
+      if (window.parent && window.parent.postMessage) {
         window.parent.postMessage(message, targetOrigin);
       } else {
-        console.warn('Invalid target origin or missing postMessage support');
+        console.warn('Missing postMessage support');
       }
     } catch (error) {
       console.error('Error sending message:', error);
