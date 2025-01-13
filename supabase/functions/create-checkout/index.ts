@@ -64,20 +64,8 @@ serve(async (req) => {
       throw new Error('Missing required parameters: priceId and returnUrl are required');
     }
 
-    // Sanitize and validate the return URL
-    let sanitizedUrl;
-    try {
-      sanitizedUrl = new URL(returnUrl);
-      sanitizedUrl.hostname = sanitizedUrl.hostname.replace(/:+$/, '');
-      console.log('Sanitized return URL:', sanitizedUrl.toString());
-    } catch (error) {
-      console.error('Invalid return URL:', error);
-      throw new Error('Invalid return URL provided');
-    }
-
-    console.log('Creating checkout session for price:', priceId);
-
     // Check if customer already exists
+    console.log('Checking for existing customer with email:', user.email);
     const existingCustomers = await stripe.customers.list({
       email: user.email,
       limit: 1,
@@ -87,13 +75,26 @@ serve(async (req) => {
     if (existingCustomers.data.length > 0) {
       customerId = existingCustomers.data[0].id;
       console.log('Found existing customer:', customerId);
+      
+      // Check if customer already has an active subscription
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        price: priceId,
+        limit: 1,
+      });
+
+      if (subscriptions.data.length > 0) {
+        console.error('Customer already has an active subscription');
+        throw new Error('You already have an active subscription for this plan');
+      }
     } else {
       // Create a new customer
       const newCustomer = await stripe.customers.create({
         email: user.email,
         metadata: {
-          supabaseUUID: user.id
-        }
+          supabaseUUID: user.id,
+        },
       });
       customerId = newCustomer.id;
       console.log('Created new customer:', customerId);
@@ -101,19 +102,16 @@ serve(async (req) => {
 
     // Determine if this is the Founders plan
     const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
-    
-    console.log('Creating checkout session with mode:', isFoundersPlan ? 'payment' : 'subscription');
+    console.log('Is Founders plan:', isFoundersPlan);
 
-    // Ensure returnUrl ends with /register-and-order
-    const baseUrl = sanitizedUrl.toString();
-    const successUrl = baseUrl + (baseUrl.endsWith('/') ? 'register-and-order' : '/register-and-order');
-    
+    // Create checkout session
+    console.log('Creating checkout session with mode:', isFoundersPlan ? 'payment' : 'subscription');
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
-      cancel_url: baseUrl,
+      success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+      cancel_url: returnUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
       allow_promotion_codes: true,
