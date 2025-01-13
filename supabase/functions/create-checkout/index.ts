@@ -68,7 +68,6 @@ serve(async (req) => {
     let sanitizedUrl;
     try {
       sanitizedUrl = new URL(returnUrl);
-      // Remove any trailing colons from the hostname
       sanitizedUrl.hostname = sanitizedUrl.hostname.replace(/:+$/, '');
       console.log('Sanitized return URL:', sanitizedUrl.toString());
     } catch (error) {
@@ -78,15 +77,27 @@ serve(async (req) => {
 
     console.log('Creating checkout session for price:', priceId);
 
-    // Create a new customer
-    const customer = await stripe.customers.create({
+    // Check if customer already exists
+    const existingCustomers = await stripe.customers.list({
       email: user.email,
-      metadata: {
-        supabaseUUID: user.id
-      }
+      limit: 1,
     });
-    
-    console.log('Created new customer:', customer.id);
+
+    let customerId;
+    if (existingCustomers.data.length > 0) {
+      customerId = existingCustomers.data[0].id;
+      console.log('Found existing customer:', customerId);
+    } else {
+      // Create a new customer
+      const newCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          supabaseUUID: user.id
+        }
+      });
+      customerId = newCustomer.id;
+      console.log('Created new customer:', customerId);
+    }
 
     // Determine if this is the Founders plan
     const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
@@ -98,7 +109,7 @@ serve(async (req) => {
     const successUrl = baseUrl + (baseUrl.endsWith('/') ? 'register-and-order' : '/register-and-order');
     
     const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
+      customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isFoundersPlan ? 'payment' : 'subscription',
       success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
@@ -106,6 +117,9 @@ serve(async (req) => {
       billing_address_collection: 'required',
       payment_method_types: ['card'],
       allow_promotion_codes: true,
+      metadata: {
+        userId: user.id,
+      },
     });
 
     console.log('Created checkout session:', session.id);
