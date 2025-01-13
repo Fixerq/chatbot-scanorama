@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 import { CustomerData } from '@/types/admin';
@@ -50,6 +51,23 @@ export const CustomerTable = ({ customers, onCustomerUpdate, isLoading }: Custom
     } catch (error) {
       console.error('Error updating search volume:', error);
       toast.error('Failed to update search volume');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const { error: deleteError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (deleteError) throw deleteError;
+
+      toast.success('User deleted successfully');
+      onCustomerUpdate();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user');
     }
   };
 
@@ -99,7 +117,7 @@ export const CustomerTable = ({ customers, onCustomerUpdate, isLoading }: Custom
                   ? formatDate(customer.subscription.current_period_end)
                   : 'N/A'}
               </TableCell>
-              <TableCell>
+              <TableCell className="space-x-2">
                 <Input
                   type="number"
                   defaultValue={customer.totalSearches}
@@ -111,6 +129,13 @@ export const CustomerTable = ({ customers, onCustomerUpdate, isLoading }: Custom
                     }
                   }}
                 />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => handleDeleteUser(customer.profile.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}

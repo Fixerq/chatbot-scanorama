@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -11,10 +12,12 @@ interface CreateUserFormProps {
 export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserSearches, setNewUserSearches] = useState('10');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Create profile first
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert([
@@ -26,6 +29,7 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
       if (profileError) throw profileError;
 
       if (profileData) {
+        // Create subscription
         const { error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert([
@@ -37,11 +41,23 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
           ]);
 
         if (subscriptionError) throw subscriptionError;
+
+        // If user should be admin, add to admin_users table
+        if (isAdmin) {
+          const { error: adminError } = await supabase
+            .from('admin_users')
+            .insert([
+              { user_id: profileData.id }
+            ]);
+
+          if (adminError) throw adminError;
+        }
       }
 
       toast.success('User created successfully');
       setNewUserEmail('');
       setNewUserSearches('10');
+      setIsAdmin(false);
       onUserCreated();
     } catch (error) {
       console.error('Error creating user:', error);
@@ -74,6 +90,19 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
           onChange={(e) => setNewUserSearches(e.target.value)}
           required
         />
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="isAdmin"
+          checked={isAdmin}
+          onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+        />
+        <label
+          htmlFor="isAdmin"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Make user an admin
+        </label>
       </div>
       <Button type="submit">Create User</Button>
     </form>
