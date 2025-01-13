@@ -26,7 +26,7 @@ export const pricingPlans: PricingPlansData = {
       "CSV Uploads",
       "Priority Support"
     ],
-    priceId: "price_1OgbZKEiWhAkWDnrpXBWGkVx",
+    priceId: "price_1QeakhEiWhAkWDnrnZgRSuyR",
     productId: "prod_PQfP3LEiWhAkWDnr",
     popular: true
   },
