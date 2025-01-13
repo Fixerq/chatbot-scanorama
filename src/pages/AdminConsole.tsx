@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { useSession } from '@supabase/auth-helpers-react';
 
 interface Profile {
   id: string;
@@ -41,6 +42,7 @@ interface CustomerData {
 
 const AdminConsole = () => {
   const navigate = useNavigate();
+  const session = useSession();
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminChecking, setIsAdminChecking] = useState(true);
@@ -48,6 +50,11 @@ const AdminConsole = () => {
   const [newUserSearches, setNewUserSearches] = useState('10');
 
   useEffect(() => {
+    if (!session) {
+      navigate('/login');
+      return;
+    }
+
     const checkAdminStatus = async () => {
       try {
         setIsAdminChecking(true);
@@ -160,9 +167,15 @@ const AdminConsole = () => {
     };
 
     fetchCustomerData();
-  }, [navigate]);
+  }, [navigate, session]);
 
   const handleUpdateSearchVolume = async (userId: string, newTotal: number) => {
+    if (!session) {
+      toast.error('Please log in again');
+      navigate('/login');
+      return;
+    }
+
     try {
       const { data: currentSub } = await supabase
         .from('subscriptions')
@@ -203,7 +216,11 @@ const AdminConsole = () => {
       }
 
       toast.success('Search volume updated successfully');
-      window.location.reload();
+      // Refresh the page instead of reloading to maintain session
+      const isAdmin = await checkAdminStatus();
+      if (isAdmin) {
+        fetchCustomerData();
+      }
     } catch (error) {
       console.error('Error updating search volume:', error);
       toast.error('Failed to update search volume');
