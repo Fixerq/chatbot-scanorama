@@ -7,19 +7,26 @@ export const MESSAGE_TYPES = {
   ERROR: 'ERROR'
 };
 
-// Allowed origins - primary origin should be first
-export const ALLOWED_ORIGINS = [
-  'https://detectify.engageai.pro',
-  'https://detectifys.engageai.pro',
-  'https://gptengineer.app',
-  'http://localhost:3000',
-  'https://lovable.dev'
-];
+// Type for message handler functions
+type MessageHandler = (data: any) => void;
 
-// Message interface
+// Specific data interfaces
+interface ElementUpdateData {
+  elements?: any[];
+  selector?: string;
+  timestamp?: number;
+}
+
+interface SelectorToggleData {
+  selector?: string;
+  active?: boolean;
+  timestamp?: number;
+}
+
+// Message interface with specific data types
 interface CommunicationMessage {
   type: string;
-  data?: any;
+  data?: ElementUpdateData | SelectorToggleData;
   success?: boolean;
   error?: string;
 }
@@ -30,6 +37,15 @@ declare global {
     sendMessage: (message: CommunicationMessage) => void;
   }
 }
+
+// Allowed origins - primary origin should be first
+export const ALLOWED_ORIGINS = [
+  'https://detectify.engageai.pro',
+  'https://detectifys.engageai.pro',
+  'https://gptengineer.app',
+  'http://localhost:3000',
+  'https://lovable.dev'
+];
 
 // Get primary origin (first in ALLOWED_ORIGINS)
 function getPrimaryOrigin(): string {
@@ -46,8 +62,8 @@ function isValidOrigin(origin: string): boolean {
   return ALLOWED_ORIGINS.includes(origin);
 }
 
-// Handle element updates
-function handleElementUpdate(data: any) {
+// Handle element updates with typed data
+function handleElementUpdate(data: ElementUpdateData) {
   console.log('Handling element update:', data);
   const targetOrigin = getPrimaryOrigin();
   if (window.parent && window.parent.postMessage) {
@@ -58,8 +74,8 @@ function handleElementUpdate(data: any) {
   }
 }
 
-// Handle selector toggle
-function handleSelectorToggle(data: any) {
+// Handle selector toggle with typed data
+function handleSelectorToggle(data: SelectorToggleData) {
   console.log('Handling selector toggle:', data);
   const targetOrigin = getPrimaryOrigin();
   if (window.parent && window.parent.postMessage) {
@@ -69,6 +85,12 @@ function handleSelectorToggle(data: any) {
     }, targetOrigin);
   }
 }
+
+// Message handler map for cleaner switching
+const messageHandlers: Record<string, MessageHandler> = {
+  [MESSAGE_TYPES.UPDATE_ELEMENTS]: handleElementUpdate,
+  [MESSAGE_TYPES.TOGGLE_SELECTOR]: handleSelectorToggle,
+};
 
 // Initialize communication channel
 export function initializeCommunication() {
@@ -91,15 +113,11 @@ export function initializeCommunication() {
         return;
       }
 
-      switch(data.type) {
-        case MESSAGE_TYPES.UPDATE_ELEMENTS:
-          handleElementUpdate(data);
-          break;
-        case MESSAGE_TYPES.TOGGLE_SELECTOR:
-          handleSelectorToggle(data);
-          break;
-        default:
-          console.log('Unhandled message type:', data.type);
+      const handler = messageHandlers[data.type];
+      if (handler) {
+        handler(data.data);
+      } else {
+        console.log('Unhandled message type:', data.type);
       }
     } catch (error) {
       console.error('Error processing message:', error);
