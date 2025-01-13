@@ -13,10 +13,23 @@ interface CustomerActionsProps {
 export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: CustomerActionsProps) => {
   const handleUpdateSearchVolume = async (newTotal: number) => {
     try {
+      // First, get the user's subscription to ensure it exists
+      const { data: subscriptionData, error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .select('id, level')
+        .eq('user_id', userId)
+        .single();
+
+      if (subscriptionError) {
+        console.error('Error fetching subscription:', subscriptionError);
+        throw new Error('Failed to fetch subscription');
+      }
+
+      // Update the subscription level's max searches
       const { error: updateError } = await supabase
         .from('subscription_levels')
         .update({ max_searches: newTotal })
-        .eq('level', 'starter')
+        .eq('level', subscriptionData.level)
         .select();
 
       if (updateError) {
