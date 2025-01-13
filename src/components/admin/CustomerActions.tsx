@@ -20,8 +20,7 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
       const { error: updateError } = await supabase
         .from('subscriptions')
         .update({ total_searches: newTotal })
-        .eq('user_id', userId)
-        .select();
+        .eq('user_id', userId);
 
       if (updateError) {
         console.error('Error updating search volume:', updateError);
