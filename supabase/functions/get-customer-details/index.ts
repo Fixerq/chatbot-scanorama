@@ -8,6 +8,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 });
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,28 +17,58 @@ serve(async (req) => {
     const { sessionId } = await req.json();
     
     if (!sessionId) {
+      console.error('No session ID provided');
       throw new Error('Session ID is required');
     }
 
     console.log('Fetching checkout session:', sessionId);
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['customer']
+    });
     
+    if (!session) {
+      console.error('No session found for ID:', sessionId);
+      throw new Error('Session not found');
+    }
+
+    console.log('Session retrieved:', {
+      id: session.id,
+      customerId: session.customer,
+      customerEmail: session.customer_email
+    });
+
     let customer;
     if (session.customer) {
+      console.log('Fetching customer details for:', session.customer);
       customer = await stripe.customers.retrieve(session.customer.toString());
+      console.log('Customer details retrieved:', {
+        id: customer.id,
+        email: customer.email,
+        name: customer.name
+      });
     }
 
     return new Response(
-      JSON.stringify({ customer }),
+      JSON.stringify({ 
+        customer,
+        session: {
+          id: session.id,
+          customer_email: session.customer_email,
+          payment_status: session.payment_status
+        }
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     );
   } catch (error) {
-    console.error('Error fetching customer details:', error);
+    console.error('Error in get-customer-details:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Failed to fetch customer information. Please contact support.'
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
