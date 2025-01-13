@@ -28,7 +28,7 @@ export const useSubscriptionStatus = () => {
           .select(`
             level,
             status,
-            subscription_levels!inner (
+            subscription_levels (
               max_searches
             )
           `)
@@ -60,7 +60,8 @@ export const useSubscriptionStatus = () => {
 
         console.log('Searches used this month:', searchesUsed);
 
-        const maxSearches = subscriptionWithLevel.subscription_levels.max_searches;
+        // Access max_searches from the first (and only) subscription_levels record
+        const maxSearches = subscriptionWithLevel.subscription_levels[0]?.max_searches;
         
         // If maxSearches is -1, it means unlimited searches
         const remaining = maxSearches === -1 ? -1 : Math.max(0, maxSearches - (searchesUsed || 0));
