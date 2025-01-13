@@ -43,7 +43,7 @@ export const pricingPlans: PricingPlansData = {
       "Priority Support",
       "Early access to new features"
     ],
-    priceId: "price_1OgbZcEiWhAkWDnrIXc7GxR3",
+    priceId: "price_1QfP20EiWhAkWDnrDhllA5a1",
     productId: "prod_PQfP20EiWhAkWDnr",
     special: true
   }
