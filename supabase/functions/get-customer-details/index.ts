@@ -23,10 +23,7 @@ serve(async (req) => {
 
     console.log('Fetching checkout session:', sessionId);
     
-    // Use Promise.resolve to handle the stripe API call
-    const session = await Promise.resolve(stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['customer']
-    }));
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
     
     if (!session) {
       console.error('No session found for ID:', sessionId);
@@ -40,10 +37,9 @@ serve(async (req) => {
     });
 
     let customer = null;
-    if (session.customer) {
+    if (typeof session.customer === 'string') {
       console.log('Fetching customer details for:', session.customer);
-      // Use Promise.resolve to handle the stripe API call
-      customer = await Promise.resolve(stripe.customers.retrieve(session.customer.toString()));
+      customer = await stripe.customers.retrieve(session.customer);
       console.log('Customer details retrieved:', {
         id: customer.id,
         email: customer.email,
