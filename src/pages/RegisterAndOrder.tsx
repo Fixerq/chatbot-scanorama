@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RegistrationHeader } from '@/components/registration/RegistrationHeader';
 import { RegistrationForm } from '@/components/registration/RegistrationForm';
@@ -73,13 +74,18 @@ const RegisterAndOrder = () => {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
         <Card className="w-full max-w-md border-none shadow-xl bg-gradient-to-br from-card to-card/90">
-          <CardContent className="space-y-2 text-center p-6">
+          <CardContent className="space-y-4 text-center p-6">
             <h2 className="text-2xl font-bold text-foreground">
               Invalid Request
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-muted-foreground mb-6">
               Missing required product information. Please select a plan from our pricing page.
             </p>
+            <Link to="/">
+              <Button className="w-full" variant="default">
+                View Pricing Plans
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
