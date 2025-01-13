@@ -12,7 +12,7 @@ export const pricingPlans: PricingPlansData = {
       "CSV Uploads",
       "Email Support"
     ],
-    priceId: "price_1QfP4KEiWhAkWDnrNXFYWR9L",
+    priceId: "price_1OgbYxEiWhAkWDnrGvBPWxZq",
     productId: "prod_PQfP4KEiWhAkWDnr"
   },
   pro: {
@@ -26,7 +26,7 @@ export const pricingPlans: PricingPlansData = {
       "CSV Uploads",
       "Priority Support"
     ],
-    priceId: "price_1QfP3LEiWhAkWDnrTYVVFBk9",
+    priceId: "price_1OgbZKEiWhAkWDnrpXBWGkVx",
     productId: "prod_PQfP3LEiWhAkWDnr",
     popular: true
   },
@@ -43,7 +43,7 @@ export const pricingPlans: PricingPlansData = {
       "Priority Support",
       "Early access to new features"
     ],
-    priceId: "price_1QfP20EiWhAkWDnrDhllA5a1",
+    priceId: "price_1OgbZcEiWhAkWDnrIXc7GxR3",
     productId: "prod_PQfP20EiWhAkWDnr",
     special: true
   }
