@@ -20,23 +20,27 @@ export const useSubscriptionStatus = () => {
       }
 
       try {
-        // Get user's subscription
-        const { data: subscription, error: subscriptionError } = await supabase
+        console.log('Fetching subscription status for user:', session.user.id);
+        
+        // Get user's subscription and level details in a single query
+        const { data: subscriptionWithLevel, error: subscriptionError } = await supabase
           .from('subscriptions')
-          .select('level, status')
+          .select(`
+            level,
+            status,
+            subscription_levels!inner (
+              max_searches
+            )
+          `)
           .eq('user_id', session.user.id)
           .single();
 
-        if (subscriptionError) throw subscriptionError;
+        if (subscriptionError) {
+          console.error('Subscription fetch error:', subscriptionError);
+          throw subscriptionError;
+        }
 
-        // Get subscription level details
-        const { data: levelData, error: levelError } = await supabase
-          .from('subscription_levels')
-          .select('max_searches')
-          .eq('level', subscription?.level || 'starter')
-          .single();
-
-        if (levelError) throw levelError;
+        console.log('Subscription data:', subscriptionWithLevel);
 
         // Get count of searches made this month
         const startOfMonth = new Date();
@@ -49,14 +53,23 @@ export const useSubscriptionStatus = () => {
           .eq('user_id', session.user.id)
           .gte('created_at', startOfMonth.toISOString());
 
-        if (searchError) throw searchError;
+        if (searchError) {
+          console.error('Search count error:', searchError);
+          throw searchError;
+        }
 
-        const maxSearches = levelData?.max_searches || 10;
-        const remaining = Math.max(0, maxSearches - (searchesUsed || 0));
+        console.log('Searches used this month:', searchesUsed);
+
+        const maxSearches = subscriptionWithLevel.subscription_levels.max_searches;
+        
+        // If maxSearches is -1, it means unlimited searches
+        const remaining = maxSearches === -1 ? -1 : Math.max(0, maxSearches - (searchesUsed || 0));
+
+        console.log('Searches remaining:', remaining);
 
         setSubscriptionData({
-          level: subscription?.level || 'starter',
-          status: subscription?.status || 'inactive',
+          level: subscriptionWithLevel.level,
+          status: subscriptionWithLevel.status,
           searchesRemaining: remaining
         });
       } catch (error) {
