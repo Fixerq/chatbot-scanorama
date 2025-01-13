@@ -174,16 +174,32 @@ const AdminConsole = () => {
         throw new Error('No subscription level found');
       }
 
-      const { error: updateError } = await supabase
+      // First check if the level exists
+      const { data: existingLevel } = await supabase
         .from('subscription_levels')
-        .upsert({
-          level: currentSub.level,
-          max_searches: newTotal,
-          features: []
-        });
+        .select('id')
+        .eq('level', currentSub.level)
+        .single();
 
-      if (updateError) {
-        throw updateError;
+      if (existingLevel) {
+        // Update existing level
+        const { error: updateError } = await supabase
+          .from('subscription_levels')
+          .update({ max_searches: newTotal })
+          .eq('level', currentSub.level);
+
+        if (updateError) throw updateError;
+      } else {
+        // Insert new level
+        const { error: insertError } = await supabase
+          .from('subscription_levels')
+          .insert({
+            level: currentSub.level,
+            max_searches: newTotal,
+            features: []
+          });
+
+        if (insertError) throw insertError;
       }
 
       toast.success('Search volume updated successfully');
