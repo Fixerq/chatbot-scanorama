@@ -29,16 +29,21 @@ export class FirecrawlService {
 
   private static formatUrl(url: string): string {
     try {
-      // Remove any trailing colons
-      url = url.replace(/:$/, '');
+      // Remove any trailing colons and slashes
+      url = url.replace(/[:\/]+$/, '');
       
       // If the URL doesn't start with http:// or https://, add https://
       if (!url.match(/^https?:\/\//i)) {
         url = 'https://' + url;
       }
       
+      // Remove any double slashes (except after protocol)
+      url = url.replace(/([^:]\/)\/+/g, '$1');
+      
       // Validate the URL
       new URL(url);
+      
+      console.log('Formatted URL:', url);
       return url;
     } catch (error) {
       console.error('Invalid URL format:', error);
