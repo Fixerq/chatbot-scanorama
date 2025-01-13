@@ -33,29 +33,16 @@ export const CustomerTable = ({ customers, onCustomerUpdate, isLoading }: Custom
         throw new Error('No subscription level found');
       }
 
-      const { data: existingLevel } = await supabase
+      const { data: subscriptionLevel, error: levelError } = await supabase
         .from('subscription_levels')
-        .select('id')
+        .update({ max_searches: newTotal })
         .eq('level', currentSub.level)
+        .select()
         .single();
 
-      if (existingLevel) {
-        const { error: updateError } = await supabase
-          .from('subscription_levels')
-          .update({ max_searches: newTotal })
-          .eq('level', currentSub.level);
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('subscription_levels')
-          .insert({
-            level: currentSub.level,
-            max_searches: newTotal,
-            features: []
-          });
-
-        if (insertError) throw insertError;
+      if (levelError) {
+        console.error('Error updating subscription level:', levelError);
+        throw new Error('Failed to update subscription level');
       }
 
       toast.success('Search volume updated successfully');
