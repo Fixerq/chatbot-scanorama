@@ -59,6 +59,12 @@ serve(async (req) => {
       throw new Error('Missing required parameters: priceId and returnUrl are required');
     }
 
+    // Initialize Stripe here, inside the request handler
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+    });
+
     // Properly sanitize and validate the return URL
     let sanitizedReturnUrl: string;
     try {
