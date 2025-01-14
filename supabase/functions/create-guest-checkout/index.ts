@@ -24,15 +24,7 @@ serve(async (req) => {
     
     if (!priceId || !successUrl || !cancelUrl) {
       console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing required parameters: priceId, successUrl, and cancelUrl are required' 
-        }),
-        {
-          status: 400,
-          headers: corsHeaders,
-        }
-      );
+      throw new Error('Missing required parameters: priceId, successUrl, and cancelUrl are required');
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
@@ -65,10 +57,7 @@ serve(async (req) => {
         url: session.url 
       }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: corsHeaders,
         status: 200,
       },
     );
