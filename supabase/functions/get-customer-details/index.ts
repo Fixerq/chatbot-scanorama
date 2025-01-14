@@ -24,7 +24,7 @@ serve(async (req) => {
     console.log('Fetching checkout session:', sessionId);
     
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['customer']
+      expand: ['customer', 'customer_details']
     });
     
     if (!session) {
@@ -38,23 +38,13 @@ serve(async (req) => {
       customerEmail: session.customer_email
     });
 
-    let customer = null;
-    if (typeof session.customer === 'string') {
-      console.log('Fetching customer details for:', session.customer);
-      customer = await stripe.customers.retrieve(session.customer);
-      console.log('Customer details retrieved:', {
-        id: customer.id,
-        email: customer.email,
-        name: customer.name
-      });
-    }
-
     return new Response(
       JSON.stringify({ 
-        customer,
+        customer: session.customer,
         session: {
           id: session.id,
           customer_email: session.customer_email,
+          customer_details: session.customer_details,
           payment_status: session.payment_status
         }
       }),

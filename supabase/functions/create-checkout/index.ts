@@ -81,59 +81,54 @@ serve(async (req) => {
     console.log('Checking for existing customer with email:', user.email);
     let customerId: string;
     
-    try {
-      const customers = await stripe.customers.list({
+    const customers = await stripe.customers.list({
+      email: user.email,
+      limit: 1,
+    });
+
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
+      console.log('Found existing customer:', customerId);
+    } else {
+      // Create new customer
+      const newCustomer = await stripe.customers.create({
         email: user.email,
-        limit: 1,
-      });
-
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
-        console.log('Found existing customer:', customerId);
-      } else {
-        // Create new customer
-        const newCustomer = await stripe.customers.create({
-          email: user.email,
-          metadata: {
-            supabaseUUID: user.id,
-          },
-        });
-        customerId = newCustomer.id;
-        console.log('Created new customer:', customerId);
-      }
-
-      // Determine if this is the Founders plan
-      const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
-      console.log('Is Founders plan:', isFoundersPlan);
-
-      // Create checkout session with sanitized URL
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        line_items: [{ price: priceId, quantity: 1 }],
-        mode: isFoundersPlan ? 'payment' : 'subscription',
-        success_url: `${sanitizedReturnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
-        cancel_url: sanitizedReturnUrl,
-        billing_address_collection: 'required',
-        payment_method_types: ['card'],
-        allow_promotion_codes: true,
         metadata: {
-          userId: user.id,
+          supabaseUUID: user.id,
         },
       });
-
-      console.log('Created checkout session:', session.id);
-
-      return new Response(
-        JSON.stringify({ url: session.url }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      );
-    } catch (stripeError) {
-      console.error('Stripe operation error:', stripeError);
-      throw stripeError;
+      customerId = newCustomer.id;
+      console.log('Created new customer:', customerId);
     }
+
+    // Determine if this is the Founders plan
+    const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
+    console.log('Is Founders plan:', isFoundersPlan);
+
+    // Create checkout session with sanitized URL
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: isFoundersPlan ? 'payment' : 'subscription',
+      success_url: `${sanitizedReturnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+      cancel_url: sanitizedReturnUrl,
+      billing_address_collection: 'required',
+      payment_method_types: ['card'],
+      allow_promotion_codes: true,
+      metadata: {
+        userId: user.id,
+      },
+    });
+
+    console.log('Created checkout session:', session.id);
+
+    return new Response(
+      JSON.stringify({ url: session.url }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    );
   } catch (error) {
     console.error('Error in checkout process:', error);
     return new Response(
