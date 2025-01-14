@@ -64,9 +64,18 @@ serve(async (req) => {
       throw new Error('Missing required parameters: priceId and returnUrl are required');
     }
 
-    // Sanitize and validate return URL
-    const sanitizedReturnUrl = new URL(returnUrl).toString().replace(/\/$/, '');
-    console.log('Sanitized return URL:', sanitizedReturnUrl);
+    // Properly sanitize and validate the return URL
+    let sanitizedReturnUrl: string;
+    try {
+      // Remove any trailing colons and slashes
+      const cleanUrl = returnUrl.replace(/[:\/]+$/, '');
+      const url = new URL(cleanUrl);
+      sanitizedReturnUrl = url.toString().replace(/\/$/, '');
+      console.log('Sanitized return URL:', sanitizedReturnUrl);
+    } catch (error) {
+      console.error('Invalid return URL:', error);
+      throw new Error('Invalid return URL provided');
+    }
 
     // Check if customer already exists
     console.log('Checking for existing customer with email:', user.email);
