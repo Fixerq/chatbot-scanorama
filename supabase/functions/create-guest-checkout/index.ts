@@ -1,16 +1,20 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@13.3.0?target=deno";
-import { corsHeaders } from "../_shared/cors.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import Stripe from 'https://esm.sh/stripe@13.6.0?target=deno';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -42,21 +46,22 @@ serve(async (req) => {
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
-      allow_promotion_codes: true,
-      customer_creation: 'always',
+      metadata: {
+        planName: planName,
+      },
     });
 
-    console.log('Created guest checkout session:', session.id);
+    console.log('Checkout session created successfully:', session.id);
 
     return new Response(
-      JSON.stringify({ url: session.url }),
+      JSON.stringify({ sessionId: session.id, url: session.url }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     );
   } catch (error) {
-    console.error('Error in guest checkout process:', error);
+    console.error('Error creating checkout session:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
