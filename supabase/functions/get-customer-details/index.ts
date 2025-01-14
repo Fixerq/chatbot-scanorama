@@ -23,7 +23,9 @@ serve(async (req) => {
 
     console.log('Fetching checkout session:', sessionId);
     
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['customer']
+    });
     
     if (!session) {
       console.error('No session found for ID:', sessionId);

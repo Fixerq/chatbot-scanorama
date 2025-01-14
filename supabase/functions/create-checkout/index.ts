@@ -111,7 +111,7 @@ serve(async (req) => {
         customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
         mode: isFoundersPlan ? 'payment' : 'subscription',
-        success_url: `${sanitizedReturnUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+        success_url: `${sanitizedReturnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
         cancel_url: sanitizedReturnUrl,
         billing_address_collection: 'required',
         payment_method_types: ['card'],
