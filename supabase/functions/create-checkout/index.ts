@@ -68,8 +68,7 @@ serve(async (req) => {
     // Properly sanitize and validate the return URL
     let sanitizedReturnUrl: string;
     try {
-      const cleanUrl = returnUrl.replace(/:[0-9]*\/?$/, '').replace(/\/$/, '');
-      const url = new URL(cleanUrl);
+      const url = new URL(returnUrl);
       sanitizedReturnUrl = url.origin;
       console.log('Sanitized return URL:', sanitizedReturnUrl);
     } catch (error) {
@@ -107,7 +106,7 @@ serve(async (req) => {
     
     console.log('Creating checkout session with plan:', { planName, isFoundersPlan });
 
-    // Create checkout session with properly encoded parameters
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
