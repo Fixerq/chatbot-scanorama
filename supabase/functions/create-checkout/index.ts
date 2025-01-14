@@ -59,7 +59,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters: priceId and returnUrl are required');
     }
 
-    // Initialize Stripe here, inside the request handler
+    // Initialize Stripe
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
@@ -68,7 +68,6 @@ serve(async (req) => {
     // Properly sanitize and validate the return URL
     let sanitizedReturnUrl: string;
     try {
-      // Remove any trailing colons, slashes, and port numbers
       const cleanUrl = returnUrl.replace(/:[0-9]*\/?$/, '').replace(/\/$/, '');
       const url = new URL(cleanUrl);
       sanitizedReturnUrl = url.origin;
@@ -102,26 +101,25 @@ serve(async (req) => {
       console.log('Created new customer:', customerId);
     }
 
-    // Determine if this is the Founders plan and get plan name
+    // Get plan name based on priceId
+    const planName = getPlanName(priceId);
     const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
-    const planName = isFoundersPlan ? 'Founders Plan' : 
-                    priceId === 'price_1QeakhEiWhAkWDnrevEe12PJ' ? 'Starter Plan' :
-                    priceId === 'price_1QeakhEiWhAkWDnrnZgRSuyR' ? 'Premium Plan' : 'Selected Plan';
     
-    console.log('Plan details:', { isFoundersPlan, planName });
+    console.log('Creating checkout session with plan:', { planName, isFoundersPlan });
 
-    // Create checkout session with sanitized URL and plan name
+    // Create checkout session with properly encoded parameters
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${sanitizedReturnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}&planName=${encodeURIComponent(planName)}`,
+      success_url: `${sanitizedReturnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${encodeURIComponent(priceId)}&planName=${encodeURIComponent(planName)}`,
       cancel_url: sanitizedReturnUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
       allow_promotion_codes: true,
       metadata: {
         userId: user.id,
+        planName: planName
       },
     });
 
@@ -148,3 +146,16 @@ serve(async (req) => {
     );
   }
 });
+
+function getPlanName(priceId: string): string {
+  switch (priceId) {
+    case 'price_1QfP20EiWhAkWDnrDhllA5a1':
+      return 'Founders Plan';
+    case 'price_1QeakhEiWhAkWDnrevEe12PJ':
+      return 'Starter Plan';
+    case 'price_1QeakhEiWhAkWDnrnZgRSuyR':
+      return 'Premium Plan';
+    default:
+      return 'Selected Plan';
+  }
+}
