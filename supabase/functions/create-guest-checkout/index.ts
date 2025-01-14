@@ -11,6 +11,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json',
 };
 
 serve(async (req) => {
@@ -32,7 +33,7 @@ serve(async (req) => {
         JSON.stringify({ error: 'Missing required parameters: priceId, successUrl, and cancelUrl are required' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: corsHeaders,
         }
       );
     }
@@ -68,7 +69,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ sessionId: session.id, url: session.url }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         status: 200,
       },
     );
@@ -77,7 +78,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         status: 400,
       },
     );
