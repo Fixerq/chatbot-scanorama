@@ -15,8 +15,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Received request:', req.method, req.url);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
     return new Response(null, { 
       status: 204, 
       headers: corsHeaders 
@@ -24,7 +27,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received guest checkout request');
+    console.log('Processing guest checkout request');
     const { priceId, successUrl, cancelUrl } = await req.json();
     
     if (!priceId || !successUrl || !cancelUrl) {
