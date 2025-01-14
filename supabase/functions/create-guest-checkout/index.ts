@@ -1,11 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import Stripe from 'https://esm.sh/stripe@13.6.0?target=deno';
-
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-  apiVersion: '2023-10-16',
-  httpClient: Stripe.createFetchHttpClient(),
-});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,8 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('Received request:', req.method, req.url);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling OPTIONS request');
@@ -33,7 +25,9 @@ serve(async (req) => {
     if (!priceId || !successUrl || !cancelUrl) {
       console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: priceId, successUrl, and cancelUrl are required' }),
+        JSON.stringify({ 
+          error: 'Missing required parameters: priceId, successUrl, and cancelUrl are required' 
+        }),
         {
           status: 400,
           headers: corsHeaders,
@@ -41,13 +35,12 @@ serve(async (req) => {
       );
     }
 
-    console.log('Creating guest checkout session for price:', priceId);
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+    });
 
-    // Get plan name based on priceId
-    const planName = getPlanName(priceId);
-    const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
-    
-    console.log('Creating checkout session with plan:', { planName, isFoundersPlan });
+    console.log('Creating guest checkout session for price:', priceId);
 
     const session = await stripe.checkout.sessions.create({
       line_items: [
@@ -56,23 +49,26 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: isFoundersPlan ? 'payment' : 'subscription',
+      mode: 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
       allow_promotion_codes: true,
-      metadata: {
-        planName: planName,
-      },
     });
 
     console.log('Checkout session created successfully:', session.id);
 
     return new Response(
-      JSON.stringify({ sessionId: session.id, url: session.url }),
+      JSON.stringify({ 
+        sessionId: session.id, 
+        url: session.url 
+      }),
       {
-        headers: corsHeaders,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
         status: 200,
       },
     );
@@ -87,16 +83,3 @@ serve(async (req) => {
     );
   }
 });
-
-function getPlanName(priceId: string): string {
-  switch (priceId) {
-    case 'price_1QfP20EiWhAkWDnrDhllA5a1':
-      return 'Founders Plan';
-    case 'price_1QeakhEiWhAkWDnrevEe12PJ':
-      return 'Starter Plan';
-    case 'price_1QeakhEiWhAkWDnrnZgRSuyR':
-      return 'Premium Plan';
-    default:
-      return 'Selected Plan';
-  }
-}
