@@ -29,7 +29,6 @@ const SearchInputs = ({
   onQueryChange,
   onCountryChange,
   onRegionChange,
-  isProcessing,
   isSearching,
 }: SearchInputsProps) => {
   return (
@@ -66,7 +65,7 @@ const SearchInputs = ({
         />
         <Button 
           type="submit" 
-          disabled={isProcessing || isSearching || !query.trim()} 
+          disabled={isSearching || !query.trim()} 
           className="w-32"
         >
           {isSearching ? (
