@@ -10,12 +10,16 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204, 
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -24,7 +28,13 @@ serve(async (req) => {
     
     if (!priceId || !successUrl || !cancelUrl) {
       console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
-      throw new Error('Missing required parameters: priceId, successUrl, and cancelUrl are required');
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: priceId, successUrl, and cancelUrl are required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     console.log('Creating guest checkout session for price:', priceId);
