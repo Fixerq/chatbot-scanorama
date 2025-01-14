@@ -11,12 +11,12 @@ interface CustomerActionsProps {
 
 export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: CustomerActionsProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleUpdateSearchVolume = async (newTotal: number) => {
     try {
       setIsUpdating(true);
       
-      // Update the user's subscription with new total searches
       const { data: updatedSubscription, error: updateError } = await supabase
         .from('subscriptions')
         .update({ total_searches: newTotal })
@@ -36,7 +36,7 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
       }
 
       toast.success('Search volume updated successfully');
-      onCustomerUpdate(); // Refresh the table data
+      onCustomerUpdate();
     } catch (error) {
       console.error('Error in handleUpdateSearchVolume:', error);
       toast.error('An error occurred while updating search volume');
@@ -47,14 +47,15 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
 
   const handleDeleteUser = async () => {
     try {
-      const { error: deleteError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
+      setIsDeleting(true);
 
-      if (deleteError) {
-        console.error('Error deleting user:', deleteError);
-        toast.error('Failed to delete user');
+      // First, call the delete_user_data function to clean up all related data
+      const { error: deleteDataError } = await supabase
+        .rpc('delete_user_data', { user_id_param: userId });
+
+      if (deleteDataError) {
+        console.error('Error deleting user data:', deleteDataError);
+        toast.error('Failed to delete user data');
         return;
       }
 
@@ -63,6 +64,8 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
     } catch (error) {
       console.error('Error in handleDeleteUser:', error);
       toast.error('An error occurred while deleting the user');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -72,7 +75,7 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
         variant="outline" 
         size="sm"
         onClick={() => handleUpdateSearchVolume(totalSearches + 10)}
-        disabled={isUpdating}
+        disabled={isUpdating || isDeleting}
       >
         +10 Searches
       </Button>
@@ -80,7 +83,7 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
         variant="outline" 
         size="sm"
         onClick={() => handleUpdateSearchVolume(totalSearches - 10)}
-        disabled={isUpdating || totalSearches < 10}
+        disabled={isUpdating || isDeleting || totalSearches < 10}
       >
         -10 Searches
       </Button>
@@ -88,8 +91,9 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
         variant="destructive" 
         size="sm"
         onClick={handleDeleteUser}
+        disabled={isDeleting || isUpdating}
       >
-        Delete User
+        {isDeleting ? 'Deleting...' : 'Delete User'}
       </Button>
     </div>
   );
