@@ -102,16 +102,20 @@ serve(async (req) => {
       console.log('Created new customer:', customerId);
     }
 
-    // Determine if this is the Founders plan
+    // Determine if this is the Founders plan and get plan name
     const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
-    console.log('Is Founders plan:', isFoundersPlan);
+    const planName = isFoundersPlan ? 'Founders Plan' : 
+                    priceId === 'price_1QeakhEiWhAkWDnrevEe12PJ' ? 'Starter Plan' :
+                    priceId === 'price_1QeakhEiWhAkWDnrnZgRSuyR' ? 'Premium Plan' : 'Selected Plan';
+    
+    console.log('Plan details:', { isFoundersPlan, planName });
 
-    // Create checkout session with sanitized URL
+    // Create checkout session with sanitized URL and plan name
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${sanitizedReturnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}`,
+      success_url: `${sanitizedReturnUrl}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}&planName=${encodeURIComponent(planName)}`,
       cancel_url: sanitizedReturnUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
