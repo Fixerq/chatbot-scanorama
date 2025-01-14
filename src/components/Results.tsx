@@ -12,10 +12,44 @@ interface ResultsProps {
 
 const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const [filteredResults, setFilteredResults] = useState<Result[]>(results);
+  const [filterValue, setFilterValue] = useState('all');
+  const [sortValue, setSortValue] = useState('name');
 
   React.useEffect(() => {
     setFilteredResults(results);
   }, [results]);
+
+  const handleFilter = (value: string) => {
+    setFilterValue(value);
+    let filtered = [...results];
+    
+    if (value === 'chatbot') {
+      filtered = results.filter(r => r.details?.chatSolutions?.length > 0);
+    } else if (value === 'no-chatbot') {
+      filtered = results.filter(r => !r.details?.chatSolutions?.length);
+    }
+    
+    setFilteredResults(filtered);
+  };
+
+  const handleSort = (value: string) => {
+    setSortValue(value);
+    let sorted = [...filteredResults];
+    
+    switch (value) {
+      case 'name':
+        sorted.sort((a, b) => (a.details?.title || '').localeCompare(b.details?.title || ''));
+        break;
+      case 'url':
+        sorted.sort((a, b) => a.url.localeCompare(b.url));
+        break;
+      case 'status':
+        sorted.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+        break;
+    }
+    
+    setFilteredResults(sorted);
+  };
 
   if (!results || results.length === 0) {
     return <EmptyResults onNewSearch={onNewSearch} />;
@@ -30,7 +64,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
           filterValue={filterValue}
           sortValue={sortValue}
           onFilterChange={handleFilter}
-          onSortChange={(value) => handleSort(value)}
+          onSortChange={handleSort}
         />
         <ResultsHeader
           results={results}

@@ -39,6 +39,8 @@ const SearchForm = ({
   onApiKeyChange,
   onSubmit
 }: SearchFormProps) => {
+  const { searchesLeft, isLoading } = useSearchLimits();
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit();
