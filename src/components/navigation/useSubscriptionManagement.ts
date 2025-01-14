@@ -42,10 +42,14 @@ export const useSubscriptionManagement = () => {
     setIsSubscriptionLoading(true);
 
     try {
+      // Clean up the return URL by removing any trailing slashes or colons
+      const baseUrl = window.location.origin.replace(/[:\/]+$/, '');
+      console.log('Creating checkout session with return URL:', baseUrl);
+
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {
         body: { 
           priceId: 'price_1QfP20EiWhAkWDnrDhllA5a1',
-          returnUrl: window.location.origin
+          returnUrl: baseUrl
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -59,10 +63,12 @@ export const useSubscriptionManagement = () => {
       }
       
       if (!checkoutData?.url) {
+        console.error('No checkout URL received:', checkoutData);
         toast.error('Unable to create checkout session');
         return;
       }
 
+      console.log('Redirecting to checkout URL:', checkoutData.url);
       window.location.href = checkoutData.url;
     } catch (error) {
       console.error('Subscription management error:', error);
