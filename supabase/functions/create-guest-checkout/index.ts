@@ -42,10 +42,11 @@ serve(async (req) => {
         },
       ],
       mode: isFoundersPlan ? 'payment' : 'subscription',
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${encodeURIComponent(priceId)}&planName=${encodeURIComponent(planName)}`,
+      success_url: successUrl,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
+      allow_promotion_codes: true,
       metadata: {
         planName: planName,
       },
