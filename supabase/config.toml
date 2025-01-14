@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.get-customer-email]
 verify_jwt = false
+
+[functions.create-guest-checkout]
+verify_jwt = false
