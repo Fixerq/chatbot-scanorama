@@ -191,7 +191,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      delete_user_data: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       subscription_level: "starter" | "pro" | "premium" | "founders" | "admin"
