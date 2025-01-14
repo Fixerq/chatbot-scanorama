@@ -7,11 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-  apiVersion: '2023-10-16',
-  httpClient: Stripe.createFetchHttpClient(),
-});
-
 serve(async (req) => {
   try {
     // Handle CORS preflight requests
@@ -67,10 +62,10 @@ serve(async (req) => {
     // Properly sanitize and validate the return URL
     let sanitizedReturnUrl: string;
     try {
-      // Remove any trailing colons and slashes
-      const cleanUrl = returnUrl.replace(/[:/]+$/, '');
+      // Remove any trailing colons, slashes, and port numbers
+      const cleanUrl = returnUrl.replace(/:[0-9]*\/?$/, '').replace(/\/$/, '');
       const url = new URL(cleanUrl);
-      sanitizedReturnUrl = url.toString().replace(/\/$/, '');
+      sanitizedReturnUrl = url.origin;
       console.log('Sanitized return URL:', sanitizedReturnUrl);
     } catch (error) {
       console.error('Invalid return URL:', error);
