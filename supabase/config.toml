@@ -5,7 +5,6 @@ project_id = "engage"
 [api]
 # Port to use for the API URL.
 port = 54321
-schemes = ["http", "https"]
 extra_search_path = ["extensions"]
 max_rows = 1000
 
