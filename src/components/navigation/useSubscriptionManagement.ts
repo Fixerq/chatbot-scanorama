@@ -42,8 +42,8 @@ export const useSubscriptionManagement = () => {
     setIsSubscriptionLoading(true);
 
     try {
-      // Clean up the return URL by removing any trailing slashes or colons
-      const baseUrl = window.location.origin.replace(/[:\/]+$/, '');
+      // Format the return URL properly by removing any trailing slashes and colons
+      const baseUrl = window.location.origin.replace(/[:/]+$/, '');
       console.log('Creating checkout session with return URL:', baseUrl);
 
       const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('create-checkout', {

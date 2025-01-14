@@ -68,7 +68,7 @@ serve(async (req) => {
     let sanitizedReturnUrl: string;
     try {
       // Remove any trailing colons and slashes
-      const cleanUrl = returnUrl.replace(/[:\/]+$/, '');
+      const cleanUrl = returnUrl.replace(/[:/]+$/, '');
       const url = new URL(cleanUrl);
       sanitizedReturnUrl = url.toString().replace(/\/$/, '');
       console.log('Sanitized return URL:', sanitizedReturnUrl);
