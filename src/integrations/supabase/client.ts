@@ -20,7 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*'
     },
-    fetch: (url, options = {}) => {
+    fetch: (url: string, options: RequestInit = {}) => {
       const headers = {
         ...options.headers,
         'Access-Control-Allow-Origin': '*',
