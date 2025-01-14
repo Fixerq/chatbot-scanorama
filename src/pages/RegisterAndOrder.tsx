@@ -18,6 +18,7 @@ const RegisterAndOrder = () => {
   const [lastName, setLastName] = useState('');
   const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   
+  // Get parameters from URL
   const priceId = searchParams.get('priceId');
   const planName = searchParams.get('planName');
   const sessionId = searchParams.get('session_id');
@@ -69,6 +70,7 @@ const RegisterAndOrder = () => {
     getCustomerDetails();
   }, [sessionId, supabase.functions]);
 
+  // Check for required parameters
   if (!priceId || !planName) {
     console.error('Missing required parameters:', { priceId, planName });
     return (
