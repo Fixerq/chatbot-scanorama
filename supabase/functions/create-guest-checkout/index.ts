@@ -6,6 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
@@ -24,7 +25,13 @@ serve(async (req) => {
     
     if (!priceId || !successUrl || !cancelUrl) {
       console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
-      throw new Error('Missing required parameters: priceId, successUrl, and cancelUrl are required');
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: priceId, successUrl, and cancelUrl are required' }),
+        { 
+          status: 400,
+          headers: corsHeaders
+        }
+      );
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
