@@ -15,14 +15,20 @@ serve(async (req) => {
 
   try {
     console.log('Received guest checkout request');
-    const { priceId, productId, successUrl, cancelUrl } = await req.json();
+    const { priceId, successUrl, cancelUrl } = await req.json();
     
     if (!priceId || !successUrl || !cancelUrl) {
-      console.error('Missing required parameters');
-      throw new Error('Missing required parameters');
+      console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
+      throw new Error('Missing required parameters: priceId, successUrl, and cancelUrl are required');
     }
 
-    console.log('Creating guest checkout session for price:', priceId, 'product:', productId);
+    console.log('Creating guest checkout session for price:', priceId);
+
+    // Get plan name based on priceId
+    const planName = getPlanName(priceId);
+    const isFoundersPlan = priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1';
+    
+    console.log('Creating checkout session with plan:', { planName, isFoundersPlan });
 
     const session = await stripe.checkout.sessions.create({
       line_items: [
@@ -31,8 +37,8 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: 'subscription',
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${priceId}&planName=${encodeURIComponent(getPlanName(priceId))}`,
+      mode: isFoundersPlan ? 'payment' : 'subscription',
+      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&priceId=${encodeURIComponent(priceId)}&planName=${encodeURIComponent(planName)}`,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
@@ -65,10 +71,10 @@ function getPlanName(priceId: string): string {
   switch (priceId) {
     case 'price_1QfP20EiWhAkWDnrDhllA5a1':
       return 'Founders Plan';
-    case 'price_1QfP3LEiWhAkWDnrTYVVFBk9':
-      return 'Pro Plan';
-    case 'price_1QfP4KEiWhAkWDnrNXFYWR9L':
+    case 'price_1QeakhEiWhAkWDnrevEe12PJ':
       return 'Starter Plan';
+    case 'price_1QeakhEiWhAkWDnrnZgRSuyR':
+      return 'Premium Plan';
     default:
       return 'Selected Plan';
   }
