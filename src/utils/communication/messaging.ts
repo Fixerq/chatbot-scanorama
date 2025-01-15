@@ -13,6 +13,7 @@ export function sendMessageToParent(message: CommunicationMessage): Promise<void
       }
       
       window.parent.postMessage(message, targetOrigin);
+      console.log('Message sent successfully to:', targetOrigin);
       resolve();
     } catch (error) {
       console.error('Error sending message to parent:', error);

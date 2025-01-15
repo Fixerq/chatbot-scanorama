@@ -5,7 +5,7 @@ export const ALLOWED_ORIGINS = [
 ] as const;
 
 export const originUtils = {
-  getPrimary: (): string => ALLOWED_ORIGINS[0],
+  getPrimary: (): string => window.location.origin || ALLOWED_ORIGINS[0],
   getCurrent: (): string => window.location.origin,
   isValid: (origin: string): boolean => ALLOWED_ORIGINS.includes(origin as any)
 };

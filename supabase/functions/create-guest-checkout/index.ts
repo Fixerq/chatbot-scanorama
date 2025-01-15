@@ -1,30 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@13.6.0?target=deno";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://detectify.engageai.pro',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, Access-Control-Allow-Methods',
-  'Access-Control-Max-Age': '86400',
-  'Access-Control-Allow-Credentials': 'true'
-};
+import { corsHeaders, handleOptions } from '../_shared/cors.ts';
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight request');
-    return new Response(null, { 
-      status: 204, 
-      headers: corsHeaders 
-    });
-  }
+  console.log('Incoming request:', {
+    method: req.method,
+    headers: Object.fromEntries(req.headers.entries()),
+    url: req.url
+  });
+
+  // Handle CORS preflight
+  const optionsResponse = handleOptions(req);
+  if (optionsResponse) return optionsResponse;
 
   try {
-    console.log('Processing guest checkout request:', {
-      method: req.method,
-      headers: Object.fromEntries(req.headers.entries())
-    });
-
+    console.log('Processing guest checkout request');
     const { priceId, successUrl, cancelUrl } = await req.json();
     
     if (!priceId || !successUrl || !cancelUrl) {
