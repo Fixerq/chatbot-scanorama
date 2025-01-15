@@ -52,33 +52,36 @@ declare global {
   }
 }
 
-// Allowed origins configuration
+// Allowed origins configuration - Updated to include detectify.engageai.pro
 export const ALLOWED_ORIGINS = [
   'https://detectify.engageai.pro',
   'https://detectifys.engageai.pro',
-  'https://gptengineer.app',
-  'http://localhost:3000',
-  'https://lovable.dev'
+  'http://localhost:3000'
 ] as const;
 
-// Origin management
+// Origin management with improved type safety
 const originUtils = {
   getPrimary: (): string => ALLOWED_ORIGINS[0],
   getCurrent: (): string => window.location.origin,
   isValid: (origin: string): boolean => ALLOWED_ORIGINS.includes(origin as any)
 };
 
-// Custom error class
+// Custom error class with improved error details
 class CommunicationError extends Error {
-  constructor(message: string, public readonly code?: string) {
+  constructor(
+    message: string, 
+    public readonly code?: string,
+    public readonly timestamp: string = new Date().toISOString()
+  ) {
     super(message);
     this.name = 'CommunicationError';
   }
 }
 
-// Message handlers with proper type checking
+// Message handlers with proper type checking and logging
 async function handleElementUpdate(data: unknown): Promise<void> {
   if (!isElementUpdateData(data)) {
+    console.error('Invalid element update data:', data);
     throw new CommunicationError('Invalid element update data format');
   }
   
@@ -91,6 +94,7 @@ async function handleElementUpdate(data: unknown): Promise<void> {
 
 async function handleSelectorToggle(data: unknown): Promise<void> {
   if (!isSelectorToggleData(data)) {
+    console.error('Invalid selector toggle data:', data);
     throw new CommunicationError('Invalid selector toggle data format');
   }
   
@@ -101,17 +105,21 @@ async function handleSelectorToggle(data: unknown): Promise<void> {
   });
 }
 
-// Helper function for sending messages to parent
+// Helper function for sending messages to parent with improved error handling
 function sendMessageToParent(message: CommunicationMessage): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
       const targetOrigin = originUtils.getPrimary();
+      console.log('Sending message to parent:', { message, targetOrigin });
+      
       if (!window.parent || !window.parent.postMessage) {
         throw new CommunicationError('Missing postMessage support');
       }
+      
       window.parent.postMessage(message, targetOrigin);
       resolve();
     } catch (error) {
+      console.error('Error sending message to parent:', error);
       reject(error);
     }
   });
@@ -126,14 +134,14 @@ const messageHandlers: Record<MessageType, (data: unknown) => Promise<void>> = {
   [MESSAGE_TYPES.ERROR]: async () => {} // No-op handler
 };
 
-// Initialize communication channel
+// Initialize communication channel with improved error handling and logging
 export function initializeCommunication(): void {
   console.log('Initializing communication channel from origin:', originUtils.getCurrent());
   
-  // Handle incoming messages
+  // Handle incoming messages with enhanced error handling
   window.addEventListener('message', async function(event: MessageEvent) {
     try {
-      // Validate origin and source
+      // Validate origin and source with detailed logging
       if (!originUtils.isValid(event.origin)) {
         console.warn('Message received from unauthorized origin:', event.origin);
         return;
@@ -145,14 +153,14 @@ export function initializeCommunication(): void {
 
       const message = event.data as CommunicationMessage;
       
-      // Validate message format
+      // Validate message format with detailed error
       if (!message?.type || !(message.type in MESSAGE_TYPES)) {
-        throw new CommunicationError('Invalid message format');
+        throw new CommunicationError('Invalid message format', 'FORMAT_ERROR');
       }
 
-      console.log('Received message:', message);
+      console.log('Received message:', { type: message.type, origin: event.origin });
       
-      // Handle message
+      // Handle message with proper error propagation
       const handler = messageHandlers[message.type];
       await handler(message.data);
       
