@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+import Stripe from "https://esm.sh/stripe@14.21.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,17 +53,17 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    // Verify that the price exists and is a subscription price
+    // Verify that the price exists and determine its type
     const price = await stripe.prices.retrieve(priceId);
     console.log('Retrieved price:', price);
 
-    if (price.type !== 'recurring') {
-      throw new Error('Price must be a recurring price for subscription mode');
-    }
+    // Set the mode based on the price type
+    const mode = price.type === 'recurring' ? 'subscription' : 'payment';
+    console.log('Setting checkout mode to:', mode);
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: 'subscription',
+      mode,
       success_url: successUrl.replace(/:\/$/, ''),
       cancel_url: cancelUrl.replace(/:\/$/, ''),
       billing_address_collection: 'required',
