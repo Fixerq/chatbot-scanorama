@@ -1,50 +1,55 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
-import { corsHeaders, handleOptions } from '../_shared/cors.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
+};
 
 serve(async (req) => {
-  console.log('Incoming request:', {
+  // Log incoming request details for debugging
+  console.log('Request received:', {
     method: req.method,
-    headers: Object.fromEntries(req.headers.entries()),
-    url: req.url
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
   });
 
   // Handle CORS preflight
-  const optionsResponse = handleOptions(req);
-  if (optionsResponse) return optionsResponse;
+  if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
+    return new Response(null, {
+      headers: corsHeaders,
+      status: 204
+    });
+  }
 
   try {
-    console.log('Processing guest checkout request');
+    if (req.method !== 'POST') {
+      throw new Error(`Method ${req.method} not allowed`);
+    }
+
     const { priceId, successUrl, cancelUrl } = await req.json();
     
     if (!priceId || !successUrl || !cancelUrl) {
       console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing required parameters',
-          details: { priceId, successUrl, cancelUrl }
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('Missing required parameters');
     }
+
+    console.log('Creating checkout session with parameters:', {
+      priceId,
+      successUrl,
+      cancelUrl
+    });
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    console.log('Creating guest checkout session for price:', priceId);
-
     const session = await stripe.checkout.sessions.create({
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -53,7 +58,7 @@ serve(async (req) => {
       allow_promotion_codes: true,
     });
 
-    console.log('Checkout session created successfully:', session.id);
+    console.log('Checkout session created:', session.id);
 
     return new Response(
       JSON.stringify({ 
@@ -61,22 +66,29 @@ serve(async (req) => {
         url: session.url 
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         status: 200,
-      },
+      }
     );
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    console.error('Error in create-guest-checkout:', error);
+    
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message,
         timestamp: new Date().toISOString(),
         requestId: crypto.randomUUID()
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: error.statusCode || 400,
-      },
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: error.status || 400,
+      }
     );
   }
 });
