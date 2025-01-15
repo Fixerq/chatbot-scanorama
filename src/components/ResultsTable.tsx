@@ -15,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChatbotDetectionResponse } from '@/types/chatbot';
 
 export interface Result {
   url: string;
@@ -38,12 +37,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => 
     !status ? 'secondary' : hasChatbot ? 'success' : status.toLowerCase().includes('error') ? 'destructive' : 'secondary';
 
-  const formatChatbotInfo = (result: Result) => {
-    if (!result.status) return 'Pending Analysis';
+  const formatInstalledTechnologies = (result: Result) => {
+    if (!result.status) return 'Analyzing...';
     if (result.status.toLowerCase().includes('error')) return result.status;
     
-    const hasChatbot = result.details?.chatSolutions?.length > 0;
-    return hasChatbot ? 'Chatbot Detected' : 'No chatbot detected';
+    const chatSolutions = result.details?.chatSolutions || [];
+    if (chatSolutions.length === 0) return 'No chatbot detected';
+    
+    return chatSolutions.join(', ');
   };
 
   return (
@@ -53,7 +54,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
             <TableHead>Business Name</TableHead>
-            <TableHead>Chatbot Status</TableHead>
+            <TableHead>Installed Technologies</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -81,7 +82,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   <Badge 
                     variant={getChatbotStatusColor(result.status, hasChatbot)}
                   >
-                    {formatChatbotInfo(result)}
+                    {formatInstalledTechnologies(result)}
                   </Badge>
                 </TableCell>
               </TableRow>
