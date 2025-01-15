@@ -8,6 +8,11 @@ export default defineConfig(({ mode }) => ({
     host: true,
     port: 8080,
     strictPort: true,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    }
   },
   plugins: [
     react(),
@@ -20,4 +25,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   base: '',
+  build: {
+    outDir: 'dist',
+    sourcemap: true
+  }
 }));
