@@ -53,6 +53,14 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(),
     });
 
+    // Verify that the price exists and is a subscription price
+    const price = await stripe.prices.retrieve(priceId);
+    console.log('Retrieved price:', price);
+
+    if (price.type !== 'recurring') {
+      throw new Error('Price must be a recurring price for subscription mode');
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
