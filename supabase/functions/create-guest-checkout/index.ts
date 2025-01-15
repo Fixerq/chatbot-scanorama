@@ -1,12 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@13.6.0?target=deno';
+import Stripe from "https://esm.sh/stripe@13.6.0?target=deno";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json',
-  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
@@ -26,10 +24,10 @@ serve(async (req) => {
     if (!priceId || !successUrl || !cancelUrl) {
       console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: priceId, successUrl, and cancelUrl are required' }),
+        JSON.stringify({ error: 'Missing required parameters' }),
         { 
           status: 400,
-          headers: corsHeaders
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -64,7 +62,7 @@ serve(async (req) => {
         url: session.url 
       }),
       {
-        headers: corsHeaders,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     );
@@ -73,7 +71,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: corsHeaders,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       },
     );
