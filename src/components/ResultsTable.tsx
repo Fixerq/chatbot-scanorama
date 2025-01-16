@@ -34,8 +34,12 @@ interface ResultsTableProps {
 const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   const formatUrl = (url: string) => url ? url.startsWith('http') ? url : `https://${url}` : 'N/A';
 
-  const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => 
-    !status ? 'secondary' : hasChatbot ? 'success' : status.toLowerCase().includes('error') ? 'destructive' : 'secondary';
+  const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
+    if (!status) return 'secondary';
+    if (status.toLowerCase().includes('error')) return 'destructive';
+    if (hasChatbot) return 'success';
+    return 'secondary';
+  };
 
   const formatInstalledTechnologies = (result: Result) => {
     if (!result.status) return 'Analyzing...';
@@ -60,6 +64,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <TableBody>
           {results.map((result, index) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
+            const technologies = formatInstalledTechnologies(result);
             
             return (
               <TableRow key={index}>
@@ -79,11 +84,21 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                 </TableCell>
                 <TableCell>{result.details?.title || 'N/A'}</TableCell>
                 <TableCell>
-                  <Badge 
-                    variant={getChatbotStatusColor(result.status, hasChatbot)}
-                  >
-                    {formatInstalledTechnologies(result)}
-                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge 
+                          variant={getChatbotStatusColor(result.status, hasChatbot)}
+                          className="cursor-help"
+                        >
+                          {technologies}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Last checked: {result.details?.lastChecked ? new Date(result.details.lastChecked).toLocaleString() : 'N/A'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
               </TableRow>
             );
