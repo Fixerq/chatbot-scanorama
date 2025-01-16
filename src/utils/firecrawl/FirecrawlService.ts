@@ -32,6 +32,9 @@ export class FirecrawlService {
       // Remove any trailing colons and slashes
       url = url.replace(/[:\/]+$/, '');
       
+      // Clean up the URL by removing any extra colons after the protocol
+      url = url.replace(/(https?:\/\/)(:+)/, '$1');
+      
       // If the URL doesn't start with http:// or https://, add https://
       if (!url.match(/^https?:\/\//i)) {
         url = 'https://' + url;
@@ -41,7 +44,10 @@ export class FirecrawlService {
       url = url.replace(/([^:]\/)\/+/g, '$1');
       
       // Validate the URL
-      new URL(url);
+      const urlObj = new URL(url);
+      
+      // Ensure there are no extra colons in the hostname
+      url = url.replace(urlObj.hostname, urlObj.hostname.replace(/:/g, ''));
       
       console.log('Formatted URL:', url);
       return url;
