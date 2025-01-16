@@ -1,10 +1,8 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { useSearchLimits } from '@/hooks/useSearchLimits';
 import SearchInputs from './SearchInputs';
 import ProcessingIndicator from './ProcessingIndicator';
 import { Info } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
   TooltipContent,
@@ -81,20 +79,6 @@ const SearchForm = ({
         onCountryChange={onCountryChange}
         onRegionChange={onRegionChange}
       />
-
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={isProcessing || isSearching || searchesLeft === 0}
-          className="bg-cyan-500 text-black hover:bg-cyan-400 glow rounded-full transition-all duration-300"
-        >
-          {isProcessing || isSearching ? (
-            <ProcessingIndicator />
-          ) : (
-            'Search'
-          )}
-        </Button>
-      </div>
     </form>
   );
 };
