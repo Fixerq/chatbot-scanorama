@@ -11,7 +11,12 @@ export const UserStatusCheck = () => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (!session?.user?.id) return;
+      if (!session?.user?.id) {
+        console.log('No user session found');
+        return;
+      }
+
+      console.log('Checking admin status for user:', session.user.id);
 
       try {
         const { data, error } = await supabase
@@ -25,6 +30,7 @@ export const UserStatusCheck = () => {
           return;
         }
 
+        console.log('Admin check result:', data ? 'Is Admin' : 'Regular User');
         setIsAdmin(!!data);
       } catch (error) {
         console.error('Error in admin check:', error);
