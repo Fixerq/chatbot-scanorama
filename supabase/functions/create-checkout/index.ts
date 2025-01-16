@@ -106,7 +106,7 @@ serve(async (req) => {
     
     console.log('Creating checkout session with plan:', { planName, isFoundersPlan });
 
-    // Create checkout session
+    // Create checkout session with allow_promotion_codes enabled
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -115,7 +115,7 @@ serve(async (req) => {
       cancel_url: sanitizedReturnUrl,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
-      allow_promotion_codes: true,
+      allow_promotion_codes: true, // Enable promotion codes
       metadata: {
         userId: user.id,
         planName: planName
