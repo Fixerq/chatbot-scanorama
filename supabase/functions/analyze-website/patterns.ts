@@ -3,40 +3,62 @@ export const CHAT_PATTERNS = {
     /intercom/i,
     /widget\.intercom\.io/i,
     /intercomcdn/i,
-    /intercom-frame/i
+    /intercom-frame/i,
+    /intercom-container/i,
+    /intercom-messenger/i,
+    /intercom-launcher/i,
+    /intercom-notifications/i
   ],
   'Drift': [
     /drift\.com/i,
     /js\.driftt\.com/i,
     /drift-frame/i,
     /driftt/i,
-    /drift-widget/i
+    /drift-widget/i,
+    /drift-conductor-url/i,
+    /drift-iframe-controller/i,
+    /drift-chat/i
   ],
   'Zendesk': [
     /zopim/i,
     /zendesk/i,
     /zdassets\.com/i,
     /zd-message/i,
-    /zd-chat/i
+    /zd-chat/i,
+    /zdchat/i,
+    /web_widget/i,
+    /zopim\.com/i,
+    /zopim2/i,
+    /zopim-chat/i
   ],
   'Crisp': [
     /crisp\.chat/i,
     /client\.crisp\.chat/i,
     /crisp-client/i,
-    /crispWebsiteId/i
+    /crispWebsiteId/i,
+    /crisp-widget/i,
+    /crisp-box/i,
+    /crisp-container/i,
+    /CRISP_WEBSITE_ID/i
   ],
   'LiveChat': [
     /livechat/i,
     /livechatinc\.com/i,
     /LiveChatWidget/i,
     /lc_settings/i,
-    /__lc/i
+    /__lc/i,
+    /livechat-compact/i,
+    /livechat-floating/i,
+    /livechat-frame/i
   ],
   'Tawk.to': [
     /tawk\.to/i,
     /embed\.tawk\.to/i,
     /tawkto/i,
-    /Tawk_API/i
+    /Tawk_API/i,
+    /tawk-messenger/i,
+    /tawk-chat/i,
+    /tawk-iframe/i
   ],
   'HubSpot': [
     /hubspot/i,
@@ -45,21 +67,31 @@ export const CHAT_PATTERNS = {
     /hubspot-messages-iframe/i,
     /hs-chat/i,
     /conversations-widget/i,
-    /hubspot-conversations-iframe/i
+    /hubspot-conversations-iframe/i,
+    /hubspot-messaging/i,
+    /hs-messaging/i,
+    /hs-messenger/i
   ],
   'Facebook Messenger': [
     /facebook\.com\/customer_chat/i,
     /connect\.facebook\.net.*\/sdk\/xfbml\.customerchat/i,
     /fb-messenger-widget/i,
     /fb-customerchat/i,
-    /FacebookMessenger/i
+    /FacebookMessenger/i,
+    /messenger-checkbox/i,
+    /messenger-widget/i,
+    /fb-messenger/i,
+    /facebook-messenger/i
   ],
   'WhatsApp': [
     /wa\.me/i,
     /whatsapp/i,
     /api\.whatsapp\.com/i,
     /whatsapp-widget/i,
-    /whatsapp-button/i
+    /whatsapp-button/i,
+    /whatsapp-chat/i,
+    /whatsapp-floating/i,
+    /whatsapp-popup/i
   ],
   'Gist': [
     /getgist\.com/i,
@@ -67,7 +99,37 @@ export const CHAT_PATTERNS = {
     /gist-/i,
     /gist\.js/i,
     /gist-embed/i,
-    /gist-widget/i
+    /gist-widget/i,
+    /gist-chat/i,
+    /gist-messenger/i
+  ],
+  'Tidio': [
+    /tidio/i,
+    /tidiochat/i,
+    /tidiomobile/i,
+    /tidio-chat/i,
+    /tidio-live-chat/i,
+    /tidioChatCode/i
+  ],
+  'LiveAgent': [
+    /ladesk\.com/i,
+    /liveagent/i,
+    /live-agent/i,
+    /liveagent-widget/i,
+    /liveagent-button/i
+  ],
+  'Pure Chat': [
+    /purechat/i,
+    /pure-chat/i,
+    /purechat-widget/i,
+    /purechat-messenger/i
+  ],
+  'Olark': [
+    /olark/i,
+    /olark-chat/i,
+    /olark-messenger/i,
+    /olark-widget/i,
+    /olark-loader/i
   ],
   'Custom Chat': [
     /chat-widget/i,
@@ -156,6 +218,18 @@ export const CHAT_PATTERNS = {
     /customer_chat/i,
     /help-chat/i,
     /helpChat/i,
-    /help_chat/i
+    /help_chat/i,
+    /chat-assistant/i,
+    /chatAssistant/i,
+    /chat_assistant/i,
+    /virtual-assistant/i,
+    /virtualAssistant/i,
+    /virtual_assistant/i,
+    /ai-chat/i,
+    /aiChat/i,
+    /ai_chat/i,
+    /bot-chat/i,
+    /botChat/i,
+    /bot_chat/i
   ]
 };

@@ -31,15 +31,12 @@ async function fetchWithRetry(url: string, maxRetries = 2): Promise<Response> {
         redirect: 'follow'
       });
 
-      // Return successful responses
       if (response.ok) return response;
       
-      // Don't retry on permanent errors
       if (response.status === 404) {
         throw new Error('Page not found');
       }
       
-      // For 403/401, try with different user agent
       if (response.status === 403 || response.status === 401) {
         if (i === maxRetries - 1) {
           throw new Error('Website blocks automated access');
@@ -54,7 +51,6 @@ async function fetchWithRetry(url: string, maxRetries = 2): Promise<Response> {
       lastError = error;
       if (i === maxRetries - 1) throw error;
       
-      // Wait before retrying (exponential backoff)
       const delay = Math.pow(2, i) * 1000;
       console.log(`Waiting ${delay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -65,12 +61,10 @@ async function fetchWithRetry(url: string, maxRetries = 2): Promise<Response> {
 
 function normalizeUrl(url: string): string {
   try {
-    // Remove any hash fragments and trailing slashes
     const urlObj = new URL(url);
     urlObj.hash = '';
     return urlObj.toString().replace(/\/$/, '');
   } catch {
-    // If URL parsing fails, try adding https://
     try {
       const urlWithHttps = new URL(`https://${url}`);
       urlWithHttps.hash = '';
@@ -103,44 +97,80 @@ export async function analyzeChatbot(url: string): Promise<string[]> {
         }
         return matches;
       })) {
-        detectedChatSolutions.push(solution);
+        if (!detectedChatSolutions.includes(solution)) {
+          detectedChatSolutions.push(solution);
+        }
       }
     }
 
     // Check for dynamic loading patterns
-    const hasDynamicChatLoading = /window\.(onload|addEventListener).*chat/i.test(html) ||
-                                 /document\.(ready|addEventListener).*chat/i.test(html) ||
-                                 /loadChat|initChat|startChat|chatInit/i.test(html);
+    const dynamicPatterns = [
+      /window\.(onload|addEventListener).*chat/i,
+      /document\.(ready|addEventListener).*chat/i,
+      /loadChat|initChat|startChat|chatInit/i,
+      /chat.*widget.*load/i,
+      /load.*chat.*widget/i,
+      /init.*chat.*widget/i,
+      /chat.*messenger.*load/i,
+      /load.*chat.*messenger/i,
+      /init.*chat.*messenger/i,
+      /chat.*bot.*load/i,
+      /load.*chat.*bot/i,
+      /init.*chat.*bot/i
+    ];
     
-    if (hasDynamicChatLoading && !detectedChatSolutions.includes('Custom Chat')) {
+    if (dynamicPatterns.some(pattern => pattern.test(html)) && !detectedChatSolutions.includes('Custom Chat')) {
       console.log('Detected dynamically loaded chat widget');
       detectedChatSolutions.push('Custom Chat');
     }
 
-    // Additional checks for common chat-related elements
-    const hasCommonChatElements = /<div[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
-                                 /<iframe[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
-                                 /<button[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
+    // Check for common chat-related elements
+    const elementPatterns = [
+      /<div[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
+      /<iframe[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
+      /<button[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
+      /<script[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
+      /<link[^>]*(?:chat|messenger|support|bot)[^>]*>/i
+    ];
 
-    if (hasCommonChatElements && !detectedChatSolutions.includes('Custom Chat')) {
+    if (elementPatterns.some(pattern => pattern.test(html)) && !detectedChatSolutions.includes('Custom Chat')) {
       console.log('Detected common chat elements');
       detectedChatSolutions.push('Custom Chat');
     }
 
-    // Check for chat-related meta tags
-    const hasChatMetaTags = /<meta[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
-    if (hasChatMetaTags && !detectedChatSolutions.includes('Custom Chat')) {
-      console.log('Detected chat-related meta tags');
+    // Check for chat-related meta tags and configurations
+    const metaPatterns = [
+      /<meta[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
+      /chat.*config/i,
+      /messenger.*config/i,
+      /bot.*config/i,
+      /chatbot.*config/i,
+      /chat.*settings/i,
+      /messenger.*settings/i,
+      /bot.*settings/i
+    ];
+
+    if (metaPatterns.some(pattern => pattern.test(html)) && !detectedChatSolutions.includes('Custom Chat')) {
+      console.log('Detected chat-related meta tags or configurations');
       detectedChatSolutions.push('Custom Chat');
     }
 
-    // Check for chat-related script tags
-    const hasChatScripts = /<script[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
-    if (hasChatScripts && !detectedChatSolutions.includes('Custom Chat')) {
-      console.log('Detected chat-related scripts');
+    // Check for WebSocket connections related to chat
+    const wsPatterns = [
+      /new WebSocket.*chat/i,
+      /WebSocket.*messenger/i,
+      /ws.*chat/i,
+      /wss.*chat/i,
+      /socket.*chat/i,
+      /chat.*socket/i
+    ];
+
+    if (wsPatterns.some(pattern => pattern.test(html)) && !detectedChatSolutions.includes('Custom Chat')) {
+      console.log('Detected WebSocket-based chat');
       detectedChatSolutions.push('Custom Chat');
     }
 
+    console.log('Analysis complete. Detected solutions:', detectedChatSolutions);
     return detectedChatSolutions;
   } catch (error) {
     console.error('Error analyzing website:', error);
