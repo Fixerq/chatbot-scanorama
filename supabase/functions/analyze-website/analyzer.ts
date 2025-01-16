@@ -127,6 +127,20 @@ export async function analyzeChatbot(url: string): Promise<string[]> {
       detectedChatSolutions.push('Custom Chat');
     }
 
+    // Check for chat-related meta tags
+    const hasChatMetaTags = /<meta[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
+    if (hasChatMetaTags && !detectedChatSolutions.includes('Custom Chat')) {
+      console.log('Detected chat-related meta tags');
+      detectedChatSolutions.push('Custom Chat');
+    }
+
+    // Check for chat-related script tags
+    const hasChatScripts = /<script[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
+    if (hasChatScripts && !detectedChatSolutions.includes('Custom Chat')) {
+      console.log('Detected chat-related scripts');
+      detectedChatSolutions.push('Custom Chat');
+    }
+
     return detectedChatSolutions;
   } catch (error) {
     console.error('Error analyzing website:', error);
