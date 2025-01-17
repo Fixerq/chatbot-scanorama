@@ -29,28 +29,31 @@ export class FirecrawlService {
 
   private static formatUrl(url: string): string {
     try {
-      // Remove any trailing colons and slashes
-      url = url.replace(/[:\/]+$/, '');
+      // First, trim any whitespace
+      let cleanUrl = url.trim();
       
-      // Clean up the URL by removing any extra colons after the protocol
-      url = url.replace(/(https?:\/\/)(:+)/, '$1');
+      // Remove any trailing slashes or colons
+      cleanUrl = cleanUrl.replace(/[:/]+$/, '');
       
-      // If the URL doesn't start with http:// or https://, add https://
-      if (!url.match(/^https?:\/\//i)) {
-        url = 'https://' + url;
+      // If no protocol is specified, add https://
+      if (!cleanUrl.match(/^https?:\/\//i)) {
+        cleanUrl = 'https://' + cleanUrl;
       }
       
-      // Remove any double slashes (except after protocol)
-      url = url.replace(/([^:]\/)\/+/g, '$1');
+      // Parse URL to validate and normalize it
+      const urlObj = new URL(cleanUrl);
       
-      // Validate the URL
-      const urlObj = new URL(url);
+      // Clean up the hostname (remove any extra colons)
+      urlObj.hostname = urlObj.hostname.replace(/:/g, '');
       
-      // Ensure there are no extra colons in the hostname
-      url = url.replace(urlObj.hostname, urlObj.hostname.replace(/:/g, ''));
+      // Reconstruct the URL without any trailing slashes
+      let finalUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
       
-      console.log('Formatted URL:', url);
-      return url;
+      // Remove any double slashes in the path (except after protocol)
+      finalUrl = finalUrl.replace(/([^:]\/)\/+/g, '$1');
+      
+      console.log('Formatted URL:', finalUrl);
+      return finalUrl;
     } catch (error) {
       console.error('Invalid URL format:', error);
       throw new Error('Invalid URL format');
