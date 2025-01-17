@@ -61,17 +61,31 @@ async function fetchWithRetry(url: string, maxRetries = 2): Promise<Response> {
 
 function normalizeUrl(url: string): string {
   try {
-    const urlObj = new URL(url);
-    urlObj.hash = '';
-    return urlObj.toString().replace(/\/$/, '');
-  } catch {
-    try {
-      const urlWithHttps = new URL(`https://${url}`);
-      urlWithHttps.hash = '';
-      return urlWithHttps.toString().replace(/\/$/, '');
-    } catch {
-      throw new Error('Invalid URL format');
+    // Remove any trailing colons and slashes
+    let cleanUrl = url.trim().replace(/[:\/]+$/, '');
+    
+    // Add https:// if no protocol is specified
+    if (!cleanUrl.match(/^https?:\/\//i)) {
+      cleanUrl = `https://${cleanUrl}`;
     }
+    
+    // Parse URL to normalize it
+    const urlObj = new URL(cleanUrl);
+    
+    // Remove any extra colons from hostname
+    urlObj.hostname = urlObj.hostname.replace(/:/g, '');
+    
+    // Remove hash
+    urlObj.hash = '';
+    
+    // Clean up double slashes (except after protocol)
+    let finalUrl = urlObj.toString().replace(/([^:]\/)\/+/g, '$1');
+    
+    console.log('Normalized URL:', finalUrl);
+    return finalUrl;
+  } catch (error) {
+    console.error('URL normalization error:', error);
+    throw new Error('Invalid URL format');
   }
 }
 
