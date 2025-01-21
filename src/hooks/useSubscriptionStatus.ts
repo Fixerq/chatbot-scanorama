@@ -45,7 +45,6 @@ export const useSubscriptionStatus = () => {
         }
 
         console.log('Subscription data:', subscription);
-        console.log('Total searches allowed:', subscription.total_searches); // Added this log
 
         // Get count of searches made this month
         const startOfMonth = new Date();
