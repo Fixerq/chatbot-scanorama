@@ -8,10 +8,10 @@ import { useSearchOperations } from '@/hooks/useSearchOperations';
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
   isProcessing: boolean;
-  onNewSearch?: () => void;
+  triggerNewSearch?: boolean; // Changed from onNewSearch?: () => void to boolean
 }
 
-const SearchFormContainer = ({ onResults, isProcessing, onNewSearch }: SearchFormContainerProps) => {
+const SearchFormContainer = ({ onResults, isProcessing, triggerNewSearch }: SearchFormContainerProps) => {
   const {
     searchState,
     updateSearchState,
@@ -54,10 +54,10 @@ const SearchFormContainer = ({ onResults, isProcessing, onNewSearch }: SearchFor
   };
 
   React.useEffect(() => {
-    if (onNewSearch) {
+    if (triggerNewSearch) {
       resetSearch();
     }
-  }, [onNewSearch, resetSearch]);
+  }, [triggerNewSearch, resetSearch]);
 
   return (
     <div className="space-y-4">

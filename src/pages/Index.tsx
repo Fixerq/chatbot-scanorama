@@ -27,7 +27,7 @@ const Index = () => {
         <SearchFormContainer 
           onResults={setResults}
           isProcessing={isProcessing}
-          onNewSearch={newSearchTrigger}
+          triggerNewSearch={newSearchTrigger}
         />
         <Results 
           results={results}
