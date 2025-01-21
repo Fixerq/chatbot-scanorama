@@ -22,7 +22,7 @@ export const useSearchState = () => {
     country: '',
     region: '',
     apiKey: '',
-    resultsLimit: 10,
+    resultsLimit: 25, // Updated from 10 to 25
     currentPage: 1,
   };
 
