@@ -41,6 +41,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     }
     
     setFilteredResults(filtered);
+    setDisplayLimit(25); // Reset display limit when filtering
   };
 
   const handleSort = (value: string) => {
@@ -67,7 +68,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     setTimeout(() => {
       setDisplayLimit(prev => prev + 25);
       setIsLoadingMore(false);
-    }, 500); // Simulate loading for better UX
+    }, 500);
   };
 
   if (!validResults || validResults.length === 0) {
@@ -77,7 +78,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
   const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
   const displayedResults = filteredResults.slice(0, displayLimit);
-  const hasMore = displayLimit < filteredResults.length;
+  const hasMore = filteredResults.length > displayLimit;
 
   return (
     <div className="mt-12 space-y-6">
