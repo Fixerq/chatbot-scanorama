@@ -75,8 +75,8 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const hasMore = displayLimit < filteredResults.length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mt-12 space-y-6">
+      <div className="flex items-center justify-between mb-8">
         <ResultsFilters
           filterValue={filterValue}
           sortValue={sortValue}
@@ -91,7 +91,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
           onExport={onExport}
         />
       </div>
-      <div className="rounded-[1.25rem] overflow-hidden">
+      <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
         <ResultsTable results={displayedResults} />
       </div>
       {hasMore && (
