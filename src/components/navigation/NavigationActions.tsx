@@ -10,7 +10,7 @@ import {
 import { Loader2, MessageCircle, Search, Settings } from 'lucide-react';
 import { SubscriptionStatus } from '../SubscriptionStatus';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { toast } from 'sonner';
+import { SupportDialog } from './SupportDialog';
 
 interface NavigationActionsProps {
   onSearchClick: () => void;
@@ -28,6 +28,7 @@ export const NavigationActions = ({
   const navigate = useNavigate();
   const supabase = useSupabaseClient();
   const [isAdmin, setIsAdmin] = React.useState(false);
+  const [isSupportOpen, setIsSupportOpen] = React.useState(false);
 
   React.useEffect(() => {
     const checkAdminStatus = async () => {
@@ -41,12 +42,6 @@ export const NavigationActions = ({
 
     checkAdminStatus();
   }, [supabase]);
-
-  const handleSupportClick = () => {
-    // You can replace this with your preferred support channel URL
-    window.open('mailto:support@yourdomain.com', '_blank');
-    toast.success('Opening support channel');
-  };
 
   return (
     <div className="flex items-center gap-4">
@@ -62,7 +57,7 @@ export const NavigationActions = ({
       <Button
         variant="ghost"
         size="icon"
-        onClick={handleSupportClick}
+        onClick={() => setIsSupportOpen(true)}
         className="h-9 w-9"
       >
         <MessageCircle className="h-4 w-4" />
@@ -94,6 +89,11 @@ export const NavigationActions = ({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <SupportDialog 
+        open={isSupportOpen}
+        onOpenChange={setIsSupportOpen}
+      />
     </div>
   );
 };
