@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 const GOOGLE_API_KEY = Deno.env.get('Google API');
 const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
+const MAX_RESULTS = 20; // Increased from 10 to 20
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,18 +50,25 @@ serve(async (req) => {
     });
 
     const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
-    console.log('Making Places API request:', searchUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
+    console.log('Making Places API request to:', searchUrl);
+    console.log('Search query:', locationQuery);
 
     const searchResponse = await fetch(searchUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri',
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.types',
       },
       body: JSON.stringify({
         textQuery: locationQuery,
-        maxResultCount: 10,
+        maxResultCount: MAX_RESULTS,
+        locationBias: {
+          circle: {
+            center: { latitude: 0, longitude: 0 },
+            radius: radiusMeters,
+          },
+        },
       })
     });
     
@@ -73,7 +81,10 @@ serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
-    console.log('Places API response:', searchData);
+    console.log('Places API response:', {
+      totalResults: searchData.places?.length || 0,
+      hasPlaces: !!searchData.places,
+    });
 
     if (!searchData.places) {
       console.log('No places found');
@@ -91,9 +102,18 @@ serve(async (req) => {
       );
     }
 
-    // Format results
+    // Filter and format results
     const results = searchData.places
-      .filter((place: any) => place.websiteUri)
+      .filter((place: any) => {
+        // Only include results with websites and that are businesses
+        const hasWebsite = !!place.websiteUri;
+        const isBusinessType = place.types?.some((type: string) => 
+          ['establishment', 'business', 'store', 'service'].includes(type)
+        );
+        
+        console.log(`Place ${place.displayName?.text}: hasWebsite=${hasWebsite}, isBusinessType=${isBusinessType}`);
+        return hasWebsite && isBusinessType;
+      })
       .map((place: any) => ({
         url: place.websiteUri,
         details: {
@@ -103,12 +123,12 @@ serve(async (req) => {
         }
       }));
 
-    console.log(`Found ${results.length} businesses with websites`);
+    console.log(`Found ${results.length} businesses with websites out of ${searchData.places.length} total places`);
 
     return new Response(
       JSON.stringify({
         results,
-        hasMore: searchData.places.length >= 10
+        hasMore: searchData.places.length >= MAX_RESULTS
       }),
       { 
         headers: { 
