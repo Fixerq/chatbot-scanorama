@@ -11,22 +11,26 @@ interface ResultsProps {
 }
 
 const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
-  const [filteredResults, setFilteredResults] = useState<Result[]>(results);
+  // Filter out results with error status before setting initial state
+  const validResults = results.filter(r => !r.status?.toLowerCase().includes('error analyzing url'));
+  const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
 
   React.useEffect(() => {
-    setFilteredResults(results);
+    // Filter out error results whenever the results prop changes
+    const newValidResults = results.filter(r => !r.status?.toLowerCase().includes('error analyzing url'));
+    setFilteredResults(newValidResults);
   }, [results]);
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
-    let filtered = [...results];
+    let filtered = [...results].filter(r => !r.status?.toLowerCase().includes('error analyzing url'));
     
     if (value === 'chatbot') {
-      filtered = results.filter(r => r.details?.chatSolutions?.length > 0);
+      filtered = filtered.filter(r => r.details?.chatSolutions?.length > 0);
     } else if (value === 'no-chatbot') {
-      filtered = results.filter(r => !r.details?.chatSolutions?.length);
+      filtered = filtered.filter(r => !r.details?.chatSolutions?.length);
     }
     
     setFilteredResults(filtered);
@@ -51,11 +55,11 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     setFilteredResults(sorted);
   };
 
-  if (!results || results.length === 0) {
+  if (!validResults || validResults.length === 0) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
-  const chatbotCount = results.filter(r => r.details?.chatSolutions?.length > 0).length;
+  const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
 
   return (
     <div className="space-y-6">
@@ -67,8 +71,8 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
           onSortChange={handleSort}
         />
         <ResultsHeader
-          results={results}
-          totalCount={results.length}
+          results={validResults}
+          totalCount={validResults.length}
           chatbotCount={chatbotCount}
           onNewSearch={onNewSearch}
           onExport={onExport}
