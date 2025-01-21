@@ -32,7 +32,32 @@ interface ResultsTableProps {
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
-  const formatUrl = (url: string) => url ? url.startsWith('http') ? url : `https://${url}` : 'N/A';
+  const formatUrl = (url: string) => {
+    try {
+      // Remove protocol (http:// or https://) if present
+      let cleanUrl = url.replace(/^(https?:\/\/)/, '');
+      
+      // Get just the hostname (root domain)
+      const hostname = cleanUrl.split('/')[0];
+      
+      // Remove any parameters or fragments
+      const rootDomain = hostname.split('?')[0].split('#')[0];
+      
+      // Add back https:// for the actual link
+      const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+      
+      return {
+        displayUrl: rootDomain,
+        fullUrl: fullUrl
+      };
+    } catch (error) {
+      console.error('Error formatting URL:', error);
+      return {
+        displayUrl: url,
+        fullUrl: url.startsWith('http') ? url : `https://${url}`
+      };
+    }
+  };
 
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
     if (!status) return 'secondary';
@@ -65,18 +90,19 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           {results.map((result, index) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
+            const { displayUrl, fullUrl } = formatUrl(result.url);
             
             return (
               <TableRow key={index}>
                 <TableCell className="font-medium">
                   {result.url ? (
                     <a 
-                      href={formatUrl(result.url)}
+                      href={fullUrl}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
-                      {result.url}
+                      {displayUrl}
                     </a>
                   ) : (
                     <span className="text-gray-500">N/A</span>
