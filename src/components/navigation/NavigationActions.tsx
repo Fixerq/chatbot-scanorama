@@ -32,9 +32,13 @@ export const NavigationActions = ({
 
   React.useEffect(() => {
     const checkAdminStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+
       const { data: adminData } = await supabase
         .from('admin_users')
         .select('user_id')
+        .eq('user_id', session.user.id)
         .single();
       
       setIsAdmin(!!adminData);
