@@ -31,8 +31,5 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Add error handling for failed requests
-supabase.handleFailedRequest = (error: any) => {
-  console.error('Supabase request failed:', error);
-  // You can add additional error handling here if needed
-};
+// Instead of using a custom property, we can wrap specific Supabase calls
+// with error handling where needed in the application code.
