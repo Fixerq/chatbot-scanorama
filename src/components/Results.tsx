@@ -3,6 +3,7 @@ import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import EmptyResults from './results/EmptyResults';
+import LoadMoreButton from './LoadMoreButton';
 
 interface ResultsProps {
   results?: Result[];
@@ -18,6 +19,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
+  const [displayLimit, setDisplayLimit] = useState(25);
 
   React.useEffect(() => {
     // Filter out error results whenever the results prop changes
@@ -29,7 +31,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
-    let filtered = [...validResults]; // Use validResults instead of results
+    let filtered = [...validResults];
     
     if (value === 'chatbot') {
       filtered = filtered.filter(r => r.details?.chatSolutions?.length > 0);
@@ -59,12 +61,18 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     setFilteredResults(sorted);
   };
 
+  const handleLoadMore = () => {
+    setDisplayLimit(prev => prev + 25);
+  };
+
   if (!validResults || validResults.length === 0) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
   const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
   const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
+  const displayedResults = filteredResults.slice(0, displayLimit);
+  const hasMore = displayLimit < filteredResults.length;
 
   return (
     <div className="space-y-6">
@@ -84,8 +92,14 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
         />
       </div>
       <div className="rounded-[1.25rem] overflow-hidden">
-        <ResultsTable results={filteredResults} />
+        <ResultsTable results={displayedResults} />
       </div>
+      {hasMore && (
+        <LoadMoreButton 
+          onLoadMore={handleLoadMore}
+          isProcessing={false}
+        />
+      )}
     </div>
   );
 };

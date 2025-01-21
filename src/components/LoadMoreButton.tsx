@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from './ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface LoadMoreButtonProps {
   onLoadMore: () => void;
@@ -8,13 +9,21 @@ interface LoadMoreButtonProps {
 
 const LoadMoreButton = ({ onLoadMore, isProcessing }: LoadMoreButtonProps) => {
   return (
-    <div className="flex justify-center my-20">
+    <div className="flex justify-center my-8">
       <Button 
         onClick={onLoadMore}
         disabled={isProcessing}
         variant="outline"
+        className="bg-cyan-500/10 border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
       >
-        Load More Results
+        {isProcessing ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Loading...
+          </>
+        ) : (
+          'Load More Results'
+        )}
       </Button>
     </div>
   );
