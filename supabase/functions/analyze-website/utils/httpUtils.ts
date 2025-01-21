@@ -11,34 +11,49 @@ const getHeaders = (attempt: number) => ({
   'Accept-Encoding': 'gzip, deflate, br',
   'Connection': 'keep-alive',
   'Upgrade-Insecure-Requests': '1',
-  'Sec-Fetch-Dest': 'document',
-  'Sec-Fetch-Mode': 'navigate',
-  'Sec-Fetch-Site': 'none',
-  'Sec-Fetch-User': '?1',
-  'Cache-Control': 'max-age=0'
+  'Cache-Control': 'no-cache',
+  'Pragma': 'no-cache'
 });
 
-export async function fetchWithRetry(url: string, maxRetries = 2): Promise<Response> {
+export async function fetchWithRetry(url: string, maxRetries = 3, timeout = 30000): Promise<Response> {
   let lastError;
+  
   for (let i = 0; i < maxRetries; i++) {
     try {
       console.log(`Attempt ${i + 1} for URL: ${url}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
       const response = await fetch(url, { 
         headers: getHeaders(i),
-        redirect: 'follow'
+        redirect: 'follow',
+        signal: controller.signal
       });
-
-      if (response.ok) return response;
       
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        console.log(`Successfully fetched ${url} on attempt ${i + 1}`);
+        return response;
+      }
+      
+      // Handle specific status codes
       if (response.status === 404) {
         throw new Error('Page not found');
       }
       
       if (response.status === 403 || response.status === 401) {
+        console.log('Access denied, trying with different user agent...');
         if (i === maxRetries - 1) {
           throw new Error('Website blocks automated access');
         }
-        console.log('Access denied, retrying with different user agent...');
+        continue;
+      }
+      
+      if (response.status === 503 || response.status === 502) {
+        console.log('Service temporarily unavailable, retrying...');
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         continue;
       }
       
@@ -46,6 +61,11 @@ export async function fetchWithRetry(url: string, maxRetries = 2): Promise<Respo
     } catch (error) {
       console.error(`Attempt ${i + 1} failed:`, error);
       lastError = error;
+      
+      if (error.name === 'AbortError') {
+        console.log('Request timed out, retrying...');
+      }
+      
       if (i === maxRetries - 1) throw error;
       
       const delay = Math.pow(2, i) * 1000;
@@ -53,5 +73,6 @@ export async function fetchWithRetry(url: string, maxRetries = 2): Promise<Respo
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
+  
   throw lastError;
 }

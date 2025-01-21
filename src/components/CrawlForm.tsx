@@ -26,22 +26,13 @@ export const CrawlForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [crawlResult, setCrawlResult] = useState<CrawlResult | null>(null);
-  const { subscriptionData } = useSubscriptionStatus();
+  const { subscriptionData, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!subscriptionData) {
-      toast({
-        title: "Error",
-        description: "Unable to verify subscription status",
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
-
-    if (subscriptionData.searchesRemaining === 0) {
+    // Allow crawling if subscription status is loading or if user has searches remaining
+    if (!isSubscriptionLoading && subscriptionData?.searchesRemaining === 0) {
       toast({
         title: "Search limit reached",
         description: "Please upgrade your plan to continue searching",
@@ -78,7 +69,7 @@ export const CrawlForm = () => {
       console.error('Error crawling website:', error);
       toast({
         title: "Error",
-        description: "Failed to crawl website",
+        description: error.message || "Failed to crawl website",
         variant: "destructive",
         duration: 3000,
       });
@@ -110,13 +101,13 @@ export const CrawlForm = () => {
         )}
         <Button
           type="submit"
-          disabled={isLoading || (subscriptionData?.searchesRemaining === 0)}
+          disabled={isLoading || (!isSubscriptionLoading && subscriptionData?.searchesRemaining === 0)}
           className="w-full bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200"
         >
           {isLoading ? "Crawling..." : "Start Crawl"}
         </Button>
         
-        {subscriptionData && subscriptionData.searchesRemaining !== -1 && (
+        {!isSubscriptionLoading && subscriptionData && subscriptionData.searchesRemaining !== -1 && (
           <p className="text-sm text-muted-foreground text-center">
             {subscriptionData.searchesRemaining} searches remaining
           </p>
