@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,6 +48,9 @@ export const SupportDialog = ({ open, onOpenChange }: SupportDialogProps) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Contact Support</DialogTitle>
+          <DialogDescription>
+            Send us a message and we'll get back to you as soon as possible.
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
