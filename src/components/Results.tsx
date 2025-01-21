@@ -11,20 +11,18 @@ interface ResultsProps {
 }
 
 const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
-  // Filter out results with error status and no chatbots before setting initial state
+  // Filter out only results with error status
   const validResults = results.filter(r => 
-    !r.status?.toLowerCase().includes('error analyzing url') && 
-    r.details?.chatSolutions?.length > 0
+    !r.status?.toLowerCase().includes('error analyzing url')
   );
   const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
 
   React.useEffect(() => {
-    // Filter out error results and no chatbots whenever the results prop changes
+    // Filter out error results whenever the results prop changes
     const newValidResults = results.filter(r => 
-      !r.status?.toLowerCase().includes('error analyzing url') &&
-      r.details?.chatSolutions?.length > 0
+      !r.status?.toLowerCase().includes('error analyzing url')
     );
     setFilteredResults(newValidResults);
   }, [results]);
@@ -32,8 +30,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const handleFilter = (value: string) => {
     setFilterValue(value);
     let filtered = [...results].filter(r => 
-      !r.status?.toLowerCase().includes('error analyzing url') &&
-      r.details?.chatSolutions?.length > 0
+      !r.status?.toLowerCase().includes('error analyzing url')
     );
     
     if (value === 'chatbot') {
@@ -68,7 +65,8 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
-  const chatbotCount = validResults.length; // All results now have chatbots
+  const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
+  const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
 
   return (
     <div className="space-y-6">
