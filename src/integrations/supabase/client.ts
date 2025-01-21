@@ -1,13 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
+import { Database } from './types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/:\/$/, '');
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables');
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -29,3 +30,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
   }
 });
+
+// Add error handling for failed requests
+supabase.handleFailedRequest = (error: any) => {
+  console.error('Supabase request failed:', error);
+  // You can add additional error handling here if needed
+};
