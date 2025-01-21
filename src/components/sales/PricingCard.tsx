@@ -53,7 +53,9 @@ export const PricingCard = ({
           <h3 className="text-2xl font-bold">{name}</h3>
           <p className="text-3xl font-bold">
             {price}
-            <span className="text-base font-normal text-muted-foreground">/mo</span>
+            <span className="text-base font-normal text-muted-foreground">
+              {special ? " Lifetime" : "/mo"}
+            </span>
           </p>
           <p className="text-sm text-muted-foreground">{description}</p>
         </CardHeader>
