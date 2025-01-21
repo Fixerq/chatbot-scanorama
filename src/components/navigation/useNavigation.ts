@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
@@ -7,7 +6,6 @@ import { useSubscriptionManagement } from './useSubscriptionManagement';
 export const useNavigation = () => {
   const navigate = useNavigate();
   const supabase = useSupabaseClient();
-  const [isSearchesOpen, setIsSearchesOpen] = useState(false);
   const { handleSubscriptionAction, isSubscriptionLoading } = useSubscriptionManagement();
 
   const handleLogout = async () => {
@@ -22,8 +20,6 @@ export const useNavigation = () => {
   };
 
   return {
-    isSearchesOpen,
-    setIsSearchesOpen,
     handleSubscriptionAction,
     isSubscriptionLoading,
     handleLogout

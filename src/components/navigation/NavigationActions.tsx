@@ -7,20 +7,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Loader2, MessageCircle, Search, Settings } from 'lucide-react';
+import { Loader2, MessageCircle, Settings } from 'lucide-react';
 import { SubscriptionStatus } from '../SubscriptionStatus';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { SupportDialog } from './SupportDialog';
 
 interface NavigationActionsProps {
-  onSearchClick: () => void;
   onSubscriptionClick: () => void;
   onLogout: () => void;
   isSubscriptionLoading: boolean;
 }
 
 export const NavigationActions = ({
-  onSearchClick,
   onSubscriptionClick,
   onLogout,
   isSubscriptionLoading,
@@ -49,15 +47,6 @@ export const NavigationActions = ({
 
   return (
     <div className="flex items-center gap-4">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onSearchClick}
-        className="h-9 w-9"
-      >
-        <Search className="h-4 w-4" />
-      </Button>
-
       <Button
         variant="ghost"
         size="icon"
