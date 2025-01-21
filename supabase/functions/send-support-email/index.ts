@@ -32,7 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Engage AI Pro Support <support@engageaipro.com>",
+        from: "Engage AI Pro Support <support@support.engageai.pro>",
         to: [SUPPORT_EMAIL],
         subject: "New Support Request",
         html: `
