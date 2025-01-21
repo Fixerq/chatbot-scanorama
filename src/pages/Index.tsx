@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import NavigationBar from '@/components/NavigationBar';
 import Header from '@/components/Header';
 import SearchFormContainer from '@/components/SearchFormContainer';
@@ -9,10 +9,12 @@ import { UserStatusCheck } from '@/components/UserStatusCheck';
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [newSearchTrigger, setNewSearchTrigger] = useState(false);
 
-  const handleNewSearch = () => {
+  const handleNewSearch = useCallback(() => {
     setResults([]);
-  };
+    setNewSearchTrigger(prev => !prev);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black">
@@ -25,10 +27,11 @@ const Index = () => {
         <SearchFormContainer 
           onResults={setResults}
           isProcessing={isProcessing}
+          onNewSearch={newSearchTrigger}
         />
         <Results 
           results={results}
-          onExport={() => {}} // This prop is no longer needed but kept for compatibility
+          onExport={() => {}} 
           onNewSearch={handleNewSearch}
         />
       </div>

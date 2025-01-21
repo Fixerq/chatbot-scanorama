@@ -8,12 +8,14 @@ import { useSearchOperations } from '@/hooks/useSearchOperations';
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
   isProcessing: boolean;
+  onNewSearch?: () => void;
 }
 
-const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerProps) => {
+const SearchFormContainer = ({ onResults, isProcessing, onNewSearch }: SearchFormContainerProps) => {
   const {
     searchState,
-    updateSearchState
+    updateSearchState,
+    resetSearch
   } = useSearchState();
 
   const {
@@ -42,11 +44,6 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       resultsLimit: newLimit 
     });
 
-    console.log('Loading more results:', {
-      page: nextPage,
-      newLimit: newLimit
-    });
-
     handleLoadMore(
       searchState.query,
       searchState.country,
@@ -55,6 +52,12 @@ const SearchFormContainer = ({ onResults, isProcessing }: SearchFormContainerPro
       newLimit
     );
   };
+
+  React.useEffect(() => {
+    if (onNewSearch) {
+      resetSearch();
+    }
+  }, [onNewSearch, resetSearch]);
 
   return (
     <div className="space-y-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FirecrawlService } from '../utils/firecrawl';
 import { Result } from '@/components/ResultsTable';
 
@@ -22,7 +22,7 @@ export const useSearchState = () => {
     country: '',
     region: '',
     apiKey: '',
-    resultsLimit: 25, // Updated from 10 to 25
+    resultsLimit: 25,
     currentPage: 1,
   };
 
@@ -40,20 +40,21 @@ export const useSearchState = () => {
     }
   }, []);
 
-  const resetSearch = () => {
-    setSearchState(prev => ({
+  const resetSearch = useCallback(() => {
+    const savedApiKey = FirecrawlService.getApiKey();
+    setSearchState({
       ...initialState,
-      apiKey: prev.apiKey // Preserve the API key
-    }));
+      apiKey: savedApiKey || '' // Preserve the API key
+    });
     setResults({
       currentResults: [],
       hasMore: false,
     });
-  };
+  }, []);
 
-  const updateSearchState = (updates: Partial<SearchState>) => {
+  const updateSearchState = useCallback((updates: Partial<SearchState>) => {
     setSearchState(prev => ({ ...prev, ...updates }));
-  };
+  }, []);
 
   return {
     searchState,
