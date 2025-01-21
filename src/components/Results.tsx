@@ -20,6 +20,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
   const [displayLimit, setDisplayLimit] = useState(25);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   React.useEffect(() => {
     // Filter out error results whenever the results prop changes
@@ -62,7 +63,11 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   };
 
   const handleLoadMore = () => {
-    setDisplayLimit(prev => prev + 25);
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setDisplayLimit(prev => prev + 25);
+      setIsLoadingMore(false);
+    }, 500); // Simulate loading for better UX
   };
 
   if (!validResults || validResults.length === 0) {
@@ -97,7 +102,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
       {hasMore && (
         <LoadMoreButton 
           onLoadMore={handleLoadMore}
-          isProcessing={false}
+          isProcessing={isLoadingMore}
         />
       )}
     </div>
