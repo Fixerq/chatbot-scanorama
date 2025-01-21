@@ -1,6 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormField, FormItem, FormControl } from '@/components/ui/form';
+import { Loader2 } from 'lucide-react';
 
 interface SupportDialogProps {
   open: boolean;
@@ -22,6 +24,10 @@ interface SupportFormValues {
 }
 
 export const SupportDialog = ({ open, onOpenChange }: SupportDialogProps) => {
+  const supabase = useSupabaseClient();
+  const user = useUser();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  
   const form = useForm<SupportFormValues>({
     defaultValues: {
       message: '',
@@ -30,16 +36,25 @@ export const SupportDialog = ({ open, onOpenChange }: SupportDialogProps) => {
 
   const onSubmit = async (data: SupportFormValues) => {
     try {
-      // Send email using mailto
-      const mailtoLink = `mailto:support@engageaipro.com?body=${encodeURIComponent(data.message)}`;
-      window.open(mailtoLink, '_blank');
+      setIsSubmitting(true);
       
-      // Close dialog and show success message
+      const { error } = await supabase.functions.invoke('send-support-email', {
+        body: {
+          message: data.message,
+          userEmail: user?.email,
+        },
+      });
+
+      if (error) throw error;
+      
       onOpenChange(false);
       form.reset();
       toast.success('Support message sent successfully');
     } catch (error) {
-      toast.error('Failed to send support message');
+      console.error('Failed to send support message:', error);
+      toast.error('Failed to send support message. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -72,7 +87,16 @@ export const SupportDialog = ({ open, onOpenChange }: SupportDialogProps) => {
             />
             
             <div className="flex justify-end">
-              <Button type="submit">Send Message</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Message'
+                )}
+              </Button>
             </div>
           </form>
         </Form>
