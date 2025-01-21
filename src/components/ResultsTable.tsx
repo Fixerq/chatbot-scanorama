@@ -60,6 +60,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   hasChatbot={hasChatbot}
                   technologies={technologies}
                   lastChecked={result.details?.lastChecked}
+                  chatSolutions={result.details?.chatSolutions}
                 />
               </TableRow>
             );
