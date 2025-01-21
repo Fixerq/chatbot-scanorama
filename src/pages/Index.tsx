@@ -10,11 +10,6 @@ const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleExport = () => {
-    // Export functionality will be implemented later
-    console.log('Export clicked');
-  };
-
   const handleNewSearch = () => {
     setResults([]);
   };
@@ -33,7 +28,7 @@ const Index = () => {
         />
         <Results 
           results={results}
-          onExport={handleExport}
+          onExport={() => {}} // This prop is no longer needed but kept for compatibility
           onNewSearch={handleNewSearch}
         />
       </div>
