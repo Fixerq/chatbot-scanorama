@@ -29,9 +29,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
-    let filtered = [...results].filter(r => 
-      !r.status?.toLowerCase().includes('error analyzing url')
-    );
+    let filtered = [...validResults]; // Use validResults instead of results
     
     if (value === 'chatbot') {
       filtered = filtered.filter(r => r.details?.chatSolutions?.length > 0);
