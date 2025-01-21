@@ -30,7 +30,12 @@ const ResultStatusCell = ({ status, hasChatbot, technologies, lastChecked, chatS
       content.push(`Last checked: ${new Date(lastChecked).toLocaleString()}`);
     }
     if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
-      content.push(`Detected chatbots: ${chatSolutions.join(', ')}`);
+      if (chatSolutions.length === 1) {
+        content.push(`Using ${chatSolutions[0]} chatbot`);
+      } else {
+        content.push(`Primary: ${chatSolutions[0]}`);
+        content.push(`Additional providers: ${chatSolutions.slice(1).join(', ')}`);
+      }
     }
     return content.join('\n');
   };

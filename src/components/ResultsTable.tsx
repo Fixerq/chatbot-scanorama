@@ -33,7 +33,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     const chatSolutions = result.details?.chatSolutions || [];
     if (chatSolutions.length === 0) return 'No chatbot detected';
     
-    return chatSolutions.join(', ');
+    // Return the first detected chatbot as the primary one
+    return chatSolutions[0];
   };
 
   return (
@@ -43,7 +44,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
             <TableHead>Business Name</TableHead>
-            <TableHead>Installed Technologies</TableHead>
+            <TableHead>Chatbot Provider</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
