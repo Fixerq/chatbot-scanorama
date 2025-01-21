@@ -23,7 +23,6 @@ const ResultsHeader = ({
 }: ResultsHeaderProps) => {
   const handleExport = () => {
     try {
-      // Transform results into a format suitable for CSV
       const csvData = results.map(result => ({
         URL: result.url,
         'Business Name': result.details?.title || 'N/A',
@@ -32,10 +31,7 @@ const ResultsHeader = ({
         Status: result.status || 'N/A'
       }));
 
-      // Convert to CSV
       const csv = Papa.unparse(csvData);
-      
-      // Create blob and download
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -70,14 +66,14 @@ const ResultsHeader = ({
         <Button 
           variant="outline" 
           onClick={onNewSearch}
-          className="border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
+          className="bg-cyan-500/10 border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           New Search
         </Button>
         <Button 
           onClick={handleExport}
-          className="bg-cyan-500 text-black hover:bg-cyan-400 glow rounded-full transition-all duration-300"
+          className="bg-cyan-500/10 border-cyan-500/20 text-cyan-100 hover:bg-cyan-500/20 rounded-full transition-all duration-300"
         >
           <Download className="w-4 h-4 mr-2" />
           Export Results
