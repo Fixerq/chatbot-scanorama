@@ -18,8 +18,8 @@ const Login = () => {
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('user_id')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId as string)
+        .maybeSingle();
 
       if (!adminError && adminData) {
         return true;

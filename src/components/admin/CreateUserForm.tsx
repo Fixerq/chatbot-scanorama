@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 interface CreateUserFormProps {
   onUserCreated: () => void;
@@ -17,38 +18,42 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Create profile first
+      const userId = crypto.randomUUID();
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert([
-          { id: crypto.randomUUID() }
-        ])
+          { 
+            id: userId,
+            first_name: null,
+            last_name: null,
+            api_key: null
+          }
+        ] as Database['public']['Tables']['profiles']['Insert'][])
         .select()
         .single();
 
       if (profileError) throw profileError;
 
       if (profileData) {
-        // Create subscription
         const { error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert([
             {
               user_id: profileData.id,
               status: 'active',
-              level: 'starter'
+              level: 'starter' as Database['public']['Enums']['subscription_level'],
+              total_searches: parseInt(newUserSearches)
             }
-          ]);
+          ] as Database['public']['Tables']['subscriptions']['Insert'][]);
 
         if (subscriptionError) throw subscriptionError;
 
-        // If user should be admin, add to admin_users table
         if (isAdmin) {
           const { error: adminError } = await supabase
             .from('admin_users')
             .insert([
               { user_id: profileData.id }
-            ]);
+            ] as Database['public']['Tables']['admin_users']['Insert'][]);
 
           if (adminError) throw adminError;
         }

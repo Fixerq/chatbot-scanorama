@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CustomerData } from '@/types/admin';
 import { toast } from 'sonner';
 import { Session } from '@supabase/auth-helpers-react';
+import { Database } from '@/integrations/supabase/types';
 
 export const useCustomerData = (session: Session | null) => {
   const [customers, setCustomers] = useState<CustomerData[]>([]);
@@ -45,7 +46,7 @@ export const useCustomerData = (session: Session | null) => {
             id: '',
             user_id: profile.id,
             status: 'inactive',
-            level: 'starter',
+            level: 'starter' as Database['public']['Enums']['subscription_level'],
             current_period_end: null,
             total_searches: 0
           };
@@ -64,8 +65,21 @@ export const useCustomerData = (session: Session | null) => {
           const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
 
           return {
-            profile,
-            subscription,
+            profile: {
+              id: profile.id,
+              created_at: profile.created_at,
+              api_key: profile.api_key,
+              first_name: profile.first_name,
+              last_name: profile.last_name
+            },
+            subscription: {
+              id: subscription.id,
+              user_id: subscription.user_id,
+              status: subscription.status,
+              level: subscription.level,
+              current_period_end: subscription.current_period_end,
+              total_searches: subscription.total_searches
+            },
             searchesRemaining: remaining,
             totalSearches,
             email: emailData?.email || profile.id
