@@ -6,7 +6,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const session = useSession();
   const navigate = useNavigate();
 
@@ -18,3 +18,5 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   return session ? <>{children}</> : null;
 };
+
+export default ProtectedRoute;
