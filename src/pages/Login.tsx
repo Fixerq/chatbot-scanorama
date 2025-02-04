@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from 'sonner';
+import { AuthChangeEvent } from '@supabase/supabase-js';
 
 const Login = () => {
   const session = useSession();
@@ -50,7 +51,7 @@ const Login = () => {
 
     handleSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN' && session) {
@@ -77,7 +78,6 @@ const Login = () => {
         toast.success('Successfully signed out!');
       }
 
-      // Handle specific auth errors
       if (event === 'USER_DELETED') {
         setError('User account has been deleted.');
       }
