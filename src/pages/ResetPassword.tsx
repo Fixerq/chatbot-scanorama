@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
+
+const siteUrl = 'https://detectify.engageai.pro';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -15,11 +17,17 @@ const ResetPassword = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        toast.info('Please enter your new password');
+        toast({
+          title: "Password Reset",
+          description: "Please enter your new password"
+        });
       }
       
       if (event === 'SIGNED_IN') {
-        toast.success('Password updated successfully!');
+        toast({
+          title: "Success",
+          description: "Password updated successfully!"
+        });
         navigate('/dashboard');
       }
     });
@@ -51,6 +59,7 @@ const ResetPassword = () => {
               <Auth
                 supabaseClient={supabase}
                 view="update_password"
+                redirectTo={`${siteUrl}/dashboard`}
                 appearance={{
                   theme: ThemeSupa,
                   variables: {
