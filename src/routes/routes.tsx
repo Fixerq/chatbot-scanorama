@@ -9,7 +9,13 @@ import SalesPage from "@/pages/SalesPage";
 import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
 
-export const router = createBrowserRouter([
+interface AppRoute {
+  path: string;
+  element: React.ReactNode;
+  authRedirect?: string;
+}
+
+const routes: AppRoute[] = [
   {
     path: "/",
     element: <Index />,
@@ -46,4 +52,6 @@ export const router = createBrowserRouter([
     path: "/register-and-order",
     element: <RegisterAndOrder />,
   },
-]);
+];
+
+export const router = createBrowserRouter(routes);

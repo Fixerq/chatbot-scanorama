@@ -10,12 +10,18 @@ import { useSession } from '@supabase/auth-helpers-react';
 
 const queryClient = new QueryClient();
 
+interface AppRoute {
+  path: string;
+  element: React.ReactNode;
+  authRedirect?: string;
+}
+
 const AppRoutes = () => {
   const session = useSession();
 
   return (
     <Routes>
-      {router.routes.map((route) => (
+      {(router.routes as AppRoute[]).map((route) => (
         <Route
           key={route.path}
           path={route.path}
