@@ -3,6 +3,8 @@ import { corsHeaders } from "./types.ts";
 import { analyzeChatbot } from "./analyzer.ts";
 import type { RequestData } from "./types.ts";
 
+const TIMEOUT = 15000; // 15 second timeout
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -25,8 +27,20 @@ serve(async (req) => {
       throw new Error('URL cannot be empty');
     }
 
+    // Create timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+
     try {
-      const chatSolutions = await analyzeChatbot(url);
+      const chatSolutions = await Promise.race([
+        analyzeChatbot(url),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Analysis timed out')), TIMEOUT)
+        )
+      ]);
+
+      clearTimeout(timeoutId);
+      
       console.log('Analysis complete:', {
         url,
         chatSolutions
@@ -44,34 +58,28 @@ serve(async (req) => {
       });
 
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Error analyzing website:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // Map specific errors to appropriate status codes and messages
-      let status = 'Error analyzing website';
-      let httpStatus = 500;
-
-      if (errorMessage.includes('blocks automated access')) {
-        status = 'Website blocks automated access';
-        httpStatus = 403;
-      } else if (errorMessage.includes('not found')) {
-        status = 'Website not found';
-        httpStatus = 404;
-      } else if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
-        status = 'Request timed out';
-        httpStatus = 408;
-      } else if (errorMessage.includes('Invalid URL')) {
-        status = 'Invalid URL format';
-        httpStatus = 400;
+      // Handle specific error types
+      if (error.name === 'AbortError' || error.message.includes('timed out')) {
+        return new Response(JSON.stringify({
+          status: 'Analysis timed out',
+          error: 'Request took too long to complete',
+          lastChecked: new Date().toISOString()
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 408
+        });
       }
 
       return new Response(JSON.stringify({
-        status,
-        error: errorMessage,
+        status: 'Error analyzing website',
+        error: error.message,
         lastChecked: new Date().toISOString()
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: httpStatus
+        status: 500
       });
     }
 

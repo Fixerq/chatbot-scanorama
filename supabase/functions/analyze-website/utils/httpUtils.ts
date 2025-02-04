@@ -15,14 +15,13 @@ const getHeaders = (attempt: number) => ({
   'Pragma': 'no-cache'
 });
 
-export async function fetchWithRetry(url: string, maxRetries = 3, timeout = 30000): Promise<Response> {
+export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 10000): Promise<Response> {
   let lastError;
   
   for (let i = 0; i < maxRetries; i++) {
     try {
       console.log(`Attempt ${i + 1} for URL: ${url}`);
       
-      // Create AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
       
@@ -39,23 +38,12 @@ export async function fetchWithRetry(url: string, maxRetries = 3, timeout = 3000
         return response;
       }
       
-      // Handle specific status codes
       if (response.status === 404) {
         throw new Error('Page not found');
       }
       
       if (response.status === 403 || response.status === 401) {
-        console.log('Access denied, trying with different user agent...');
-        if (i === maxRetries - 1) {
-          throw new Error('Website blocks automated access');
-        }
-        continue;
-      }
-      
-      if (response.status === 503 || response.status === 502) {
-        console.log('Service temporarily unavailable, retrying...');
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-        continue;
+        throw new Error('Website blocks automated access');
       }
       
       lastError = new Error(`HTTP error! status: ${response.status}`);
@@ -64,15 +52,12 @@ export async function fetchWithRetry(url: string, maxRetries = 3, timeout = 3000
       lastError = error;
       
       if (error.name === 'AbortError') {
-        console.log('Request timed out, retrying...');
+        throw new Error('Request timed out');
       }
       
       if (i === maxRetries - 1) throw error;
       
-      // Exponential backoff
-      const delay = Math.pow(2, i) * 1000;
-      console.log(`Waiting ${delay}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
     }
   }
   
