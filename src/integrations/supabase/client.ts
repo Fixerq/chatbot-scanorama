@@ -3,31 +3,27 @@ import { Database } from './types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const siteUrl = 'https://detectify.engageai.pro';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  throw new Error('Missing Supabase environment variables');
 }
+
+const siteUrl = 'https://detectify.engageai.pro';
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
     autoRefreshToken: true,
+    persistSession: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
     storage: localStorage,
+    auth: {
+      redirectTo: `${siteUrl}/reset-password`
+    }
   },
   global: {
     headers: {
-      'Content-Type': 'application/json',
+      'x-application-name': 'detectify',
     },
   },
-  db: {
-    schema: 'public'
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
 });
