@@ -24,7 +24,6 @@ const BookmarkButton = ({ results }: BookmarkButtonProps) => {
       return;
     }
 
-    // Convert the results to a plain JSON object
     const jsonResults = results.map(result => ({
       url: result.url,
       status: result.status,
@@ -42,7 +41,7 @@ const BookmarkButton = ({ results }: BookmarkButtonProps) => {
         name: `Search Results - ${new Date().toLocaleDateString()}`,
         description: `Saved ${results.length} results`,
         snapshot: { results: jsonResults }
-      });
+      } as any);
 
       if (error) throw error;
 

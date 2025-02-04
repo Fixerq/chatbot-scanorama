@@ -46,7 +46,8 @@ export const useCustomerData = (session: Session | null) => {
             user_id: profile.id,
             status: 'inactive',
             level: 'starter',
-            current_period_end: null
+            current_period_end: null,
+            total_searches: 0
           };
 
           const { count: searchesUsed } = await supabase

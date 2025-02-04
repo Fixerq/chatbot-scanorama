@@ -19,8 +19,8 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
       
       const { data: updatedSubscription, error: updateError } = await supabase
         .from('subscriptions')
-        .update({ total_searches: newTotal })
-        .eq('user_id', userId)
+        .update({ total_searches: newTotal } as any)
+        .eq('user_id', userId as any)
         .select('total_searches')
         .single();
 
@@ -49,7 +49,6 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
     try {
       setIsDeleting(true);
 
-      // First, call the delete_user_data function to clean up all related data
       const { error: deleteDataError } = await supabase
         .rpc('delete_user_data', { user_id_param: userId });
 
@@ -60,7 +59,7 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
       }
 
       toast.success('User deleted successfully');
-      onCustomerUpdate(); // Refresh the table data
+      onCustomerUpdate();
     } catch (error) {
       console.error('Error in handleDeleteUser:', error);
       toast.error('An error occurred while deleting the user');

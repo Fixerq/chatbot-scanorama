@@ -3,6 +3,8 @@ export interface CustomerData {
     id: string;
     created_at: string;
     api_key: string | null;
+    first_name: string | null;
+    last_name: string | null;
   };
   subscription: {
     id: string;
@@ -10,6 +12,7 @@ export interface CustomerData {
     status: string;
     level: string | null;
     current_period_end: string | null;
+    total_searches: number | null;
   };
   searchesRemaining: number;
   totalSearches: number;
