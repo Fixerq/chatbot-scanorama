@@ -61,7 +61,7 @@ export const useCustomerData = (session: Session | null) => {
             body: { userId: profile.id }
           });
 
-          const totalSearches = levelsMap.get(subscription.level || 'starter') || 0;
+          const totalSearches = subscription.total_searches || levelsMap.get(subscription.level || 'starter') || 0;
           const remaining = Math.max(0, totalSearches - (searchesUsed || 0));
 
           return {

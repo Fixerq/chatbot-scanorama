@@ -19,16 +19,15 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
     e.preventDefault();
     try {
       const userId = crypto.randomUUID();
+      
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .insert([
-          { 
-            id: userId,
-            first_name: null,
-            last_name: null,
-            api_key: null
-          }
-        ] as Database['public']['Tables']['profiles']['Insert'][])
+        .insert([{ 
+          id: userId,
+          first_name: null,
+          last_name: null,
+          api_key: null
+        }])
         .select()
         .single();
 
@@ -37,23 +36,19 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
       if (profileData) {
         const { error: subscriptionError } = await supabase
           .from('subscriptions')
-          .insert([
-            {
-              user_id: profileData.id,
-              status: 'active',
-              level: 'starter' as Database['public']['Enums']['subscription_level'],
-              total_searches: parseInt(newUserSearches)
-            }
-          ] as Database['public']['Tables']['subscriptions']['Insert'][]);
+          .insert([{
+            user_id: profileData.id,
+            status: 'active',
+            level: 'starter' as Database['public']['Enums']['subscription_level'],
+            total_searches: parseInt(newUserSearches)
+          }]);
 
         if (subscriptionError) throw subscriptionError;
 
         if (isAdmin) {
           const { error: adminError } = await supabase
             .from('admin_users')
-            .insert([
-              { user_id: profileData.id }
-            ] as Database['public']['Tables']['admin_users']['Insert'][]);
+            .insert([{ user_id: profileData.id }]);
 
           if (adminError) throw adminError;
         }
