@@ -3,7 +3,15 @@ import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import EmptyResults from './results/EmptyResults';
-import LoadMoreButton from './LoadMoreButton';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface ResultsProps {
   results?: Result[];
@@ -19,8 +27,8 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
-  const [displayLimit, setDisplayLimit] = useState(25);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const resultsPerPage = 50; // Increased from 25 to 50
 
   React.useEffect(() => {
     // Filter out error results whenever the results prop changes
@@ -28,6 +36,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
       !r.status?.toLowerCase().includes('error analyzing url')
     );
     setFilteredResults(newValidResults);
+    setCurrentPage(1); // Reset to first page when results change
   }, [results]);
 
   const handleFilter = (value: string) => {
@@ -41,7 +50,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     }
     
     setFilteredResults(filtered);
-    setDisplayLimit(25); // Reset display limit when filtering
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const handleSort = (value: string) => {
@@ -63,12 +72,8 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     setFilteredResults(sorted);
   };
 
-  const handleLoadMore = () => {
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      setDisplayLimit(prev => prev + 25);
-      setIsLoadingMore(false);
-    }, 500);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   if (!validResults || validResults.length === 0) {
@@ -77,8 +82,12 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
 
   const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
   const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
-  const displayedResults = filteredResults.slice(0, displayLimit);
-  const hasMore = filteredResults.length > displayLimit;
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
+  const startIndex = (currentPage - 1) * resultsPerPage;
+  const endIndex = startIndex + resultsPerPage;
+  const displayedResults = filteredResults.slice(startIndex, endIndex);
 
   return (
     <div className="mt-12 space-y-6">
@@ -100,11 +109,56 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
         <ResultsTable results={displayedResults} />
       </div>
-      {hasMore && (
-        <LoadMoreButton 
-          onLoadMore={handleLoadMore}
-          isProcessing={isLoadingMore}
-        />
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                // Show first page, last page, and pages around current page
+                if (
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                ) {
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(page)}
+                        isActive={currentPage === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                } else if (
+                  page === currentPage - 2 ||
+                  page === currentPage + 2
+                ) {
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  );
+                }
+                return null;
+              })}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
       )}
     </div>
   );
