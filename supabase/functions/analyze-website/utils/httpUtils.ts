@@ -22,6 +22,7 @@ export async function fetchWithRetry(url: string, maxRetries = 3, timeout = 3000
     try {
       console.log(`Attempt ${i + 1} for URL: ${url}`);
       
+      // Create AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
       
@@ -68,6 +69,7 @@ export async function fetchWithRetry(url: string, maxRetries = 3, timeout = 3000
       
       if (i === maxRetries - 1) throw error;
       
+      // Exponential backoff
       const delay = Math.pow(2, i) * 1000;
       console.log(`Waiting ${delay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
