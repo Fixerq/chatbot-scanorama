@@ -27,7 +27,7 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
           first_name: null,
           last_name: null,
           api_key: null
-        }])
+        }] as Database['public']['Tables']['profiles']['Insert'][])
         .select()
         .single();
 
@@ -41,14 +41,16 @@ export const CreateUserForm = ({ onUserCreated }: CreateUserFormProps) => {
             status: 'active',
             level: 'starter' as Database['public']['Enums']['subscription_level'],
             total_searches: parseInt(newUserSearches)
-          }]);
+          }] as Database['public']['Tables']['subscriptions']['Insert'][]);
 
         if (subscriptionError) throw subscriptionError;
 
         if (isAdmin) {
           const { error: adminError } = await supabase
             .from('admin_users')
-            .insert([{ user_id: profileData.id }]);
+            .insert([{ 
+              user_id: profileData.id 
+            }] as Database['public']['Tables']['admin_users']['Insert'][]);
 
           if (adminError) throw adminError;
         }

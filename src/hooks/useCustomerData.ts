@@ -33,7 +33,7 @@ export const useCustomerData = (session: Session | null) => {
       if (levelsError) throw levelsError;
 
       const levelsMap = new Map(
-        subscriptionLevels?.map(level => [level.level, level.max_searches]) || []
+        (subscriptionLevels || []).map(level => [level.level, level.max_searches])
       );
 
       const startOfMonth = new Date();
