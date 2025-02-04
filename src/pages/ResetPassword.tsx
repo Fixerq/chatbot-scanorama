@@ -1,33 +1,30 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { toast } from '@/hooks/use-toast';
-
-const siteUrl = 'https://detectify.engageai.pro';
+import { toast } from 'sonner';
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [hash, setHash] = useState<string | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    // Get the hash from the URL
+    const hashFragment = window.location.hash;
+    if (hashFragment) {
+      setHash(hashFragment);
+    }
+
+    // Handle auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        toast({
-          title: "Password Reset",
-          description: "Please enter your new password"
-        });
-      }
-      
-      if (event === 'SIGNED_IN') {
-        toast({
-          title: "Success",
-          description: "Password updated successfully!"
-        });
+        toast.success("Please enter your new password");
+      } else if (event === 'SIGNED_IN') {
+        toast.success("Password updated successfully!");
         navigate('/dashboard');
       }
     });
@@ -59,7 +56,6 @@ const ResetPassword = () => {
               <Auth
                 supabaseClient={supabase}
                 view="update_password"
-                redirectTo={`${siteUrl}/dashboard`}
                 appearance={{
                   theme: ThemeSupa,
                   variables: {
