@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from 'sonner';
-import { AuthChangeEvent } from '@supabase/supabase-js';
 
 const Login = () => {
   const session = useSession();
@@ -51,7 +50,7 @@ const Login = () => {
 
     handleSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN' && session) {
@@ -70,16 +69,12 @@ const Login = () => {
       }
       
       if (event === 'PASSWORD_RECOVERY') {
-        toast.info('Please check your email for password reset instructions.');
+        navigate('/reset-password');
       }
 
       if (event === 'SIGNED_OUT') {
         setError('');
         toast.success('Successfully signed out!');
-      }
-
-      if (event === 'USER_DELETED') {
-        setError('User account has been deleted.');
       }
     });
 

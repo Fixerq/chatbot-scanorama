@@ -1,41 +1,34 @@
-import Login from '@/pages/Login';
-import Signup from '@/pages/Signup';
-import Success from '@/pages/Success';
-import Index from '@/pages/Index';
-import SalesPage from '@/pages/SalesPage';
-import RegisterAndOrder from '@/pages/RegisterAndOrder';
-import AdminConsole from '@/pages/AdminConsole';
-import { ProtectedRoute } from './ProtectedRoute';
+import { createBrowserRouter } from "react-router-dom";
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import ResetPassword from "@/pages/ResetPassword";
+import Success from "@/pages/Success";
+import AdminConsole from "@/pages/AdminConsole";
+import SalesPage from "@/pages/SalesPage";
+import RegisterAndOrder from "@/pages/RegisterAndOrder";
+import ProtectedRoute from "./ProtectedRoute";
 
-export const routes = [
+export const router = createBrowserRouter([
   {
     path: "/",
-    element: <SalesPage />
+    element: <Index />,
   },
   {
     path: "/login",
     element: <Login />,
-    authRedirect: "/dashboard"
   },
   {
     path: "/signup",
-    element: <Signup />
+    element: <Signup />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
   {
     path: "/success",
-    element: <Success />
-  },
-  {
-    path: "/register-and-order",
-    element: <RegisterAndOrder />
-  },
-  {
-    path: "/dashboard",
-    element: (
-      <ProtectedRoute>
-        <Index />
-      </ProtectedRoute>
-    )
+    element: <Success />,
   },
   {
     path: "/admin",
@@ -43,6 +36,14 @@ export const routes = [
       <ProtectedRoute>
         <AdminConsole />
       </ProtectedRoute>
-    )
-  }
-];
+    ),
+  },
+  {
+    path: "/sales",
+    element: <SalesPage />,
+  },
+  {
+    path: "/register-and-order",
+    element: <RegisterAndOrder />,
+  },
+]);
