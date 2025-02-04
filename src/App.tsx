@@ -21,19 +21,22 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      {(router.routes as AppRoute[]).map((route) => (
-        <Route
-          key={route.path}
-          path={route.path}
-          element={
-            route.authRedirect && session ? (
-              <Navigate to={route.authRedirect} replace />
-            ) : (
-              route.element
-            )
-          }
-        />
-      ))}
+      {router.routes.map((route) => {
+        const typedRoute = route as unknown as AppRoute;
+        return (
+          <Route
+            key={typedRoute.path}
+            path={typedRoute.path}
+            element={
+              typedRoute.authRedirect && session ? (
+                <Navigate to={typedRoute.authRedirect} replace />
+              ) : (
+                typedRoute.element
+              )
+            }
+          />
+        );
+      })}
     </Routes>
   );
 };
