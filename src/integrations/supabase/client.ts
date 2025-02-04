@@ -17,7 +17,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     flowType: 'pkce',
     storage: localStorage,
-    redirectTo: `${siteUrl}/reset-password`
   },
   global: {
     headers: {

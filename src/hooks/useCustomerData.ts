@@ -42,7 +42,7 @@ export const useCustomerData = (session: Session | null) => {
 
       const customersData: CustomerData[] = await Promise.all(
         (profilesData || []).map(async (profile) => {
-          const subscription = subscriptionsData?.find(sub => sub.user_id === profile.id) || {
+          const subscription = (subscriptionsData || []).find(sub => sub.user_id === profile.id) || {
             id: '',
             user_id: profile.id,
             status: 'inactive',
