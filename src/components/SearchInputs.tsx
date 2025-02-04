@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COUNTRIES } from '@/constants/countries';
+import { getRegionsForCountry } from '@/constants/regions';
 
 interface SearchInputsProps {
   query: string;
@@ -31,6 +32,9 @@ const SearchInputs = ({
   onRegionChange,
   isSearching,
 }: SearchInputsProps) => {
+  const availableRegions = getRegionsForCountry(country);
+  const hasRegions = availableRegions.length > 0;
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
@@ -42,7 +46,10 @@ const SearchInputs = ({
           className="flex-1"
           required
         />
-        <Select value={country} onValueChange={onCountryChange}>
+        <Select value={country} onValueChange={(value) => {
+          onCountryChange(value);
+          onRegionChange(''); // Reset region when country changes
+        }}>
           <SelectTrigger className="w-1/3">
             <SelectValue placeholder="Select country" />
           </SelectTrigger>
@@ -56,13 +63,28 @@ const SearchInputs = ({
         </Select>
       </div>
       <div className="flex gap-2 mb-8">
-        <Input
-          type="text"
-          placeholder="Enter state/region (optional)"
-          value={region}
-          onChange={(e) => onRegionChange(e.target.value)}
-          className="flex-1"
-        />
+        {hasRegions ? (
+          <Select value={region} onValueChange={onRegionChange}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select state/region" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableRegions.map((regionOption) => (
+                <SelectItem key={regionOption} value={regionOption}>
+                  {regionOption}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            type="text"
+            placeholder="Enter state/region (optional)"
+            value={region}
+            onChange={(e) => onRegionChange(e.target.value)}
+            className="flex-1"
+          />
+        )}
         <Button 
           type="submit" 
           disabled={isSearching || !query.trim()} 
