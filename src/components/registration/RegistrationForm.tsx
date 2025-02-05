@@ -29,7 +29,7 @@ export const RegistrationForm = ({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
-      if ((event === 'SIGNED_UP' || event === 'SIGNED_IN') && session?.user?.id) {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.id) {
         console.log('User signed up/in, updating profile with names:', firstName, lastName);
         
         try {
