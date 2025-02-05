@@ -10,23 +10,27 @@ import { toast } from 'sonner';
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Extract the access token from the URL hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const token = hashParams.get('access_token');
-    
-    if (token) {
-      setAccessToken(token);
-      // Set the session with the access token
-      supabase.auth.setSession({
-        access_token: token,
-        refresh_token: '',
-      });
-    }
+    const handlePasswordRecovery = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const token = hashParams.get('access_token');
+      const type = hashParams.get('type');
+      
+      if (token) {
+        try {
+          const { error } = await supabase.auth.getSession();
+          if (error) throw error;
+          toast.success("Please enter your new password");
+        } catch (error) {
+          console.error('Session error:', error);
+          setError('Error initializing password reset. Please try again.');
+        }
+      }
+    };
 
-    // Handle auth state changes
+    handlePasswordRecovery();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
       
