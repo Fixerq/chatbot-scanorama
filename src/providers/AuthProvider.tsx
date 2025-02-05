@@ -16,9 +16,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Function to handle user logout
     const handleLogout = async () => {
       await supabase.auth.signOut();
-      // Clear any stored session data
-      localStorage.removeItem('supabase.auth.token');
-      sessionStorage.removeItem('supabase.auth.token');
+      // Clear ALL Supabase-related storage
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      }
       toast.info('You have been logged out due to inactivity');
       navigate('/login');
     };
@@ -38,8 +46,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Handle tab/browser close
     window.addEventListener('beforeunload', async () => {
       await supabase.auth.signOut();
-      localStorage.removeItem('supabase.auth.token');
-      sessionStorage.removeItem('supabase.auth.token');
+      // Clear ALL Supabase-related storage
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      }
     });
 
     // Initialize the inactivity timer
@@ -54,9 +71,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       
       if (event === 'SIGNED_OUT') {
-        // Clear any stored session data
-        localStorage.removeItem('supabase.auth.token');
-        sessionStorage.removeItem('supabase.auth.token');
+        // Clear ALL Supabase-related storage
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        }
+        for (const key of Object.keys(sessionStorage)) {
+          if (key.startsWith('sb-')) {
+            sessionStorage.removeItem(key);
+          }
+        }
         navigate('/login');
       }
     });
@@ -65,9 +90,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' && !session) {
         console.log('Session expired or refresh token invalid');
-        // Clear any stored session data
-        localStorage.removeItem('supabase.auth.token');
-        sessionStorage.removeItem('supabase.auth.token');
+        // Clear ALL Supabase-related storage
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        }
+        for (const key of Object.keys(sessionStorage)) {
+          if (key.startsWith('sb-')) {
+            sessionStorage.removeItem(key);
+          }
+        }
         toast.error('Your session has expired. Please sign in again.');
         navigate('/login');
       }
