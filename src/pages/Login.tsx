@@ -31,6 +31,26 @@ const Login = () => {
     }
   };
 
+  // Clear any existing sessions on component mount
+  useEffect(() => {
+    const clearExistingSessions = async () => {
+      // Clear ALL Supabase-related storage on login page load
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      }
+      await supabase.auth.signOut();
+    };
+
+    clearExistingSessions();
+  }, []);
+
   useEffect(() => {
     const handleSession = async () => {
       if (session) {
@@ -74,6 +94,17 @@ const Login = () => {
 
       if (event === 'SIGNED_OUT') {
         setError('');
+        // Clear ALL Supabase-related storage
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        }
+        for (const key of Object.keys(sessionStorage)) {
+          if (key.startsWith('sb-')) {
+            sessionStorage.removeItem(key);
+          }
+        }
         toast.success('Successfully signed out!');
       }
     });

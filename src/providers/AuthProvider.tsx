@@ -15,8 +15,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     // Function to handle user logout
     const handleLogout = async () => {
-      await supabase.auth.signOut();
-      // Clear ALL Supabase-related storage
+      // First clear storage, then sign out
       for (const key of Object.keys(localStorage)) {
         if (key.startsWith('sb-')) {
           localStorage.removeItem(key);
@@ -27,6 +26,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           sessionStorage.removeItem(key);
         }
       }
+      await supabase.auth.signOut();
       toast.info('You have been logged out due to inactivity');
       navigate('/login');
     };
@@ -45,8 +45,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Handle tab/browser close
     window.addEventListener('beforeunload', async () => {
-      await supabase.auth.signOut();
-      // Clear ALL Supabase-related storage
+      // First clear storage, then sign out
       for (const key of Object.keys(localStorage)) {
         if (key.startsWith('sb-')) {
           localStorage.removeItem(key);
@@ -57,6 +56,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           sessionStorage.removeItem(key);
         }
       }
+      await supabase.auth.signOut();
     });
 
     // Initialize the inactivity timer
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       
       if (event === 'SIGNED_OUT') {
-        // Clear ALL Supabase-related storage
+        // First clear storage, then handle navigation
         for (const key of Object.keys(localStorage)) {
           if (key.startsWith('sb-')) {
             localStorage.removeItem(key);
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' && !session) {
         console.log('Session expired or refresh token invalid');
-        // Clear ALL Supabase-related storage
+        // First clear storage, then handle navigation
         for (const key of Object.keys(localStorage)) {
           if (key.startsWith('sb-')) {
             localStorage.removeItem(key);
