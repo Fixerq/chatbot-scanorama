@@ -2,12 +2,13 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from 'sonner';
-import { LogIn } from 'lucide-react';
+import { LogIn, ArrowRight } from 'lucide-react';
 
 const Login = () => {
   const session = useSession();
@@ -130,7 +131,7 @@ const Login = () => {
               Sign in to access your dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertDescription>{error}</AlertDescription>
@@ -176,14 +177,27 @@ const Login = () => {
                       button_label: 'Sign in',
                       loading_button_label: 'Signing in ...',
                       social_provider_text: 'Sign in with {{provider}}',
-                      link_text: "Don't have an account? Sign up",
                     },
                   },
                 }}
                 providers={[]}
-                redirectTo={`${window.location.origin}/dashboard`}
                 view="sign_in"
+                redirectTo={`${window.location.origin}/dashboard`}
               />
+            </div>
+            <div className="pt-4 text-center space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Don't have an account yet?
+              </div>
+              <Link to="/sales">
+                <Button 
+                  variant="outline" 
+                  className="w-full group hover:bg-[#0FA0CE] hover:text-white transition-all duration-200"
+                >
+                  View Plans & Sign Up
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
