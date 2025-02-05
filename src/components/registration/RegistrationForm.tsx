@@ -4,6 +4,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { NameFields } from './NameFields';
+import { Database } from '@/integrations/supabase/types';
 
 interface RegistrationFormProps {
   supabase: SupabaseClient;
@@ -32,6 +33,7 @@ export const RegistrationForm = ({
         console.log('User signed up, updating profile with names:', firstName, lastName);
         
         try {
+          // Update profile with names
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
@@ -45,43 +47,44 @@ export const RegistrationForm = ({
             throw updateError;
           }
           
-          console.log('Profile updated successfully');
-          toast.success('Registration successful!');
-
-          // If we have a priceId, create a checkout session
+          // If priceId is provided, update subscription level
           if (priceId) {
-            console.log('Creating checkout session for price:', priceId);
-            try {
-              const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke(
-                'create-checkout',
-                {
-                  headers: {
-                    Authorization: `Bearer ${session.access_token}`
-                  },
-                  body: {
-                    priceId,
-                    returnUrl: window.location.origin
-                  }
-                }
-              );
+            console.log('Updating subscription for price:', priceId);
+            let subscriptionLevel: Database['public']['Enums']['subscription_level'] = 'starter';
+            let totalSearches = 25; // Default starter plan searches
 
-              if (checkoutError) {
-                console.error('Checkout error:', checkoutError);
-                throw checkoutError;
-              }
+            // Set subscription level based on priceId
+            if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1') {
+              subscriptionLevel = 'founders';
+              totalSearches = -1; // Unlimited searches
+            } else if (priceId === 'price_1QeakhEiWhAkWDnrnZgRSuyR') {
+              subscriptionLevel = 'pro';
+              totalSearches = 5000;
+            } else if (priceId === 'price_1QeakhEiWhAkWDnrevEe12PJ') {
+              subscriptionLevel = 'starter';
+              totalSearches = 500;
+            }
 
-              if (checkoutData?.url) {
-                console.log('Redirecting to checkout:', checkoutData.url);
-                window.location.href = checkoutData.url;
-              } else {
-                console.error('No checkout URL received');
-                throw new Error('No checkout URL received');
-              }
-            } catch (error) {
-              console.error('Error creating checkout session:', error);
-              toast.error('Failed to create checkout session. Please try again.');
+            const { error: subscriptionError } = await supabase
+              .from('subscriptions')
+              .update({
+                level: subscriptionLevel,
+                status: 'active',
+                total_searches: totalSearches
+              })
+              .eq('user_id', session.user.id);
+
+            if (subscriptionError) {
+              console.error('Subscription update error:', subscriptionError);
+              throw subscriptionError;
             }
           }
+          
+          console.log('Profile and subscription updated successfully');
+          toast.success('Registration successful!');
+
+          // Redirect to dashboard
+          window.location.href = '/dashboard';
         } catch (error) {
           console.error('Error in registration process:', error);
           toast.error('Failed to complete registration. Please try again.');
