@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from 'sonner';
+import { LogIn } from 'lucide-react';
 
 const Login = () => {
   const session = useSession();
@@ -119,7 +120,10 @@ const Login = () => {
       <div className="w-full max-w-md">
         <Card className="card-gradient border-none shadow-xl">
           <CardHeader className="space-y-2 text-center pb-6">
-            <CardTitle className="text-3xl font-bold glow-text bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+            <div className="flex justify-center">
+              <LogIn className="w-12 h-12 text-[#0FA0CE]" />
+            </div>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0FA0CE] to-[#0D8CAD] bg-clip-text text-transparent">
               Welcome Back
             </CardTitle>
             <CardDescription className="text-muted-foreground text-lg">
@@ -140,25 +144,26 @@ const Login = () => {
                   variables: {
                     default: {
                       colors: {
-                        brand: 'rgb(6 182 212)',
-                        brandAccent: 'rgb(8 145 178)',
+                        brand: '#0FA0CE',
+                        brandAccent: '#0D8CAD',
                         brandButtonText: 'white',
                         defaultButtonBackground: 'rgb(15 23 42)',
                         defaultButtonBackgroundHover: 'rgb(30 41 59)',
                         inputBackground: 'rgb(15 23 42)',
                         inputBorder: 'rgb(51 65 85)',
                         inputBorderHover: 'rgb(71 85 105)',
-                        inputBorderFocus: 'rgb(6 182 212)',
+                        inputBorderFocus: '#0FA0CE',
                         inputText: 'white',
                       },
                     },
                   },
                   className: {
                     container: 'w-full',
-                    button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 glow-border',
-                    input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200',
+                    button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:shadow-lg hover:shadow-[#0FA0CE]/20',
+                    input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0FA0CE] focus:border-transparent transition-all duration-200',
                     label: 'block text-sm font-medium text-muted-foreground mb-1.5',
                     message: 'text-sm text-red-500 mt-1',
+                    anchor: 'text-[#0FA0CE] hover:text-[#0D8CAD] transition-colors',
                   },
                 }}
                 localization={{
@@ -171,30 +176,13 @@ const Login = () => {
                       button_label: 'Sign in',
                       loading_button_label: 'Signing in ...',
                       social_provider_text: 'Sign in with {{provider}}',
-                      link_text: "Already have an account? Sign in",
-                    },
-                    sign_up: {
-                      email_label: 'Email address',
-                      password_label: 'Create a Password',
-                      email_input_placeholder: 'Your email address',
-                      password_input_placeholder: 'Your password',
-                      button_label: 'Sign up',
-                      loading_button_label: 'Signing up ...',
-                      social_provider_text: 'Sign up with {{provider}}',
                       link_text: "Don't have an account? Sign up",
-                    },
-                    forgotten_password: {
-                      email_label: 'Email address',
-                      password_label: 'Password',
-                      email_input_placeholder: 'Your email address',
-                      button_label: 'Send reset instructions',
-                      loading_button_label: 'Sending reset instructions ...',
-                      link_text: 'Forgot your password?',
                     },
                   },
                 }}
                 providers={[]}
                 redirectTo={`${window.location.origin}/dashboard`}
+                view="sign_in"
               />
             </div>
           </CardContent>
