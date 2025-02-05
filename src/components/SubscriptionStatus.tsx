@@ -21,7 +21,7 @@ export const SubscriptionStatus = () => {
         {level} Plan
       </Badge>
       <span className="text-sm text-muted-foreground">
-        {searchesRemaining === -1 ? 'Unlimited' : `${searchesRemaining} searches remaining`}
+        {searchesRemaining === -1 ? '∞ searches' : `${searchesRemaining} searches remaining`}
       </span>
     </div>
   );
