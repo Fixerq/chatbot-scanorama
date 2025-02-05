@@ -11,16 +11,26 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [hash, setHash] = useState<string | null>(null);
+  const [type, setType] = useState<'recovery' | 'signup'>('recovery');
 
   useEffect(() => {
-    // Get the hash from the URL
+    // Extract hash and type from URL
     const hashFragment = window.location.hash;
+    const searchParams = new URLSearchParams(window.location.search);
+    const typeParam = searchParams.get('type');
+
     if (hashFragment) {
       setHash(hashFragment);
     }
 
+    if (typeParam === 'recovery' || typeParam === 'signup') {
+      setType(typeParam);
+    }
+
     // Handle auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event);
+      
       if (event === 'PASSWORD_RECOVERY') {
         toast.success("Please enter your new password");
       } else if (event === 'SIGNED_IN') {
