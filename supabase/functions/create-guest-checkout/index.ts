@@ -1,107 +1,63 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@13.3.0?target=deno";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': '*',
-  'Access-Control-Max-Age': '86400',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
-  // Log incoming request details for debugging
-  console.log('Request received:', {
-    method: req.method,
-    url: req.url,
-    headers: Object.fromEntries(req.headers.entries())
-  });
-
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
-    return new Response(null, {
-      headers: corsHeaders,
-      status: 204
-    });
-  }
-
   try {
-    if (req.method !== 'POST') {
-      throw new Error(`Method ${req.method} not allowed`);
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
     }
 
-    const { priceId, successUrl, cancelUrl } = await req.json();
+    const { priceId, productId } = await req.json();
     
-    if (!priceId || !successUrl || !cancelUrl) {
-      console.error('Missing required parameters:', { priceId, successUrl, cancelUrl });
-      throw new Error('Missing required parameters');
+    if (!priceId) {
+      console.error('No price ID provided');
+      throw new Error('Price ID is required');
     }
 
-    console.log('Creating checkout session with parameters:', {
-      priceId,
-      successUrl,
-      cancelUrl
-    });
-
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!stripeKey) {
-      throw new Error('Missing Stripe secret key');
-    }
-
-    const stripe = new Stripe(stripeKey, {
+    console.log('Creating guest checkout session for:', { priceId, productId });
+    
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
     });
 
-    // Verify that the price exists and determine its type
-    const price = await stripe.prices.retrieve(priceId);
-    console.log('Retrieved price:', price);
-
-    // Set the mode based on the price type
-    const mode = price.type === 'recurring' ? 'subscription' : 'payment';
-    console.log('Setting checkout mode to:', mode);
-
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
-      mode,
-      success_url: successUrl.replace(/:\/$/, ''),
-      cancel_url: cancelUrl.replace(/:\/$/, ''),
+      mode: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? 'payment' : 'subscription',
+      success_url: `${req.headers.get('origin')}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${encodeURIComponent(priceId)}&planName=${encodeURIComponent('Founders Plan')}`,
+      cancel_url: `${req.headers.get('origin')}/sales`,
+      allow_promotion_codes: true,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
-      allow_promotion_codes: true,
     });
 
     console.log('Checkout session created:', session.id);
 
     return new Response(
-      JSON.stringify({ 
-        sessionId: session.id, 
-        url: session.url 
-      }),
+      JSON.stringify({ url: session.url }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error in create-guest-checkout:', error);
-    
+    console.error('Error in guest checkout:', error);
     return new Response(
-      JSON.stringify({
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        requestId: crypto.randomUUID()
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error
       }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: error.status || 400,
-      }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      },
     );
   }
 });
