@@ -13,6 +13,13 @@ export const CustomerTableRow = ({ customer, onCustomerUpdate }: CustomerTableRo
     return new Date(date).toLocaleDateString();
   };
 
+  const formatSearches = (remaining: number, total: number) => {
+    if (total === -1) {
+      return '∞';
+    }
+    return `${remaining} / ${total}`;
+  };
+
   return (
     <TableRow>
       <TableCell>{customer.email}</TableCell>
@@ -25,7 +32,7 @@ export const CustomerTableRow = ({ customer, onCustomerUpdate }: CustomerTableRo
         </Badge>
       </TableCell>
       <TableCell>
-        {customer.searchesRemaining} / {customer.totalSearches}
+        {formatSearches(customer.searchesRemaining, customer.totalSearches)}
       </TableCell>
       <TableCell>
         {customer.subscription.current_period_end 
