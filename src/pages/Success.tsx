@@ -15,6 +15,26 @@ const Success = () => {
   const [customerEmail, setCustomerEmail] = useState<string | null>(null);
   const sessionId = searchParams.get('session_id');
 
+  // Clear any existing sessions on component mount
+  useEffect(() => {
+    const clearExistingSessions = async () => {
+      // First clear storage, then sign out
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      }
+      await supabase.auth.signOut();
+    };
+
+    clearExistingSessions();
+  }, [supabase.auth]);
+
   useEffect(() => {
     const getCustomerEmail = async () => {
       if (!sessionId) {
@@ -41,6 +61,10 @@ const Success = () => {
 
     getCustomerEmail();
   }, [sessionId, navigate, supabase.functions]);
+
+  const handleLoginClick = () => {
+    navigate('/login');
+  };
 
   if (loading) {
     return (
@@ -72,10 +96,10 @@ const Success = () => {
             </div>
             <div className="text-center">
               <Button
-                onClick={() => navigate('/dashboard')}
+                onClick={handleLoginClick}
                 className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
               >
-                Go to Dashboard
+                Login to Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
