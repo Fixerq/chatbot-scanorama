@@ -13,17 +13,26 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const handlePasswordRecovery = async () => {
+      // Get the hash parameters from the URL
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const token = hashParams.get('access_token');
       const type = hashParams.get('type');
       
-      if (token) {
+      console.log('Hash params:', { token, type }); // Debug log
+      
+      if (type === 'recovery') {
         try {
-          const { error } = await supabase.auth.getSession();
-          if (error) throw error;
+          const { data, error } = await supabase.auth.getSession();
+          console.log('Session data:', data); // Debug log
+          
+          if (error) {
+            console.error('Session error:', error);
+            throw error;
+          }
+          
           toast.success("Please enter your new password");
         } catch (error) {
-          console.error('Session error:', error);
+          console.error('Password recovery error:', error);
           setError('Error initializing password reset. Please try again.');
         }
       }
