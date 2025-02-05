@@ -21,7 +21,16 @@ file_size_limit = "50MiB"
 
 [auth]
 site_url = "https://detectify.engageai.pro"
-additional_redirect_urls = ["https://detectify.engageai.pro", "https://detectify.engageai.pro/**", "http://localhost:3000"]
+additional_redirect_urls = [
+  "https://detectify.engageai.pro",
+  "https://detectify.engageai.pro/**",
+  "http://localhost:3000",
+  "https://gptengineer.app",
+  "https://lovable.dev",
+  "https://detectifys.engageai.pro",
+  "https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com",
+  "https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com/**"
+]
 jwt_expiry = 3600
 enable_signup = true
 
