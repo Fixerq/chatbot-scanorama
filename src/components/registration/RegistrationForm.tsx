@@ -29,8 +29,8 @@ export const RegistrationForm = ({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
-      if (event === 'SIGNED_IN' && session?.user?.id) {
-        console.log('User signed up, updating profile with names:', firstName, lastName);
+      if ((event === 'SIGNED_UP' || event === 'SIGNED_IN') && session?.user?.id) {
+        console.log('User signed up/in, updating profile with names:', firstName, lastName);
         
         try {
           // Update profile with names
@@ -81,7 +81,8 @@ export const RegistrationForm = ({
           }
 
           // Send welcome email
-          const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+          console.log('Sending welcome email to:', session.user.email);
+          const { error: emailError, data: emailData } = await supabase.functions.invoke('send-welcome-email', {
             body: {
               email: session.user.email,
               firstName: firstName,
@@ -91,11 +92,13 @@ export const RegistrationForm = ({
 
           if (emailError) {
             console.error('Error sending welcome email:', emailError);
-            // Don't throw here as we don't want to block the registration process
+            toast.error('Failed to send welcome email. Please contact support.');
+          } else {
+            console.log('Welcome email sent successfully:', emailData);
+            toast.success('Registration successful! Please check your email to continue.');
           }
           
           console.log('Profile and subscription updated successfully');
-          toast.success('Registration successful! Please check your email and login to continue.');
 
           // Sign out the user and redirect to login
           await supabase.auth.signOut();
