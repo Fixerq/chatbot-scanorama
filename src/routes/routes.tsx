@@ -8,6 +8,7 @@ import AdminConsole from "@/pages/AdminConsole";
 import SalesPage from "@/pages/SalesPage";
 import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
+import { Navigate } from "react-router-dom";
 
 interface AppRoute {
   path: string;
@@ -18,6 +19,10 @@ interface AppRoute {
 const routes: AppRoute[] = [
   {
     path: "/",
+    element: <Navigate to="/sales" replace />,
+  },
+  {
+    path: "/dashboard",
     element: <Index />,
   },
   {
