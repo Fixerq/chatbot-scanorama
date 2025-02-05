@@ -29,7 +29,7 @@ export const RegistrationForm = ({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
-      if (event === 'SIGNED_IN' && session?.user?.id) {
+      if (event === 'SIGNED_UP' && session?.user?.id) {
         console.log('User signed up, updating profile with names:', firstName, lastName);
         
         try {
@@ -79,12 +79,27 @@ export const RegistrationForm = ({
               throw subscriptionError;
             }
           }
+
+          // Send welcome email
+          const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+            body: {
+              email: session.user.email,
+              firstName: firstName,
+              lastName: lastName
+            }
+          });
+
+          if (emailError) {
+            console.error('Error sending welcome email:', emailError);
+            // Don't throw here as we don't want to block the registration process
+          }
           
           console.log('Profile and subscription updated successfully');
-          toast.success('Registration successful!');
+          toast.success('Registration successful! Please check your email and login to continue.');
 
-          // Redirect to dashboard
-          window.location.href = '/dashboard';
+          // Sign out the user and redirect to login
+          await supabase.auth.signOut();
+          window.location.href = '/login';
         } catch (error) {
           console.error('Error in registration process:', error);
           toast.error('Failed to complete registration. Please try again.');
