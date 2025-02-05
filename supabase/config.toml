@@ -43,23 +43,23 @@ enable_confirmations = true
 
 [auth.email.template.invite]
 subject = "Welcome to Detectify!"
-content_path = "emails/invite.html"
+content_path = "supabase/emails/invite.html"
 
 [auth.email.template.confirmation]
 subject = "Confirm Your Email"
-content_path = "emails/confirmation.html"
+content_path = "supabase/emails/confirmation.html"
 
 [auth.email.template.recovery]
 subject = "Reset Your Password"
-content_path = "emails/recovery.html"
+content_path = "supabase/emails/recovery.html"
 
 [auth.email.template.magic_link]
 subject = "Your Magic Link"
-content_path = "emails/magic-link.html"
+content_path = "supabase/emails/magic-link.html"
 
 [auth.email.template.email_change]
 subject = "Confirm Email Change"
-content_path = "emails/change-email.html"
+content_path = "supabase/emails/change-email.html"
 
 [functions]
 [functions.analyze-website]
