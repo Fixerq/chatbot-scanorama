@@ -5,7 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': '*',
   'Access-Control-Max-Age': '86400',
 }
 
@@ -34,7 +34,12 @@ serve(async (req) => {
     // If sessionId is provided, get email from Stripe session
     if (sessionId) {
       console.log('Fetching Stripe session:', sessionId);
-      const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+      if (!stripeKey) {
+        throw new Error('Stripe key not configured');
+      }
+
+      const stripe = new Stripe(stripeKey, {
         apiVersion: '2023-10-16',
       });
 
