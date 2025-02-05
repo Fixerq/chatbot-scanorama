@@ -80,13 +80,16 @@ export const RegistrationForm = ({
             }
           }
 
-          // Send welcome email
-          console.log('Sending welcome email to:', session.user.email);
+          // Send welcome email with proper error handling
+          console.log('Attempting to send welcome email to:', session.user.email);
           const { error: emailError, data: emailData } = await supabase.functions.invoke('send-welcome-email', {
             body: {
               email: session.user.email,
               firstName: firstName,
               lastName: lastName
+            },
+            headers: {
+              'x-application-name': 'Engage AI Pro'
             }
           });
 
