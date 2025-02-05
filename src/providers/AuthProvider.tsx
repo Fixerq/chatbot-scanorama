@@ -16,8 +16,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Function to handle user logout
     const handleLogout = async () => {
       await supabase.auth.signOut();
+      // Clear any stored session data
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
       toast.info('You have been logged out due to inactivity');
-      navigate('/');
+      navigate('/login');
     };
 
     // Reset the inactivity timer
@@ -35,6 +38,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Handle tab/browser close
     window.addEventListener('beforeunload', async () => {
       await supabase.auth.signOut();
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
     });
 
     // Initialize the inactivity timer
@@ -49,7 +54,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
       
       if (event === 'SIGNED_OUT') {
-        navigate('/');
+        // Clear any stored session data
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.removeItem('supabase.auth.token');
+        navigate('/login');
       }
     });
 
@@ -57,8 +65,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' && !session) {
         console.log('Session expired or refresh token invalid');
+        // Clear any stored session data
+        localStorage.removeItem('supabase.auth.token');
+        sessionStorage.removeItem('supabase.auth.token');
         toast.error('Your session has expired. Please sign in again.');
-        navigate('/');
+        navigate('/login');
       }
     });
 
