@@ -39,7 +39,7 @@ const Signup = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      console.log('Auth event:', event); // Keep logging to help debug
+      console.log('Auth event:', event);
       
       if (event === 'USER_UPDATED') {
         toast.success('Successfully signed up!');
@@ -82,8 +82,23 @@ const Signup = () => {
                         brand: 'rgb(6 182 212)',
                         brandAccent: 'rgb(8 145 178)',
                         brandButtonText: 'white',
+                        defaultButtonBackground: 'rgb(15 23 42)',
+                        defaultButtonBackgroundHover: 'rgb(30 41 59)',
+                        inputBackground: 'rgb(15 23 42)',
+                        inputBorder: 'rgb(51 65 85)',
+                        inputBorderHover: 'rgb(71 85 105)',
+                        inputBorderFocus: 'rgb(6 182 212)',
+                        inputText: 'white', // Changed from default dark color to white
                       },
                     },
+                  },
+                  className: {
+                    container: 'w-full',
+                    button: 'w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 glow-border',
+                    input: 'w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200 text-white', // Added text-white class
+                    label: 'block text-sm font-medium text-muted-foreground mb-1.5',
+                    message: 'text-sm text-red-500 mt-1',
+                    anchor: 'text-cyan-400 hover:text-cyan-300', // Added styling for links
                   },
                 }}
                 view="sign_up"
