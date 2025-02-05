@@ -8,13 +8,17 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Received request to get customer email');
     const body = await req.json();
     const { sessionId, userId } = body;
+
+    console.log('Request parameters:', { sessionId, userId });
 
     // If sessionId is provided, get email from Stripe session
     if (sessionId) {
@@ -22,6 +26,7 @@ serve(async (req) => {
         apiVersion: '2023-10-16',
       });
 
+      console.log('Fetching Stripe session:', sessionId);
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       return new Response(
         JSON.stringify({ email: session.customer_details?.email }),
@@ -34,6 +39,7 @@ serve(async (req) => {
 
     // If userId is provided, get email from Supabase auth
     if (userId) {
+      console.log('Fetching user from Supabase:', userId);
       const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -41,10 +47,17 @@ serve(async (req) => {
 
       const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
       
-      if (userError || !userData.user) {
+      if (userError) {
+        console.error('Error fetching user:', userError);
         throw new Error('User not found');
       }
 
+      if (!userData.user) {
+        console.error('No user data found');
+        throw new Error('User not found');
+      }
+
+      console.log('Successfully found user email');
       return new Response(
         JSON.stringify({ email: userData.user.email }),
         { 
@@ -56,9 +69,12 @@ serve(async (req) => {
 
     throw new Error('Either sessionId or userId must be provided');
   } catch (error) {
-    console.error('Error fetching customer email:', error);
+    console.error('Error in get-customer-email function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString()
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
