@@ -40,6 +40,27 @@ enable_signup = true
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
+custom_template = true
+
+[email.template.invite]
+subject = "Welcome to Detectify!"
+content_path = "emails/invite.html"
+
+[email.template.confirmation]
+subject = "Confirm Your Email"
+content_path = "emails/confirmation.html"
+
+[email.template.recovery]
+subject = "Reset Your Password"
+content_path = "emails/recovery.html"
+
+[email.template.magic_link]
+subject = "Your Magic Link"
+content_path = "emails/magic-link.html"
+
+[email.template.email_change]
+subject = "Confirm Email Change"
+content_path = "emails/change-email.html"
 
 [functions]
 [functions.analyze-website]
