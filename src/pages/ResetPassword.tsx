@@ -10,21 +10,20 @@ import { toast } from 'sonner';
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [hash, setHash] = useState<string | null>(null);
-  const [type, setType] = useState<'recovery' | 'signup'>('recovery');
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Extract hash and type from URL
-    const hashFragment = window.location.hash;
-    const searchParams = new URLSearchParams(window.location.search);
-    const typeParam = searchParams.get('type');
-
-    if (hashFragment) {
-      setHash(hashFragment);
-    }
-
-    if (typeParam === 'recovery' || typeParam === 'signup') {
-      setType(typeParam);
+    // Extract the access token from the URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const token = hashParams.get('access_token');
+    
+    if (token) {
+      setAccessToken(token);
+      // Set the session with the access token
+      supabase.auth.setSession({
+        access_token: token,
+        refresh_token: '',
+      });
     }
 
     // Handle auth state changes
