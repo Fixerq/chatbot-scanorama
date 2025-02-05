@@ -13,16 +13,21 @@ serve(async (req) => {
       return new Response(null, { headers: corsHeaders });
     }
 
-    const { priceId, productId } = await req.json();
+    const { priceId, successUrl, cancelUrl } = await req.json();
     
     if (!priceId) {
       console.error('No price ID provided');
       throw new Error('Price ID is required');
     }
 
-    console.log('Creating guest checkout session for:', { priceId, productId });
+    console.log('Creating guest checkout session for:', { priceId });
     
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeKey) {
+      throw new Error('Missing Stripe secret key');
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
     });
@@ -31,8 +36,8 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
       mode: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? 'payment' : 'subscription',
-      success_url: `${req.headers.get('origin')}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${encodeURIComponent(priceId)}&planName=${encodeURIComponent('Founders Plan')}`,
-      cancel_url: `${req.headers.get('origin')}/sales`,
+      success_url: successUrl || `${req.headers.get('origin')}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${encodeURIComponent(priceId)}&planName=${encodeURIComponent('Founders Plan')}`,
+      cancel_url: cancelUrl || `${req.headers.get('origin')}/sales`,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
