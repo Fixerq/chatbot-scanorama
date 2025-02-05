@@ -9,13 +9,43 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
-
+  
   useEffect(() => {
+    let inactivityTimeout: NodeJS.Timeout;
+    
+    // Function to handle user logout
+    const handleLogout = async () => {
+      await supabase.auth.signOut();
+      toast.info('You have been logged out due to inactivity');
+      navigate('/');
+    };
+
+    // Reset the inactivity timer
+    const resetInactivityTimer = () => {
+      clearTimeout(inactivityTimeout);
+      inactivityTimeout = setTimeout(handleLogout, 30 * 60 * 1000); // 30 minutes
+    };
+
+    // Set up event listeners for user activity
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'mousemove'];
+    activityEvents.forEach(event => {
+      document.addEventListener(event, resetInactivityTimer);
+    });
+
+    // Handle tab/browser close
+    window.addEventListener('beforeunload', async () => {
+      await supabase.auth.signOut();
+    });
+
+    // Initialize the inactivity timer
+    resetInactivityTimer();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
+        resetInactivityTimer(); // Reset timer on token refresh
       }
       
       if (event === 'SIGNED_OUT') {
@@ -32,8 +62,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     });
 
+    // Cleanup function
     return () => {
       subscription.unsubscribe();
+      clearTimeout(inactivityTimeout);
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, resetInactivityTimer);
+      });
     };
   }, [navigate]);
 
