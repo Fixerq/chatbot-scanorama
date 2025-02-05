@@ -27,7 +27,6 @@ export const useSubscription = () => {
         const { data, error } = await supabase.functions.invoke('create-guest-checkout', {
           body: { 
             priceId,
-            productId,
             successUrl: `${window.location.origin}/register-and-order?priceId=${priceId}&planName=Founders%20Plan`,
             cancelUrl: window.location.origin
           }

@@ -7,27 +7,21 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
-
-    const { priceId, productId, successUrl, cancelUrl } = await req.json();
+    const { priceId, successUrl, cancelUrl } = await req.json();
     
-    if (!priceId || !productId) {
-      console.error('Missing required parameters:', { priceId, productId });
-      throw new Error('Price ID and Product ID are required');
+    if (!priceId || !successUrl || !cancelUrl) {
+      throw new Error('Missing required parameters: priceId, successUrl, and cancelUrl are required');
     }
 
-    console.log('Creating guest checkout session for:', { priceId, productId });
-    
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!stripeKey) {
-      throw new Error('Missing Stripe secret key');
-    }
+    console.log('Creating guest checkout session with:', { priceId, successUrl, cancelUrl });
 
-    const stripe = new Stripe(stripeKey, {
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
       httpClient: Stripe.createFetchHttpClient(),
     });
@@ -36,8 +30,8 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: priceId, quantity: 1 }],
       mode: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? 'payment' : 'subscription',
-      success_url: successUrl || `${req.headers.get('origin')}/register-and-order?session_id={CHECKOUT_SESSION_ID}&priceId=${encodeURIComponent(priceId)}&planName=Founders%20Plan`,
-      cancel_url: cancelUrl || `${req.headers.get('origin')}/sales`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       payment_method_types: ['card'],
