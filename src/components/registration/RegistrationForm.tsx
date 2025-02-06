@@ -1,7 +1,7 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { NameFields } from './NameFields';
 import { Database } from '@/integrations/supabase/types';
@@ -25,11 +25,39 @@ export const RegistrationForm = ({
   priceId,
   customerEmail 
 }: RegistrationFormProps) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error initializing session:', sessionError);
+          toast.error('Failed to initialize session. Please try again.');
+          return;
+        }
+
+        if (session) {
+          console.log('Session initialized successfully:', session.user.id);
+        } else {
+          console.log('No active session found');
+        }
+      } catch (error) {
+        console.error('Error in session initialization:', error);
+        toast.error('Session initialization failed');
+      }
+    };
+
+    initializeSession();
+  }, [supabase.auth]);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.id) {
+        setIsProcessing(true);
         console.log('User signed up/in, updating profile with names:', firstName, lastName);
         
         try {
@@ -45,6 +73,22 @@ export const RegistrationForm = ({
           if (updateError) {
             console.error('Profile update error:', updateError);
             throw updateError;
+          }
+
+          // Create or update customer record
+          const { error: customerError } = await supabase
+            .from('customers')
+            .upsert({
+              user_id: session.user.id,
+              email: session.user.email,
+              first_name: firstName,
+              last_name: lastName,
+              price_id: priceId
+            });
+
+          if (customerError) {
+            console.error('Customer update error:', customerError);
+            throw customerError;
           }
           
           // If priceId is provided, update subscription level
@@ -111,6 +155,8 @@ export const RegistrationForm = ({
         } catch (error) {
           console.error('Error in registration process:', error);
           toast.error('Failed to complete registration. Please try again.');
+        } finally {
+          setIsProcessing(false);
         }
       }
     });
@@ -129,31 +175,38 @@ export const RegistrationForm = ({
         setLastName={setLastName}
       />
       <div className="rounded-lg">
-        <Auth
-          supabaseClient={supabase}
-          view="sign_up"
-          appearance={{
-            theme: ThemeSupa,
-            variables: {
-              default: {
-                colors: {
-                  brand: 'rgb(6 182 212)',
-                  brandAccent: 'rgb(8 145 178)',
-                  brandButtonText: 'white',
-                  defaultButtonBackground: 'rgb(15 23 42)',
-                  defaultButtonBackgroundHover: 'rgb(30 41 59)',
-                  inputBackground: 'rgb(15 23 42)',
-                  inputBorder: 'rgb(51 65 85)',
-                  inputBorderHover: 'rgb(71 85 105)',
-                  inputBorderFocus: 'rgb(6 182 212)',
-                  inputText: 'white',
+        {isProcessing ? (
+          <div className="flex items-center justify-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+            <span className="ml-2 text-sm text-muted-foreground">Processing registration...</span>
+          </div>
+        ) : (
+          <Auth
+            supabaseClient={supabase}
+            view="sign_up"
+            appearance={{
+              theme: ThemeSupa,
+              variables: {
+                default: {
+                  colors: {
+                    brand: 'rgb(6 182 212)',
+                    brandAccent: 'rgb(8 145 178)',
+                    brandButtonText: 'white',
+                    defaultButtonBackground: 'rgb(15 23 42)',
+                    defaultButtonBackgroundHover: 'rgb(30 41 59)',
+                    inputBackground: 'rgb(15 23 42)',
+                    inputBorder: 'rgb(51 65 85)',
+                    inputBorderHover: 'rgb(71 85 105)',
+                    inputBorderFocus: 'rgb(6 182 212)',
+                    inputText: 'white',
+                  },
                 },
               },
-            },
-          }}
-          providers={[]}
-          redirectTo={window.location.origin}
-        />
+            }}
+            providers={[]}
+            redirectTo={window.location.origin}
+          />
+        )}
       </div>
     </div>
   );
