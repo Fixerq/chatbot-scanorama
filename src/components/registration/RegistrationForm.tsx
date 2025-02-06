@@ -1,13 +1,15 @@
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import { NameFields } from './NameFields';
-import { Database } from '@/integrations/supabase/types';
 
 interface RegistrationFormProps {
-  supabase: SupabaseClient;
+  supabase: any;
   firstName: string;
   lastName: string;
   setFirstName: (value: string) => void;
@@ -16,208 +18,193 @@ interface RegistrationFormProps {
   customerEmail?: string | null;
 }
 
-export const RegistrationForm = ({ 
-  supabase, 
-  firstName, 
-  lastName, 
-  setFirstName, 
+export const RegistrationForm = ({
+  supabase,
+  firstName,
+  lastName,
+  setFirstName,
   setLastName,
   priceId,
-  customerEmail 
+  customerEmail,
 }: RegistrationFormProps) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [email, setEmail] = useState(customerEmail || '');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const initializeSession = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Error initializing session:', sessionError);
-          toast.error('Failed to initialize session. Please try again.');
-          return;
-        }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-        if (session) {
-          console.log('Session initialized successfully:', session.user.id);
-        } else {
-          console.log('No active session found');
-        }
-      } catch (error) {
-        console.error('Error in session initialization:', error);
-        toast.error('Session initialization failed');
+    try {
+      console.log('Starting registration process...');
+
+      // Sign up the user
+      const { data: { session }, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
+        },
+      });
+
+      if (signUpError) {
+        console.error('Sign up error:', signUpError);
+        throw signUpError;
       }
-    };
 
-    initializeSession();
-  }, [supabase.auth]);
+      if (!session?.user?.id) {
+        throw new Error('No session or user ID after signup');
+      }
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      
-      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.id) {
-        setIsProcessing(true);
-        console.log('User signed up/in, updating profile with names:', firstName, lastName);
-        
-        try {
-          // Update profile with names
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              first_name: firstName,
-              last_name: lastName
-            })
-            .eq('id', session.user.id);
+      console.log('User signed up successfully:', session.user.id);
 
-          if (updateError) {
-            console.error('Profile update error:', updateError);
-            throw updateError;
-          }
+      // Create or update customer record
+      const { error: customerError } = await supabase
+        .from('customers')
+        .upsert({
+          user_id: session.user.id,
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
+          price_id: priceId || null,
+        });
 
-          // Create or update customer record
-          const { error: customerError } = await supabase
-            .from('customers')
-            .upsert({
-              user_id: session.user.id,
-              email: session.user.email,
-              first_name: firstName,
-              last_name: lastName,
-              price_id: priceId
-            });
+      if (customerError) {
+        console.error('Customer update error:', customerError);
+        throw customerError;
+      }
 
-          if (customerError) {
-            console.error('Customer update error:', customerError);
-            throw customerError;
-          }
+      // Create initial subscription record
+      const { error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .upsert({
+          user_id: session.user.id,
+          level: 'starter',
+          status: 'active',
+          total_searches: 25
+        });
 
-          // Create initial subscription record if it doesn't exist
-          const { error: subscriptionError } = await supabase
-            .from('subscriptions')
-            .upsert({
-              user_id: session.user.id,
-              level: 'starter',
-              status: 'active',
-              total_searches: 25
-            });
+      if (subscriptionError) {
+        console.error('Subscription creation error:', subscriptionError);
+        throw subscriptionError;
+      }
 
-          if (subscriptionError) {
-            console.error('Subscription creation error:', subscriptionError);
-            throw subscriptionError;
-          }
-          
-          // If priceId is provided, update subscription level
-          if (priceId) {
-            console.log('Updating subscription for price:', priceId);
-            let subscriptionLevel: Database['public']['Enums']['subscription_level'] = 'starter';
-            let totalSearches = 25; // Default starter plan searches
+      // If priceId is provided, update subscription level
+      if (priceId) {
+        console.log('Updating subscription for price ID:', priceId);
+        let subscriptionLevel = 'pro';
+        let totalSearches = 100;
 
-            // Set subscription level based on priceId
-            if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1') {
-              subscriptionLevel = 'founders';
-              totalSearches = -1; // Unlimited searches
-            } else if (priceId === 'price_1QeakhEiWhAkWDnrnZgRSuyR') {
-              subscriptionLevel = 'pro';
-              totalSearches = 5000;
-            } else if (priceId === 'price_1QeakhEiWhAkWDnrevEe12PJ') {
-              subscriptionLevel = 'starter';
-              totalSearches = 500;
-            }
+        if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1') {
+          subscriptionLevel = 'pro';
+          totalSearches = 100;
+        } else if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a2') {
+          subscriptionLevel = 'business';
+          totalSearches = 500;
+        }
 
-            const { error: subscriptionUpdateError } = await supabase
-              .from('subscriptions')
-              .update({
-                level: subscriptionLevel,
-                status: 'active',
-                total_searches: totalSearches
-              })
-              .eq('user_id', session.user.id);
+        const { error: subscriptionUpdateError } = await supabase
+          .from('subscriptions')
+          .update({
+            level: subscriptionLevel,
+            status: 'active',
+            total_searches: totalSearches
+          })
+          .eq('user_id', session.user.id);
 
-            if (subscriptionUpdateError) {
-              console.error('Subscription update error:', subscriptionUpdateError);
-              throw subscriptionUpdateError;
-            }
-          }
-
-          // Send welcome email with proper error handling and debugging
-          console.log('Attempting to send welcome email to:', session.user.email);
-          const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
-            body: {
-              email: session.user.email,
-              firstName: firstName,
-              lastName: lastName
-            }
-          });
-
-          if (emailError) {
-            console.error('Error sending welcome email:', emailError);
-            toast.error('Failed to send welcome email. Please contact support.');
-          } else {
-            console.log('Welcome email sent successfully');
-            toast.success('Registration successful! Please check your email to continue.');
-          }
-          
-          console.log('Profile and subscription updated successfully');
-
-          // Sign out the user and redirect to login
-          await supabase.auth.signOut();
-          window.location.href = '/login';
-        } catch (error) {
-          console.error('Error in registration process:', error);
-          toast.error('Failed to complete registration. Please try again.');
-        } finally {
-          setIsProcessing(false);
+        if (subscriptionUpdateError) {
+          console.error('Subscription update error:', subscriptionUpdateError);
+          throw subscriptionUpdateError;
         }
       }
-    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase, firstName, lastName, priceId]);
+      // Send welcome email
+      console.log('Attempting to send welcome email to:', email);
+      const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+        body: {
+          email,
+          firstName,
+          lastName
+        }
+      });
+
+      if (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't throw the error, just show a toast
+        toast.error('Welcome email could not be sent, but your account was created successfully.');
+      } else {
+        console.log('Welcome email sent successfully');
+        toast.success('Registration successful! Please check your email.');
+      }
+
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setError(error.message || 'An error occurred during registration');
+      toast.error('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <NameFields
         firstName={firstName}
         lastName={lastName}
         setFirstName={setFirstName}
         setLastName={setLastName}
       />
-      <div className="rounded-lg">
-        {isProcessing ? (
-          <div className="flex items-center justify-center p-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-            <span className="ml-2 text-sm text-muted-foreground">Processing registration...</span>
-          </div>
-        ) : (
-          <Auth
-            supabaseClient={supabase}
-            view="sign_up"
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: 'rgb(6 182 212)',
-                    brandAccent: 'rgb(8 145 178)',
-                    brandButtonText: 'white',
-                    defaultButtonBackground: 'rgb(15 23 42)',
-                    defaultButtonBackgroundHover: 'rgb(30 41 59)',
-                    inputBackground: 'rgb(15 23 42)',
-                    inputBorder: 'rgb(51 65 85)',
-                    inputBorderHover: 'rgb(71 85 105)',
-                    inputBorderFocus: 'rgb(6 182 212)',
-                    inputText: 'white',
-                  },
-                },
-              },
-            }}
-            providers={[]}
-            redirectTo={window.location.origin}
-          />
-        )}
+
+      <div className="space-y-2">
+        <Input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          disabled={loading || !!customerEmail}
+        />
       </div>
-    </div>
+
+      <div className="space-y-2">
+        <Input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          disabled={loading}
+        />
+      </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating your account...
+          </>
+        ) : (
+          'Create Account'
+        )}
+      </Button>
+    </form>
   );
 };
