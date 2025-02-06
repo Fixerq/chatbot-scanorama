@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
@@ -33,18 +34,17 @@ export const RegistrationForm = ({
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const waitForSession = async (userId: string, maxAttempts = 10): Promise<boolean> => {
+  const waitForSession = async (userId: string, maxAttempts = 20): Promise<boolean> => {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       console.log(`Attempting to get session (attempt ${attempt}/${maxAttempts})`);
       
       try {
-        // Get the current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error(`Session error on attempt ${attempt}:`, sessionError);
           // Continue trying despite errors
-          await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+          await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
           continue;
         }
         
@@ -54,10 +54,10 @@ export const RegistrationForm = ({
         }
         
         console.log(`No valid session yet on attempt ${attempt}, waiting...`);
-        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
       } catch (error) {
         console.error(`Error checking session on attempt ${attempt}:`, error);
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
     
@@ -80,6 +80,7 @@ export const RegistrationForm = ({
           data: {
             first_name: firstName,
             last_name: lastName,
+            price_id: priceId // Include priceId in user metadata
           },
         },
       });
@@ -100,7 +101,14 @@ export const RegistrationForm = ({
       const sessionEstablished = await waitForSession(signUpData.user.id);
       
       if (!sessionEstablished) {
-        throw new Error('Failed to establish session after multiple attempts');
+        // Instead of throwing an error, try to proceed with a session refresh
+        console.log('Attempting to refresh session...');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          console.error('Session refresh failed:', refreshError);
+          throw new Error('Failed to establish session. Please try logging in.');
+        }
       }
 
       // Get the current session
@@ -154,6 +162,7 @@ export const RegistrationForm = ({
         console.log('Welcome email sent successfully');
       } catch (emailError) {
         console.error('Error sending welcome email:', emailError);
+        // Don't throw here, just notify
         toast.error('Welcome email could not be sent, but your account was created successfully');
       }
 
