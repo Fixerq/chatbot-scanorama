@@ -41,7 +41,7 @@ export const RegistrationForm = ({
     try {
       console.log('Starting registration process...');
 
-      // Sign up the user and wait for the session
+      // Sign up the user
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -58,20 +58,44 @@ export const RegistrationForm = ({
         throw signUpError;
       }
 
-      // Wait for session to be established
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw sessionError;
+      if (!signUpData.user) {
+        console.error('No user data returned from signup');
+        throw new Error('Failed to create user account');
+      }
+
+      console.log('User signed up successfully:', signUpData.user.id);
+
+      // Wait for session to be established (with retry)
+      let session = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (!session && retryCount < maxRetries) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error(`Session error (attempt ${retryCount + 1}):`, sessionError);
+          retryCount++;
+          if (retryCount === maxRetries) throw sessionError;
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+          continue;
+        }
+
+        session = sessionData.session;
+        if (!session) {
+          console.log(`No session yet (attempt ${retryCount + 1}), retrying...`);
+          retryCount++;
+          if (retryCount === maxRetries) throw new Error('Failed to establish session after signup');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
       if (!session?.user?.id) {
-        console.error('No session after signup');
+        console.error('No session or user ID after retries');
         throw new Error('Failed to establish session after signup');
       }
 
-      console.log('User signed up successfully:', session.user.id);
+      console.log('Session established successfully:', session.user.id);
 
       // Create or update customer record
       const { error: customerError } = await supabase
@@ -89,48 +113,19 @@ export const RegistrationForm = ({
         throw customerError;
       }
 
-      // Create initial subscription record
+      // Create initial subscription record with Founders Plan settings
       const { error: subscriptionError } = await supabase
         .from('subscriptions')
         .upsert({
           user_id: session.user.id,
-          level: 'starter',
+          level: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? 'founders' : 'starter',
           status: 'active',
-          total_searches: 25
+          total_searches: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? -1 : 25 // -1 for unlimited searches
         });
 
       if (subscriptionError) {
         console.error('Subscription creation error:', subscriptionError);
         throw subscriptionError;
-      }
-
-      // If priceId is provided, update subscription level
-      if (priceId) {
-        console.log('Updating subscription for price ID:', priceId);
-        let subscriptionLevel = 'pro';
-        let totalSearches = 100;
-
-        if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1') {
-          subscriptionLevel = 'founders';
-          totalSearches = -1; // Unlimited searches for founders
-        } else if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a2') {
-          subscriptionLevel = 'business';
-          totalSearches = 500;
-        }
-
-        const { error: subscriptionUpdateError } = await supabase
-          .from('subscriptions')
-          .update({
-            level: subscriptionLevel,
-            status: 'active',
-            total_searches: totalSearches
-          })
-          .eq('user_id', session.user.id);
-
-        if (subscriptionUpdateError) {
-          console.error('Subscription update error:', subscriptionUpdateError);
-          throw subscriptionUpdateError;
-        }
       }
 
       // Send welcome email (non-blocking)
