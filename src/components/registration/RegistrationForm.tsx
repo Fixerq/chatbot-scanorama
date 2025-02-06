@@ -90,6 +90,21 @@ export const RegistrationForm = ({
             console.error('Customer update error:', customerError);
             throw customerError;
           }
+
+          // Create initial subscription record if it doesn't exist
+          const { error: subscriptionError } = await supabase
+            .from('subscriptions')
+            .upsert({
+              user_id: session.user.id,
+              level: 'starter',
+              status: 'active',
+              total_searches: 25
+            });
+
+          if (subscriptionError) {
+            console.error('Subscription creation error:', subscriptionError);
+            throw subscriptionError;
+          }
           
           // If priceId is provided, update subscription level
           if (priceId) {
@@ -109,7 +124,7 @@ export const RegistrationForm = ({
               totalSearches = 500;
             }
 
-            const { error: subscriptionError } = await supabase
+            const { error: subscriptionUpdateError } = await supabase
               .from('subscriptions')
               .update({
                 level: subscriptionLevel,
@@ -118,34 +133,29 @@ export const RegistrationForm = ({
               })
               .eq('user_id', session.user.id);
 
-            if (subscriptionError) {
-              console.error('Subscription update error:', subscriptionError);
-              throw subscriptionError;
+            if (subscriptionUpdateError) {
+              console.error('Subscription update error:', subscriptionUpdateError);
+              throw subscriptionUpdateError;
             }
           }
 
           // Send welcome email with proper error handling and debugging
           console.log('Attempting to send welcome email to:', session.user.email);
-          const { error: emailError, data: emailData } = await supabase.functions.invoke('send-welcome-email', {
+          const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
             body: {
               email: session.user.email,
               firstName: firstName,
               lastName: lastName
-            },
-            headers: {
-              'x-application-name': 'Engage AI Pro',
-              'Content-Type': 'application/json'
             }
           });
 
           if (emailError) {
             console.error('Error sending welcome email:', emailError);
             toast.error('Failed to send welcome email. Please contact support.');
-            throw emailError;
+          } else {
+            console.log('Welcome email sent successfully');
+            toast.success('Registration successful! Please check your email to continue.');
           }
-
-          console.log('Welcome email response:', emailData);
-          toast.success('Registration successful! Please check your email to continue.');
           
           console.log('Profile and subscription updated successfully');
 
