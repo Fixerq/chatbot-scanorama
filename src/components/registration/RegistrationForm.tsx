@@ -33,6 +33,31 @@ export const RegistrationForm = ({
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const waitForSession = async (userId: string, maxAttempts = 5): Promise<boolean> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(`Attempting to get session (attempt ${attempt}/${maxAttempts})`);
+      
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error(`Session error on attempt ${attempt}:`, sessionError);
+        // Continue trying despite errors
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+        continue;
+      }
+      
+      if (session?.user?.id === userId) {
+        console.log('Session successfully established');
+        return true;
+      }
+      
+      console.log(`No valid session yet on attempt ${attempt}, waiting...`);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+    }
+    
+    return false;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -65,37 +90,20 @@ export const RegistrationForm = ({
 
       console.log('User signed up successfully:', signUpData.user.id);
 
-      // Wait for session to be established (with retry)
-      let session = null;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (!session && retryCount < maxRetries) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error(`Session error (attempt ${retryCount + 1}):`, sessionError);
-          retryCount++;
-          if (retryCount === maxRetries) throw sessionError;
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
-          continue;
-        }
-
-        session = sessionData.session;
-        if (!session) {
-          console.log(`No session yet (attempt ${retryCount + 1}), retrying...`);
-          retryCount++;
-          if (retryCount === maxRetries) throw new Error('Failed to establish session after signup');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+      // Wait for session to be established
+      const sessionEstablished = await waitForSession(signUpData.user.id);
+      
+      if (!sessionEstablished) {
+        throw new Error('Failed to establish session after multiple attempts');
       }
 
-      if (!session?.user?.id) {
-        console.error('No session or user ID after retries');
-        throw new Error('Failed to establish session after signup');
+      // Get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('Final session check failed:', sessionError);
+        throw new Error('Failed to verify session after establishment');
       }
-
-      console.log('Session established successfully:', session.user.id);
 
       // Create or update customer record
       const { error: customerError } = await supabase
@@ -120,7 +128,7 @@ export const RegistrationForm = ({
           user_id: session.user.id,
           level: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? 'founders' : 'starter',
           status: 'active',
-          total_searches: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? -1 : 25 // -1 for unlimited searches
+          total_searches: priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1' ? -1 : 25
         });
 
       if (subscriptionError) {
@@ -130,7 +138,6 @@ export const RegistrationForm = ({
 
       // Send welcome email (non-blocking)
       try {
-        console.log('Attempting to send welcome email to:', email);
         await supabase.functions.invoke('send-welcome-email', {
           body: {
             email,
@@ -141,8 +148,8 @@ export const RegistrationForm = ({
         console.log('Welcome email sent successfully');
       } catch (emailError) {
         console.error('Error sending welcome email:', emailError);
-        // Don't throw the error, just show a toast
-        toast.error('Welcome email could not be sent, but your account was created successfully.');
+        // Don't throw the error, just log it
+        toast.error('Welcome email could not be sent, but your account was created successfully');
       }
 
       toast.success('Registration successful! Please check your email.');
