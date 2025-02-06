@@ -25,6 +25,32 @@ const RegisterAndOrder = () => {
 
   console.log('RegisterAndOrder: Initial render with params:', { priceId, planName, sessionId });
 
+  // Initialize Supabase session
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error initializing session:', sessionError);
+          toast.error('Failed to initialize session. Please try again.');
+          return;
+        }
+
+        if (session) {
+          console.log('Session initialized successfully:', session.user.id);
+        } else {
+          console.log('No active session found');
+        }
+      } catch (error) {
+        console.error('Error in session initialization:', error);
+        toast.error('Session initialization failed');
+      }
+    };
+
+    initializeSession();
+  }, [supabase.auth]);
+
   useEffect(() => {
     const getCustomerDetails = async () => {
       if (!sessionId) {
