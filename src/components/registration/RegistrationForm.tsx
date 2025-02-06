@@ -41,8 +41,8 @@ export const RegistrationForm = ({
     try {
       console.log('Starting registration process...');
 
-      // Sign up the user
-      const { data: { session }, error: signUpError } = await supabase.auth.signUp({
+      // Sign up the user and wait for the session
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -58,8 +58,17 @@ export const RegistrationForm = ({
         throw signUpError;
       }
 
+      // Wait for session to be established
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw sessionError;
+      }
+
       if (!session?.user?.id) {
-        throw new Error('No session or user ID after signup');
+        console.error('No session after signup');
+        throw new Error('Failed to establish session after signup');
       }
 
       console.log('User signed up successfully:', session.user.id);
@@ -102,8 +111,8 @@ export const RegistrationForm = ({
         let totalSearches = 100;
 
         if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a1') {
-          subscriptionLevel = 'pro';
-          totalSearches = 100;
+          subscriptionLevel = 'founders';
+          totalSearches = -1; // Unlimited searches for founders
         } else if (priceId === 'price_1QfP20EiWhAkWDnrDhllA5a2') {
           subscriptionLevel = 'business';
           totalSearches = 500;
@@ -124,26 +133,24 @@ export const RegistrationForm = ({
         }
       }
 
-      // Send welcome email
-      console.log('Attempting to send welcome email to:', email);
-      const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
-        body: {
-          email,
-          firstName,
-          lastName
-        }
-      });
-
-      if (emailError) {
+      // Send welcome email (non-blocking)
+      try {
+        console.log('Attempting to send welcome email to:', email);
+        await supabase.functions.invoke('send-welcome-email', {
+          body: {
+            email,
+            firstName,
+            lastName
+          }
+        });
+        console.log('Welcome email sent successfully');
+      } catch (emailError) {
         console.error('Error sending welcome email:', emailError);
         // Don't throw the error, just show a toast
         toast.error('Welcome email could not be sent, but your account was created successfully.');
-      } else {
-        console.log('Welcome email sent successfully');
-        toast.success('Registration successful! Please check your email.');
       }
 
-      // Navigate to dashboard
+      toast.success('Registration successful! Please check your email.');
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
