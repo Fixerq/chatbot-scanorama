@@ -33,26 +33,32 @@ export const RegistrationForm = ({
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const waitForSession = async (userId: string, maxAttempts = 5): Promise<boolean> => {
+  const waitForSession = async (userId: string, maxAttempts = 10): Promise<boolean> => {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       console.log(`Attempting to get session (attempt ${attempt}/${maxAttempts})`);
       
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error(`Session error on attempt ${attempt}:`, sessionError);
-        // Continue trying despite errors
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
-        continue;
+      try {
+        // Get the current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error(`Session error on attempt ${attempt}:`, sessionError);
+          // Continue trying despite errors
+          await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+          continue;
+        }
+        
+        if (session?.user?.id === userId) {
+          console.log('Session successfully established');
+          return true;
+        }
+        
+        console.log(`No valid session yet on attempt ${attempt}, waiting...`);
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+      } catch (error) {
+        console.error(`Error checking session on attempt ${attempt}:`, error);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
-      
-      if (session?.user?.id === userId) {
-        console.log('Session successfully established');
-        return true;
-      }
-      
-      console.log(`No valid session yet on attempt ${attempt}, waiting...`);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
     }
     
     return false;
@@ -90,7 +96,7 @@ export const RegistrationForm = ({
 
       console.log('User signed up successfully:', signUpData.user.id);
 
-      // Wait for session to be established
+      // Wait for session to be established with more attempts and longer delays
       const sessionEstablished = await waitForSession(signUpData.user.id);
       
       if (!sessionEstablished) {
@@ -136,7 +142,7 @@ export const RegistrationForm = ({
         throw subscriptionError;
       }
 
-      // Send welcome email (non-blocking)
+      // Send welcome email
       try {
         await supabase.functions.invoke('send-welcome-email', {
           body: {
@@ -148,11 +154,10 @@ export const RegistrationForm = ({
         console.log('Welcome email sent successfully');
       } catch (emailError) {
         console.error('Error sending welcome email:', emailError);
-        // Don't throw the error, just log it
         toast.error('Welcome email could not be sent, but your account was created successfully');
       }
 
-      toast.success('Registration successful! Please check your email.');
+      toast.success('Registration successful! Redirecting to dashboard...');
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -180,6 +185,7 @@ export const RegistrationForm = ({
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={loading || !!customerEmail}
+          className="bg-slate-900 border-slate-700 text-white"
         />
       </div>
 
@@ -191,6 +197,7 @@ export const RegistrationForm = ({
           onChange={(e) => setPassword(e.target.value)}
           required
           disabled={loading}
+          className="bg-slate-900 border-slate-700 text-white"
         />
       </div>
 
@@ -202,7 +209,7 @@ export const RegistrationForm = ({
 
       <Button 
         type="submit" 
-        className="w-full" 
+        className="w-full bg-cyan-500 hover:bg-cyan-600" 
         disabled={loading}
       >
         {loading ? (
