@@ -1,7 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
-import Signup from "@/pages/Signup";
 import ResetPassword from "@/pages/ResetPassword";
 import Success from "@/pages/Success";
 import AdminConsole from "@/pages/AdminConsole";
@@ -28,10 +27,6 @@ const routes: AppRoute[] = [
   {
     path: "/login",
     element: <Login />,
-  },
-  {
-    path: "/signup",
-    element: <Signup />,
   },
   {
     path: "/reset-password",
