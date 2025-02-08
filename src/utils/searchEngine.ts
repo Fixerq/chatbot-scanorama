@@ -15,7 +15,16 @@ export const performGoogleSearch = async (
   startIndex?: number
 ): Promise<PlacesResult | null> => {
   try {
-    console.log('Performing Places search with params:', {
+    console.log('Checking authentication status...');
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.error('No active session found');
+      toast.error('Please login to perform searches');
+      return null;
+    }
+
+    console.log('Starting Places search with params:', {
       query,
       country,
       region,
@@ -64,7 +73,11 @@ export const performGoogleSearch = async (
     };
   } catch (error) {
     console.error('Places search error:', error);
-    toast.error('Search failed. Please try again.');
+    if (error instanceof Error && error.message.includes('Failed to fetch')) {
+      toast.error('Please login to perform searches');
+    } else {
+      toast.error('Search failed. Please try again.');
+    }
     return null;
   }
 };
