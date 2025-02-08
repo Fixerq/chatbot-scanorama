@@ -15,10 +15,22 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   const optionsResponse = handleOptions(req);
   if (optionsResponse) return optionsResponse;
 
   try {
+    if (req.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    
     const { query, country, region } = await req.json() as SearchRequest;
     console.log('Received search request:', { query, country, region });
 
@@ -84,7 +96,10 @@ serve(async (req) => {
         { 
           headers: { 
             ...corsHeaders, 
-            'Content-Type': 'application/json' 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
           } 
         }
       );
@@ -118,7 +133,10 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
         } 
       }
     );
@@ -135,7 +153,10 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
         }
       }
     );
