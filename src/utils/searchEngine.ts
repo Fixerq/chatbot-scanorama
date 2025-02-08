@@ -1,5 +1,7 @@
+
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface PlacesResult {
   results: Result[];
@@ -31,13 +33,13 @@ export const performGoogleSearch = async (
 
     if (error) {
       console.error('Places search error:', error);
+      toast.error('Search failed. Please try again.');
       return null;
     }
 
-    console.log('Raw response from Edge Function:', data);
-
-    if (!data.results || !Array.isArray(data.results)) {
+    if (!data || !data.results || !Array.isArray(data.results)) {
       console.error('Invalid response format:', data);
+      toast.error('Received invalid search results');
       return null;
     }
 
@@ -54,7 +56,7 @@ export const performGoogleSearch = async (
         }
       }));
 
-    console.log('Formatted results:', formattedResults);
+    console.log(`Found ${formattedResults.length} formatted results`);
 
     return {
       results: formattedResults,
@@ -62,6 +64,7 @@ export const performGoogleSearch = async (
     };
   } catch (error) {
     console.error('Places search error:', error);
+    toast.error('Search failed. Please try again.');
     return null;
   }
 };

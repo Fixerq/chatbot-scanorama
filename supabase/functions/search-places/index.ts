@@ -19,6 +19,7 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,7 +29,6 @@ serve(async (req) => {
     console.log('Received search request:', { query, country, region });
 
     if (!GOOGLE_API_KEY) {
-      console.error('Google API key not found');
       throw new Error('Google API key is not configured');
     }
 
@@ -46,8 +46,8 @@ serve(async (req) => {
 
     // Search for businesses using Places Text Search
     const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
-    console.log('Making Places API request to:', searchUrl);
-    console.log('Search query:', locationQuery);
+    
+    console.log('Making Places API request with query:', locationQuery);
 
     const searchResponse = await fetch(searchUrl, {
       method: 'POST',
@@ -67,21 +67,19 @@ serve(async (req) => {
         },
       })
     });
-    
+
     if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
       console.error('Places API error:', {
         status: searchResponse.status,
-        statusText: searchResponse.statusText
+        statusText: searchResponse.statusText,
+        error: errorText
       });
       throw new Error(`Places API request failed: ${searchResponse.statusText}`);
     }
 
     const searchData = await searchResponse.json();
-    console.log('Places API response:', {
-      totalResults: searchData.places?.length || 0,
-      hasPlaces: !!searchData.places,
-    });
-
+    
     if (!searchData.places) {
       console.log('No places found');
       return new Response(
@@ -98,16 +96,13 @@ serve(async (req) => {
       );
     }
 
-    // Filter and format results - removed artificial limits
+    // Filter and format results
     const results = searchData.places
       .filter((place: any) => {
-        // Only include results with websites and that are businesses
         const hasWebsite = !!place.websiteUri;
         const isBusinessType = place.types?.some((type: string) => 
           ['establishment', 'business', 'store', 'service'].includes(type)
         );
-        
-        console.log(`Place ${place.displayName?.text}: hasWebsite=${hasWebsite}, isBusinessType=${isBusinessType}`);
         return hasWebsite && isBusinessType;
       })
       .map((place: any) => ({
@@ -119,7 +114,7 @@ serve(async (req) => {
         }
       }));
 
-    console.log(`Found ${results.length} businesses with websites out of ${searchData.places.length} total places`);
+    console.log(`Found ${results.length} valid business results`);
 
     return new Response(
       JSON.stringify({
@@ -139,7 +134,6 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        details: error instanceof Error ? error.stack : undefined,
         results: [],
         hasMore: false
       }),
