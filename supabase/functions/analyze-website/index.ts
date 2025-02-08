@@ -1,5 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "./types.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 import { analyzeChatbot } from "./analyzer.ts";
 import type { RequestData } from "./types.ts";
 
@@ -9,12 +10,21 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
-      headers: corsHeaders,
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      },
       status: 204,
     });
   }
 
   try {
+    console.log('Received request:', {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
+    });
+
     const requestData = await req.json() as RequestData;
     console.log('Received request data:', requestData);
 
@@ -53,7 +63,10 @@ serve(async (req) => {
         chatSolutions,
         lastChecked: new Date().toISOString()
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         status: 200
       });
 

@@ -17,12 +17,19 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     console.log('Analyzing URL:', url);
     
     const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: { url }
+      body: { url },
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
 
     if (error) {
       console.error('Error analyzing website:', error);
-      throw error;
+      return {
+        status: `Error: ${error.message || 'Failed to analyze website'}`,
+        chatSolutions: [],
+        lastChecked: new Date().toISOString()
+      };
     }
 
     console.log('Analysis result:', data);
