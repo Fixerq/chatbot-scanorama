@@ -1,3 +1,4 @@
+
 import { createBrowserRouter } from "react-router-dom";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
@@ -18,11 +19,19 @@ interface AppRoute {
 const routes: AppRoute[] = [
   {
     path: "/",
-    element: <Navigate to="/sales" replace />,
+    element: (
+      <ProtectedRoute>
+        <Navigate to="/dashboard" replace />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/dashboard",
-    element: <Index />,
+    element: (
+      <ProtectedRoute>
+        <Index />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/login",
@@ -34,7 +43,11 @@ const routes: AppRoute[] = [
   },
   {
     path: "/success",
-    element: <Success />,
+    element: (
+      <ProtectedRoute>
+        <Success />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/admin",
