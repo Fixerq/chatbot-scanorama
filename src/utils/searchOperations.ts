@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,7 +51,7 @@ export const executeSearch = async (
     enhancedQuery,
     country,
     region,
-    limit: resultsLimit
+    limit: 'unlimited' // Changed from resultsLimit
   });
 
   const searchResult = await performGoogleSearch(
@@ -81,7 +82,7 @@ export const loadMore = async (
   country: string,
   region: string,
   currentResults: Result[],
-  newLimit: number
+  newLimit: number // This parameter is kept for backward compatibility but not used
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   const startIndex = currentResults.length + 1;
   const searchResult = await performGoogleSearch(query, country, region, startIndex);

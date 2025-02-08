@@ -1,9 +1,10 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
 const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
-const MAX_RESULTS = 20; // Increased from 10 to 20
+const MAX_RESULTS = 50; // Increased from 20 to 50 (maximum allowed by Places API)
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,7 +103,7 @@ serve(async (req) => {
       );
     }
 
-    // Filter and format results
+    // Filter and format results - removed artificial limits
     const results = searchData.places
       .filter((place: any) => {
         // Only include results with websites and that are businesses
