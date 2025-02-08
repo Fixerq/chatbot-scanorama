@@ -1,15 +1,11 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { corsHeaders, handleOptions } from '../_shared/cors.ts';
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
 const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
 const MAX_RESULTS = 50; // Maximum allowed by Places API
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface SearchRequest {
   query: string;
@@ -19,10 +15,8 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const optionsResponse = handleOptions(req);
+  if (optionsResponse) return optionsResponse;
 
   try {
     const { query, country, region } = await req.json() as SearchRequest;
