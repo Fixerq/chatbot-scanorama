@@ -4,7 +4,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 const GOOGLE_API_KEY = Deno.env.get('Google API');
 const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
-const MAX_RESULTS = 50; // Increased from 20 to 50 (maximum allowed by Places API)
+const MAX_RESULTS = 50; // Maximum allowed by Places API
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,11 +45,6 @@ serve(async (req) => {
     const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
 
     // Search for businesses using Places Text Search
-    const searchParams = new URLSearchParams({
-      query: locationQuery,
-      key: GOOGLE_API_KEY,
-    });
-
     const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
     console.log('Making Places API request to:', searchUrl);
     console.log('Search query:', locationQuery);

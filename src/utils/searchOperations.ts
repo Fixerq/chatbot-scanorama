@@ -1,4 +1,3 @@
-
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,30 +50,35 @@ export const executeSearch = async (
     enhancedQuery,
     country,
     region,
-    limit: 'unlimited' // Changed from resultsLimit
+    limit: 'unlimited'
   });
 
-  const searchResult = await performGoogleSearch(
-    enhancedQuery,
-    country,
-    region
-  );
+  try {
+    const searchResult = await performGoogleSearch(
+      enhancedQuery,
+      country,
+      region
+    );
 
-  if (!searchResult || !searchResult.results) {
-    console.error('No search results returned');
-    return null;
+    if (!searchResult || !searchResult.results) {
+      console.error('No search results returned');
+      return null;
+    }
+
+    // Filter out duplicates while keeping existing results
+    const existingUrls = new Set(currentResults.map(r => r.url));
+    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+
+    console.log(`Found ${newResults.length} new results`);
+
+    return {
+      newResults,
+      hasMore: searchResult.hasMore
+    };
+  } catch (error) {
+    console.error('Search error:', error);
+    throw error; // Let the calling component handle the error
   }
-
-  // Filter out duplicates while keeping existing results
-  const existingUrls = new Set(currentResults.map(r => r.url));
-  const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
-
-  console.log(`Found ${newResults.length} new results`);
-
-  return {
-    newResults,
-    hasMore: searchResult.hasMore
-  };
 };
 
 export const loadMore = async (
@@ -84,19 +88,24 @@ export const loadMore = async (
   currentResults: Result[],
   newLimit: number // This parameter is kept for backward compatibility but not used
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
-  const startIndex = currentResults.length + 1;
-  const searchResult = await performGoogleSearch(query, country, region, startIndex);
-  
-  if (!searchResult || !searchResult.results) {
-    return null;
+  try {
+    const startIndex = currentResults.length + 1;
+    const searchResult = await performGoogleSearch(query, country, region, startIndex);
+    
+    if (!searchResult || !searchResult.results) {
+      return null;
+    }
+
+    // Filter out duplicates
+    const existingUrls = new Set(currentResults.map(r => r.url));
+    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+
+    return {
+      newResults,
+      hasMore: searchResult.hasMore
+    };
+  } catch (error) {
+    console.error('Load more error:', error);
+    throw error; // Let the calling component handle the error
   }
-
-  // Filter out duplicates
-  const existingUrls = new Set(currentResults.map(r => r.url));
-  const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
-
-  return {
-    newResults,
-    hasMore: searchResult.hasMore
-  };
 };
