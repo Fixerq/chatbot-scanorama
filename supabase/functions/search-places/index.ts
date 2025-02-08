@@ -50,8 +50,8 @@ serve(async (req) => {
     // Convert radius to meters for Places API
     const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
 
-    // Search for businesses using Places Text Search
-    const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
+    // Search for businesses using Places API V2
+    const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
     
     console.log('Making Places API request with query:', locationQuery);
 
