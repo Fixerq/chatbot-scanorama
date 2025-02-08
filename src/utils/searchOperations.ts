@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,20 +10,30 @@ export const enhanceSearchQuery = async (
   region: string
 ): Promise<string> => {
   try {
+    console.log('Calling enhance-search with:', { query, country, region });
+    
     const { data, error } = await supabase.functions.invoke('enhance-search', {
-      body: { query, country, region }
+      body: { query, country, region },
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
 
-    if (error || !data?.enhancedQuery) {
+    if (error) {
       console.error('Error enhancing search query:', error);
       toast.error('Failed to enhance search query, using original query');
+      return query;
+    }
+
+    if (!data?.enhancedQuery) {
+      console.log('No enhanced query returned, using original');
       return query;
     }
 
     console.log('Original query:', query);
     console.log('Enhanced query:', data.enhancedQuery);
     
-    if (!data.enhancedQuery || data.enhancedQuery.length < 3) {
+    if (data.enhancedQuery.length < 3) {
       console.log('Enhanced query too short, using original');
       return query;
     }
