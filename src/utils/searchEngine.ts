@@ -20,7 +20,7 @@ export const performGoogleSearch = async (
     
     if (!session) {
       console.error('No active session found');
-      toast.error('Please login to perform searches');
+      toast.error('Please sign in to perform searches');
       return null;
     }
 
@@ -42,7 +42,7 @@ export const performGoogleSearch = async (
 
     if (error) {
       console.error('Places search error:', error);
-      toast.error('Search failed. Please try again.');
+      toast.error('Search failed. Please try again after signing in.');
       return null;
     }
 
@@ -74,9 +74,9 @@ export const performGoogleSearch = async (
   } catch (error) {
     console.error('Places search error:', error);
     if (error instanceof Error && error.message.includes('Failed to fetch')) {
-      toast.error('Please login to perform searches');
+      toast.error('Please sign in to perform searches');
     } else {
-      toast.error('Search failed. Please try again.');
+      toast.error('Search failed. Please try again after signing in.');
     }
     return null;
   }

@@ -10,6 +10,13 @@ export const enhanceSearchQuery = async (
   region: string
 ): Promise<string> => {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.log('No session found, using original query');
+      return query;
+    }
+
     console.log('Calling enhance-search with:', { query, country, region });
     
     const { data, error } = await supabase.functions.invoke('enhance-search', {
@@ -54,6 +61,13 @@ export const executeSearch = async (
   resultsLimit: number,
   currentResults: Result[]
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+    
+  if (!session) {
+    toast.error('Please sign in to perform searches');
+    return null;
+  }
+
   const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
   console.log('Starting search with params:', {
