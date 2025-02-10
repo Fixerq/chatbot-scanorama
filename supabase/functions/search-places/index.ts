@@ -33,10 +33,10 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    // Get API keys early and validate
-    const GOOGLE_API_KEY = Deno.env.get('Google API');
+    // Get API keys early and validate with proper environment variable names
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
-    const FIRECRAWL_API_KEY = Deno.env.get('Firecrawl');
+    const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
 
     console.log('API Keys validation:', {
       hasGoogleApi: !!GOOGLE_API_KEY,
