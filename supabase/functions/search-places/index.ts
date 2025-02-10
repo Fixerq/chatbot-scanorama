@@ -1,7 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { SearchRequest, SearchResponse } from './types.ts';
-import { corsHeaders } from '../_shared/cors.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 console.log("Search Places Edge Function Initialized");
 
@@ -38,7 +43,7 @@ serve(async (req) => {
 
     console.log('Processing search request:', { query, country, region, startIndex });
 
-    // For now, return a test result to verify the function is working
+    // For testing purposes, return a mock result
     const searchResult: SearchResponse = {
       results: [{
         url: "https://example.com",
