@@ -1,14 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { SearchRequest, SearchResponse } from './types.ts';
-import { verifyUser } from './auth.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-custom-header',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -23,36 +16,38 @@ serve(async (req) => {
   try {
     console.log('Starting search function');
     
-    // Skip auth for now to debug connection
-    // await verifyUser(req.headers.get('Authorization'));
-
     if (req.method !== 'POST') {
-      console.error('Invalid method:', req.method);
-      throw new Error('Method not allowed');
+      throw new Error(`Method ${req.method} not allowed`);
     }
 
+    // Parse the request body
     const requestData = await req.json();
     console.log('Request data:', requestData);
 
-    const { query, country, region } = requestData as SearchRequest;
-    console.log('Parsed search request:', { query, country, region });
+    const { query, country, region, startIndex = 0 } = requestData as SearchRequest;
+    
+    if (!query || !country) {
+      throw new Error('Missing required parameters: query and country are required');
+    }
 
-    // Return empty results for now
+    console.log('Parsed search request:', { query, country, region, startIndex });
+
+    // For now, return empty results since we removed Google Places integration
     const searchResult: SearchResponse = {
       results: [],
       hasMore: false
     };
 
-    console.log('Returning empty results');
+    console.log('Returning results:', searchResult);
 
     return new Response(
       JSON.stringify(searchResult),
       { 
         status: 200,
         headers: { 
-          ...corsHeaders, 
+          ...corsHeaders,
           'Content-Type': 'application/json'
-        } 
+        }
       }
     );
 
@@ -68,9 +63,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(errorResponse),
       { 
-        status: error instanceof Error && error.message.includes('Unauthorized') ? 401 : 500,
+        status: error instanceof Error && error.message.includes('not allowed') ? 405 : 500,
         headers: { 
-          ...corsHeaders, 
+          ...corsHeaders,
           'Content-Type': 'application/json'
         }
       }
