@@ -31,4 +31,3 @@ export function handleOptions(req: Request) {
   }
   return null;
 }
-
