@@ -6,16 +6,25 @@ export interface SearchRequest {
   startIndex?: number;
 }
 
-export interface SearchResponse {
-  results: SearchResult[];
-  hasMore: boolean;
-}
-
-export interface SearchResult {
+export interface PlaceResult {
   url: string;
   details: {
     title: string;
     description: string;
     lastChecked: string;
+    placeId?: string;
+    formattedAddress?: string;
+    phoneNumber?: string;
+    rating?: number;
+    location?: {
+      lat: number;
+      lng: number;
+    };
   };
+}
+
+export interface SearchResponse {
+  results: PlaceResult[];
+  hasMore: boolean;
+  error?: string;
 }

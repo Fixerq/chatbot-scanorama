@@ -30,8 +30,15 @@ export type Database = {
           created_at: string
           description: string | null
           details: Json | null
+          formatted_address: string | null
           id: number
           last_checked: string | null
+          location_lat: number | null
+          location_lng: number | null
+          phone_number: string | null
+          place_data: Json | null
+          place_id: string | null
+          rating: number | null
           status: string
           technologies: string[] | null
           title: string | null
@@ -43,8 +50,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           details?: Json | null
+          formatted_address?: string | null
           id?: number
           last_checked?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          phone_number?: string | null
+          place_data?: Json | null
+          place_id?: string | null
+          rating?: number | null
           status: string
           technologies?: string[] | null
           title?: string | null
@@ -56,8 +70,15 @@ export type Database = {
           created_at?: string
           description?: string | null
           details?: Json | null
+          formatted_address?: string | null
           id?: number
           last_checked?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          phone_number?: string | null
+          place_data?: Json | null
+          place_id?: string | null
+          rating?: number | null
           status?: string
           technologies?: string[] | null
           title?: string | null
