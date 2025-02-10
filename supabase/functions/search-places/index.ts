@@ -49,6 +49,7 @@ serve(async (req) => {
 
     // Handle API key request
     if (requestData.type === 'get_api_key') {
+      console.log('Returning Firecrawl API key');
       return new Response(
         JSON.stringify({ apiKey: FIRECRAWL_API_KEY }),
         { 
