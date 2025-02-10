@@ -174,6 +174,33 @@ export type Database = {
         }
         Relationships: []
       }
+      edge_function_logs: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          function_name: string
+          id: number
+          request_data: Json | null
+          response_data: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          function_name: string
+          id?: number
+          request_data?: Json | null
+          response_data?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          function_name?: string
+          id?: number
+          request_data?: Json | null
+          response_data?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           api_key: string | null
