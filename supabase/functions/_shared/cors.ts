@@ -5,7 +5,7 @@ const ALLOWED_ORIGINS = [
 ];
 
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+  'Access-Control-Allow-Origin': '',  // This will be set dynamically
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -31,3 +31,4 @@ export function handleOptions(req: Request) {
   }
   return null;
 }
+

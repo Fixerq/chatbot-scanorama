@@ -9,3 +9,4 @@ export const originUtils = {
   getCurrent: (): string => window.location.origin,
   isValid: (origin: string): boolean => ALLOWED_ORIGINS.includes(origin as any)
 };
+

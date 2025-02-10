@@ -17,3 +17,4 @@
     Access-Control-Allow-Origin = "https://detectify.engageai.pro, https://detectifys.engageai.pro"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization, apikey, X-Client-Info"
+

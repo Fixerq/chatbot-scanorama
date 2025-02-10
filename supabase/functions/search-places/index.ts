@@ -101,6 +101,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in search function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const origin = req.headers.get('origin');
     
     return new Response(
       JSON.stringify({
@@ -111,10 +112,12 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin || ''
         },
         status: error instanceof Error && error.message.includes('not allowed') ? 405 : 500
       }
     );
   }
 });
+
