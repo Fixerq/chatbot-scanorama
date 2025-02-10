@@ -21,8 +21,6 @@ export const useSubscriptionStatus = () => {
       }
 
       try {
-        console.log('Fetching subscription status for user:', session.user.id);
-        
         // First get the user's subscription
         const { data: subscription, error: subscriptionError } = await supabase
           .from('subscriptions')
@@ -46,16 +44,14 @@ export const useSubscriptionStatus = () => {
           return;
         }
 
-        console.log('Subscription data:', subscription);
-
         // Get count of searches made this month
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
-        const { data: searchData, error: searchError } = await supabase
+        const { count: searchCount, error: searchError } = await supabase
           .from('analyzed_urls')
-          .select('*', { count: 'exact' })
+          .select('*', { count: 'exact', head: true })
           .eq('user_id', session.user.id)
           .gte('created_at', startOfMonth.toISOString());
 
@@ -64,14 +60,14 @@ export const useSubscriptionStatus = () => {
           throw searchError;
         }
 
-        const searchesUsed = searchData?.length || 0;
+        const searchesUsed = searchCount || 0;
         console.log('Searches used this month:', searchesUsed);
-        
+
         // Calculate remaining searches based on total_searches from subscription
         const totalSearches = subscription.total_searches;
-        const remaining = totalSearches === -1 ? -1 : Math.max(0, totalSearches - searchesUsed);
-
         console.log('Total searches allowed:', totalSearches);
+        
+        const remaining = totalSearches === -1 ? -1 : Math.max(0, totalSearches - searchesUsed);
         console.log('Searches remaining:', remaining);
 
         setSubscriptionData({
