@@ -1,5 +1,7 @@
+
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat, CrawlDocument } from './types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CrawlResult {
   success: boolean;
@@ -13,17 +15,35 @@ interface CrawlResult {
 }
 
 export class FirecrawlService {
-  private static API_KEY = 'YOUR_FIRECRAWL_API_KEY';
   private static firecrawlApp: FirecrawlApp | null = null;
   private static MAX_API_LIMIT = 10;
 
-  static getApiKey(): string {
-    return this.API_KEY;
+  static async getApiKey(): Promise<string> {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-secret', {
+        body: { key: 'Firecrawl' }
+      });
+
+      if (error) {
+        console.error('Error fetching Firecrawl API key:', error);
+        throw new Error('Failed to fetch API key');
+      }
+
+      if (!data?.Firecrawl) {
+        throw new Error('Firecrawl API key not found');
+      }
+
+      return data.Firecrawl;
+    } catch (error) {
+      console.error('Error getting Firecrawl API key:', error);
+      throw error;
+    }
   }
 
-  private static initializeApp(): void {
+  private static async initializeApp(): Promise<void> {
     if (!this.firecrawlApp) {
-      this.firecrawlApp = new FirecrawlApp({ apiKey: this.API_KEY });
+      const apiKey = await this.getApiKey();
+      this.firecrawlApp = new FirecrawlApp({ apiKey });
     }
   }
 
@@ -63,7 +83,7 @@ export class FirecrawlService {
   static async crawlWebsite(url: string): Promise<{ success: boolean; error?: string; data?: any }> {
     try {
       console.log('Making crawl request to Firecrawl API');
-      this.initializeApp();
+      await this.initializeApp();
 
       // Format and validate the URL before making the request
       const formattedUrl = this.formatUrl(url);

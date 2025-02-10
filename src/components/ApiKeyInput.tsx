@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FirecrawlService } from '../utils/firecrawl/FirecrawlService';
 
@@ -8,11 +9,19 @@ interface ApiKeyInputProps {
 
 const ApiKeyInput = ({ value, onChange }: ApiKeyInputProps) => {
   React.useEffect(() => {
-    // Set the hardcoded API key
-    onChange(FirecrawlService.getApiKey());
+    const initializeApiKey = async () => {
+      try {
+        const apiKey = await FirecrawlService.getApiKey();
+        onChange(apiKey);
+      } catch (error) {
+        console.error('Error initializing API key:', error);
+      }
+    };
+
+    initializeApiKey();
   }, [onChange]);
 
-  return null; // No need to render anything since we're using a hardcoded key
+  return null; // No need to render anything since we're using Supabase secrets
 };
 
 export default ApiKeyInput;
