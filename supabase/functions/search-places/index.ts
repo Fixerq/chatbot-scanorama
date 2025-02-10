@@ -29,9 +29,10 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    // Get API keys first
+    // Get API keys
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
+    const FIRECRAWL_API_KEY = Deno.env.get('Firecrawl');
 
     if (!GOOGLE_API_KEY || !GOOGLE_CX) {
       console.error('Missing API configuration');
@@ -43,10 +44,25 @@ serve(async (req) => {
     console.log('User authenticated:', userId);
 
     // Parse request body
-    const requestData: SearchRequest = await req.json();
-    console.log('Search request:', requestData);
+    const requestData = await req.json();
+    console.log('Request data:', requestData);
 
-    const { query, country, region, startIndex = 0 } = requestData;
+    // Handle API key request
+    if (requestData.type === 'get_api_key') {
+      return new Response(
+        JSON.stringify({ apiKey: FIRECRAWL_API_KEY }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': origin || '*'
+          }
+        }
+      );
+    }
+
+    // Handle search request
+    const { query, country, region, startIndex = 0 } = requestData as SearchRequest;
     
     if (!query || !country) {
       throw new Error('Missing required parameters: query and country are required');

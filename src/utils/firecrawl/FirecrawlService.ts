@@ -1,4 +1,3 @@
-
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat, CrawlDocument } from './types';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,22 +19,18 @@ export class FirecrawlService {
 
   static async getApiKey(): Promise<string> {
     try {
-      const { data, error } = await supabase.functions.invoke('get-secret', {
-        body: { key: 'Firecrawl' }
+      const { data, error } = await supabase.functions.invoke('search-places', {
+        body: { type: 'get_api_key' }
       });
 
       if (error) {
-        console.error('Error fetching Firecrawl API key:', error);
+        console.error('Error fetching API key:', error);
         throw new Error('Failed to fetch API key');
       }
 
-      if (!data?.Firecrawl) {
-        throw new Error('Firecrawl API key not found');
-      }
-
-      return data.Firecrawl;
+      return data?.apiKey || '';
     } catch (error) {
-      console.error('Error getting Firecrawl API key:', error);
+      console.error('Error getting API key:', error);
       throw error;
     }
   }
@@ -49,29 +44,15 @@ export class FirecrawlService {
 
   private static formatUrl(url: string): string {
     try {
-      // First, trim any whitespace
       let cleanUrl = url.trim();
-      
-      // Remove any trailing slashes or colons
       cleanUrl = cleanUrl.replace(/[:/]+$/, '');
-      
-      // If no protocol is specified, add https://
       if (!cleanUrl.match(/^https?:\/\//i)) {
         cleanUrl = 'https://' + cleanUrl;
       }
-      
-      // Parse URL to validate and normalize it
       const urlObj = new URL(cleanUrl);
-      
-      // Clean up the hostname (remove any extra colons)
       urlObj.hostname = urlObj.hostname.replace(/:/g, '');
-      
-      // Reconstruct the URL without any trailing slashes
       let finalUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
-      
-      // Remove any double slashes in the path (except after protocol)
       finalUrl = finalUrl.replace(/([^:]\/)\/+/g, '$1');
-      
       console.log('Formatted URL:', finalUrl);
       return finalUrl;
     } catch (error) {
@@ -85,7 +66,6 @@ export class FirecrawlService {
       console.log('Making crawl request to Firecrawl API');
       await this.initializeApp();
 
-      // Format and validate the URL before making the request
       const formattedUrl = this.formatUrl(url);
       console.log('Formatted URL:', formattedUrl);
 
@@ -114,7 +94,6 @@ export class FirecrawlService {
         };
       }
 
-      // Extract emails from the crawl response
       const emails = new Set<string>();
       if (crawlResponse.data && Array.isArray(crawlResponse.data)) {
         crawlResponse.data.forEach((item: CrawlDocument) => {

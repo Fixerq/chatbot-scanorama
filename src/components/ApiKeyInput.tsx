@@ -12,7 +12,9 @@ const ApiKeyInput = ({ value, onChange }: ApiKeyInputProps) => {
     const initializeApiKey = async () => {
       try {
         const apiKey = await FirecrawlService.getApiKey();
-        onChange(apiKey);
+        if (apiKey) {
+          onChange(apiKey);
+        }
       } catch (error) {
         console.error('Error initializing API key:', error);
       }
@@ -21,7 +23,7 @@ const ApiKeyInput = ({ value, onChange }: ApiKeyInputProps) => {
     initializeApiKey();
   }, [onChange]);
 
-  return null; // No need to render anything since we're using Supabase secrets
+  return null;
 };
 
 export default ApiKeyInput;
