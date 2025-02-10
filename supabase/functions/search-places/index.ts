@@ -23,7 +23,7 @@ serve(async (req) => {
         status: 204,
         headers: {
           ...corsHeaders,
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': origin || '*',
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
           'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
         }
@@ -114,7 +114,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': origin || '*'
         }
       }
     );
@@ -133,7 +133,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': origin || '*'
         },
         status: error instanceof Error && error.message.includes('not allowed') ? 405 : 500
       }

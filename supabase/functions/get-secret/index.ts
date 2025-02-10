@@ -13,6 +13,8 @@ serve(async (req) => {
   const corsResponse = handleOptions(req);
   if (corsResponse) return corsResponse;
 
+  const origin = req.headers.get('origin');
+  
   try {
     console.log('Processing request for secret');
     const { key } = await req.json()
@@ -48,7 +50,7 @@ serve(async (req) => {
           status: 404,
           headers: { 
             ...corsHeaders,
-            'Access-Control-Allow-Origin': req.headers.get('origin') || '*',
+            'Access-Control-Allow-Origin': origin || '*',
             'Content-Type': 'application/json' 
           },
         }
@@ -70,7 +72,7 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders,
-          'Access-Control-Allow-Origin': req.headers.get('origin') || '*',
+          'Access-Control-Allow-Origin': origin || '*',
           'Content-Type': 'application/json' 
         },
       }
@@ -92,7 +94,7 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders,
-          'Access-Control-Allow-Origin': req.headers.get('origin') || '*',
+          'Access-Control-Allow-Origin': origin || '*',
           'Content-Type': 'application/json' 
         },
       }
