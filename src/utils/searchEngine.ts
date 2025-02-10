@@ -18,11 +18,9 @@ export const performGoogleSearch = async (
       return null;
     }
 
-    console.log('Starting search with params:', {
-      query,
-      country,
-      region,
-      startIndex
+    console.log('Starting search with session:', {
+      hasSession: !!session.session,
+      accessToken: !!session.session.access_token
     });
 
     const { data, error } = await supabase.functions.invoke('search-places', {
@@ -57,6 +55,7 @@ export const performGoogleSearch = async (
     }
 
     console.log('Search results:', data);
+    toast.success('Search completed successfully');
 
     return {
       results: data.results || [],

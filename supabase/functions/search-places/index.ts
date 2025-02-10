@@ -3,19 +3,46 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifyUser } from "./auth.ts";
 import { SearchRequest, SearchResponse } from './types.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 console.log("Search Places Edge Function Initialized");
 
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function logApiCall(userId: string, endpoint: string, status: number, error?: string) {
+  try {
+    const { error: logError } = await supabase
+      .from('api_logs')
+      .insert([
+        {
+          user_id: userId,
+          endpoint,
+          status,
+          error
+        }
+      ]);
+
+    if (logError) {
+      console.error('Error logging API call:', logError);
+    }
+  } catch (e) {
+    console.error('Failed to log API call:', e);
+  }
+}
+
 serve(async (req) => {
-  // Get the origin and log it for debugging
   const origin = req.headers.get('origin') || '*';
   console.log('Request received from origin:', origin);
-  console.log('Request method:', req.method);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
     return new Response(null, {
       status: 204,
       headers: {
@@ -30,31 +57,19 @@ serve(async (req) => {
   try {
     // Validate request method early
     if (req.method !== 'POST') {
-      console.error(`Invalid method: ${req.method}`);
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    // Get API keys early and validate with proper environment variable names
+    // Get API keys
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
 
-    console.log('API Keys validation:', {
-      hasGoogleApi: !!GOOGLE_API_KEY,
-      hasGoogleCx: !!GOOGLE_CX,
-      hasFirecrawl: !!FIRECRAWL_API_KEY
-    });
-
     if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-      console.error('Missing required API keys:', {
-        googleApiPresent: !!GOOGLE_API_KEY,
-        googleCxPresent: !!GOOGLE_CX
-      });
       throw new Error('Google API configuration missing');
     }
 
     // Verify user authentication
-    console.log('Attempting to verify user authentication');
     const authHeader = req.headers.get('Authorization');
     console.log('Auth header present:', !!authHeader);
     
@@ -65,21 +80,19 @@ serve(async (req) => {
     let requestData: SearchRequest;
     try {
       const rawBody = await req.text();
-      console.log('Raw request body:', rawBody);
       requestData = JSON.parse(rawBody);
-      console.log('Parsed request data:', requestData);
     } catch (error) {
-      console.error('Error parsing request body:', error);
       throw new Error('Invalid request body');
     }
 
     // Handle API key request
     if (requestData.type === 'get_api_key') {
-      console.log('Processing API key request');
       if (!FIRECRAWL_API_KEY) {
-        console.error('Firecrawl API key not configured');
         throw new Error('Firecrawl API key not configured');
       }
+
+      await logApiCall(userId, 'get_api_key', 200);
+      
       return new Response(
         JSON.stringify({ apiKey: FIRECRAWL_API_KEY }),
         { 
@@ -95,15 +108,7 @@ serve(async (req) => {
     // Handle search request
     const { query, country, region, startIndex = 0 } = requestData;
     
-    console.log('Processing search request:', {
-      query,
-      country,
-      region,
-      startIndex
-    });
-
     if (!query || !country) {
-      console.error('Missing required parameters:', { query, country });
       throw new Error('Missing required parameters: query and country are required');
     }
 
@@ -114,31 +119,13 @@ serve(async (req) => {
     const searchQuery = searchTerms.join(' ');
     const start = startIndex ? startIndex + 1 : 1;
 
-    console.log('Constructed search query:', {
-      searchQuery,
-      start
-    });
-
     // Make request to Google Custom Search API
     const googleApiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}&start=${start}`;
     
-    console.log('Making Google API request to URL:', googleApiUrl.replace(GOOGLE_API_KEY, '[REDACTED]'));
     const response = await fetch(googleApiUrl);
-    console.log('Google API response status:', response.status);
-    
     const data = await response.json();
-    console.log('Google API response data structure:', {
-      hasItems: !!data.items,
-      itemsCount: data.items?.length,
-      hasQueries: !!data.queries,
-      hasNextPage: !!data.queries?.nextPage
-    });
 
     if (!response.ok) {
-      console.error('Google API error response:', {
-        status: response.status,
-        error: data.error
-      });
       throw new Error(data.error?.message || 'Failed to fetch search results');
     }
 
@@ -152,17 +139,12 @@ serve(async (req) => {
       }
     })) || [];
 
-    console.log(`Transformed ${results.length} results`);
-
     const searchResult: SearchResponse = {
       results,
       hasMore: Boolean(data.queries?.nextPage?.[0])
     };
 
-    console.log('Sending final response:', {
-      resultCount: results.length,
-      hasMore: searchResult.hasMore
-    });
+    await logApiCall(userId, 'search', 200);
 
     return new Response(
       JSON.stringify(searchResult),
@@ -178,7 +160,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in search function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.log('Sending error response:', errorMessage);
+    
+    if (error instanceof Error && 'userId' in error) {
+      await logApiCall(error.userId as string, 'search', 500, errorMessage);
+    }
     
     return new Response(
       JSON.stringify({
