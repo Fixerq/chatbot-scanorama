@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,25 +43,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     activityEvents.forEach(event => {
       document.addEventListener(event, resetInactivityTimer);
     });
-
-    // Handle tab/browser close
-    window.addEventListener('beforeunload', async () => {
-      // First clear storage, then sign out
-      for (const key of Object.keys(localStorage)) {
-        if (key.startsWith('sb-')) {
-          localStorage.removeItem(key);
-        }
-      }
-      for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith('sb-')) {
-          sessionStorage.removeItem(key);
-        }
-      }
-      await supabase.auth.signOut();
-    });
-
-    // Initialize the inactivity timer
-    resetInactivityTimer();
 
     const {
       data: { subscription },
