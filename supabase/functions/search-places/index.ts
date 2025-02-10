@@ -10,10 +10,19 @@ const corsHeaders = {
 };
 
 const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
-const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
 const MAX_RESULTS = 50;
 const GEOCODING_CACHE_TTL = 86400;
+
+// Define radius based on whether a region is specified
+const getSearchRadius = (region: string | undefined): number => {
+  // If no region specified, use a larger radius (100 miles)
+  if (!region) {
+    return Math.round(100 * METERS_PER_MILE);
+  }
+  // With region specified, use smaller radius (30 miles)
+  return Math.round(30 * METERS_PER_MILE);
+};
 
 interface SearchRequest {
   query: string;
@@ -169,7 +178,10 @@ serve(async (req) => {
       setCachedCoordinates(locationQuery, coordinates.lat, coordinates.lng);
     }
 
-    const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
+    // Get radius based on whether region is specified
+    const radiusMeters = getSearchRadius(region);
+    console.log(`Using search radius of ${radiusMeters / METERS_PER_MILE} miles`);
+
     const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
     
     console.log('Making Places API request with query:', query);

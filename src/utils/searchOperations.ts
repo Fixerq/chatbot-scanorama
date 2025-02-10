@@ -1,58 +1,7 @@
-
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-export const enhanceSearchQuery = async (
-  query: string,
-  country: string,
-  region: string
-): Promise<string> => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      console.log('No session found, redirecting to login');
-      window.location.href = '/login';
-      return query;
-    }
-
-    console.log('Calling enhance-search with:', { query, country, region });
-    
-    const { data, error } = await supabase.functions.invoke('enhance-search', {
-      body: { query, country, region },
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-
-    if (error) {
-      console.error('Error enhancing search query:', error);
-      toast.error('Failed to enhance search query, using original query');
-      return query;
-    }
-
-    if (!data?.enhancedQuery) {
-      console.log('No enhanced query returned, using original');
-      return query;
-    }
-
-    console.log('Original query:', query);
-    console.log('Enhanced query:', data.enhancedQuery);
-    
-    if (data.enhancedQuery.length < 3) {
-      console.log('Enhanced query too short, using original');
-      return query;
-    }
-
-    return data.enhancedQuery;
-  } catch (error) {
-    console.error('Error calling enhance-search function:', error);
-    toast.error('Failed to enhance search query, using original query');
-    return query;
-  }
-};
 
 export const executeSearch = async (
   query: string,
@@ -70,11 +19,8 @@ export const executeSearch = async (
     return null;
   }
 
-  const enhancedQuery = await enhanceSearchQuery(query, country, region);
-
   console.log('Starting search with params:', {
-    originalQuery: query,
-    enhancedQuery,
+    query,
     country,
     region,
     limit: 'unlimited'
@@ -82,7 +28,7 @@ export const executeSearch = async (
 
   try {
     const searchResult = await performGoogleSearch(
-      enhancedQuery,
+      query,
       country,
       region
     );
