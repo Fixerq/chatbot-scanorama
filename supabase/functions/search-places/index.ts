@@ -7,6 +7,7 @@ import { SearchRequest, SearchResponse } from './types.ts';
 console.log("Search Places Edge Function Initialized");
 
 serve(async (req) => {
+  // Get the origin and log it for debugging
   const origin = req.headers.get('origin') || '*';
   console.log('Request received from origin:', origin);
   console.log('Request method:', req.method);
