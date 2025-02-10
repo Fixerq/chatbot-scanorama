@@ -1,7 +1,7 @@
+
 export const ALLOWED_ORIGINS = [
   'https://detectify.engageai.pro',
-  'https://detectifys.engageai.pro',
-  'http://localhost:3000'
+  'https://detectifys.engageai.pro'
 ] as const;
 
 export const originUtils = {
