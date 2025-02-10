@@ -1,14 +1,9 @@
+
 import React from 'react';
-import { useSearchLimits } from '@/hooks/useSearchLimits';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import SearchInputs from './SearchInputs';
 import ProcessingIndicator from './ProcessingIndicator';
 import { Info } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface SearchFormProps {
   query: string;
@@ -37,7 +32,7 @@ const SearchForm = ({
   onApiKeyChange,
   onSubmit
 }: SearchFormProps) => {
-  const { searchesLeft, isLoading } = useSearchLimits();
+  const { subscriptionData, isLoading } = useSubscriptionStatus();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,24 +43,15 @@ const SearchForm = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-cyan-100">Search Businesses</h2>
-        {!isLoading && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 text-sm text-cyan-200/70">
-                  <Info className="w-4 h-4" />
-                  {searchesLeft !== null ? (
-                    <span>{searchesLeft} searches remaining this month</span>
-                  ) : (
-                    <span>Loading search limit...</span>
-                  )}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Your search limit resets at the start of each month</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {!isLoading && subscriptionData && (
+          <div className="flex items-center gap-2 text-sm text-cyan-200/70">
+            <Info className="w-4 h-4" />
+            {subscriptionData.searchesRemaining === -1 ? (
+              <span>Unlimited searches available</span>
+            ) : (
+              <span>{subscriptionData.searchesRemaining} searches remaining</span>
+            )}
+          </div>
         )}
       </div>
 
