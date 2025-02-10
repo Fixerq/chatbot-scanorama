@@ -1,5 +1,12 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders, handleOptions } from '../_shared/cors.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
 const RADIUS_MILES = 20;
@@ -51,20 +58,49 @@ function setCachedCoordinates(query: string, lat: number, lng: number): void {
 }
 
 serve(async (req) => {
-  const optionsResponse = handleOptions(req);
-  if (optionsResponse) return optionsResponse;
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: corsHeaders
+    });
+  }
 
   try {
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          ...corsHeaders,
-          'Access-Control-Max-Age': '86400',
-        },
-      });
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        auth: { persistSession: false }
+      }
+    );
+
+    // Get the authorization header and verify the user is authenticated
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('User authenticated:', user.id);
     
     const { query, country, region, startIndex } = await req.json() as SearchRequest;
     console.log('Received search request:', { query, country, region });
