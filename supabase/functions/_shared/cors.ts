@@ -14,9 +14,10 @@ export const corsHeaders = {
 
 export function handleOptions(req: Request) {
   const origin = req.headers.get('origin');
+  console.log('Handling CORS for origin:', origin);
   
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request from origin:', origin);
+    console.log('Processing OPTIONS request from origin:', origin);
     return new Response(null, {
       headers: {
         ...corsHeaders,
