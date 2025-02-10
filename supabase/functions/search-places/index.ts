@@ -5,7 +5,7 @@ import { corsHeaders, handleOptions } from '../_shared/cors.ts';
 const GOOGLE_API_KEY = Deno.env.get('Google API');
 const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
-const MAX_RESULTS = 50; // Maximum allowed by Places API
+const MAX_RESULTS = 50;
 
 interface SearchRequest {
   query: string;
@@ -14,8 +14,18 @@ interface SearchRequest {
   startIndex?: number;
 }
 
+interface GeocodeResponse {
+  results: {
+    geometry: {
+      location: {
+        lat: number;
+        lng: number;
+      };
+    };
+  }[];
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   const optionsResponse = handleOptions(req);
   if (optionsResponse) return optionsResponse;
 
@@ -38,14 +48,24 @@ serve(async (req) => {
       throw new Error('Google API key is not configured');
     }
 
-    let locationQuery = query;
-    if (region && country) {
-      locationQuery = `${query} ${region} ${country}`;
-    } else if (country) {
-      locationQuery = `${query} ${country}`;
-    }
+    // First, geocode the location
+    const locationQuery = `${region ? region + ', ' : ''}${country}`;
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
     
-    console.log('Using search query:', locationQuery);
+    console.log('Making Geocoding API request with query:', locationQuery);
+
+    const geocodeResponse = await fetch(geocodeUrl);
+    if (!geocodeResponse.ok) {
+      throw new Error(`Geocoding API request failed: ${geocodeResponse.statusText}`);
+    }
+
+    const geocodeData: GeocodeResponse = await geocodeResponse.json();
+    if (!geocodeData.results || geocodeData.results.length === 0) {
+      throw new Error('No geocoding results found for the specified location');
+    }
+
+    const { lat, lng } = geocodeData.results[0].geometry.location;
+    console.log('Geocoded location:', { lat, lng });
 
     // Convert radius to meters for Places API
     const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
@@ -53,7 +73,7 @@ serve(async (req) => {
     // Search for businesses using Places API V2
     const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
     
-    console.log('Making Places API request with query:', locationQuery);
+    console.log('Making Places API request with query:', query);
 
     const searchResponse = await fetch(searchUrl, {
       method: 'POST',
@@ -63,11 +83,11 @@ serve(async (req) => {
         'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.types',
       },
       body: JSON.stringify({
-        textQuery: locationQuery,
+        textQuery: query,
         maxResultCount: MAX_RESULTS,
         locationBias: {
           circle: {
-            center: { latitude: 0, longitude: 0 },
+            center: { latitude: lat, longitude: lng },
             radius: radiusMeters,
           },
         },
@@ -96,10 +116,7 @@ serve(async (req) => {
         { 
           headers: { 
             ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+            'Content-Type': 'application/json'
           } 
         }
       );
@@ -133,10 +150,7 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+          'Content-Type': 'application/json'
         } 
       }
     );
@@ -153,10 +167,7 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+          'Content-Type': 'application/json'
         }
       }
     );
