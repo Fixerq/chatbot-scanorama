@@ -6,8 +6,19 @@ import { SearchRequest, SearchResponse } from './types.ts';
 
 console.log("Search Places Edge Function Initialized");
 
+// Validate required environment variables at startup
+const requiredEnvVars = ['GOOGLE_API_KEY', 'GOOGLE_CX', 'Firecrawl'];
+for (const envVar of requiredEnvVars) {
+  const value = Deno.env.get(envVar);
+  if (!value) {
+    console.error(`Missing required environment variable: ${envVar}`);
+  } else {
+    console.log(`Found environment variable: ${envVar}`);
+  }
+}
+
 serve(async (req) => {
-  const origin = req.headers.get('origin');
+  const origin = req.headers.get('origin') || '*';
   console.log('Request received from origin:', origin);
   
   // Handle CORS preflight
@@ -16,7 +27,7 @@ serve(async (req) => {
       status: 204,
       headers: {
         ...corsHeaders,
-        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       }
@@ -24,18 +35,18 @@ serve(async (req) => {
   }
 
   try {
-    // Validate request method
+    // Validate request method early
     if (req.method !== 'POST') {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    // Get API keys
+    // Get API keys early and validate
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
     const FIRECRAWL_API_KEY = Deno.env.get('Firecrawl');
 
     if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-      console.error('Missing API configuration');
+      console.error('Missing Google API configuration');
       throw new Error('Google API configuration missing');
     }
 
@@ -50,13 +61,16 @@ serve(async (req) => {
     // Handle API key request
     if (requestData.type === 'get_api_key') {
       console.log('Returning Firecrawl API key');
+      if (!FIRECRAWL_API_KEY) {
+        throw new Error('Firecrawl API key not configured');
+      }
       return new Response(
         JSON.stringify({ apiKey: FIRECRAWL_API_KEY }),
         { 
           headers: { 
             ...corsHeaders,
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': origin || '*'
+            'Access-Control-Allow-Origin': origin
           }
         }
       );
@@ -113,7 +127,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin || '*'
+          'Access-Control-Allow-Origin': origin
         }
       }
     );
@@ -131,7 +145,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin || '*'
+          'Access-Control-Allow-Origin': origin
         },
         status: 500
       }
