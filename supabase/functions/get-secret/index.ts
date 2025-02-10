@@ -1,17 +1,11 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
-    return new Response('ok', { headers: corsHeaders })
-  }
+  // Handle CORS preflight requests using the shared handler
+  const corsResponse = handleOptions(req);
+  if (corsResponse) return corsResponse;
 
   try {
     console.log('Processing request for secret');
@@ -28,7 +22,11 @@ serve(async (req) => {
         JSON.stringify({ error: `Secret ${key} not found` }),
         {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { 
+            ...corsHeaders,
+            'Access-Control-Allow-Origin': req.headers.get('origin') || '*',
+            'Content-Type': 'application/json' 
+          },
         }
       )
     }
@@ -37,7 +35,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ [key]: value }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders,
+          'Access-Control-Allow-Origin': req.headers.get('origin') || '*',
+          'Content-Type': 'application/json' 
+        },
       }
     )
   } catch (error) {
@@ -46,7 +48,11 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders,
+          'Access-Control-Allow-Origin': req.headers.get('origin') || '*',
+          'Content-Type': 'application/json' 
+        },
       }
     )
   }
