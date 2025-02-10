@@ -16,17 +16,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     // Function to handle user logout
     const handleLogout = async () => {
-      // First clear storage, then sign out
-      for (const key of Object.keys(localStorage)) {
-        if (key.startsWith('sb-')) {
-          localStorage.removeItem(key);
-        }
-      }
-      for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith('sb-')) {
-          sessionStorage.removeItem(key);
-        }
-      }
       await supabase.auth.signOut();
       toast.info('You have been logged out due to inactivity');
       navigate('/login');
@@ -44,26 +33,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       document.addEventListener(event, resetInactivityTimer);
     });
 
+    // Initialize the inactivity timer
+    resetInactivityTimer();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
-        resetInactivityTimer(); // Reset timer on token refresh
+        resetInactivityTimer();
       }
       
       if (event === 'SIGNED_OUT') {
-        // First clear storage, then handle navigation
-        for (const key of Object.keys(localStorage)) {
-          if (key.startsWith('sb-')) {
-            localStorage.removeItem(key);
-          }
-        }
-        for (const key of Object.keys(sessionStorage)) {
-          if (key.startsWith('sb-')) {
-            sessionStorage.removeItem(key);
-          }
-        }
         navigate('/login');
       }
     });
@@ -72,17 +53,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' && !session) {
         console.log('Session expired or refresh token invalid');
-        // First clear storage, then handle navigation
-        for (const key of Object.keys(localStorage)) {
-          if (key.startsWith('sb-')) {
-            localStorage.removeItem(key);
-          }
-        }
-        for (const key of Object.keys(sessionStorage)) {
-          if (key.startsWith('sb-')) {
-            sessionStorage.removeItem(key);
-          }
-        }
         toast.error('Your session has expired. Please sign in again.');
         navigate('/login');
       }
@@ -100,3 +70,4 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return <>{children}</>;
 };
+
