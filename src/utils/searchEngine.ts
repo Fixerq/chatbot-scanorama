@@ -31,6 +31,9 @@ export const performGoogleSearch = async (
         country,
         region,
         startIndex: startIndex || 0
+      },
+      headers: {
+        Authorization: `Bearer ${session.session.access_token}`
       }
     });
 
