@@ -11,25 +11,23 @@ export async function verifyUser(authHeader: string | null): Promise<string> {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     console.log('Checking Supabase configuration:', {
       hasUrl: !!supabaseUrl,
-      hasAnonKey: !!supabaseAnonKey
+      hasServiceKey: !!supabaseServiceKey
     });
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase configuration');
       throw new Error('Missing Supabase configuration');
     }
 
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false }
-    });
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Supabase client created, verifying token');
+    console.log('Verifying JWT token');
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       console.error('Auth error:', authError);

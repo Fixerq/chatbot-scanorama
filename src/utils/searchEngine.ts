@@ -10,17 +10,24 @@ export const performGoogleSearch = async (
   startIndex?: number
 ): Promise<{ results: Result[]; hasMore: boolean } | null> => {
   try {
-    const { data: session } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (!session?.session) {
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      toast.error('Authentication error. Please try signing in again.');
+      return null;
+    }
+
+    if (!session) {
       console.error('No active session found');
-      toast.error('Please log in to perform searches');
+      toast.error('Please sign in to perform searches');
+      window.location.href = '/login';
       return null;
     }
 
     console.log('Starting search with session:', {
-      hasSession: !!session.session,
-      accessToken: !!session.session.access_token
+      hasSession: true,
+      userId: session.user.id,
     });
 
     const { data, error } = await supabase.functions.invoke('search-places', {
@@ -31,13 +38,18 @@ export const performGoogleSearch = async (
         startIndex: startIndex || 0
       },
       headers: {
-        Authorization: `Bearer ${session.session.access_token}`
+        Authorization: `Bearer ${session.access_token}`
       }
     });
 
     if (error) {
       console.error('Search error:', error);
-      toast.error('Search failed: ' + error.message);
+      if (error.message.includes('401')) {
+        toast.error('Your session has expired. Please sign in again.');
+        window.location.href = '/login';
+      } else {
+        toast.error('Search failed: ' + error.message);
+      }
       return null;
     }
 
@@ -50,7 +62,12 @@ export const performGoogleSearch = async (
     // If there's an error message in the response
     if ('error' in data) {
       console.error('Search API error:', data.error);
-      toast.error('Search failed: ' + data.error);
+      if (data.error.includes('JWT')) {
+        toast.error('Your session has expired. Please sign in again.');
+        window.location.href = '/login';
+      } else {
+        toast.error('Search failed: ' + data.error);
+      }
       return null;
     }
 

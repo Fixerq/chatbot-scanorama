@@ -18,6 +18,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function logApiCall(userId: string, endpoint: string, status: number, error?: string) {
   try {
+    console.log('Logging API call:', { userId, endpoint, status, error });
     const { error: logError } = await supabase
       .from('api_logs')
       .insert([
@@ -66,7 +67,8 @@ serve(async (req) => {
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
 
     if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-      throw new Error('Google API configuration missing');
+      console.error('Missing API configuration');
+      throw new Error('Search service configuration is incomplete');
     }
 
     // Verify user authentication
@@ -81,7 +83,9 @@ serve(async (req) => {
     try {
       const rawBody = await req.text();
       requestData = JSON.parse(rawBody);
+      console.log('Request data:', requestData);
     } catch (error) {
+      console.error('Invalid request body:', error);
       throw new Error('Invalid request body');
     }
 
@@ -112,12 +116,31 @@ serve(async (req) => {
       throw new Error('Missing required parameters: query and country are required');
     }
 
+    // Check user's subscription status
+    const { data: subscription, error: subError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (subError) {
+      console.error('Subscription check error:', subError);
+      throw new Error('Error verifying subscription status');
+    }
+
+    if (!subscription || subscription.status !== 'active') {
+      console.error('Invalid subscription status:', subscription?.status);
+      throw new Error('Active subscription required');
+    }
+
     // Construct search query
     const searchTerms = [query];
     if (region) searchTerms.push(region);
     searchTerms.push(country);
     const searchQuery = searchTerms.join(' ');
     const start = startIndex ? startIndex + 1 : 1;
+
+    console.log('Executing search with query:', searchQuery);
 
     // Make request to Google Custom Search API
     const googleApiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}&start=${start}`;
@@ -126,6 +149,7 @@ serve(async (req) => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('Google API error:', data.error);
       throw new Error(data.error?.message || 'Failed to fetch search results');
     }
 
@@ -144,6 +168,7 @@ serve(async (req) => {
       hasMore: Boolean(data.queries?.nextPage?.[0])
     };
 
+    console.log('Search completed successfully');
     await logApiCall(userId, 'search', 200);
 
     return new Response(

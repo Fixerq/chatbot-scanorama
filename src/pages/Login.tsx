@@ -1,3 +1,4 @@
+
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,13 +15,14 @@ const Login = () => {
   const session = useSession();
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   const checkAdminStatus = async (userId: string) => {
     try {
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('user_id')
-        .eq('user_id', userId as string)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (!adminError && adminData) {
@@ -33,45 +35,31 @@ const Login = () => {
     }
   };
 
-  // Clear any existing sessions on component mount
+  // Check for existing session on mount
   useEffect(() => {
-    const clearExistingSessions = async () => {
-      // Clear ALL Supabase-related storage on login page load
-      for (const key of Object.keys(localStorage)) {
-        if (key.startsWith('sb-')) {
-          localStorage.removeItem(key);
-        }
-      }
-      for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith('sb-')) {
-          sessionStorage.removeItem(key);
-        }
-      }
-      await supabase.auth.signOut();
-    };
-
-    clearExistingSessions();
-  }, []);
-
-  useEffect(() => {
-    const handleSession = async () => {
-      if (session) {
-        try {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
           const isAdmin = await checkAdminStatus(session.user.id);
           if (isAdmin) {
             navigate('/admin');
           } else {
             navigate('/dashboard');
           }
-        } catch (error) {
-          console.error('Session handling error:', error);
-          setError('Error processing your session. Please try again.');
         }
+      } catch (error) {
+        console.error('Session check error:', error);
+        setError('Error checking session status');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    handleSession();
+    checkSession();
+  }, [navigate]);
 
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
       
@@ -96,18 +84,6 @@ const Login = () => {
 
       if (event === 'SIGNED_OUT') {
         setError('');
-        // Clear ALL Supabase-related storage
-        for (const key of Object.keys(localStorage)) {
-          if (key.startsWith('sb-')) {
-            localStorage.removeItem(key);
-          }
-        }
-        for (const key of Object.keys(sessionStorage)) {
-          if (key.startsWith('sb-')) {
-            sessionStorage.removeItem(key);
-          }
-        }
-        toast.success('Successfully signed out!');
       }
     });
 
@@ -115,6 +91,14 @@ const Login = () => {
       subscription.unsubscribe();
     };
   }, [session, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in bg-gradient-to-br from-[#0a192f] via-[#0d1f3a] to-[#0a192f]">
