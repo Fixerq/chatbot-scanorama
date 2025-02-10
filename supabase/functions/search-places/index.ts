@@ -6,6 +6,9 @@ import { SearchRequest, SearchResponse } from './types.ts';
 console.log("Search Places Edge Function Initialized");
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  console.log('Received request from origin:', origin);
+  
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -14,6 +17,7 @@ serve(async (req) => {
         status: 204,
         headers: {
           ...corsHeaders,
+          'Access-Control-Allow-Origin': origin || '*',
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
           'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
         }
@@ -21,14 +25,11 @@ serve(async (req) => {
     }
 
     if (req.method !== 'POST') {
+      console.error(`Invalid method: ${req.method}`);
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    const origin = req.headers.get('origin');
-    if (!origin || !['https://detectify.engageai.pro', 'https://detectifys.engageai.pro'].includes(origin)) {
-      console.warn('Request from unauthorized origin:', origin);
-      throw new Error('Unauthorized origin');
-    }
+    console.log('Processing POST request');
 
     // Parse and validate the request body
     let requestData;
@@ -43,6 +44,7 @@ serve(async (req) => {
     const { query, country, region, startIndex = 0 } = requestData as SearchRequest;
     
     if (!query || !country) {
+      console.error('Missing required parameters:', { query, country });
       throw new Error('Missing required parameters: query and country are required');
     }
 
@@ -52,12 +54,13 @@ serve(async (req) => {
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
 
     if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+      console.error('Missing API configuration');
       throw new Error('Google API configuration missing');
     }
 
     // Construct the search query
     const searchQuery = `${query} ${region || ''} ${country}`;
-    const start = startIndex ? startIndex + 1 : 1; // Google's API uses 1-based indexing
+    const start = startIndex ? startIndex + 1 : 1;
 
     // Make request to Google Custom Search API
     const googleApiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}&start=${start}`;
@@ -70,6 +73,8 @@ serve(async (req) => {
       console.error('Google API error:', data);
       throw new Error(data.error?.message || 'Failed to fetch search results');
     }
+
+    console.log(`Google API response status: ${response.status}`);
 
     // Transform the results
     const searchResult: SearchResponse = {
@@ -92,7 +97,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin
+          'Access-Control-Allow-Origin': origin || '*'
         },
         status: 200
       }
@@ -101,7 +106,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in search function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const origin = req.headers.get('origin');
     
     return new Response(
       JSON.stringify({
@@ -113,11 +117,10 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin || ''
+          'Access-Control-Allow-Origin': origin || '*'
         },
         status: error instanceof Error && error.message.includes('not allowed') ? 405 : 500
       }
     );
   }
 });
-

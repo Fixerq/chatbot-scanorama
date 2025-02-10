@@ -3,17 +3,12 @@ import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface PlacesResult {
-  results: Result[];
-  hasMore: boolean;
-}
-
 export const performGoogleSearch = async (
   query: string,
   country: string,
   region: string,
   startIndex?: number
-): Promise<PlacesResult | null> => {
+): Promise<{ results: Result[]; hasMore: boolean } | null> => {
   try {
     console.log('Starting search with params:', {
       query,
