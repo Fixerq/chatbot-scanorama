@@ -15,15 +15,6 @@ export const performGoogleSearch = async (
   startIndex?: number
 ): Promise<PlacesResult | null> => {
   try {
-    console.log('Checking authentication status...');
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      console.log('No active session found, redirecting to login');
-      window.location.href = '/login';
-      return null;
-    }
-
     console.log('Starting search with params:', {
       query,
       country,
@@ -46,9 +37,17 @@ export const performGoogleSearch = async (
       return null;
     }
 
+    if (!data) {
+      console.error('No data returned from search');
+      toast.error('No results found. Please try again.');
+      return null;
+    }
+
+    console.log('Search results:', data);
+
     return {
-      results: [],
-      hasMore: false
+      results: data.results || [],
+      hasMore: data.hasMore || false
     };
   } catch (error) {
     console.error('Search error:', error);

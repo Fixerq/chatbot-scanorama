@@ -10,12 +10,7 @@ export function handleOptions(req: Request) {
   if (req.method === 'OPTIONS') {
     console.log('Handling OPTIONS request');
     return new Response(null, {
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
+      headers: corsHeaders
     });
   }
   return null;

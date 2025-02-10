@@ -3,26 +3,32 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { SearchRequest, SearchResponse } from './types.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
-    });
-  }
+console.log("Search Places Edge Function Initialized");
 
+serve(async (req) => {
   try {
-    console.log('Starting search function');
-    
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      console.log('Handling OPTIONS request');
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders
+      });
+    }
+
     if (req.method !== 'POST') {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    // Parse the request body
-    const requestData = await req.json();
-    console.log('Request data:', requestData);
+    // Parse and validate the request body
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log('Received request data:', JSON.stringify(requestData));
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      throw new Error('Invalid request body');
+    }
 
     const { query, country, region, startIndex = 0 } = requestData as SearchRequest;
     
@@ -30,15 +36,22 @@ serve(async (req) => {
       throw new Error('Missing required parameters: query and country are required');
     }
 
-    console.log('Parsed search request:', { query, country, region, startIndex });
+    console.log('Processing search request:', { query, country, region, startIndex });
 
-    // For now, return empty results since we removed Google Places integration
+    // For now, return a test result to verify the function is working
     const searchResult: SearchResponse = {
-      results: [],
+      results: [{
+        url: "https://example.com",
+        details: {
+          title: "Test Result",
+          description: "This is a test result to verify the edge function is working",
+          lastChecked: new Date().toISOString()
+        }
+      }],
       hasMore: false
     };
 
-    console.log('Returning results:', searchResult);
+    console.log('Returning results:', JSON.stringify(searchResult));
 
     return new Response(
       JSON.stringify(searchResult),
