@@ -13,7 +13,8 @@ export const enhanceSearchQuery = async (
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      console.log('No session found, using original query');
+      console.log('No session found, redirecting to login');
+      window.location.href = '/login';
       return query;
     }
 
@@ -64,7 +65,8 @@ export const executeSearch = async (
   const { data: { session } } = await supabase.auth.getSession();
     
   if (!session) {
-    toast.error('Please sign in to perform searches');
+    console.log('No session found, redirecting to login');
+    window.location.href = '/login';
     return null;
   }
 
@@ -102,7 +104,7 @@ export const executeSearch = async (
     };
   } catch (error) {
     console.error('Search error:', error);
-    throw error; // Let the calling component handle the error
+    throw error;
   }
 };
 
@@ -111,8 +113,16 @@ export const loadMore = async (
   country: string,
   region: string,
   currentResults: Result[],
-  newLimit: number // This parameter is kept for backward compatibility but not used
+  newLimit: number
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+    
+  if (!session) {
+    console.log('No session found, redirecting to login');
+    window.location.href = '/login';
+    return null;
+  }
+
   try {
     const startIndex = currentResults.length + 1;
     const searchResult = await performGoogleSearch(query, country, region, startIndex);
@@ -131,6 +141,6 @@ export const loadMore = async (
     };
   } catch (error) {
     console.error('Load more error:', error);
-    throw error; // Let the calling component handle the error
+    throw error;
   }
 };

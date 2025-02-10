@@ -19,8 +19,8 @@ export const performGoogleSearch = async (
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      console.error('No active session found');
-      toast.error('Please sign in to perform searches');
+      console.log('No active session found, redirecting to login');
+      window.location.href = '/login';
       return null;
     }
 
@@ -42,7 +42,7 @@ export const performGoogleSearch = async (
 
     if (error) {
       console.error('Places search error:', error);
-      toast.error('Search failed. Please try again after signing in.');
+      toast.error('Search failed. Please sign in to perform searches.');
       return null;
     }
 
@@ -73,11 +73,7 @@ export const performGoogleSearch = async (
     };
   } catch (error) {
     console.error('Places search error:', error);
-    if (error instanceof Error && error.message.includes('Failed to fetch')) {
-      toast.error('Please sign in to perform searches');
-    } else {
-      toast.error('Search failed. Please try again after signing in.');
-    }
+    toast.error('Search failed. Please sign in to perform searches.');
     return null;
   }
 };
