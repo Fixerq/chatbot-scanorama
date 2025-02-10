@@ -6,17 +6,6 @@ import { SearchRequest, SearchResponse } from './types.ts';
 
 console.log("Search Places Edge Function Initialized");
 
-// Validate required environment variables at startup
-const requiredEnvVars = ['Google API', 'GOOGLE_CX', 'Firecrawl'];
-for (const envVar of requiredEnvVars) {
-  const value = Deno.env.get(envVar);
-  if (!value) {
-    console.error(`Missing required environment variable: ${envVar}`);
-  } else {
-    console.log(`Found environment variable: ${envVar}`);
-  }
-}
-
 serve(async (req) => {
   const origin = req.headers.get('origin') || '*';
   console.log('Request received from origin:', origin);
@@ -45,6 +34,12 @@ serve(async (req) => {
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
     const FIRECRAWL_API_KEY = Deno.env.get('Firecrawl');
 
+    console.log('API Keys found:', {
+      hasGoogleApi: !!GOOGLE_API_KEY,
+      hasGoogleCx: !!GOOGLE_CX,
+      hasFirecrawl: !!FIRECRAWL_API_KEY
+    });
+
     if (!GOOGLE_API_KEY || !GOOGLE_CX) {
       console.error('Missing Google API configuration');
       throw new Error('Google API configuration missing');
@@ -55,8 +50,14 @@ serve(async (req) => {
     console.log('User authenticated:', userId);
 
     // Parse request body
-    const requestData: SearchRequest = await req.json();
-    console.log('Request data:', requestData);
+    let requestData: SearchRequest;
+    try {
+      requestData = await req.json();
+      console.log('Request data:', requestData);
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      throw new Error('Invalid request body');
+    }
 
     // Handle API key request
     if (requestData.type === 'get_api_key') {
