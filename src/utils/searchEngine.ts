@@ -43,6 +43,13 @@ export const performGoogleSearch = async (
       return null;
     }
 
+    // If there's an error message in the response
+    if ('error' in data) {
+      console.error('Search API error:', data.error);
+      toast.error(`Search failed: ${data.error}`);
+      return null;
+    }
+
     console.log('Search results:', data);
 
     return {

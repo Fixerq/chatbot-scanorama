@@ -7,15 +7,16 @@ console.log("Search Places Edge Function Initialized");
 
 serve(async (req) => {
   try {
-    const requestOrigin = req.headers.get('origin');
-    console.log('Request received from:', requestOrigin);
-    
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       console.log('Handling OPTIONS request');
       return new Response(null, {
         status: 204,
-        headers: corsHeaders
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        }
       });
     }
 
