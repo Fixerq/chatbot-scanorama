@@ -42,6 +42,7 @@ export const useSubscriptionStatus = () => {
             status: 'inactive',
             searchesRemaining: 0
           });
+          setIsLoading(false);
           return;
         }
 
@@ -52,9 +53,9 @@ export const useSubscriptionStatus = () => {
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
-        const { count: searchesUsed, error: searchError } = await supabase
+        const { data: searchData, error: searchError } = await supabase
           .from('analyzed_urls')
-          .select('*', { count: 'exact', head: true })
+          .select('*', { count: 'exact' })
           .eq('user_id', session.user.id)
           .gte('created_at', startOfMonth.toISOString());
 
@@ -63,12 +64,14 @@ export const useSubscriptionStatus = () => {
           throw searchError;
         }
 
+        const searchesUsed = searchData?.length || 0;
         console.log('Searches used this month:', searchesUsed);
         
         // Calculate remaining searches based on total_searches from subscription
         const totalSearches = subscription.total_searches;
-        const remaining = totalSearches === -1 ? -1 : Math.max(0, totalSearches - (searchesUsed || 0));
+        const remaining = totalSearches === -1 ? -1 : Math.max(0, totalSearches - searchesUsed);
 
+        console.log('Total searches allowed:', totalSearches);
         console.log('Searches remaining:', remaining);
 
         setSubscriptionData({
