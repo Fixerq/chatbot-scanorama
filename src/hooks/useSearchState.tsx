@@ -35,16 +35,27 @@ export const useSearchState = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     const initializeApiKey = async () => {
       try {
         const apiKey = await FirecrawlService.getApiKey();
-        setSearchState(prev => ({ ...prev, apiKey }));
+        if (isMounted) {
+          setSearchState(prev => ({
+            ...prev,
+            apiKey: apiKey || '' // Ensure we always set a string, even if empty
+          }));
+        }
       } catch (error) {
         console.error('Error initializing API key:', error);
       }
     };
 
     initializeApiKey();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const resetSearch = useCallback(() => {
