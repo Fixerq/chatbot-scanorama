@@ -6,26 +6,9 @@ export interface SearchRequest {
   startIndex?: number;
 }
 
-export interface GeocodeResponse {
-  results: {
-    geometry: {
-      location: {
-        lat: number;
-        lng: number;
-      };
-    };
-  }[];
-}
-
-export interface GeocodeCacheEntry {
-  lat: number;
-  lng: number;
-  timestamp: number;
-}
-
-export interface Coordinates {
-  lat: number;
-  lng: number;
+export interface SearchResponse {
+  results: SearchResult[];
+  hasMore: boolean;
 }
 
 export interface SearchResult {
@@ -35,9 +18,4 @@ export interface SearchResult {
     description: string;
     lastChecked: string;
   };
-}
-
-export interface SearchResponse {
-  results: SearchResult[];
-  hasMore: boolean;
 }

@@ -24,7 +24,7 @@ export const performGoogleSearch = async (
       return null;
     }
 
-    console.log('Starting Places search with params:', {
+    console.log('Starting search with params:', {
       query,
       country,
       region,
@@ -41,39 +41,18 @@ export const performGoogleSearch = async (
     });
 
     if (error) {
-      console.error('Places search error:', error);
-      toast.error('Search failed. Please sign in to perform searches.');
+      console.error('Search error:', error);
+      toast.error('Search failed. Please try again.');
       return null;
     }
-
-    if (!data || !data.results || !Array.isArray(data.results)) {
-      console.error('Invalid response format:', data);
-      toast.error('Received invalid search results');
-      return null;
-    }
-
-    // Map the results to the expected format
-    const formattedResults = data.results
-      .filter((result: any) => result && result.url) // Only include results with URLs
-      .map((result: any) => ({
-        url: result.url,
-        status: 'Ready',
-        details: {
-          title: result.details?.title || '',
-          description: result.details?.description || '',
-          lastChecked: new Date().toISOString()
-        }
-      }));
-
-    console.log(`Found ${formattedResults.length} formatted results`);
 
     return {
-      results: formattedResults,
-      hasMore: data.hasMore || false
+      results: [],
+      hasMore: false
     };
   } catch (error) {
-    console.error('Places search error:', error);
-    toast.error('Search failed. Please sign in to perform searches.');
+    console.error('Search error:', error);
+    toast.error('Search failed. Please try again.');
     return null;
   }
 };
