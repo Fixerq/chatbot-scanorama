@@ -71,9 +71,6 @@ verify_jwt = false
 [functions.search-places]
 verify_jwt = false
 
-[functions.get-secret]
-verify_jwt = false
-
 [functions.create-checkout]
 verify_jwt = false
 
@@ -83,8 +80,12 @@ verify_jwt = false
 [functions.check-subscription]
 verify_jwt = false
 
-[functions.get-customer-email]
+[functions.get-customer-details]
 verify_jwt = false
 
 [functions.create-guest-checkout]
 verify_jwt = false
+
+[functions.send-support-email]
+verify_jwt = false
+
