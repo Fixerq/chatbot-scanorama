@@ -24,6 +24,12 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
+    const origin = req.headers.get('origin');
+    if (!origin || !['https://detectify.engageai.pro', 'https://detectifys.engageai.pro'].includes(origin)) {
+      console.warn('Request from unauthorized origin:', origin);
+      throw new Error('Unauthorized origin');
+    }
+
     // Parse and validate the request body
     let requestData;
     try {
@@ -85,7 +91,8 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin
         },
         status: 200
       }
