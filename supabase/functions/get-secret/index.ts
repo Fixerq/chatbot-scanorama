@@ -9,11 +9,30 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 serve(async (req) => {
+  console.log('Request received:', {
+    method: req.method,
+    origin: req.headers.get('origin'),
+    url: req.url
+  });
+
   // Handle CORS preflight requests using the shared handler
   const corsResponse = handleOptions(req);
   if (corsResponse) return corsResponse;
 
   const origin = req.headers.get('origin');
+  
+  // Validate origin
+  if (!origin || !corsHeaders['Access-Control-Allow-Origin']) {
+    const error = 'Invalid origin';
+    console.error(error, { origin });
+    return new Response(
+      JSON.stringify({ error }),
+      {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
   
   try {
     console.log('Processing request for secret');
@@ -50,7 +69,7 @@ serve(async (req) => {
           status: 404,
           headers: { 
             ...corsHeaders,
-            'Access-Control-Allow-Origin': origin || '*',
+            'Access-Control-Allow-Origin': origin,
             'Content-Type': 'application/json' 
           },
         }
@@ -72,7 +91,7 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders,
-          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Origin': origin,
           'Content-Type': 'application/json' 
         },
       }
@@ -94,7 +113,7 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders,
-          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Origin': origin,
           'Content-Type': 'application/json' 
         },
       }
