@@ -3,11 +3,6 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders, handleOptions } from '../_shared/cors.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
 serve(async (req) => {
   console.log('Request received:', {
     method: req.method,
@@ -15,44 +10,46 @@ serve(async (req) => {
     url: req.url
   });
 
-  // Handle CORS preflight requests using the shared handler
-  const corsResponse = handleOptions(req);
-  if (corsResponse) return corsResponse;
-
-  const origin = req.headers.get('origin');
-  
-  // Validate origin
-  if (!origin || !corsHeaders['Access-Control-Allow-Origin']) {
-    const error = 'Invalid origin';
-    console.error(error, { origin });
-    return new Response(
-      JSON.stringify({ error }),
-      {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
       }
-    );
+    });
   }
-  
+
   try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    console.log('Environment check:', {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!supabaseServiceKey,
+    });
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing required environment variables');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Process the request
     console.log('Processing request for secret');
-    const { key } = await req.json()
+    const { key } = await req.json();
     console.log('Requested secret key:', key);
 
-    // Log the request
-    await supabase
-      .from('edge_function_logs')
-      .insert({
-        function_name: 'get-secret',
-        request_data: { key },
-      });
-
     // Retrieve the secret value
-    const value = Deno.env.get(key)
+    const value = Deno.env.get(key);
     console.log('Secret found:', value ? 'Yes' : 'No');
 
     if (!value) {
       const error = `Secret ${key} not found`;
+      console.error(error);
+      
       // Log the error
       await supabase
         .from('edge_function_logs')
@@ -62,21 +59,20 @@ serve(async (req) => {
           error: error,
         });
 
-      console.error(error);
       return new Response(
         JSON.stringify({ error }),
         {
           status: 404,
           headers: { 
             ...corsHeaders,
-            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Origin': '*',
             'Content-Type': 'application/json' 
           },
         }
-      )
+      );
     }
 
-    // Log the successful response
+    // Log successful response
     await supabase
       .from('edge_function_logs')
       .insert({
@@ -91,21 +87,31 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders,
-          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json' 
         },
       }
-    )
+    );
   } catch (error) {
     console.error('Error processing request:', error);
     
-    // Log the error
-    await supabase
-      .from('edge_function_logs')
-      .insert({
-        function_name: 'get-secret',
-        error: error.message,
-      });
+    // If Supabase client is available, log the error
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        await supabase
+          .from('edge_function_logs')
+          .insert({
+            function_name: 'get-secret',
+            error: error.message,
+          });
+      }
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
 
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -113,10 +119,10 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders,
-          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json' 
         },
       }
-    )
+    );
   }
-})
+});
