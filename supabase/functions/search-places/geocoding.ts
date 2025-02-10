@@ -1,6 +1,5 @@
-
-import { GeocodeResponse, GeocodeCacheEntry, Coordinates } from './types';
-import { GEOCODING_CACHE_TTL } from './constants';
+import { GeocodeResponse, GeocodeCacheEntry, Coordinates } from './types.ts';
+import { GEOCODING_CACHE_TTL } from './constants.ts';
 
 const geocodingCache = new Map<string, GeocodeCacheEntry>();
 

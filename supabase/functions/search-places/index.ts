@@ -1,10 +1,9 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { SearchRequest, SearchResponse } from './types';
-import { corsHeaders, getSearchRadius } from './constants';
-import { getCachedCoordinates, getCoordinates } from './geocoding';
-import { searchPlaces } from './placesApi';
-import { verifyUser } from './auth';
+import { SearchRequest, SearchResponse } from './types.ts';
+import { corsHeaders, getSearchRadius } from './constants.ts';
+import { getCachedCoordinates, getCoordinates } from './geocoding.ts';
+import { searchPlaces } from './placesApi.ts';
+import { verifyUser } from './auth.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests

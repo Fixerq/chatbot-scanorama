@@ -1,6 +1,5 @@
-
-import { SearchResult } from './types';
-import { MAX_RESULTS } from './constants';
+import { SearchResult } from './types.ts';
+import { MAX_RESULTS } from './constants.ts';
 
 export async function searchPlaces(
   query: string,
