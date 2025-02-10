@@ -1,3 +1,4 @@
+
 project_id = "engage"
 
 [api]
@@ -68,9 +69,6 @@ verify_jwt = false
 [functions.search-places]
 verify_jwt = false
 
-[functions.enhance-search]
-verify_jwt = false
-
 [functions.get-secret]
 verify_jwt = false
 
@@ -88,3 +86,4 @@ verify_jwt = false
 
 [functions.create-guest-checkout]
 verify_jwt = false
+
