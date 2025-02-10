@@ -33,7 +33,7 @@ export const performGoogleSearch = async (
 
     if (error) {
       console.error('Search error:', error);
-      toast.error('Search failed. Please try again.');
+      toast.error(`Search failed: ${error.message}`);
       return null;
     }
 
@@ -51,7 +51,7 @@ export const performGoogleSearch = async (
     };
   } catch (error) {
     console.error('Search error:', error);
-    toast.error('Search failed. Please try again.');
+    toast.error('Search failed. Please try again later.');
     return null;
   }
 };

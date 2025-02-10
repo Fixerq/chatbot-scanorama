@@ -5,13 +5,16 @@ import { SearchRequest, SearchResponse } from './types.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Max-Age': '86400',
 };
 
 console.log("Search Places Edge Function Initialized");
 
 serve(async (req) => {
   try {
+    console.log('Received request from origin:', req.headers.get('origin'));
+    
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       console.log('Handling OPTIONS request');
