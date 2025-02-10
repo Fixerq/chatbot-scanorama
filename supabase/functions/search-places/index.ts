@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-const GOOGLE_API_KEY = Deno.env.get('Google API');
+const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
 const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
 const MAX_RESULTS = 50;
@@ -66,6 +66,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting search places function with new GOOGLE_API_KEY config');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -106,6 +108,7 @@ serve(async (req) => {
     console.log('Received search request:', { query, country, region });
 
     if (!GOOGLE_API_KEY) {
+      console.error('GOOGLE_API_KEY not found in environment variables');
       return new Response(
         JSON.stringify({ 
           error: 'Google API key is not configured',
@@ -117,11 +120,13 @@ serve(async (req) => {
     }
 
     const locationQuery = `${region ? region + ', ' : ''}${country}`;
+    console.log('Location query:', locationQuery);
+    
     let coordinates = getCachedCoordinates(locationQuery);
 
     if (!coordinates) {
       const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
-      console.log('Making Geocoding API request with query:', locationQuery);
+      console.log('Making Geocoding API request for location:', locationQuery);
 
       const geocodeResponse = await fetch(geocodeUrl);
       if (!geocodeResponse.ok) {
@@ -143,6 +148,7 @@ serve(async (req) => {
 
       const geocodeData: GeocodeResponse = await geocodeResponse.json();
       if (!geocodeData.results || geocodeData.results.length === 0) {
+        console.error('No geocoding results found for query:', locationQuery);
         return new Response(
           JSON.stringify({ 
             error: 'No geocoding results found',
@@ -154,7 +160,7 @@ serve(async (req) => {
       }
 
       coordinates = geocodeData.results[0].geometry.location;
-      console.log('Geocoded location:', coordinates);
+      console.log('Geocoded coordinates:', coordinates);
       setCachedCoordinates(locationQuery, coordinates.lat, coordinates.lng);
     }
 
@@ -200,9 +206,10 @@ serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
+    console.log('Places API response:', JSON.stringify(searchData, null, 2));
     
     if (!searchData.places) {
-      console.log('No places found');
+      console.log('No places found in the response');
       return new Response(
         JSON.stringify({ 
           results: [],
