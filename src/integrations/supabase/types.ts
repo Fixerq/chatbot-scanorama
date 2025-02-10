@@ -26,29 +26,41 @@ export type Database = {
       }
       analyzed_urls: {
         Row: {
+          chat_solutions: string[] | null
           created_at: string
+          description: string | null
           details: Json | null
           id: number
+          last_checked: string | null
           status: string
           technologies: string[] | null
+          title: string | null
           url: string
           user_id: string | null
         }
         Insert: {
+          chat_solutions?: string[] | null
           created_at?: string
+          description?: string | null
           details?: Json | null
           id?: number
+          last_checked?: string | null
           status: string
           technologies?: string[] | null
+          title?: string | null
           url: string
           user_id?: string | null
         }
         Update: {
+          chat_solutions?: string[] | null
           created_at?: string
+          description?: string | null
           details?: Json | null
           id?: number
+          last_checked?: string | null
           status?: string
           technologies?: string[] | null
+          title?: string | null
           url?: string
           user_id?: string | null
         }
