@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { FirecrawlService } from '../utils/firecrawl';
 import { Result } from '@/components/ResultsTable';
@@ -34,18 +35,23 @@ export const useSearchState = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    const savedApiKey = FirecrawlService.getApiKey();
-    if (savedApiKey) {
-      setSearchState(prev => ({ ...prev, apiKey: savedApiKey }));
-    }
+    const initializeApiKey = async () => {
+      try {
+        const apiKey = await FirecrawlService.getApiKey();
+        setSearchState(prev => ({ ...prev, apiKey }));
+      } catch (error) {
+        console.error('Error initializing API key:', error);
+      }
+    };
+
+    initializeApiKey();
   }, []);
 
   const resetSearch = useCallback(() => {
-    const savedApiKey = FirecrawlService.getApiKey();
-    setSearchState({
+    setSearchState(prev => ({
       ...initialState,
-      apiKey: savedApiKey || '' // Preserve the API key
-    });
+      apiKey: prev.apiKey // Preserve the API key when resetting
+    }));
     setResults({
       currentResults: [],
       hasMore: false,
