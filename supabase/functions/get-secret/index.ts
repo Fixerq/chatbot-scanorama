@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling OPTIONS request');
     return new Response('ok', { headers: corsHeaders })
@@ -17,6 +18,7 @@ serve(async (req) => {
     const { key } = await req.json()
     console.log('Requested secret key:', key);
 
+    // Retrieve the secret value
     const value = Deno.env.get(key)
     console.log('Secret found:', value ? 'Yes' : 'No');
 
@@ -34,7 +36,7 @@ serve(async (req) => {
     console.log('Successfully retrieved secret');
     return new Response(
       JSON.stringify({ [key]: value }),
-      {
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
