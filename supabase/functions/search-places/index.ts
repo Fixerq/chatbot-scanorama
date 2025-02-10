@@ -7,7 +7,7 @@ import { SearchRequest, SearchResponse } from './types.ts';
 console.log("Search Places Edge Function Initialized");
 
 // Validate required environment variables at startup
-const requiredEnvVars = ['GOOGLE_API_KEY', 'GOOGLE_CX', 'Firecrawl'];
+const requiredEnvVars = ['Google API', 'GOOGLE_CX', 'Firecrawl'];
 for (const envVar of requiredEnvVars) {
   const value = Deno.env.get(envVar);
   if (!value) {
@@ -41,7 +41,7 @@ serve(async (req) => {
     }
 
     // Get API keys early and validate
-    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
+    const GOOGLE_API_KEY = Deno.env.get('Google API');
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
     const FIRECRAWL_API_KEY = Deno.env.get('Firecrawl');
 
