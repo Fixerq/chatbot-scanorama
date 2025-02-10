@@ -10,6 +10,14 @@ export const performGoogleSearch = async (
   startIndex?: number
 ): Promise<{ results: Result[]; hasMore: boolean } | null> => {
   try {
+    const { data: session } = await supabase.auth.getSession();
+    
+    if (!session?.session) {
+      console.error('No active session found');
+      toast.error('Please log in to perform searches');
+      return null;
+    }
+
     console.log('Starting search with params:', {
       query,
       country,
@@ -28,7 +36,7 @@ export const performGoogleSearch = async (
 
     if (error) {
       console.error('Search error:', error);
-      toast.error(`Search failed: ${error.message}`);
+      toast.error('Search failed: ' + error.message);
       return null;
     }
 
@@ -41,7 +49,7 @@ export const performGoogleSearch = async (
     // If there's an error message in the response
     if ('error' in data) {
       console.error('Search API error:', data.error);
-      toast.error(`Search failed: ${data.error}`);
+      toast.error('Search failed: ' + data.error);
       return null;
     }
 
