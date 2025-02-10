@@ -6,6 +6,7 @@ const GOOGLE_API_KEY = Deno.env.get('Google API');
 const RADIUS_MILES = 20;
 const METERS_PER_MILE = 1609.34;
 const MAX_RESULTS = 50;
+const GEOCODING_CACHE_TTL = 86400; // 24 hours in seconds
 
 interface SearchRequest {
   query: string;
@@ -23,6 +24,39 @@ interface GeocodeResponse {
       };
     };
   }[];
+}
+
+interface GeocodeCacheEntry {
+  lat: number;
+  lng: number;
+  timestamp: number;
+}
+
+// Simple in-memory cache for geocoding results
+const geocodingCache = new Map<string, GeocodeCacheEntry>();
+
+/**
+ * Retrieves cached coordinates for a given query if available and not expired.
+ */
+function getCachedCoordinates(query: string): { lat: number; lng: number } | null {
+  const cacheEntry = geocodingCache.get(query);
+  if (cacheEntry) {
+    const currentTime = Math.floor(Date.now() / 1000);
+    if (currentTime - cacheEntry.timestamp < GEOCODING_CACHE_TTL) {
+      return { lat: cacheEntry.lat, lng: cacheEntry.lng };
+    }
+    // Remove expired cache entry
+    geocodingCache.delete(query);
+  }
+  return null;
+}
+
+/**
+ * Stores coordinates in the cache with the current timestamp.
+ */
+function setCachedCoordinates(query: string, lat: number, lng: number): void {
+  const timestamp = Math.floor(Date.now() / 1000);
+  geocodingCache.set(query, { lat, lng, timestamp });
 }
 
 serve(async (req) => {
@@ -48,24 +82,42 @@ serve(async (req) => {
       throw new Error('Google API key is not configured');
     }
 
-    // First, geocode the location
+    // Construct the location query for geocoding
     const locationQuery = `${region ? region + ', ' : ''}${country}`;
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
     
-    console.log('Making Geocoding API request with query:', locationQuery);
+    // Attempt to retrieve cached coordinates
+    let coordinates = getCachedCoordinates(locationQuery);
 
-    const geocodeResponse = await fetch(geocodeUrl);
-    if (!geocodeResponse.ok) {
-      throw new Error(`Geocoding API request failed: ${geocodeResponse.statusText}`);
+    if (!coordinates) {
+      // Geocoding API URL
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`;
+      
+      console.log('Making Geocoding API request with query:', locationQuery);
+
+      const geocodeResponse = await fetch(geocodeUrl);
+      if (!geocodeResponse.ok) {
+        const errorText = await geocodeResponse.text();
+        console.error('Geocoding API error:', {
+          status: geocodeResponse.status,
+          statusText: geocodeResponse.statusText,
+          error: errorText
+        });
+        throw new Error(`Geocoding API request failed: ${geocodeResponse.statusText}`);
+      }
+
+      const geocodeData: GeocodeResponse = await geocodeResponse.json();
+      if (!geocodeData.results || geocodeData.results.length === 0) {
+        throw new Error('No geocoding results found for the specified location');
+      }
+
+      coordinates = geocodeData.results[0].geometry.location;
+      console.log('Geocoded location:', coordinates);
+
+      // Cache the obtained coordinates
+      setCachedCoordinates(locationQuery, coordinates.lat, coordinates.lng);
+    } else {
+      console.log('Using cached geocoded coordinates:', coordinates);
     }
-
-    const geocodeData: GeocodeResponse = await geocodeResponse.json();
-    if (!geocodeData.results || geocodeData.results.length === 0) {
-      throw new Error('No geocoding results found for the specified location');
-    }
-
-    const { lat, lng } = geocodeData.results[0].geometry.location;
-    console.log('Geocoded location:', { lat, lng });
 
     // Convert radius to meters for Places API
     const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
@@ -87,7 +139,7 @@ serve(async (req) => {
         maxResultCount: MAX_RESULTS,
         locationBias: {
           circle: {
-            center: { latitude: lat, longitude: lng },
+            center: { latitude: coordinates.lat, longitude: coordinates.lng },
             radius: radiusMeters,
           },
         },
