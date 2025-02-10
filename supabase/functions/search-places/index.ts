@@ -1,19 +1,14 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 import { SearchRequest, SearchResponse } from './types.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': '*',
-  'Access-Control-Max-Age': '86400',
-};
 
 console.log("Search Places Edge Function Initialized");
 
 serve(async (req) => {
   try {
-    console.log('Received request from origin:', req.headers.get('origin'));
+    const requestOrigin = req.headers.get('origin');
+    console.log('Request received from:', requestOrigin);
     
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -32,7 +27,7 @@ serve(async (req) => {
     let requestData;
     try {
       requestData = await req.json();
-      console.log('Received request data:', JSON.stringify(requestData));
+      console.log('Request data:', JSON.stringify(requestData));
     } catch (error) {
       console.error('Error parsing request body:', error);
       throw new Error('Invalid request body');
@@ -64,31 +59,30 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(searchResult),
       { 
-        status: 200,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
-        }
+        },
+        status: 200
       }
     );
 
   } catch (error) {
     console.error('Error in search function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorResponse = {
-      error: errorMessage,
-      results: [],
-      hasMore: false
-    };
-
+    
     return new Response(
-      JSON.stringify(errorResponse),
+      JSON.stringify({
+        error: errorMessage,
+        results: [],
+        hasMore: false
+      }),
       { 
-        status: error instanceof Error && error.message.includes('not allowed') ? 405 : 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
-        }
+        },
+        status: error instanceof Error && error.message.includes('not allowed') ? 405 : 500
       }
     );
   }
