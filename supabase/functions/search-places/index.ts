@@ -9,9 +9,13 @@ import { verifyUser } from './auth.ts';
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
     return new Response(null, {
       status: 204,
-      headers: corsHeaders
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      }
     });
   }
 
@@ -22,11 +26,15 @@ serve(async (req) => {
     // await verifyUser(req.headers.get('Authorization'));
 
     if (req.method !== 'POST') {
+      console.error('Invalid method:', req.method);
       throw new Error('Method not allowed');
     }
 
-    const { query, country, region } = await req.json() as SearchRequest;
-    console.log('Received search request:', { query, country, region });
+    const requestData = await req.json();
+    console.log('Request data:', requestData);
+
+    const { query, country, region } = requestData as SearchRequest;
+    console.log('Parsed search request:', { query, country, region });
 
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
     if (!GOOGLE_API_KEY) {
@@ -55,30 +63,37 @@ serve(async (req) => {
       GOOGLE_API_KEY
     );
 
+    console.log(`Found ${searchResult.results.length} results`);
+
     return new Response(
       JSON.stringify(searchResult),
       { 
         status: 200,
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS'
         } 
       }
     );
 
   } catch (error) {
     console.error('Error in search-places function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorResponse = {
+      error: errorMessage,
+      results: [],
+      hasMore: false
+    };
+
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        results: [],
-        hasMore: false
-      }),
+      JSON.stringify(errorResponse),
       { 
         status: error instanceof Error && error.message.includes('Unauthorized') ? 401 : 500,
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS'
         }
       }
     );
