@@ -1,16 +1,22 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyUser } from "./auth.ts";
 import { SearchRequest, SearchResponse } from './types.ts';
 
 console.log("Search Places Edge Function Initialized");
 
 serve(async (req) => {
+  // Log the request details
   const origin = req.headers.get('origin');
-  console.log('Received request from origin:', origin);
+  console.log('Received request:', {
+    method: req.method,
+    origin,
+    url: req.url
+  });
   
   try {
-    // Handle CORS preflight requests
+    // Handle CORS preflight requests first
     if (req.method === 'OPTIONS') {
       console.log('Handling OPTIONS request');
       return new Response(null, {
@@ -30,7 +36,11 @@ serve(async (req) => {
       throw new Error(`Method ${req.method} not allowed`);
     }
 
-    // Get API keys first to fail fast if they're missing
+    // Verify user authentication first
+    console.log('Verifying user authentication');
+    await verifyUser(req.headers.get('Authorization'));
+
+    // Get API keys to fail fast if they're missing
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
 
@@ -56,25 +66,17 @@ serve(async (req) => {
       throw new Error('Missing required parameters: query and country are required');
     }
 
-    console.log('Making Google API request with params:', {
-      query,
-      country,
-      region,
-      startIndex
-    });
-
-    // Construct search query with better formatting
+    // Construct search query
     const searchTerms = [query];
     if (region) searchTerms.push(region);
     searchTerms.push(country);
     const searchQuery = searchTerms.join(' ');
-    
     const start = startIndex ? startIndex + 1 : 1;
 
-    // Make request to Google Custom Search API with error handling
+    // Make request to Google Custom Search API
     const googleApiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}&start=${start}`;
     
-    console.log('Fetching from Google API...');
+    console.log('Making Google API request');
     const response = await fetch(googleApiUrl);
     const data = await response.json();
 
@@ -89,7 +91,7 @@ serve(async (req) => {
       throw new Error(data.error?.message || 'Failed to fetch search results');
     }
 
-    // Transform and validate results
+    // Transform results
     const results = data.items?.map((item: any) => ({
       url: item.link,
       details: {
@@ -113,8 +115,7 @@ serve(async (req) => {
           ...corsHeaders,
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
-        },
-        status: 200
+        }
       }
     );
 
