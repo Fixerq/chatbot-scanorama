@@ -5,7 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
@@ -66,7 +66,9 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting search places function with new GOOGLE_API_KEY config');
+    console.log('Starting search places function');
+    console.log('Method:', req.method);
+    console.log('Headers:', Object.fromEntries(req.headers.entries()));
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -79,6 +81,7 @@ serve(async (req) => {
     // Get the authorization header and verify the user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('No authorization header provided');
       return new Response(
         JSON.stringify({ error: 'No authorization header' }),
         { 
