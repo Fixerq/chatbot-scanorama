@@ -41,20 +41,43 @@ serve(async (req) => {
 
     console.log('Processing search request:', { query, country, region, startIndex });
 
-    // For testing purposes, return a mock result
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
+    const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+      throw new Error('Google API configuration missing');
+    }
+
+    // Construct the search query
+    const searchQuery = `${query} ${region || ''} ${country}`;
+    const start = startIndex ? startIndex + 1 : 1; // Google's API uses 1-based indexing
+
+    // Make request to Google Custom Search API
+    const googleApiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}&start=${start}`;
+    
+    console.log('Fetching results from Google API...');
+    const response = await fetch(googleApiUrl);
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Google API error:', data);
+      throw new Error(data.error?.message || 'Failed to fetch search results');
+    }
+
+    // Transform the results
     const searchResult: SearchResponse = {
-      results: [{
-        url: "https://example.com",
+      results: data.items?.map((item: any) => ({
+        url: item.link,
         details: {
-          title: "Test Result",
-          description: "This is a test result to verify the edge function is working",
+          title: item.title,
+          description: item.snippet,
           lastChecked: new Date().toISOString()
         }
-      }],
-      hasMore: false
+      })) || [],
+      hasMore: Boolean(data.queries?.nextPage?.[0])
     };
 
-    console.log('Returning results:', JSON.stringify(searchResult));
+    console.log(`Found ${searchResult.results.length} results`);
 
     return new Response(
       JSON.stringify(searchResult),
