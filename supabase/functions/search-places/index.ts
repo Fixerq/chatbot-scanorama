@@ -55,7 +55,7 @@ serve(async (req) => {
     console.log('User authenticated:', userId);
 
     // Parse request body
-    const requestData = await req.json();
+    const requestData: SearchRequest = await req.json();
     console.log('Request data:', requestData);
 
     // Handle API key request
@@ -77,7 +77,7 @@ serve(async (req) => {
     }
 
     // Handle search request
-    const { query, country, region, startIndex = 0 } = requestData as SearchRequest;
+    const { query, country, region, startIndex = 0 } = requestData;
     
     if (!query || !country) {
       throw new Error('Missing required parameters: query and country are required');

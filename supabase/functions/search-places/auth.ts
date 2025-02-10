@@ -7,22 +7,30 @@ export async function verifyUser(authHeader: string | null): Promise<string> {
     throw new Error('No authorization header');
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    {
-      auth: { persistSession: false }
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase configuration');
     }
-  );
 
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false }
+    });
 
-  if (authError || !user) {
-    console.error('Auth error:', authError);
-    throw new Error('Unauthorized');
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      throw new Error('Unauthorized');
+    }
+
+    console.log('User authenticated:', user.id);
+    return user.id;
+  } catch (error) {
+    console.error('Error in verifyUser:', error);
+    throw error;
   }
-
-  console.log('User authenticated:', user.id);
-  return user.id;
 }
