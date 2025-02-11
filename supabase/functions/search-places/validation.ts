@@ -1,5 +1,5 @@
 
-import { SearchParams } from './types';
+import { SearchParams } from './types.ts';
 
 export const validateSearchParams = (params: SearchParams): string | null => {
   if (!params.query?.trim()) {
@@ -28,3 +28,4 @@ export const validateSearchRequest = (action: string, params: any): string | nul
 
   return validateSearchParams(params as SearchParams);
 };
+

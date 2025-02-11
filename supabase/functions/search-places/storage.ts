@@ -1,6 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { SearchResult } from './types';
+import { SearchResult } from './types.ts';
 
 interface StorageParams {
   userId: string;
@@ -61,3 +61,4 @@ export const storeSearchResults = async (
     throw error;
   }
 };
+
