@@ -41,7 +41,7 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',  // Fixed: Using the correct model name
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -52,31 +52,33 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
     const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-    
-    if (!content) {
-      console.error('No content in OpenAI response');
-      throw new Error('No content in OpenAI response');
+    console.log('Raw OpenAI response data:', data);
+
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI response structure:', data);
+      throw new Error('Invalid response structure from OpenAI');
     }
 
-    console.log('Raw OpenAI response:', content);
+    const content = data.choices[0].message.content;
+    console.log('OpenAI response content:', content);
     
     // Safely parse the JSON response
     let results;
     try {
       results = JSON.parse(content);
       if (!Array.isArray(results)) {
+        console.error('Parsed content is not an array:', results);
         throw new Error('Response is not an array');
       }
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', parseError);
-      throw new Error('Invalid response format from OpenAI');
+      console.error('Failed to parse OpenAI response:', parseError, 'Content:', content);
+      throw new Error('Invalid JSON format in OpenAI response');
     }
     
     // Validate and sanitize results
@@ -89,7 +91,7 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
       confidenceScore: Number(result.confidenceScore) || 0.1
     }));
 
-    console.log('Processed results:', sanitizedResults);
+    console.log('Processed and sanitized results:', sanitizedResults);
     return sanitizedResults;
   } catch (error) {
     console.error('Error in AI search:', error);

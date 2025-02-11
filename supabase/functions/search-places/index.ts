@@ -94,6 +94,10 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
   console.log('Processing search with params:', params);
   
   try {
+    if (!params.query || !params.country) {
+      throw new Error('Missing required search parameters');
+    }
+
     const businesses = await searchBusinessesWithAI(params.query, params.region || '', params.country);
     console.log(`Search completed with ${businesses.length} results`);
     
@@ -114,6 +118,9 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
       }
     }));
 
+    // Log the results before inserting
+    console.log('Preparing to insert results:', results);
+
     const { error: insertError } = await supabase
       .from('analyzed_urls')
       .insert(
@@ -133,7 +140,10 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
 
     if (insertError) {
       console.error('Error recording search results:', insertError);
+      throw new Error(`Failed to record search results: ${insertError.message}`);
     }
+
+    console.log('Successfully recorded search results');
 
     return {
       results,
