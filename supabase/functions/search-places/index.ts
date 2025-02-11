@@ -1,5 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { SearchParams } from './types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,10 +15,13 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json()
-    console.log('Request received:', { method: req.method, url: req.url, body })
+    const { action, params } = await req.json()
+    console.log('Request received:', { method: req.method, url: req.url, action, params })
 
-    if (body.type === 'search') {
+    if (action === 'search') {
+      const searchParams = params as SearchParams
+      console.log('Executing search with params:', searchParams)
+
       // Return test data matching the expected interface
       return new Response(
         JSON.stringify({
