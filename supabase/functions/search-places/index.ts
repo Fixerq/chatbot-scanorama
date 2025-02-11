@@ -31,19 +31,27 @@ serve(async (req) => {
       body
     });
 
-    // Always return a success response with test data
+    // Return test data with all required fields
     return new Response(
       JSON.stringify({
         success: true,
         data: {
           results: [{
-            name: 'Test Business',
-            address: '123 Test St, Test City, TS 12345',
-            place_id: 'test_123',
-            location: { lat: 39.7456, lng: -75.5466 },
-            business_status: 'OPERATIONAL'
+            title: 'Test Business',
+            description: 'A test business description',
+            url: 'https://example.com',
+            details: {
+              title: 'Test Business',
+              description: 'A test business description',
+              lastChecked: new Date().toISOString(),
+              address: '123 Test St, Test City, TS 12345',
+              phone: '555-0123',
+              mapsUrl: 'https://maps.google.com/?q=123+Test+St',
+              types: ['business', 'local_business'],
+              rating: 4.5
+            }
           }],
-          total: 1
+          hasMore: false
         },
         debug: {
           received: body,

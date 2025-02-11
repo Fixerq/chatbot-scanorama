@@ -39,6 +39,17 @@ export const EXCLUDED_DOMAINS = [
 ];
 
 export const isExcludedDomain = (url: string): boolean => {
-  const lowerUrl = url.toLowerCase();
-  return EXCLUDED_DOMAINS.some(domain => lowerUrl.includes(domain));
+  // Return false if url is undefined or not a string
+  if (!url || typeof url !== 'string') {
+    console.log('Invalid URL provided to isExcludedDomain:', url);
+    return false;
+  }
+
+  try {
+    const lowerUrl = url.toLowerCase();
+    return EXCLUDED_DOMAINS.some(domain => lowerUrl.includes(domain));
+  } catch (error) {
+    console.error('Error in isExcludedDomain:', error);
+    return false;
+  }
 };
