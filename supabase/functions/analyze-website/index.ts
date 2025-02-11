@@ -14,7 +14,8 @@ serve(async (req) => {
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Request-Headers': '*',
         'Access-Control-Max-Age': '86400',
-      }
+      },
+      status: 204
     });
   }
 
@@ -28,12 +29,22 @@ serve(async (req) => {
     console.log('Received request data:', requestData);
 
     if (!requestData?.url) {
-      throw new Error('URL is required in request data');
+      return new Response(JSON.stringify({
+        error: 'URL is required in request data'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const url = requestData.url.trim();
     if (!url) {
-      throw new Error('URL cannot be empty');
+      return new Response(JSON.stringify({
+        error: 'URL cannot be empty'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Create timeout controller
@@ -42,7 +53,6 @@ serve(async (req) => {
 
     try {
       const chatSolutions = await analyzeChatbot(url);
-
       clearTimeout(timeoutId);
       
       console.log('Analysis complete:', {
@@ -57,11 +67,11 @@ serve(async (req) => {
         chatSolutions,
         lastChecked: new Date().toISOString()
       }), {
+        status: 200,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
-        },
-        status: 200
+        }
       });
 
     } catch (error) {
@@ -71,34 +81,34 @@ serve(async (req) => {
       // Handle specific error types
       if (error.name === 'AbortError' || error.message.includes('timed out')) {
         return new Response(JSON.stringify({
-          status: 'Analysis timed out',
           error: 'Request took too long to complete',
+          status: 'Analysis timed out',
           lastChecked: new Date().toISOString()
         }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 408
+          status: 408,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
       return new Response(JSON.stringify({
-        status: 'Error analyzing website',
         error: error.message,
+        status: 'Error analyzing website',
         lastChecked: new Date().toISOString()
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(JSON.stringify({
-      status: 'Invalid request',
       error: error instanceof Error ? error.message : 'Unknown error',
+      status: 'Invalid request',
       lastChecked: new Date().toISOString()
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
