@@ -65,7 +65,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing request:', error);
     
-    // Return a more specific error message based on the error type
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const errorResponse = {
       error: errorMessage,
