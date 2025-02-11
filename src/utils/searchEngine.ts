@@ -2,9 +2,16 @@
 import { SearchResult, SearchResponse } from './types/search';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FunctionsResponse } from '@supabase/supabase-js';
 
 const SEARCH_TIMEOUT = 30000; // 30 seconds timeout
+
+type FunctionResponse<T> = {
+  data: T | null;
+  error: {
+    message: string;
+    status?: number;
+  } | null;
+};
 
 export const performGoogleSearch = async (
   query: string,
@@ -37,7 +44,7 @@ export const performGoogleSearch = async (
     const response = await Promise.race([
       searchPromise,
       timeoutPromise
-    ]) as FunctionsResponse<SearchResponse>;
+    ]) as FunctionResponse<SearchResponse>;
 
     if (response.error) {
       console.error('Search error:', response.error);
