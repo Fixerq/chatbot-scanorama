@@ -1,9 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleOptions } from "../_shared/cors.ts";
 import { verifyUser } from "./auth.ts";
-import { SearchRequest, SearchResponse } from './types.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 console.log("Search Places Edge Function Initialized");
 
@@ -14,46 +12,13 @@ if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-async function logApiCall(userId: string, endpoint: string, status: number, error?: string) {
-  try {
-    console.log('Logging API call:', { userId, endpoint, status, error });
-    const { error: logError } = await supabase
-      .from('api_logs')
-      .insert([
-        {
-          user_id: userId,
-          endpoint,
-          status,
-          error
-        }
-      ]);
-
-    if (logError) {
-      console.error('Error logging API call:', logError);
-    }
-  } catch (e) {
-    console.error('Failed to log API call:', e);
-  }
-}
-
 serve(async (req) => {
   const origin = req.headers.get('origin') || '*';
   console.log('Request received from origin:', origin);
   
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
-    });
-  }
+  const corsResponse = handleOptions(req);
+  if (corsResponse) return corsResponse;
 
   try {
     // Validate request method early
@@ -74,15 +39,8 @@ serve(async (req) => {
     console.log('User authenticated successfully:', userId);
 
     // Parse request body
-    let requestData: SearchRequest;
-    try {
-      const rawBody = await req.text();
-      requestData = JSON.parse(rawBody);
-      console.log('Request data:', requestData);
-    } catch (error) {
-      console.error('Invalid request body:', error);
-      throw new Error('Invalid request body');
-    }
+    const requestData = await req.json();
+    console.log('Request data:', requestData);
 
     // Handle API key request
     if (requestData.type === 'get_api_key') {
@@ -91,8 +49,6 @@ serve(async (req) => {
         throw new Error('Firecrawl API key not configured');
       }
 
-      await logApiCall(userId, 'get_api_key', 200);
-      
       return new Response(
         JSON.stringify({ apiKey: FIRECRAWL_API_KEY }),
         { 
@@ -105,76 +61,11 @@ serve(async (req) => {
       );
     }
 
-    // Handle search request
-    const { query, country, region, startIndex = 0 } = requestData;
-    
-    if (!query || !country) {
-      throw new Error('Missing required parameters: query and country are required');
-    }
-
-    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-      console.error('Missing API configuration');
-      throw new Error('Search service configuration is incomplete');
-    }
-
-    // Check user's subscription status
-    const { data: subscription, error: subError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (subError) {
-      console.error('Subscription check error:', subError);
-      throw new Error('Error verifying subscription status');
-    }
-
-    if (!subscription || subscription.status !== 'active') {
-      console.error('Invalid subscription status:', subscription?.status);
-      throw new Error('Active subscription required');
-    }
-
-    // Construct search query
-    const searchTerms = [query];
-    if (region) searchTerms.push(region);
-    searchTerms.push(country);
-    const searchQuery = searchTerms.join(' ');
-    const start = startIndex ? startIndex + 1 : 1;
-
-    console.log('Executing search with query:', searchQuery);
-
-    // Make request to Google Custom Search API
-    const googleApiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}&start=${start}`;
-    
-    const response = await fetch(googleApiUrl);
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Google API error:', data.error);
-      throw new Error(data.error?.message || 'Failed to fetch search results');
-    }
-
-    // Transform results
-    const results = data.items?.map((item: any) => ({
-      url: item.link,
-      details: {
-        title: item.title,
-        description: item.snippet,
-        lastChecked: new Date().toISOString()
-      }
-    })) || [];
-
-    const searchResult: SearchResponse = {
-      results,
-      hasMore: Boolean(data.queries?.nextPage?.[0])
-    };
-
-    console.log('Search completed successfully');
-    await logApiCall(userId, 'search', 200);
-
+    // Return error response for invalid requests
     return new Response(
-      JSON.stringify(searchResult),
+      JSON.stringify({ error: 'Invalid request type' }),
       { 
+        status: 400,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
@@ -185,25 +76,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in search function:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
-    if (error instanceof Error && 'userId' in error) {
-      await logApiCall(error.userId as string, 'search', 500, errorMessage);
-    }
-    
     return new Response(
-      JSON.stringify({
-        error: errorMessage,
-        results: [],
-        hasMore: false
-      }),
+      JSON.stringify({ error: error.message }),
       { 
+        status: 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': origin
-        },
-        status: 500
+        }
       }
     );
   }
