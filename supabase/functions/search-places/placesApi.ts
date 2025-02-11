@@ -33,7 +33,14 @@ export async function getPlaceDetails(placeId: string) {
   });
 
   const detailsResponse = await fetch(`${detailsEndpoint}?${detailsParams}`);
-  return await detailsResponse.json();
+  const data = await detailsResponse.json();
+  
+  if (data.status !== 'OK') {
+    console.error('Place details error:', data);
+    throw new Error(`Place details error: ${data.status}`);
+  }
+  
+  return data;
 }
 
 export async function searchNearbyPlaces(locationQuery: string, location: { lat: number; lng: number }) {
