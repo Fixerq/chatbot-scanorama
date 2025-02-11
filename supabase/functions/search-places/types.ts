@@ -2,7 +2,7 @@
 export interface SearchParams {
   query: string;
   country: string;
-  region?: string;
+  region: string;
 }
 
 export interface SearchResult {
