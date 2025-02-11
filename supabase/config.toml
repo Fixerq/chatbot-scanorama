@@ -70,6 +70,7 @@ verify_jwt = false
 
 [functions.search-places]
 verify_jwt = false
+import_map = "./import_map.json"
 
 [functions.create-checkout]
 verify_jwt = false
@@ -88,4 +89,3 @@ verify_jwt = false
 
 [functions.send-support-email]
 verify_jwt = false
-

@@ -7,17 +7,32 @@ import { validateSearchRequest } from './validation.ts';
 import { storeSearchResults } from './storage.ts';
 import { corsHeaders } from './types.ts';
 
+// Make sure function has proper error handling for all types of requests
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Max-Age': '86400',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      }
+    });
   }
 
   try {
+    // Add detailed logging
+    console.log('Request received:', {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
+      url: req.url
+    });
+
     const userId = await verifyUser(req.headers.get('Authorization'));
     console.log('User authenticated:', userId);
 
     const { action, params } = await req.json();
-    console.log('Request received:', { action, params });
+    console.log('Request parameters:', { action, params });
 
     const validationError = validateSearchRequest(action, params);
     if (validationError) {
@@ -50,7 +65,8 @@ serve(async (req) => {
       { 
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store'
         } 
       }
     );
@@ -71,10 +87,10 @@ serve(async (req) => {
         status: statusCode,
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store'
         } 
       }
     );
   }
 });
-
