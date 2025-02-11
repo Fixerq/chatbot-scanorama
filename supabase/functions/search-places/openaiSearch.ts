@@ -90,4 +90,3 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
     throw error;
   }
 }
-
