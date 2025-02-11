@@ -1,7 +1,7 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export const executeSearch = async (
   query: string,
@@ -14,17 +14,11 @@ export const executeSearch = async (
   const { data: { session } } = await supabase.auth.getSession();
     
   if (!session) {
-    console.log('No session found, redirecting to login');
     window.location.href = '/login';
     return null;
   }
 
-  console.log('Starting search with params:', {
-    query,
-    country,
-    region,
-    limit: 'unlimited'
-  });
+  console.log('Starting search');
 
   try {
     const searchResult = await performGoogleSearch(
@@ -34,22 +28,18 @@ export const executeSearch = async (
     );
 
     if (!searchResult || !searchResult.results) {
-      console.error('No search results returned');
       return null;
     }
 
-    // Filter out duplicates while keeping existing results
     const existingUrls = new Set(currentResults.map(r => r.url));
     const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
-
-    console.log(`Found ${newResults.length} new results`);
 
     return {
       newResults,
       hasMore: searchResult.hasMore
     };
   } catch (error) {
-    console.error('Search error:', error);
+    console.error('Search error');
     throw error;
   }
 };
@@ -64,7 +54,6 @@ export const loadMore = async (
   const { data: { session } } = await supabase.auth.getSession();
     
   if (!session) {
-    console.log('No session found, redirecting to login');
     window.location.href = '/login';
     return null;
   }
@@ -77,7 +66,6 @@ export const loadMore = async (
       return null;
     }
 
-    // Filter out duplicates
     const existingUrls = new Set(currentResults.map(r => r.url));
     const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
 
@@ -86,7 +74,7 @@ export const loadMore = async (
       hasMore: searchResult.hasMore
     };
   } catch (error) {
-    console.error('Load more error:', error);
+    console.error('Load more error');
     throw error;
   }
 };

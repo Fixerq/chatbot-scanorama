@@ -1,7 +1,6 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat, CrawlDocument } from './types';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface CrawlResult {
   success: boolean;
@@ -32,7 +31,7 @@ export class FirecrawlService {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.access_token) {
-        console.log('No active session, skipping API key fetch');
+        console.log('No active session');
         return '';
       }
 
@@ -42,7 +41,7 @@ export class FirecrawlService {
       }
 
       // Only attempt to fetch API key if we're authenticated
-      console.log('Fetching API key from Supabase function');
+      console.log('Fetching API key');
       const { data, error } = await supabase.functions.invoke('search-places', {
         body: { type: 'get_api_key' },
         headers: {
@@ -52,30 +51,27 @@ export class FirecrawlService {
 
       if (error) {
         if (this.retryCount < this.MAX_RETRIES) {
-          console.log(`Retry attempt ${this.retryCount + 1} of ${this.MAX_RETRIES}`);
+          console.log(`Retrying API key fetch`);
           this.retryCount++;
           await this.delay(this.RETRY_DELAY);
           return this.getApiKey();
         }
-        console.error('Error fetching API key:', error);
-        throw error;
+        console.error('API key fetch error');
+        return '';
       }
 
       if (!data?.apiKey) {
-        console.error('No API key returned from function');
-        throw new Error('Failed to retrieve API key');
+        console.error('No API key in response');
+        return '';
       }
 
-      this.retryCount = 0; // Reset retry count on success
+      this.retryCount = 0;
       this.apiKey = data.apiKey;
       this.lastAccessToken = session.access_token;
       return data.apiKey;
     } catch (error) {
-      console.error('Error getting API key:', error);
-      if (window.location.pathname !== '/login') {
-        toast.error('Failed to fetch API key. Please try again later.');
-      }
-      throw error;
+      console.error('API key error');
+      return '';
     }
   }
 
@@ -87,10 +83,7 @@ export class FirecrawlService {
           this.firecrawlApp = new FirecrawlApp({ apiKey });
         }
       } catch (error) {
-        console.error('Error initializing Firecrawl app:', error);
-        if (window.location.pathname !== '/login') {
-          throw error;
-        }
+        console.error('Initialization error');
       }
     }
   }

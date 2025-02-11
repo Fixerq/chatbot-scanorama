@@ -40,7 +40,6 @@ export const useSearchState = () => {
     let isMounted = true;
 
     const initializeApiKey = async () => {
-      // Skip API key initialization on login page
       if (location.pathname === '/login') {
         return;
       }
@@ -54,8 +53,7 @@ export const useSearchState = () => {
           }));
         }
       } catch (error) {
-        // Error is already handled in FirecrawlService
-        console.error('Error initializing API key:', error);
+        console.error('API key initialization error');
       }
     };
 
@@ -69,7 +67,7 @@ export const useSearchState = () => {
   const resetSearch = useCallback(() => {
     setSearchState(prev => ({
       ...initialState,
-      apiKey: prev.apiKey // Preserve the API key when resetting
+      apiKey: prev.apiKey
     }));
     setResults({
       currentResults: [],
