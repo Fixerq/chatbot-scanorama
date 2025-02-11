@@ -1,95 +1,69 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { searchBusinesses } from './businessSearch.ts';
-import { verifyUser } from './auth.ts';
-import { validateSearchRequest } from './validation.ts';
-import { storeSearchResults } from './storage.ts';
-import { corsHeaders } from './types.ts';
+import { createClient } from '@supabase/supabase-js';
 
-// Make sure function has proper error handling for all types of requests
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Always respond to OPTIONS requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
+    return new Response(null, {
       headers: {
         ...corsHeaders,
         'Access-Control-Max-Age': '86400',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
       }
     });
   }
 
   try {
-    // Add detailed logging
     console.log('Request received:', {
       method: req.method,
-      headers: Object.fromEntries(req.headers.entries()),
       url: req.url
     });
 
-    const userId = await verifyUser(req.headers.get('Authorization'));
-    console.log('User authenticated:', userId);
+    // Basic request validation
+    if (req.method !== 'POST') {
+      throw new Error('Method not allowed');
+    }
 
     const { action, params } = await req.json();
     console.log('Request parameters:', { action, params });
 
-    const validationError = validateSearchRequest(action, params);
-    if (validationError) {
-      console.error('Validation error:', validationError);
-      throw new Error(validationError);
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase configuration');
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    const result = await searchBusinesses(params);
-    console.log('Search completed successfully');
-
-    const searchBatchId = await storeSearchResults(supabaseAdmin, {
-      userId,
-      query: params.query,
-      country: params.country,
-      region: params.region,
-      results: result.results
-    });
-
+    // Simple echo response for testing
     return new Response(
-      JSON.stringify({ data: { ...result, searchBatchId } }),
+      JSON.stringify({
+        data: {
+          results: [],
+          hasMore: false,
+          searchBatchId: crypto.randomUUID()
+        }
+      }),
       { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store'
-        } 
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
+
   } catch (error) {
     console.error('Request error:', error);
     
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    const statusCode = errorMessage.includes('Missing required') ? 400 : 
-                      errorMessage.includes('Invalid action') ? 400 : 
-                      errorMessage.includes('Failed to record') ? 500 : 500;
-
     return new Response(
       JSON.stringify({
-        error: errorMessage,
-        status: statusCode
+        error: error.message || 'An unexpected error occurred',
+        status: 500
       }),
       { 
-        status: statusCode,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store'
-        } 
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
   }
