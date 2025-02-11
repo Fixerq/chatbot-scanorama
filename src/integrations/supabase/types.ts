@@ -138,6 +138,42 @@ export type Database = {
         }
         Relationships: []
       }
+      api_requests: {
+        Row: {
+          endpoint: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          method: string
+          request_timestamp: string
+          response_time_ms: number | null
+          status_code: number | null
+          user_id: string
+        }
+        Insert: {
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          method: string
+          request_timestamp?: string
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_id: string
+        }
+        Update: {
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          method?: string
+          request_timestamp?: string
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -252,6 +288,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          last_activity: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_activity?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_activity?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_levels: {
         Row: {
           created_at: string
@@ -338,6 +401,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_user_data: {
         Args: {
           user_id_param: string
