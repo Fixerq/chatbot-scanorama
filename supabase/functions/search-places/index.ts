@@ -1,6 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { SearchParams } from './types.ts'
+import { searchBusinesses } from './businessSearch.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,20 +14,10 @@ const corsHeaders = {
 async function handleSearch(params: SearchParams) {
   console.log('Processing search with params:', params)
   
-  return {
-    results: [{
-      url: "https://example.com",
-      details: {
-        title: "Test Business",
-        description: "A test business in " + params.region,
-        lastChecked: new Date().toISOString(),
-        address: "123 Test St, " + params.region + ", " + params.country,
-        types: ["business", "test"],
-        rating: 4.5
-      }
-    }],
-    hasMore: false
-  }
+  const results = await searchBusinesses(params)
+  console.log(`Search completed with ${results.results.length} results`)
+  
+  return results
 }
 
 async function handleRequest(req: Request) {
