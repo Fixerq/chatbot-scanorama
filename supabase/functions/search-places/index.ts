@@ -122,7 +122,7 @@ serve(async (req) => {
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (subError) {
       console.error('Subscription check error:', subError);
