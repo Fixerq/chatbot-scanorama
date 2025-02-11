@@ -34,8 +34,8 @@ async function searchBusinesses(query: string, country: string, region?: string)
   }
 
   const searchQuery = region 
-    ? `${query} in ${region}, ${country}`
-    : `${query} in ${country}`;
+    ? `${query} business in ${region}, ${country}`  // Added 'business' keyword
+    : `${query} business in ${country}`;
 
   try {
     // First use Google Custom Search to get initial results
@@ -48,8 +48,41 @@ async function searchBusinesses(query: string, country: string, region?: string)
       return { results: [], hasMore: false };
     }
 
-    // Process and format the results
-    const results = data.items?.map((item: any) => ({
+    // Process and filter results to focus on business websites
+    const results = data.items?.filter(item => {
+      const url = item.link.toLowerCase();
+      const title = item.title.toLowerCase();
+      const snippet = item.snippet.toLowerCase();
+      
+      // Exclude common non-business domains
+      const excludedDomains = [
+        '.gov', '.edu', '.org',
+        'linkedin.com', 'indeed.com', 'glassdoor.com',
+        'wikipedia.org', 'yelp.com', 'yellowpages.com'
+      ];
+      
+      if (excludedDomains.some(domain => url.includes(domain))) {
+        return false;
+      }
+
+      // Look for business indicators in the content
+      const businessIndicators = [
+        'business hours', 'contact us', 'services',
+        'about us', 'testimonials', 'our team',
+        'free quote', 'call us', 'local business'
+      ];
+
+      const hasBusinessIndicator = businessIndicators.some(indicator => 
+        title.includes(indicator) || snippet.includes(indicator)
+      );
+
+      // Look for location relevance
+      const locationRelevant = region 
+        ? (title + snippet).toLowerCase().includes(region.toLowerCase())
+        : true;
+
+      return hasBusinessIndicator && locationRelevant;
+    }).map(item => ({
       url: item.link,
       details: {
         title: item.title,
@@ -58,7 +91,7 @@ async function searchBusinesses(query: string, country: string, region?: string)
       }
     })) || [];
 
-    console.log(`Found ${results.length} results`);
+    console.log(`Found ${results.length} filtered business results`);
 
     return {
       results: results.slice(0, 20), // Limit to top 20 results
