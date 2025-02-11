@@ -1,5 +1,5 @@
 
-import { SearchResult } from './types/firecrawl';
+import { SearchResult } from './types/search';
 import { filterResults } from './helpers/searchHelpers';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,11 +19,13 @@ export const performGoogleSearch = async (
   try {
     const { data: response, error } = await supabase.functions.invoke<SearchResponse>('search-places', {
       body: {
-        type: 'search',
-        query,
-        country,
-        region,
-        startIndex
+        action: 'search',
+        params: {
+          keyword: query,
+          country,
+          region,
+          startIndex
+        }
       }
     });
 
@@ -36,12 +38,19 @@ export const performGoogleSearch = async (
       return null;
     }
 
+    // Map Google Places results to our SearchResult type
+    const searchResults: SearchResult[] = response.data.results.map(result => ({
+      title: result.title || result.name || '',
+      description: result.description || result.formatted_address || '',
+      url: result.url || result.website || ''
+    }));
+
     // Filter results to ensure we only get legitimate businesses
-    const filteredResults = filterResults(response.data.results, query, country, region);
+    const filteredResults = filterResults(searchResults, query, country, region);
 
     return {
       results: filteredResults,
-      hasMore: response.data.hasMore
+      hasMore: false // Since Google Places API doesn't support pagination in the same way
     };
   } catch (error) {
     console.error('Error performing search:', error);

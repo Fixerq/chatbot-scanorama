@@ -1,5 +1,5 @@
 
-import { SearchResult } from '../types/firecrawl';
+import { SearchResult } from '../types/search';
 import { isExcludedDomain } from './domainFilters';
 import { 
   hasBusinessIndicators, 
@@ -22,7 +22,7 @@ export const filterResults = (
 
     const contentToCheck = [
       result.title,
-      result.description || '',
+      result.description,
       result.url
     ].join(' ');
 
@@ -40,13 +40,6 @@ export const filterResults = (
     });
 
     // Require ALL three signals for a result to be considered valid
-    const isValidBusiness = hasBusinessSignals && hasLocation && hasContact;
-
-    if (!isValidBusiness) {
-      console.log(`Filtered out non-business result: ${result.url}`);
-      return false;
-    }
-
-    return true;
+    return hasBusinessSignals && hasLocation && hasContact;
   });
 };
