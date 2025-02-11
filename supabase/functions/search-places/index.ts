@@ -37,7 +37,8 @@ serve(async (req) => {
             status: 500,
             headers: { 
               ...corsHeaders,
-              'Access-Control-Allow-Origin': origin 
+              'Access-Control-Allow-Origin': origin,
+              'Content-Type': 'application/json'
             } 
           }
         );
@@ -52,7 +53,8 @@ serve(async (req) => {
         { 
           headers: { 
             ...corsHeaders,
-            'Access-Control-Allow-Origin': origin 
+            'Access-Control-Allow-Origin': origin,
+            'Content-Type': 'application/json'
           } 
         }
       );
@@ -96,6 +98,7 @@ serve(async (req) => {
         status: 400,
         headers: { 
           ...corsHeaders,
+          'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': origin 
         } 
       }
@@ -113,6 +116,7 @@ serve(async (req) => {
         status: 500,
         headers: { 
           ...corsHeaders,
+          'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': origin 
         } 
       }
