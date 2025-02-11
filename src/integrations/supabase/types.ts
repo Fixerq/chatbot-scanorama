@@ -34,13 +34,20 @@ export type Database = {
           description: string | null
           details: Json | null
           formatted_address: string | null
+          icon: string | null
+          icon_background_color: string | null
+          icon_mask_base_uri: string | null
           id: number
           last_checked: string | null
           location_lat: number | null
           location_lng: number | null
+          opening_hours: Json | null
           phone_number: string | null
+          photos: Json[] | null
           place_data: Json | null
           place_id: string | null
+          place_types: string[] | null
+          place_url: string | null
           rating: number | null
           result_position: number | null
           search_batch_id: string | null
@@ -51,6 +58,8 @@ export type Database = {
           title: string | null
           url: string
           user_id: string | null
+          user_ratings_total: number | null
+          vicinity: string | null
         }
         Insert: {
           ai_generated?: boolean | null
@@ -61,13 +70,20 @@ export type Database = {
           description?: string | null
           details?: Json | null
           formatted_address?: string | null
+          icon?: string | null
+          icon_background_color?: string | null
+          icon_mask_base_uri?: string | null
           id?: number
           last_checked?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          opening_hours?: Json | null
           phone_number?: string | null
+          photos?: Json[] | null
           place_data?: Json | null
           place_id?: string | null
+          place_types?: string[] | null
+          place_url?: string | null
           rating?: number | null
           result_position?: number | null
           search_batch_id?: string | null
@@ -78,6 +94,8 @@ export type Database = {
           title?: string | null
           url: string
           user_id?: string | null
+          user_ratings_total?: number | null
+          vicinity?: string | null
         }
         Update: {
           ai_generated?: boolean | null
@@ -88,13 +106,20 @@ export type Database = {
           description?: string | null
           details?: Json | null
           formatted_address?: string | null
+          icon?: string | null
+          icon_background_color?: string | null
+          icon_mask_base_uri?: string | null
           id?: number
           last_checked?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          opening_hours?: Json | null
           phone_number?: string | null
+          photos?: Json[] | null
           place_data?: Json | null
           place_id?: string | null
+          place_types?: string[] | null
+          place_url?: string | null
           rating?: number | null
           result_position?: number | null
           search_batch_id?: string | null
@@ -105,6 +130,8 @@ export type Database = {
           title?: string | null
           url?: string
           user_id?: string | null
+          user_ratings_total?: number | null
+          vicinity?: string | null
         }
         Relationships: []
       }
