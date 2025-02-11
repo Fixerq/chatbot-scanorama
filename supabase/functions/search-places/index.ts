@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { SearchParams, BusinessSearchResult, SubscriptionData } from './types.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 import { verifyUser } from './auth.ts'
+import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -88,50 +89,60 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
   }
 }
 
-async function performTestSearch(params: SearchParams): Promise<BusinessSearchResult> {
-  console.log('Performing test search with params:', params);
+async function performBusinessSearch(params: SearchParams): Promise<BusinessSearchResult> {
+  console.log('Starting business search with params:', params);
   
-  const testResults = {
-    results: [
-      {
-        url: 'https://example-dentist.com',
-        details: {
-          title: `${params.query} Practice in ${params.region}`,
-          description: `A ${params.query} practice located in ${params.region}, ${params.country}`,
-          lastChecked: new Date().toISOString(),
-          address: `123 Main St, ${params.region}, ${params.country}`,
-          phone: '+44 28 1234 5678',
-          mapsUrl: 'https://maps.google.com',
-          types: ['health', params.query, 'business'],
-          rating: 4.5
-        }
-      },
-      {
-        url: 'https://another-example.com',
-        details: {
-          title: `Another ${params.query} in ${params.region}`,
-          description: `Professional ${params.query} services in ${params.region}`,
-          lastChecked: new Date().toISOString(),
-          address: `456 High Street, ${params.region}, ${params.country}`,
-          phone: '+44 28 8765 4321',
-          mapsUrl: 'https://maps.google.com',
-          types: ['health', params.query, 'business'],
-          rating: 4.8
-        }
-      }
-    ],
-    hasMore: false
-  };
+  try {
+    const searchLocation = `${params.query} in ${params.region}, ${params.country}`;
+    const coordinates = await getLocationCoordinates(searchLocation);
+    console.log('Location coordinates:', coordinates);
 
-  console.log('Generated test results:', testResults);
-  return testResults;
+    const placesData = await searchNearbyPlaces(searchLocation, coordinates);
+    console.log(`Found ${placesData.results.length} places`);
+
+    const detailedResults = await Promise.all(
+      placesData.results.slice(0, 20).map(async (place) => {
+        try {
+          const details = await getPlaceDetails(place.place_id);
+          
+          return {
+            url: details.result?.website || '',
+            details: {
+              title: place.name,
+              description: `${place.name} - ${place.formatted_address}`,
+              lastChecked: new Date().toISOString(),
+              address: details.result?.formatted_address || place.formatted_address,
+              phone: details.result?.formatted_phone_number || '',
+              mapsUrl: details.result?.url || '',
+              types: place.types,
+              rating: place.rating
+            }
+          };
+        } catch (error) {
+          console.error('Error fetching place details:', error);
+          return null;
+        }
+      })
+    );
+
+    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => result !== null);
+    console.log(`Found ${validResults.length} valid business results`);
+
+    return {
+      results: validResults,
+      hasMore: placesData.next_page_token !== undefined
+    };
+  } catch (error) {
+    console.error('Error in business search:', error);
+    throw error;
+  }
 }
 
 async function handleSearch(params: SearchParams, userId: string): Promise<BusinessSearchResult> {
   console.log('Processing search with params:', params);
   
   try {
-    const results = await performTestSearch(params);
+    const results = await performBusinessSearch(params);
     console.log(`Search completed with ${results.results.length} results`);
     
     const supabase = createClient(
