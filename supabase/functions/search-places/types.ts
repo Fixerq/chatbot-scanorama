@@ -1,13 +1,11 @@
 
-export interface SearchRequest {
-  type?: 'get_api_key' | 'search';
-  query?: string;
-  country?: string;
+export interface SearchParams {
+  query: string;
+  country: string;
   region?: string;
-  startIndex?: number;
 }
 
-export interface SearchResponse {
+export interface BusinessSearchResult {
   results: Array<{
     url: string;
     details: {
@@ -22,5 +20,8 @@ export interface SearchResponse {
     };
   }>;
   hasMore: boolean;
-  apiKey?: string;
+}
+
+export interface APIKeyResponse {
+  apiKey: string;
 }
