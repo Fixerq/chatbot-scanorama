@@ -1,8 +1,6 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { SearchParams, BusinessSearchResult, SubscriptionData } from './types.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
-import { searchBusinesses } from './businessSearch.ts'
 import { verifyUser } from './auth.ts'
 
 const corsHeaders = {
@@ -21,7 +19,6 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
 
   try {
     console.log('Fetching subscription data for user:', userId);
-    // Get the user's subscription details
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select(`
@@ -50,7 +47,6 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
       };
     }
 
-    // Get count of searches made this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -92,20 +88,57 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
   }
 }
 
+async function performTestSearch(params: SearchParams): Promise<BusinessSearchResult> {
+  console.log('Performing test search with params:', params);
+  
+  const testResults = {
+    results: [
+      {
+        url: 'https://example-dentist.com',
+        details: {
+          title: `${params.query} Practice in ${params.region}`,
+          description: `A ${params.query} practice located in ${params.region}, ${params.country}`,
+          lastChecked: new Date().toISOString(),
+          address: `123 Main St, ${params.region}, ${params.country}`,
+          phone: '+44 28 1234 5678',
+          mapsUrl: 'https://maps.google.com',
+          types: ['health', params.query, 'business'],
+          rating: 4.5
+        }
+      },
+      {
+        url: 'https://another-example.com',
+        details: {
+          title: `Another ${params.query} in ${params.region}`,
+          description: `Professional ${params.query} services in ${params.region}`,
+          lastChecked: new Date().toISOString(),
+          address: `456 High Street, ${params.region}, ${params.country}`,
+          phone: '+44 28 8765 4321',
+          mapsUrl: 'https://maps.google.com',
+          types: ['health', params.query, 'business'],
+          rating: 4.8
+        }
+      }
+    ],
+    hasMore: false
+  };
+
+  console.log('Generated test results:', testResults);
+  return testResults;
+}
+
 async function handleSearch(params: SearchParams, userId: string): Promise<BusinessSearchResult> {
   console.log('Processing search with params:', params);
   
   try {
-    const results = await searchBusinesses(params);
+    const results = await performTestSearch(params);
     console.log(`Search completed with ${results.results.length} results`);
     
-    // Record the search in analyzed_urls
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // Record each result in the database
     const { error: insertError } = await supabase
       .from('analyzed_urls')
       .insert(
@@ -153,7 +186,6 @@ async function handleRequest(req: Request) {
     }
 
     if (action === 'search') {
-      // Check subscription status first
       const subscription = await getSubscriptionData(userId);
       
       if (subscription.status !== 'active') {
@@ -197,4 +229,3 @@ async function handleRequest(req: Request) {
 }
 
 serve(handleRequest)
-
