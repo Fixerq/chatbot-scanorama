@@ -1,3 +1,4 @@
+
 // Domain filtering logic
 export const EXCLUDED_DOMAINS = [
   // Government domains (block all .gov sites)

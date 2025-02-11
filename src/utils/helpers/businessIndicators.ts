@@ -1,3 +1,4 @@
+
 // Business validation logic
 export const LOCAL_BUSINESS_INDICATORS = [
   'local business',
