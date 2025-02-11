@@ -15,11 +15,46 @@ serve(async (req) => {
   }
 
   try {
-    const { action, params } = await req.json();
-    console.log('Request params:', { action, params });
+    const { type, query, country, region } = await req.json();
+    console.log('Request type:', type);
+
+    if (type === 'get_api_key') {
+      const apiKey = Deno.env.get('Firecrawl');
+      console.log('API key fetch attempt');
+      
+      if (!apiKey) {
+        console.error('Firecrawl API key not configured');
+        return new Response(
+          JSON.stringify({ error: 'API key not configured' }),
+          { 
+            status: 500,
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': origin 
+            } 
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          data: { 
+            apiKey: apiKey 
+          }
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': origin 
+          } 
+        }
+      );
+    }
 
     // Handle search request
-    if (action === 'search' && params?.keyword && params?.country) {
+    if (type === 'search' && query && country) {
       const GOOGLE_API_KEY = Deno.env.get('Google API');
       const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
 
@@ -39,11 +74,11 @@ serve(async (req) => {
       }
 
       // Construct search query with region if provided
-      const searchQuery = params.region 
-        ? `${params.keyword} in ${params.region}, ${params.country}`
-        : `${params.keyword} in ${params.country}`;
+      const searchQuery = region 
+        ? `${query} in ${region}, ${country}`
+        : `${query} in ${country}`;
 
-      const searchUrl = `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}`;
+      const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}`;
       
       console.log('Executing search with query:', searchQuery);
       
@@ -65,12 +100,13 @@ serve(async (req) => {
         );
       }
 
-      // Map Google Search results to GooglePlacesResult format
       const results = data.items?.map((item: any) => ({
-        name: item.title,
-        formatted_address: item.snippet,
-        website: item.link,
-        types: []
+        url: item.link,
+        details: {
+          title: item.title,
+          description: item.snippet,
+          lastChecked: new Date().toISOString()
+        }
       })) || [];
 
       console.log(`Found ${results.length} results`);
@@ -93,9 +129,8 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: 'Invalid request' }),
+      JSON.stringify({ status: 'ok' }),
       { 
-        status: 400,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
