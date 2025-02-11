@@ -34,7 +34,6 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
 
     if (subError) throw subError;
 
-    // Default to starter plan if no subscription found
     if (!subscription) {
       return {
         level: 'starter',
@@ -46,7 +45,6 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
       };
     }
 
-    // Calculate searches used this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -85,66 +83,76 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
       throw new Error('Missing required search parameters');
     }
 
-    const businesses = await searchBusinessesWithAI(params.query, params.region || '', params.country);
-    console.log(`Found ${businesses.length} businesses`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    try {
+      const businesses = await searchBusinessesWithAI(params.query, params.region || '', params.country);
+      clearTimeout(timeout);
+      console.log(`Found ${businesses.length} businesses`);
 
-    // Generate a unique batch ID for this search
-    const searchBatchId = crypto.randomUUID();
-
-    const results = businesses.map(business => ({
-      url: business.website || '',
-      details: {
-        title: business.name,
-        description: business.description,
-        lastChecked: new Date().toISOString(),
-        address: business.address,
-        businessType: business.businessType,
-        confidence: business.confidenceScore,
-      }
-    }));
-
-    if (results.length === 0) {
-      console.log('No results found');
-      return { results: [], hasMore: false, searchBatchId };
-    }
-
-    // Record search results with batch ID and position
-    const { error: insertError } = await supabase
-      .from('analyzed_urls')
-      .insert(
-        results.map((result, index) => ({
-          url: result.url,
-          user_id: userId,
-          title: result.details.title,
-          description: result.details.description,
-          status: 'completed',
-          details: result.details,
-          ai_generated: true,
-          confidence_score: result.details.confidence,
-          search_query: params.query,
-          search_region: params.region || '',
-          search_batch_id: searchBatchId,
-          result_position: index + 1
-        }))
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       );
 
-    if (insertError) {
-      console.error('Error recording results:', insertError);
-      throw new Error('Failed to record search results');
-    }
+      const searchBatchId = crypto.randomUUID();
 
-    return {
-      results,
-      hasMore: false,
-      searchBatchId
-    };
+      const results = businesses.map(business => ({
+        url: business.website || '',
+        details: {
+          title: business.name,
+          description: business.description,
+          lastChecked: new Date().toISOString(),
+          address: business.address,
+          businessType: business.businessType,
+          confidence: business.confidenceScore,
+        }
+      }));
+
+      if (results.length === 0) {
+        console.log('No results found');
+        return { results: [], hasMore: false, searchBatchId };
+      }
+
+      const { error: insertError } = await supabase
+        .from('analyzed_urls')
+        .insert(
+          results.map((result, index) => ({
+            url: result.url,
+            user_id: userId,
+            title: result.details.title,
+            description: result.details.description,
+            status: 'completed',
+            details: result.details,
+            ai_generated: true,
+            confidence_score: result.details.confidence,
+            search_query: params.query,
+            search_region: params.region || '',
+            search_batch_id: searchBatchId,
+            result_position: index + 1
+          }))
+        );
+
+      if (insertError) {
+        console.error('Error recording results:', insertError);
+        throw new Error('Failed to record search results');
+      }
+
+      return {
+        results,
+        hasMore: false,
+        searchBatchId
+      };
+    } catch (error) {
+      clearTimeout(timeout);
+      throw error;
+    }
   } catch (error) {
     console.error('Search error:', error);
+    if (error.name === 'AbortError') {
+      throw new Error('Search request timed out');
+    }
     throw error;
   }
 }
@@ -191,7 +199,7 @@ serve(async (req) => {
         success: false,
         error: error.message
       }),
-      { headers: corsHeaders }
+      { headers: corsHeaders, status: error.status || 500 }
     );
   }
 });
