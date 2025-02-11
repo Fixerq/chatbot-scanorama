@@ -1,6 +1,6 @@
 
 export interface SearchRequest {
-  type?: 'get_api_key';
+  type?: 'get_api_key' | 'search';
   query?: string;
   country?: string;
   region?: string;
