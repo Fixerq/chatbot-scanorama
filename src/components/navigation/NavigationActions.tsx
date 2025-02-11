@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Loader2, MessageCircle, Settings } from 'lucide-react';
 import { SubscriptionStatus } from '../SubscriptionStatus';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react';
 import { SupportDialog } from './SupportDialog';
 
 interface NavigationActionsProps {
@@ -25,25 +26,30 @@ export const NavigationActions = ({
 }: NavigationActionsProps) => {
   const navigate = useNavigate();
   const supabase = useSupabaseClient();
+  const session = useSession();
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [isSupportOpen, setIsSupportOpen] = React.useState(false);
 
   React.useEffect(() => {
     const checkAdminStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) return;
 
-      const { data: adminData } = await supabase
+      const { data: adminData, error } = await supabase
         .from('admin_users')
         .select('user_id')
         .eq('user_id', session.user.id)
         .single();
       
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return;
+      }
+      
       setIsAdmin(!!adminData);
     };
 
     checkAdminStatus();
-  }, [supabase]);
+  }, [session, supabase]);
 
   return (
     <div className="flex items-center gap-4">

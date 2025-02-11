@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,18 +12,36 @@ export const useAdminStatus = () => {
   const checkAdminStatus = async () => {
     try {
       setIsChecking(true);
+      const { data: session } = await supabase.auth.getSession();
+
+      if (!session?.session?.user?.id) {
+        console.log('No active session found');
+        setIsAdmin(false);
+        navigate('/login');
+        return false;
+      }
+
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('user_id')
+        .eq('user_id', session.session.user.id)
         .single();
 
-      if (adminError || !adminData) {
+      if (adminError) {
         console.error('Admin check error:', adminError);
         toast.error('You do not have admin access');
         navigate('/dashboard');
         return false;
       }
-      setIsAdmin(true);
+
+      const hasAdminAccess = !!adminData;
+      setIsAdmin(hasAdminAccess);
+      
+      if (!hasAdminAccess) {
+        navigate('/dashboard');
+        return false;
+      }
+
       return true;
     } catch (error) {
       console.error('Admin check error:', error);

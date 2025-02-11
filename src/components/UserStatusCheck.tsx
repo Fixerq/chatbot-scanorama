@@ -1,3 +1,4 @@
+
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useEffect, useState } from 'react';
 import { Alert } from './ui/alert';
@@ -13,6 +14,7 @@ export const UserStatusCheck = () => {
     const checkAdminStatus = async () => {
       if (!session?.user?.id) {
         console.log('No user session found');
+        setIsLoading(false);
         return;
       }
 
@@ -27,6 +29,7 @@ export const UserStatusCheck = () => {
 
         if (error) {
           console.error('Error checking admin status:', error);
+          setIsAdmin(false);
           return;
         }
 
@@ -34,6 +37,7 @@ export const UserStatusCheck = () => {
         setIsAdmin(!!data);
       } catch (error) {
         console.error('Error in admin check:', error);
+        setIsAdmin(false);
       } finally {
         setIsLoading(false);
       }
