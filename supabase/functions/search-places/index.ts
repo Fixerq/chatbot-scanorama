@@ -1,12 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json'
-};
+import { corsHeaders, handleOptions } from '../_shared/cors.ts';
 
 serve(async (req) => {
   // Always return 200 for OPTIONS
