@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FirecrawlService } from '../utils/firecrawl';
 import { Result } from '@/components/ResultsTable';
+import { useLocation } from 'react-router-dom';
 
 interface SearchState {
   query: string;
@@ -33,17 +34,23 @@ export const useSearchState = () => {
     hasMore: false,
   });
   const [isSearching, setIsSearching] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     let isMounted = true;
 
     const initializeApiKey = async () => {
+      // Skip API key initialization on login page
+      if (location.pathname === '/login') {
+        return;
+      }
+
       try {
         const apiKey = await FirecrawlService.getApiKey();
-        if (isMounted) {
+        if (isMounted && apiKey) {
           setSearchState(prev => ({
             ...prev,
-            apiKey: apiKey || '' // Ensure we always set a string, even if empty
+            apiKey
           }));
         }
       } catch (error) {
@@ -56,7 +63,7 @@ export const useSearchState = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [location.pathname]);
 
   const resetSearch = useCallback(() => {
     setSearchState(prev => ({

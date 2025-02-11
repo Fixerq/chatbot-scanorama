@@ -18,17 +18,25 @@ interface CrawlResult {
 export class FirecrawlService {
   private static firecrawlApp: FirecrawlApp | null = null;
   private static MAX_API_LIMIT = 10;
+  private static retryCount = 0;
+  private static MAX_RETRIES = 3;
+  private static RETRY_DELAY = 1000; // 1 second
+
+  private static async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   static async getApiKey(): Promise<string> {
     try {
-      console.log('Fetching API key from Supabase function');
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        console.error('No active session found');
-        throw new Error('Authentication required');
+      if (!session?.access_token) {
+        console.log('No active session, skipping API key fetch');
+        return '';
       }
 
+      // Only attempt to fetch API key if we're authenticated
+      console.log('Fetching API key from Supabase function');
       const { data, error } = await supabase.functions.invoke('search-places', {
         body: { type: 'get_api_key' },
         headers: {
@@ -37,6 +45,12 @@ export class FirecrawlService {
       });
 
       if (error) {
+        if (this.retryCount < this.MAX_RETRIES) {
+          console.log(`Retry attempt ${this.retryCount + 1} of ${this.MAX_RETRIES}`);
+          this.retryCount++;
+          await this.delay(this.RETRY_DELAY);
+          return this.getApiKey();
+        }
         console.error('Error fetching API key:', error);
         throw error;
       }
@@ -46,18 +60,30 @@ export class FirecrawlService {
         throw new Error('Failed to retrieve API key');
       }
 
+      this.retryCount = 0; // Reset retry count on success
       return data.apiKey;
     } catch (error) {
       console.error('Error getting API key:', error);
-      toast.error('Failed to fetch API key. Please try again later.');
+      if (window.location.pathname !== '/login') {
+        toast.error('Failed to fetch API key. Please try again later.');
+      }
       throw error;
     }
   }
 
   private static async initializeApp(): Promise<void> {
     if (!this.firecrawlApp) {
-      const apiKey = await this.getApiKey();
-      this.firecrawlApp = new FirecrawlApp({ apiKey });
+      try {
+        const apiKey = await this.getApiKey();
+        if (apiKey) {
+          this.firecrawlApp = new FirecrawlApp({ apiKey });
+        }
+      } catch (error) {
+        console.error('Error initializing Firecrawl app:', error);
+        if (window.location.pathname !== '/login') {
+          throw error;
+        }
+      }
     }
   }
 
@@ -85,6 +111,10 @@ export class FirecrawlService {
       console.log('Making crawl request to Firecrawl API');
       await this.initializeApp();
 
+      if (!this.firecrawlApp) {
+        return { success: false, error: 'Firecrawl not initialized' };
+      }
+
       const formattedUrl = this.formatUrl(url);
       console.log('Formatted URL:', formattedUrl);
 
@@ -100,7 +130,7 @@ export class FirecrawlService {
         }
       };
 
-      const crawlResponse = await this.firecrawlApp!.crawlUrl(formattedUrl, {
+      const crawlResponse = await this.firecrawlApp.crawlUrl(formattedUrl, {
         limit: 1,
         scrapeOptions
       }) as CrawlResponse;
