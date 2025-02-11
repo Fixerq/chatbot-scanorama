@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import SearchFormContainer from '@/components/SearchFormContainer';
 import Results from '@/components/Results';
 import { Result } from '@/components/ResultsTable';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -16,6 +17,11 @@ const Index = () => {
     setNewSearchTrigger(prev => !prev);
   }, []);
 
+  const handleSearchError = useCallback((error: Error) => {
+    console.error('Search error:', error);
+    toast.error('An error occurred during search. Please try again.');
+  }, []);
+
   return (
     <div className="min-h-screen bg-black">
       <NavigationBar />
@@ -24,7 +30,9 @@ const Index = () => {
         <SearchFormContainer 
           onResults={setResults}
           isProcessing={isProcessing}
+          setIsProcessing={setIsProcessing}
           triggerNewSearch={newSearchTrigger}
+          onError={handleSearchError}
         />
         <Results 
           results={results}
