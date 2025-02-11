@@ -1,28 +1,32 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from '@supabase/supabase-js';
+import { validateSearchRequest } from './validation.ts';
+import { getLocationCoordinates, searchNearbyPlaces } from './placesApi.ts';
 
+// Updated CORS headers to be more permissive
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': '*',
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Expose-Headers': '*',
+  'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json'
 };
 
 serve(async (req) => {
-  // Always respond to OPTIONS requests
+  // Always handle OPTIONS request first with all headers
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Max-Age': '86400',
-      }
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders
     });
   }
 
   try {
     console.log('Request received:', {
       method: req.method,
-      url: req.url
+      url: req.url,
+      headers: Object.fromEntries(req.headers.entries())
     });
 
     // Basic request validation
@@ -31,22 +35,44 @@ serve(async (req) => {
     }
 
     const { action, params } = await req.json();
-    console.log('Request parameters:', { action, params });
+    console.log('Search request:', { action, params });
 
-    // Simple echo response for testing
+    // Validate search parameters
+    const validationError = validateSearchRequest(action, params);
+    if (validationError) {
+      console.error('Validation error:', validationError);
+      throw new Error(validationError);
+    }
+
+    // Get coordinates for the location
+    const location = await getLocationCoordinates(`${params.region}, ${params.country}`);
+    if (!location) {
+      throw new Error('Location not found');
+    }
+
+    // Search for places near the location
+    const searchResponse = await searchNearbyPlaces(params.query, location);
+    const results = searchResponse.results || [];
+    
+    console.log(`Found ${results.length} results for query:`, params.query);
+
     return new Response(
       JSON.stringify({
         data: {
-          results: [],
+          results: results.map(place => ({
+            title: place.name,
+            description: place.formatted_address,
+            url: place.photos?.[0]?.photo_reference 
+              ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${place.photos[0].photo_reference}&key=${Deno.env.get('GOOGLE_PLACES_API_KEY')}`
+              : null,
+          })),
           hasMore: false,
           searchBatchId: crypto.randomUUID()
         }
       }),
       { 
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        status: 200,
+        headers: corsHeaders
       }
     );
 
@@ -56,14 +82,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
-        status: 500
+        status: 'error'
       }),
       { 
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        status: 200, // Keep status 200 but include error in body
+        headers: corsHeaders
       }
     );
   }
