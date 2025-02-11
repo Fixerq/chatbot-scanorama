@@ -1,28 +1,18 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders, handleOptions } from "../_shared/cors.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 import { verifyUser } from "./auth.ts";
+import { SearchRequest, SearchResponse } from "./types.ts";
 
 console.log("Search Places Edge Function Initialized");
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
 serve(async (req) => {
-  // Get the origin from the request headers
   const origin = req.headers.get('origin') || '*';
   console.log('Incoming request from origin:', origin);
-  console.log('Request method:', req.method);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
   
   try {
     // Handle CORS preflight
     if (req.method === 'OPTIONS') {
-      console.log('Handling OPTIONS request');
       return new Response(null, {
         headers: {
           ...corsHeaders,
@@ -33,9 +23,7 @@ serve(async (req) => {
       });
     }
 
-    // Validate request method early
     if (req.method !== 'POST') {
-      console.error(`Invalid method: ${req.method}`);
       throw new Error(`Method ${req.method} not allowed`);
     }
 
@@ -43,6 +31,10 @@ serve(async (req) => {
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+      throw new Error('Google API configuration missing');
+    }
 
     // Verify user authentication
     const authHeader = req.headers.get('Authorization');
@@ -52,34 +44,71 @@ serve(async (req) => {
     console.log('User authenticated successfully:', userId);
 
     // Parse request body
-    const requestData = await req.json();
+    const requestData: SearchRequest = await req.json();
     console.log('Request data:', requestData);
 
     // Handle API key request
     if (requestData.type === 'get_api_key') {
       if (!FIRECRAWL_API_KEY) {
-        console.error('Firecrawl API key not configured');
         throw new Error('Firecrawl API key not configured');
       }
 
       return new Response(
         JSON.stringify({ apiKey: FIRECRAWL_API_KEY }),
-        { 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': origin
-          }
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin } }
       );
     }
 
-    // Return error response for invalid requests
-    console.error('Invalid request type:', requestData.type);
+    // Handle search request
+    const { query, country, region, startIndex = 0 } = requestData;
+    
+    if (!query || !country) {
+      throw new Error('Missing required search parameters');
+    }
+
+    // Construct search query
+    let searchQuery = `${query} business in ${country}`;
+    if (region) {
+      searchQuery += ` ${region}`;
+    }
+
+    console.log('Performing Google search with query:', searchQuery);
+
+    // Call Google Custom Search API
+    const googleSearchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+    googleSearchUrl.searchParams.append('key', GOOGLE_API_KEY);
+    googleSearchUrl.searchParams.append('cx', GOOGLE_CX);
+    googleSearchUrl.searchParams.append('q', searchQuery);
+    googleSearchUrl.searchParams.append('start', startIndex.toString());
+
+    const response = await fetch(googleSearchUrl.toString());
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Google API error:', data);
+      throw new Error(data.error?.message || 'Google search failed');
+    }
+
+    // Process and format results
+    const results = data.items?.map((item: any) => ({
+      url: item.link,
+      details: {
+        title: item.title,
+        description: item.snippet,
+        lastChecked: new Date().toISOString()
+      }
+    })) || [];
+
+    const searchResponse: SearchResponse = {
+      results,
+      hasMore: !!data.queries?.nextPage?.[0]
+    };
+
+    console.log('Search completed successfully');
+
     return new Response(
-      JSON.stringify({ error: 'Invalid request type' }),
+      JSON.stringify(searchResponse),
       { 
-        status: 400,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
@@ -90,11 +119,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in search function:', error);
-    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        stack: error.stack,
         origin: origin
       }),
       { 
