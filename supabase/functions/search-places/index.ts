@@ -121,6 +121,11 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
     // Log the results before inserting
     console.log('Preparing to insert results:', results);
 
+    if (results.length === 0) {
+      console.log('No results found from AI search');
+      return { results: [], hasMore: false };
+    }
+
     const { error: insertError } = await supabase
       .from('analyzed_urls')
       .insert(

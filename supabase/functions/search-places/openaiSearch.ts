@@ -33,7 +33,7 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
   Return only the JSON array, no other text.`;
 
   try {
-    console.log('Sending request to OpenAI');
+    console.log('Sending request to OpenAI with prompts:', { systemPrompt, userPrompt });
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -41,7 +41,7 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',  // Fixed: Using the correct model name
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
