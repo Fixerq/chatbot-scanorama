@@ -1,3 +1,4 @@
+
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,10 +15,20 @@ const isValidUrl = (url: string): boolean => {
 
 export const detectChatbot = async (url: string): Promise<ChatbotDetectionResponse> => {
   try {
-    console.log('Analyzing URL:', url);
+    if (!url) {
+      console.error('No URL provided');
+      throw new Error('URL is required');
+    }
+
+    const cleanUrl = url.trim();
+    if (!cleanUrl) {
+      throw new Error('URL cannot be empty');
+    }
+
+    console.log('Analyzing URL:', cleanUrl);
     
     const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: { url },
+      body: { url: cleanUrl },
       headers: {
         'Content-Type': 'application/json',
       }

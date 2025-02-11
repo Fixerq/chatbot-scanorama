@@ -1,3 +1,4 @@
+
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -33,6 +34,10 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
       
       clearTimeout(timeoutId);
 
+      // Log response details for debugging
+      console.log(`Response status: ${response.status} for ${url}`);
+      console.log(`Response headers:`, Object.fromEntries(response.headers));
+
       if (response.ok) {
         console.log(`Successfully fetched ${url} on attempt ${i + 1}`);
         return response;
@@ -55,8 +60,10 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
         throw new Error('Request timed out');
       }
       
+      // Only retry if we haven't reached max retries
       if (i === maxRetries - 1) throw error;
       
+      // Exponential backoff
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
     }
   }
