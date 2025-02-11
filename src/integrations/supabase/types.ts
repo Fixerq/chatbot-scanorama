@@ -330,6 +330,80 @@ export type Database = {
         }
         Relationships: []
       }
+      search_history: {
+        Row: {
+          country: string
+          created_at: string | null
+          id: string
+          query: string
+          region: string
+          search_batch_id: string
+          user_id: string
+        }
+        Insert: {
+          country: string
+          created_at?: string | null
+          id?: string
+          query: string
+          region: string
+          search_batch_id: string
+          user_id: string
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          id?: string
+          query?: string
+          region?: string
+          search_batch_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      search_results: {
+        Row: {
+          address: string | null
+          business_name: string
+          business_type: string | null
+          description: string | null
+          id: string
+          last_checked: string | null
+          phone_number: string | null
+          search_id: string
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          business_type?: string | null
+          description?: string | null
+          id?: string
+          last_checked?: string | null
+          phone_number?: string | null
+          search_id: string
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          business_type?: string | null
+          description?: string | null
+          id?: string
+          last_checked?: string | null
+          phone_number?: string | null
+          search_id?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_search"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "search_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       secrets: {
         Row: {
           created_at: string

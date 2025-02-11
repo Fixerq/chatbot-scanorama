@@ -13,6 +13,7 @@ export interface SearchResult {
     lastChecked: string;
     address?: string;
     businessType?: string;
+    phoneNumber?: string;
   };
 }
 
