@@ -5,28 +5,22 @@ export interface SearchParams {
   region?: string;
 }
 
-export interface BusinessResult {
-  name: string;
-  description: string;
-  website?: string;
-  address?: string;
-  businessType?: string;
-  confidenceScore: number;
+export interface SearchResult {
+  url: string;
+  details: {
+    title: string;
+    description: string;
+    lastChecked: string;
+    address?: string;
+    businessType?: string;
+    confidence?: number;
+  };
 }
 
-export interface BusinessSearchResult {
-  results: Array<{
-    url: string;
-    details: {
-      title: string;
-      description: string;
-      lastChecked: string;
-      address?: string;
-      businessType?: string;
-      confidence?: number;
-    };
-  }>;
+export interface SearchResponse {
+  results: SearchResult[];
   hasMore: boolean;
+  searchBatchId: string;
 }
 
 export interface SubscriptionData {
@@ -37,4 +31,9 @@ export interface SubscriptionData {
   searches_used: number;
   total_searches: number;
 }
+
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
