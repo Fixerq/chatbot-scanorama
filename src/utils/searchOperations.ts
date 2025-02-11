@@ -32,14 +32,23 @@ export const executeSearch = async (
     }
 
     const existingUrls = new Set(currentResults.map(r => r.url));
-    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+    const newResults = searchResult.results
+      .filter(result => !existingUrls.has(result.url))
+      .map(result => ({
+        url: result.url,
+        details: {
+          title: result.title,
+          description: result.description,
+          lastChecked: new Date().toISOString()
+        }
+      }));
 
     return {
       newResults,
       hasMore: searchResult.hasMore
     };
   } catch (error) {
-    console.error('Search error');
+    console.error('Search error:', error);
     throw error;
   }
 };
@@ -67,14 +76,23 @@ export const loadMore = async (
     }
 
     const existingUrls = new Set(currentResults.map(r => r.url));
-    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+    const newResults = searchResult.results
+      .filter(result => !existingUrls.has(result.url))
+      .map(result => ({
+        url: result.url,
+        details: {
+          title: result.title,
+          description: result.description,
+          lastChecked: new Date().toISOString()
+        }
+      }));
 
     return {
       newResults,
       hasMore: searchResult.hasMore
     };
   } catch (error) {
-    console.error('Load more error');
+    console.error('Load more error:', error);
     throw error;
   }
 };
