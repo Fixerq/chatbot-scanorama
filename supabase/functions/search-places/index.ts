@@ -15,15 +15,27 @@ if (!supabaseUrl || !supabaseServiceKey) {
 serve(async (req) => {
   // Get the origin from the request headers
   const origin = req.headers.get('origin') || '*';
-  console.log('Request received from origin:', origin);
+  console.log('Incoming request from origin:', origin);
+  console.log('Request method:', req.method);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
   
-  // Handle CORS preflight
-  const corsResponse = handleOptions(req);
-  if (corsResponse) return corsResponse;
-
   try {
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+      console.log('Handling OPTIONS request');
+      return new Response(null, {
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        }
+      });
+    }
+
     // Validate request method early
     if (req.method !== 'POST') {
+      console.error(`Invalid method: ${req.method}`);
       throw new Error(`Method ${req.method} not allowed`);
     }
 
@@ -63,6 +75,7 @@ serve(async (req) => {
     }
 
     // Return error response for invalid requests
+    console.error('Invalid request type:', requestData.type);
     return new Response(
       JSON.stringify({ error: 'Invalid request type' }),
       { 
@@ -77,8 +90,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in search function:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack,
+        origin: origin
+      }),
       { 
         status: 500,
         headers: { 
