@@ -21,20 +21,21 @@ export const useAdminStatus = () => {
         return false;
       }
 
-      // Use the improved RLS policy to check admin status
+      // Simple admin check using the admin_users table
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('user_id')
-        .eq('user_id', session.session.user.id)
-        .maybeSingle();
+        .single();
 
-      if (adminError) {
+      if (adminError && adminError.code !== 'PGRST116') {
+        // PGRST116 means no rows returned, which is expected for non-admins
         console.error('Admin check error:', adminError);
         toast.error('Error checking admin status');
         return false;
       }
 
       const hasAdminAccess = !!adminData;
+      console.log('Admin status:', hasAdminAccess);
       setIsAdmin(hasAdminAccess);
       
       if (!hasAdminAccess) {

@@ -42,10 +42,9 @@ export const NavigationActions = ({
         const { data, error } = await supabase
           .from('admin_users')
           .select('user_id')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+          .single();
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
           console.error('Error checking admin status:', error);
           return;
         }
