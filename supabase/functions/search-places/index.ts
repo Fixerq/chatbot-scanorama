@@ -14,22 +14,22 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Always handle OPTIONS request first with all headers
+  // Handle CORS preflight requests first
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
+    return new Response('ok', { 
       status: 200,
       headers: corsHeaders
     });
   }
 
   try {
+    // Log incoming request details for debugging
     console.log('Request received:', {
       method: req.method,
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
 
-    // Basic request validation
     if (req.method !== 'POST') {
       throw new Error('Method not allowed');
     }
@@ -56,6 +56,7 @@ serve(async (req) => {
     
     console.log(`Found ${results.length} results for query:`, params.query);
 
+    // Return successful response
     return new Response(
       JSON.stringify({
         data: {
@@ -64,7 +65,7 @@ serve(async (req) => {
             description: place.formatted_address,
             url: place.photos?.[0]?.photo_reference 
               ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${place.photos[0].photo_reference}&key=${Deno.env.get('GOOGLE_PLACES_API_KEY')}`
-              : null,
+              : `https://maps.google.com/?q=${encodeURIComponent(place.formatted_address)}`,
           })),
           hasMore: false,
           searchBatchId: crypto.randomUUID()
