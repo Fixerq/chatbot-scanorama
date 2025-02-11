@@ -1,13 +1,13 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { searchBusinesses } from "./businessSearch.ts";
+import { BusinessSearchResult } from "./types.ts";
 
-console.log("Search Places Edge Function Initialized");
+console.log("Search Places Edge Function Initialized (Debug Mode)");
 
 serve(async (req) => {
   const origin = req.headers.get('origin') || '*';
-  console.log('Incoming request from origin:', origin);
+  console.log('Debug - Incoming request from origin:', origin);
   
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -20,35 +20,15 @@ serve(async (req) => {
   }
 
   try {
-    const { type, query, country, region, startIndex } = await req.json();
-    console.log('Request params:', { type, query, country, region, startIndex });
+    const { type, query, country, region } = await req.json();
+    console.log('Debug - Request params:', { type, query, country, region });
 
     if (type === 'get_api_key') {
-      const apiKey = Deno.env.get('Firecrawl');
-      console.log('API key fetch attempt');
-      
-      if (!apiKey) {
-        console.error('Firecrawl API key not configured');
-        return new Response(
-          JSON.stringify({ 
-            error: 'API key not configured',
-            details: 'Firecrawl API key is missing from environment variables'
-          }),
-          { 
-            status: 200, // Return 200 to avoid CORS issues
-            headers: { 
-              ...corsHeaders,
-              'Access-Control-Allow-Origin': origin,
-              'Content-Type': 'application/json'
-            } 
-          }
-        );
-      }
-
+      console.log('Debug - API key request received');
       return new Response(
         JSON.stringify({ 
           data: { 
-            apiKey: apiKey 
+            apiKey: 'test-api-key' 
           }
         }),
         { 
@@ -62,29 +42,43 @@ serve(async (req) => {
     }
 
     if (type === 'search') {
-      if (!query || !country || !region) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Missing required parameters',
-            received: { query, country, region }
-          }),
-          { 
-            status: 200, // Return 200 to avoid CORS issues
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': origin 
-            } 
+      console.log('Debug - Search request received with params:', { query, country, region });
+      
+      const mockResult: BusinessSearchResult = {
+        results: [
+          {
+            url: 'https://example-business.com',
+            details: {
+              title: 'Example Local Business',
+              description: 'A mock business for testing',
+              lastChecked: new Date().toISOString(),
+              address: '123 Test Street, Test City, Test Region',
+              phone: '(555) 123-4567',
+              mapsUrl: 'https://maps.google.com/example',
+              types: ['business', 'local_business'],
+              rating: 4.5
+            }
+          },
+          {
+            url: 'https://another-business.com',
+            details: {
+              title: 'Another Test Business',
+              description: 'Second mock business for testing',
+              lastChecked: new Date().toISOString(),
+              address: '456 Debug Avenue, Test City, Test Region',
+              phone: '(555) 987-6543',
+              mapsUrl: 'https://maps.google.com/another-example',
+              types: ['business', 'store'],
+              rating: 4.2
+            }
           }
-        );
-      }
-
-      console.log('Executing search with params:', { query, country, region });
-      const searchResults = await searchBusinesses({ query, country, region });
+        ],
+        hasMore: false
+      };
 
       return new Response(
         JSON.stringify({ 
-          data: searchResults
+          data: mockResult
         }),
         { 
           headers: { 
@@ -96,6 +90,7 @@ serve(async (req) => {
       );
     }
 
+    console.log('Debug - Invalid request type received:', type);
     return new Response(
       JSON.stringify({ 
         error: 'Invalid request type',
@@ -112,7 +107,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in search function:', error);
+    console.error('Debug - Error in search function:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
