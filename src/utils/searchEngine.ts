@@ -25,9 +25,7 @@ export const performGoogleSearch = async (
           region
         }
       },
-      options: {
-        signal: controller.signal
-      }
+      signal: controller.signal
     });
 
     clearTimeout(timeoutId);
