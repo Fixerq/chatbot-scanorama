@@ -4,16 +4,15 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 console.log("Search Places Edge Function Initialized");
 
-async function getLocationCoordinates(region: string, country: string) {
+async function getLocationCoordinates(location: string) {
   const GOOGLE_API_KEY = Deno.env.get('Google API');
   const geocodeEndpoint = 'https://maps.googleapis.com/maps/api/geocode/json';
   
   try {
-    const locationQuery = `${region}, ${country}`;
-    console.log('Geocoding location:', locationQuery);
+    console.log('Geocoding location:', location);
     
     const response = await fetch(
-      `${geocodeEndpoint}?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`
+      `${geocodeEndpoint}?address=${encodeURIComponent(location)}&key=${GOOGLE_API_KEY}`
     );
     const data = await response.json();
     console.log('Geocoding response status:', data.status);
@@ -22,7 +21,7 @@ async function getLocationCoordinates(region: string, country: string) {
       console.log('Found coordinates:', data.results[0].geometry.location);
       return data.results[0].geometry.location;
     }
-    throw new Error(`Location not found for: ${locationQuery}`);
+    throw new Error(`Location not found for: ${location}`);
   } catch (error) {
     console.error('Geocoding error:', error);
     throw error;
@@ -43,16 +42,17 @@ async function searchBusinesses(params: { query: string; country: string; region
   }
 
   try {
-    // Get coordinates for the region
-    const location = await getLocationCoordinates(params.region, params.country);
+    // Get coordinates for the location
+    const locationQuery = `${params.query} in ${params.region}, ${params.country}`;
+    const location = await getLocationCoordinates(locationQuery);
     console.log('Location coordinates:', location);
 
-    // Use Places Nearby Search API
-    const placesEndpoint = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+    // Use Places Text Search API for more relevant results
+    const placesEndpoint = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
     const searchParams = new URLSearchParams({
+      query: locationQuery,
       location: `${location.lat},${location.lng}`,
       radius: '80000', // 50 miles in meters
-      keyword: params.query,
       type: 'establishment',
       key: GOOGLE_API_KEY
     });
@@ -68,9 +68,18 @@ async function searchBusinesses(params: { query: string; country: string; region
 
     console.log(`Found ${data.results.length} places`);
 
+    // Filter results to ensure they're businesses
+    const filteredResults = data.results.filter(place => 
+      place.business_status === 'OPERATIONAL' &&
+      !place.types.includes('locality') &&
+      !place.types.includes('political')
+    );
+
+    console.log(`Filtered to ${filteredResults.length} valid businesses`);
+
     // Get detailed information for each place
     const detailedResults = await Promise.all(
-      data.results.slice(0, 20).map(async (place) => {
+      filteredResults.slice(0, 20).map(async (place) => {
         const detailsEndpoint = 'https://maps.googleapis.com/maps/api/place/details/json';
         const detailsParams = new URLSearchParams({
           place_id: place.place_id,
@@ -86,9 +95,9 @@ async function searchBusinesses(params: { query: string; country: string; region
             url: detailsData.result?.website || '',
             details: {
               title: place.name,
-              description: `${place.name} - ${place.vicinity}`,
+              description: `${place.name} - ${place.formatted_address}`,
               lastChecked: new Date().toISOString(),
-              address: detailsData.result?.formatted_address || place.vicinity,
+              address: detailsData.result?.formatted_address || place.formatted_address,
               phone: detailsData.result?.formatted_phone_number || '',
               mapsUrl: detailsData.result?.url || '',
               types: place.types,
@@ -145,7 +154,7 @@ serve(async (req) => {
             details: 'Firecrawl API key is missing from environment variables'
           }),
           { 
-            status: 500,
+            status: 200, // Return 200 to avoid CORS issues
             headers: { 
               ...corsHeaders,
               'Access-Control-Allow-Origin': origin,
@@ -179,7 +188,7 @@ serve(async (req) => {
             received: { query, country, region }
           }),
           { 
-            status: 400,
+            status: 200, // Return 200 to avoid CORS issues
             headers: { 
               ...corsHeaders,
               'Content-Type': 'application/json',
@@ -212,7 +221,7 @@ serve(async (req) => {
         receivedType: type 
       }),
       { 
-        status: 400,
+        status: 200, // Return 200 to avoid CORS issues
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
@@ -230,7 +239,7 @@ serve(async (req) => {
         origin: origin
       }),
       { 
-        status: 500,
+        status: 200, // Return 200 to avoid CORS issues
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json',
