@@ -20,6 +20,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   ) => {
     if (!validateSearchParams(query, country)) return;
 
+    console.log('Starting search operation');
     setIsSearching(true);
     
     try {
@@ -33,20 +34,24 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       );
 
       if (!searchResult) {
+        console.log('Search returned null result');
         toast.error('Search failed. Please try again.');
         return;
       }
 
+      console.log('Starting chatbot analysis');
       toast.info('Analyzing websites for chatbots...');
       const analyzedResults = await analyzeChatbots(searchResult.newResults);
+      console.log('Chatbot analysis complete:', analyzedResults.length);
       
       updateResults(analyzedResults, searchResult.hasMore);
       toast.success(`Found and analyzed ${analyzedResults.length} results`);
     } catch (error) {
-      console.error('Search error:', error);
-      toast.error('Search failed. Please try again.');
+      console.error('Search operation error:', error);
+      toast.error(error.message || 'Search failed. Please try again.');
     } finally {
       setIsSearching(false);
+      console.log('Search operation complete');
     }
   };
 
@@ -58,6 +63,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     newLimit: number
   ) => {
     try {
+      console.log('Loading more results');
       const moreResults = await loadMore(
         query,
         country,
@@ -67,6 +73,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       );
 
       if (moreResults?.newResults.length) {
+        console.log('Analyzing new batch of results');
         const analyzedNewResults = await analyzeChatbots(moreResults.newResults);
         const updatedResults = [...results.currentResults, ...analyzedNewResults];
         

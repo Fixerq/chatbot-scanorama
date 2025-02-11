@@ -29,6 +29,7 @@ export const performGoogleSearch = async (
     });
 
     // Create the actual search promise
+    console.log('Invoking search-places function');
     const searchPromise = supabase.functions.invoke<SearchResponse>('search-places', {
       body: {
         action: 'search',
@@ -41,10 +42,13 @@ export const performGoogleSearch = async (
     });
 
     // Race between the timeout and the search
+    console.log('Waiting for response...');
     const response = await Promise.race([
       searchPromise,
       timeoutPromise
     ]) as FunctionResponse<SearchResponse>;
+
+    console.log('Response received:', response);
 
     if (response.error) {
       console.error('Search error:', response.error);
@@ -62,15 +66,14 @@ export const performGoogleSearch = async (
       return null;
     }
 
-    console.log('Search completed:', response.data.data);
-
+    console.log('Search completed successfully:', response.data.data);
     return {
       results: response.data.data.results,
       hasMore: response.data.data.hasMore,
       searchBatchId: response.data.data.searchBatchId
     };
   } catch (error) {
-    console.error('Error performing search:', error);
+    console.error('Search error details:', error);
     
     if (error.message?.includes('timed out')) {
       toast.error('Search request timed out. Please try again.');

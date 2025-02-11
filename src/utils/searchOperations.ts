@@ -18,7 +18,7 @@ export const executeSearch = async (
     return null;
   }
 
-  console.log('Starting search');
+  console.log('Starting search with params:', { query, country, region });
 
   try {
     const searchResult = await performGoogleSearch(
@@ -27,9 +27,12 @@ export const executeSearch = async (
       region
     );
 
-    if (!searchResult || !searchResult.results) {
+    if (!searchResult) {
+      console.log('Search returned no results');
       return null;
     }
+
+    console.log('Search completed successfully:', searchResult);
 
     const existingUrls = new Set(currentResults.map(r => r.url));
     const newResults = searchResult.results
@@ -45,12 +48,14 @@ export const executeSearch = async (
         resultPosition: index + 1
       }));
 
+    console.log('Processed results:', newResults.length);
+
     return {
       newResults,
       hasMore: searchResult.hasMore
     };
   } catch (error) {
-    console.error('Search error:', error);
+    console.error('Search error details:', error);
     throw error;
   }
 };
