@@ -2,6 +2,7 @@
 import { SearchResult, SearchResponse } from './types/search';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FunctionsResponse } from '@supabase/supabase-js';
 
 const SEARCH_TIMEOUT = 30000; // 30 seconds timeout
 
@@ -33,33 +34,33 @@ export const performGoogleSearch = async (
     });
 
     // Race between the timeout and the search
-    const { data, error } = await Promise.race([
+    const response = await Promise.race([
       searchPromise,
       timeoutPromise
-    ]) as typeof searchPromise;
+    ]) as FunctionsResponse<SearchResponse>;
 
-    if (error) {
-      console.error('Search error:', error);
-      if (error.message?.includes('timed out')) {
+    if (response.error) {
+      console.error('Search error:', response.error);
+      if (response.error.message?.includes('timed out')) {
         toast.error('Search timed out. Please try again.');
       } else {
-        toast.error(error.message || 'Error performing search');
+        toast.error(response.error.message || 'Error performing search');
       }
-      throw error;
+      throw response.error;
     }
 
-    if (!data?.data) {
+    if (!response.data?.data) {
       console.log('No results found');
       toast.info('No results found for your search');
       return null;
     }
 
-    console.log('Search completed:', data.data);
+    console.log('Search completed:', response.data.data);
 
     return {
-      results: data.data.results,
-      hasMore: data.data.hasMore,
-      searchBatchId: data.data.searchBatchId
+      results: response.data.data.results,
+      hasMore: response.data.data.hasMore,
+      searchBatchId: response.data.data.searchBatchId
     };
   } catch (error) {
     console.error('Error performing search:', error);
