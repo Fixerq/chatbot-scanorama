@@ -1,6 +1,8 @@
+
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat, CrawlDocument } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CrawlResult {
   success: boolean;
@@ -19,18 +21,35 @@ export class FirecrawlService {
 
   static async getApiKey(): Promise<string> {
     try {
+      console.log('Fetching API key from Supabase function');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('No active session found');
+        throw new Error('Authentication required');
+      }
+
       const { data, error } = await supabase.functions.invoke('search-places', {
-        body: { type: 'get_api_key' }
+        body: { type: 'get_api_key' },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
         console.error('Error fetching API key:', error);
-        throw new Error('Failed to fetch API key');
+        throw error;
       }
 
-      return data?.apiKey || '';
+      if (!data?.apiKey) {
+        console.error('No API key returned from function');
+        throw new Error('Failed to retrieve API key');
+      }
+
+      return data.apiKey;
     } catch (error) {
       console.error('Error getting API key:', error);
+      toast.error('Failed to fetch API key. Please try again later.');
       throw error;
     }
   }

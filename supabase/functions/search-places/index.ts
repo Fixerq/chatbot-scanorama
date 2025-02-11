@@ -66,11 +66,6 @@ serve(async (req) => {
     const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
     const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
 
-    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-      console.error('Missing API configuration');
-      throw new Error('Search service configuration is incomplete');
-    }
-
     // Verify user authentication
     const authHeader = req.headers.get('Authorization');
     console.log('Auth header present:', !!authHeader);
@@ -92,6 +87,7 @@ serve(async (req) => {
     // Handle API key request
     if (requestData.type === 'get_api_key') {
       if (!FIRECRAWL_API_KEY) {
+        console.error('Firecrawl API key not configured');
         throw new Error('Firecrawl API key not configured');
       }
 
@@ -114,6 +110,11 @@ serve(async (req) => {
     
     if (!query || !country) {
       throw new Error('Missing required parameters: query and country are required');
+    }
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+      console.error('Missing API configuration');
+      throw new Error('Search service configuration is incomplete');
     }
 
     // Check user's subscription status
