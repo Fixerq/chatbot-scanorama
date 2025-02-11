@@ -13,6 +13,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 }
 
 serve(async (req) => {
+  // Get the origin from the request headers
   const origin = req.headers.get('origin') || '*';
   console.log('Request received from origin:', origin);
   
