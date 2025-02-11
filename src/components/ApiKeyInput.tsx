@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { FirecrawlService } from '../utils/firecrawl/FirecrawlService';
 
 interface ApiKeyInputProps {
   value: string;
@@ -8,21 +7,8 @@ interface ApiKeyInputProps {
 }
 
 const ApiKeyInput = ({ value, onChange }: ApiKeyInputProps) => {
-  React.useEffect(() => {
-    const initializeApiKey = async () => {
-      try {
-        const apiKey = await FirecrawlService.getApiKey();
-        if (apiKey) {
-          onChange(apiKey);
-        }
-      } catch (error) {
-        console.error('Error initializing API key:', error);
-      }
-    };
-
-    initializeApiKey();
-  }, [onChange]);
-
+  // Since we're no longer using Firecrawl, we'll just return null
+  // The parent component should handle API key management
   return null;
 };
 

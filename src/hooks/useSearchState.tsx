@@ -1,6 +1,5 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { FirecrawlService } from '../utils/firecrawl';
 import { Result } from '@/components/ResultsTable';
 import { useLocation } from 'react-router-dom';
 
@@ -45,11 +44,12 @@ export const useSearchState = () => {
       }
 
       try {
-        const apiKey = await FirecrawlService.getApiKey();
-        if (isMounted && apiKey) {
+        // TODO: Implement API key retrieval from Supabase
+        // For now, we'll use an empty implementation
+        if (isMounted) {
           setSearchState(prev => ({
             ...prev,
-            apiKey
+            apiKey: ''
           }));
         }
       } catch (error) {

@@ -1,9 +1,9 @@
+
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { FirecrawlService } from '@/utils/firecrawl/FirecrawlService';
 import { Card } from "@/components/ui/card";
 import EmailResults from './EmailResults';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
@@ -31,7 +31,6 @@ export const CrawlForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Allow crawling if subscription status is loading or if user has searches remaining
     if (!isSubscriptionLoading && subscriptionData?.searchesRemaining === 0) {
       toast({
         title: "Search limit reached",
@@ -47,29 +46,17 @@ export const CrawlForm = () => {
     setCrawlResult(null);
     
     try {
-      console.log('Starting crawl for URL:', url);
-      const result = await FirecrawlService.crawlWebsite(url);
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Website crawled successfully",
-          duration: 3000,
-        });
-        setCrawlResult(result.data);
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to crawl website",
-          variant: "destructive",
-          duration: 3000,
-        });
-      }
+      // TODO: Implement website crawling using Supabase Edge Function
+      toast({
+        title: "Feature in development",
+        description: "Website crawling functionality is being updated",
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error crawling website:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to crawl website",
+        description: error instanceof Error ? error.message : "Failed to crawl website",
         variant: "destructive",
         duration: 3000,
       });
