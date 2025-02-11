@@ -21,7 +21,3 @@ export interface BusinessSearchResult {
   }>;
   hasMore: boolean;
 }
-
-export interface APIKeyResponse {
-  apiKey: string;
-}

@@ -1,5 +1,5 @@
 
-import { getLocationCoordinates, getPlaceDetails, searchNearbyPlaces } from './placesApi.ts';
+import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts';
 import { SearchParams, BusinessSearchResult } from './types.ts';
 
 export async function searchBusinesses(params: SearchParams): Promise<BusinessSearchResult> {
@@ -17,11 +17,10 @@ export async function searchBusinesses(params: SearchParams): Promise<BusinessSe
 
   try {
     // Get coordinates for the location
-    const locationQuery = `${params.query} in ${params.region}, ${params.country}`;
-    const location = await getLocationCoordinates(locationQuery);
+    const location = await getLocationCoordinates(`${params.query} in ${params.region}, ${params.country}`);
     console.log('Location coordinates:', location);
 
-    const data = await searchNearbyPlaces(locationQuery, location);
+    const data = await searchNearbyPlaces(`${params.query} in ${params.region}`, location);
     console.log(`Found ${data.results.length} places`);
 
     // Filter results to ensure they're businesses
@@ -59,12 +58,12 @@ export async function searchBusinesses(params: SearchParams): Promise<BusinessSe
       })
     );
 
-    const validResults = detailedResults.filter(result => result !== null);
+    const validResults = detailedResults.filter(Boolean);
     console.log(`Found ${validResults.length} valid business results`);
 
     return {
       results: validResults,
-      hasMore: data.next_page_token ? true : false
+      hasMore: false
     };
   } catch (error) {
     console.error('Search error:', error);
