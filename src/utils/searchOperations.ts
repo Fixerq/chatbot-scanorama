@@ -68,8 +68,11 @@ export const loadMore = async (
   }
 
   try {
-    const startIndex = currentResults.length + 1;
-    const searchResult = await performGoogleSearch(query, country, region, startIndex);
+    const searchResult = await performGoogleSearch(
+      query,
+      country,
+      region
+    );
     
     if (!searchResult || !searchResult.results) {
       return null;

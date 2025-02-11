@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
 import { BLOCKED_URLS } from '@/constants/blockedUrls';
@@ -54,13 +55,10 @@ export const loadMoreResults = async (
   newLimit: number
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   try {
-    const startIndex = currentResults.length + 1;
-    
     const searchResult = await performGoogleSearch(
       query,
       country,
-      region,
-      startIndex
+      region
     );
     
     if (!searchResult || !searchResult.results) {
