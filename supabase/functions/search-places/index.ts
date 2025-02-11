@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { SearchParams, BusinessSearchResult, SubscriptionData } from './types.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
@@ -182,10 +181,14 @@ async function handleRequest(req: Request) {
   }
 
   try {
+    console.log('Starting to parse request body');
     const { action, params } = await req.json()
-    console.log('Request received:', { action, params })
+    console.log('Request parsed:', { action, params })
 
+    console.log('Auth header:', req.headers.get('Authorization'));
+    console.log('Starting user verification');
     const userId = await verifyUser(req.headers.get('Authorization'));
+    console.log('User verified:', userId);
 
     if (action === 'checkSubscription') {
       const subscriptionData = await getSubscriptionData(userId);
@@ -198,18 +201,24 @@ async function handleRequest(req: Request) {
     }
 
     if (action === 'search') {
+      console.log('Starting search flow');
       const subscription = await getSubscriptionData(userId);
+      console.log('Got subscription data:', subscription);
       
       if (subscription.status !== 'active') {
+        console.error('Subscription not active:', subscription);
         throw new Error('Subscription is not active');
       }
       
       if (subscription.searches_remaining <= 0) {
+        console.error('No searches remaining:', subscription);
         throw new Error('No searches remaining this month');
       }
 
       const searchParams = params as SearchParams;
+      console.log('Starting search with params:', searchParams);
       const result = await handleSearch(searchParams, userId);
+      console.log('Search completed successfully');
       
       return new Response(
         JSON.stringify({ success: true, data: result }),
@@ -217,6 +226,7 @@ async function handleRequest(req: Request) {
       );
     }
 
+    console.error('Invalid action type:', action);
     return new Response(
       JSON.stringify({
         success: false,
@@ -226,7 +236,8 @@ async function handleRequest(req: Request) {
     );
 
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('Error in handleRequest:', error.message);
+    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({
         success: false,
