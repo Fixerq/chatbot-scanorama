@@ -1,8 +1,8 @@
 
 import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts';
-import { SearchParams, BusinessSearchResult } from './types.ts';
+import { SearchParams, SearchResponse } from './types.ts';
 
-export async function searchBusinesses(params: SearchParams): Promise<BusinessSearchResult> {
+export async function searchBusinesses(params: SearchParams): Promise<SearchResponse> {
   console.log('Search params:', JSON.stringify(params));
 
   const GOOGLE_API_KEY = Deno.env.get('Google API');
@@ -45,10 +45,7 @@ export async function searchBusinesses(params: SearchParams): Promise<BusinessSe
               description: `${place.name} - ${place.formatted_address}`,
               lastChecked: new Date().toISOString(),
               address: detailsData.result?.formatted_address || place.formatted_address,
-              phone: detailsData.result?.formatted_phone_number || '',
-              mapsUrl: detailsData.result?.url || '',
-              types: place.types,
-              rating: place.rating
+              businessType: place.types[0] || 'business'
             }
           };
         } catch (error) {
@@ -61,9 +58,12 @@ export async function searchBusinesses(params: SearchParams): Promise<BusinessSe
     const validResults = detailedResults.filter(Boolean);
     console.log(`Found ${validResults.length} valid business results`);
 
+    const searchBatchId = crypto.randomUUID();
+
     return {
       results: validResults,
-      hasMore: false
+      hasMore: false,
+      searchBatchId
     };
   } catch (error) {
     console.error('Search error:', error);

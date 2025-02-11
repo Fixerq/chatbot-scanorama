@@ -26,10 +26,8 @@ export type Database = {
       }
       analyzed_urls: {
         Row: {
-          ai_generated: boolean | null
           business_type: string | null
           chat_solutions: string[] | null
-          confidence_score: number | null
           created_at: string
           description: string | null
           details: Json | null
@@ -62,10 +60,8 @@ export type Database = {
           vicinity: string | null
         }
         Insert: {
-          ai_generated?: boolean | null
           business_type?: string | null
           chat_solutions?: string[] | null
-          confidence_score?: number | null
           created_at?: string
           description?: string | null
           details?: Json | null
@@ -98,10 +94,8 @@ export type Database = {
           vicinity?: string | null
         }
         Update: {
-          ai_generated?: boolean | null
           business_type?: string | null
           chat_solutions?: string[] | null
-          confidence_score?: number | null
           created_at?: string
           description?: string | null
           details?: Json | null
