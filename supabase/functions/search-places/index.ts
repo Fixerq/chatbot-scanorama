@@ -11,23 +11,27 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const userId = await verifyUser(req.headers.get('Authorization'));
-    console.log('User verified:', userId);
+    console.log('User authenticated:', userId);
 
     const { action, params } = await req.json();
     console.log('Request received:', { action, params });
 
     if (action !== 'search') {
+      console.error('Invalid action type:', action);
       throw new Error('Invalid action type');
     }
 
-    if (!params.query || !params.country || !params.region) {
-      throw new Error('Missing required search parameters');
+    // Validate required parameters
+    if (!params?.query || !params?.country || !params?.region) {
+      console.error('Missing required parameters:', params);
+      throw new Error('Missing required search parameters: query, country, and region are required');
     }
 
     const result = await searchBusinesses(params as SearchParams);
@@ -47,11 +51,13 @@ serve(async (req) => {
     
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     const statusCode = errorMessage.includes('API key') ? 403 : 
-                      errorMessage.includes('required') ? 400 : 500;
+                      errorMessage.includes('required') ? 400 : 
+                      errorMessage.includes('Invalid action') ? 400 : 500;
 
     return new Response(
       JSON.stringify({
-        error: errorMessage
+        error: errorMessage,
+        status: statusCode
       }),
       { 
         status: statusCode,

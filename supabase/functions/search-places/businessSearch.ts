@@ -3,7 +3,7 @@ import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './p
 import { SearchParams, SearchResponse } from './types.ts';
 
 export async function searchBusinesses(params: SearchParams): Promise<SearchResponse> {
-  console.log('Search params:', JSON.stringify(params));
+  console.log('Starting business search with params:', params);
 
   const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
   if (!GOOGLE_API_KEY) {
@@ -11,101 +11,79 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
     throw new Error('Google Places API key is not configured');
   }
 
-  if (!params.region) {
-    console.error('Region parameter is missing');
-    throw new Error('Region is required for local business search');
-  }
-
   try {
     // Get coordinates for the location
-    let location;
-    try {
-      location = await getLocationCoordinates(`${params.query} in ${params.region}, ${params.country}`);
-    } catch (error) {
-      console.error('Location coordinates error:', error);
-      throw new Error(`Could not determine location: ${error.message}`);
-    }
-
+    const location = await getLocationCoordinates(`${params.query} in ${params.region}, ${params.country}`);
     if (!location) {
-      console.error('Could not determine location coordinates');
-      throw new Error('Location not found');
-    }
-    console.log('Location coordinates:', location);
-
-    // Search for places
-    let data;
-    try {
-      data = await searchNearbyPlaces(`${params.query} in ${params.region}`, location);
-    } catch (error) {
-      console.error('Places search error:', error);
-      throw new Error(`Failed to search places: ${error.message}`);
-    }
-
-    if (!data || !data.results) {
-      console.error('No results from Places API');
+      console.log('No location found for the search parameters');
       return {
         results: [],
         hasMore: false,
         searchBatchId: crypto.randomUUID()
       };
     }
-    console.log(`Found ${data.results.length} places`);
+    console.log('Location coordinates found:', location);
+
+    // Search for places
+    const placesData = await searchNearbyPlaces(`${params.query} in ${params.region}`, location);
+    if (!placesData || !placesData.results || placesData.results.length === 0) {
+      console.log('No places found for the search parameters');
+      return {
+        results: [],
+        hasMore: false,
+        searchBatchId: crypto.randomUUID()
+      };
+    }
+
+    console.log(`Found ${placesData.results.length} initial results`);
 
     // Filter results to ensure they're businesses
-    const filteredResults = data.results.filter(place => 
+    const filteredResults = placesData.results.filter(place => 
       place.business_status === 'OPERATIONAL' &&
-      !place.types.includes('locality') &&
-      !place.types.includes('political')
+      !place.types?.includes('locality') &&
+      !place.types?.includes('political')
     );
 
     console.log(`Filtered to ${filteredResults.length} valid businesses`);
-
-    if (filteredResults.length === 0) {
-      return {
-        results: [],
-        hasMore: false,
-        searchBatchId: crypto.randomUUID()
-      };
-    }
 
     // Get detailed information for each place
     const detailedResults = await Promise.all(
       filteredResults.slice(0, 20).map(async (place) => {
         try {
           const detailsData = await getPlaceDetails(place.place_id);
-          if (!detailsData || !detailsData.result) {
-            console.warn(`No details found for place: ${place.place_id}`);
+          if (!detailsData?.result) {
+            console.log(`No valid details found for place: ${place.place_id}`);
             return null;
           }
 
           return {
-            url: detailsData.result?.website || '',
+            url: detailsData.result.website || detailsData.result.url || '',
             details: {
               title: place.name,
-              description: `${place.name} - ${place.formatted_address}`,
+              description: place.formatted_address,
               lastChecked: new Date().toISOString(),
-              address: detailsData.result?.formatted_address || place.formatted_address,
-              businessType: place.types[0] || 'business'
+              address: detailsData.result.formatted_address || place.formatted_address,
+              businessType: place.types?.[0] || 'business',
+              phoneNumber: detailsData.result.formatted_phone_number
             }
           };
         } catch (error) {
-          console.error('Error fetching place details:', error);
+          console.error(`Error fetching details for place ${place.place_id}:`, error);
           return null;
         }
       })
     );
 
-    const validResults = detailedResults.filter(Boolean);
-    console.log(`Found ${validResults.length} valid business results`);
+    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => result !== null);
+    console.log(`Successfully processed ${validResults.length} businesses with details`);
 
-    const searchBatchId = crypto.randomUUID();
     return {
       results: validResults,
-      hasMore: false,
-      searchBatchId
+      hasMore: placesData.next_page_token !== undefined,
+      searchBatchId: crypto.randomUUID()
     };
   } catch (error) {
     console.error('Search error:', error);
-    throw new Error(error instanceof Error ? error.message : 'Search failed');
+    throw error;
   }
 }

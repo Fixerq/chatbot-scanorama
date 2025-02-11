@@ -5,6 +5,7 @@ export async function getLocationCoordinates(location: string) {
   const geocodeEndpoint = 'https://maps.googleapis.com/maps/api/geocode/json';
   
   if (!GOOGLE_API_KEY) {
+    console.error('Google Places API key not found');
     throw new Error('Google Places API key is not configured');
   }
   
@@ -16,14 +17,16 @@ export async function getLocationCoordinates(location: string) {
     );
     
     if (!response.ok) {
-      throw new Error(`Geocoding API error: ${response.status} - ${await response.text()}`);
+      console.error(`Geocoding API error: ${response.status}`);
+      throw new Error(`Geocoding API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Geocoding response:', data);
+    console.log('Geocoding response status:', data.status);
     
     if (data.status === 'ZERO_RESULTS') {
-      throw new Error('No location found for the given address');
+      console.log('No location found for:', location);
+      return null;
     }
     
     if (data.status !== 'OK') {
@@ -50,22 +53,29 @@ export async function getPlaceDetails(placeId: string) {
   const detailsEndpoint = 'https://maps.googleapis.com/maps/api/place/details/json';
   const detailsParams = new URLSearchParams({
     place_id: placeId,
-    fields: 'website,formatted_phone_number,formatted_address,url',
+    fields: 'name,formatted_phone_number,formatted_address,website,url,types,business_status',
     key: GOOGLE_API_KEY
   });
 
   try {
+    console.log('Fetching details for place:', placeId);
     const detailsResponse = await fetch(`${detailsEndpoint}?${detailsParams}`);
     
     if (!detailsResponse.ok) {
-      throw new Error(`Place details API error: ${detailsResponse.status} - ${await detailsResponse.text()}`);
+      console.error(`Place details API error: ${detailsResponse.status}`);
+      throw new Error(`Place details API error: ${detailsResponse.status}`);
     }
 
     const data = await detailsResponse.json();
-    console.log('Place details response:', data);
+    console.log('Place details status:', data.status);
+    
+    if (data.status === 'NOT_FOUND') {
+      console.log('Place not found:', placeId);
+      return null;
+    }
     
     if (data.status !== 'OK') {
-      throw new Error(`Place details error: ${data.status} - ${data.error_message || 'Unknown error'}`);
+      throw new Error(`Place details error: ${data.status}`);
     }
     
     return data;
@@ -84,28 +94,30 @@ export async function searchNearbyPlaces(locationQuery: string, location: { lat:
   const searchParams = new URLSearchParams({
     query: locationQuery,
     location: `${location.lat},${location.lng}`,
-    radius: '80000', // 50 miles in meters
+    radius: '50000', // 50km radius
     type: 'establishment',
     key: GOOGLE_API_KEY
   });
 
   try {
-    console.log('Searching with params:', searchParams.toString());
+    console.log('Searching places with query:', locationQuery);
     const response = await fetch(`${placesEndpoint}?${searchParams}`);
     
     if (!response.ok) {
-      throw new Error(`Places API error: ${response.status} - ${await response.text()}`);
+      console.error(`Places API error: ${response.status}`);
+      throw new Error(`Places API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Places API response:', data);
+    console.log('Places API response status:', data.status);
 
     if (data.status === 'ZERO_RESULTS') {
+      console.log('No results found for query:', locationQuery);
       return { results: [], status: 'OK' };
     }
 
     if (data.status !== 'OK') {
-      throw new Error(`Places API error: ${data.status} - ${data.error_message || 'Unknown error'}`);
+      throw new Error(`Places API error: ${data.status}`);
     }
 
     return data;
