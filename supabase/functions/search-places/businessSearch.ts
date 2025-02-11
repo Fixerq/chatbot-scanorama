@@ -18,17 +18,36 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
 
   try {
     // Get coordinates for the location
-    const location = await getLocationCoordinates(`${params.query} in ${params.region}, ${params.country}`);
+    let location;
+    try {
+      location = await getLocationCoordinates(`${params.query} in ${params.region}, ${params.country}`);
+    } catch (error) {
+      console.error('Location coordinates error:', error);
+      throw new Error(`Could not determine location: ${error.message}`);
+    }
+
     if (!location) {
       console.error('Could not determine location coordinates');
       throw new Error('Location not found');
     }
     console.log('Location coordinates:', location);
 
-    const data = await searchNearbyPlaces(`${params.query} in ${params.region}`, location);
+    // Search for places
+    let data;
+    try {
+      data = await searchNearbyPlaces(`${params.query} in ${params.region}`, location);
+    } catch (error) {
+      console.error('Places search error:', error);
+      throw new Error(`Failed to search places: ${error.message}`);
+    }
+
     if (!data || !data.results) {
       console.error('No results from Places API');
-      throw new Error('No results found');
+      return {
+        results: [],
+        hasMore: false,
+        searchBatchId: crypto.randomUUID()
+      };
     }
     console.log(`Found ${data.results.length} places`);
 
@@ -40,6 +59,14 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
     );
 
     console.log(`Filtered to ${filteredResults.length} valid businesses`);
+
+    if (filteredResults.length === 0) {
+      return {
+        results: [],
+        hasMore: false,
+        searchBatchId: crypto.randomUUID()
+      };
+    }
 
     // Get detailed information for each place
     const detailedResults = await Promise.all(
@@ -71,12 +98,7 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
     const validResults = detailedResults.filter(Boolean);
     console.log(`Found ${validResults.length} valid business results`);
 
-    if (validResults.length === 0) {
-      throw new Error('No valid business results found');
-    }
-
     const searchBatchId = crypto.randomUUID();
-
     return {
       results: validResults,
       hasMore: false,
@@ -84,7 +106,6 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
     };
   } catch (error) {
     console.error('Search error:', error);
-    // Make sure to propagate the error message
     throw new Error(error instanceof Error ? error.message : 'Search failed');
   }
 }
