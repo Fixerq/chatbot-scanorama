@@ -30,3 +30,4 @@ export interface SubscriptionData {
   searches_used: number;
   total_searches: number;
 }
+
