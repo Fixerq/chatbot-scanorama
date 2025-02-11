@@ -10,14 +10,24 @@ export async function getLocationCoordinates(location: string) {
     const response = await fetch(
       `${geocodeEndpoint}?address=${encodeURIComponent(location)}&key=${GOOGLE_API_KEY}`
     );
+    
+    if (!response.ok) {
+      throw new Error(`Geocoding API error: ${response.status}`);
+    }
+
     const data = await response.json();
     console.log('Geocoding response status:', data.status);
     
-    if (data.results?.[0]?.geometry?.location) {
-      console.log('Found coordinates:', data.results[0].geometry.location);
-      return data.results[0].geometry.location;
+    if (data.status !== 'OK') {
+      throw new Error(`Geocoding error: ${data.status}`);
     }
-    throw new Error(`Location not found for: ${location}`);
+
+    if (!data.results?.[0]?.geometry?.location) {
+      throw new Error('No location data found');
+    }
+
+    console.log('Found coordinates:', data.results[0].geometry.location);
+    return data.results[0].geometry.location;
   } catch (error) {
     console.error('Geocoding error:', error);
     throw error;
@@ -32,15 +42,24 @@ export async function getPlaceDetails(placeId: string) {
     key: GOOGLE_API_KEY
   });
 
-  const detailsResponse = await fetch(`${detailsEndpoint}?${detailsParams}`);
-  const data = await detailsResponse.json();
-  
-  if (data.status !== 'OK') {
-    console.error('Place details error:', data);
-    throw new Error(`Place details error: ${data.status}`);
+  try {
+    const detailsResponse = await fetch(`${detailsEndpoint}?${detailsParams}`);
+    
+    if (!detailsResponse.ok) {
+      throw new Error(`Place details API error: ${detailsResponse.status}`);
+    }
+
+    const data = await detailsResponse.json();
+    
+    if (data.status !== 'OK') {
+      throw new Error(`Place details error: ${data.status}`);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Place details error:', error);
+    throw error;
   }
-  
-  return data;
 }
 
 export async function searchNearbyPlaces(locationQuery: string, location: { lat: number; lng: number }) {
@@ -53,14 +72,24 @@ export async function searchNearbyPlaces(locationQuery: string, location: { lat:
     key: GOOGLE_API_KEY
   });
 
-  console.log('Searching with URL:', `${placesEndpoint}?${searchParams}`);
-  const response = await fetch(`${placesEndpoint}?${searchParams}`);
-  const data = await response.json();
-  console.log('Places API response status:', data.status);
+  try {
+    console.log('Searching with URL:', `${placesEndpoint}?${searchParams}`);
+    const response = await fetch(`${placesEndpoint}?${searchParams}`);
+    
+    if (!response.ok) {
+      throw new Error(`Places API error: ${response.status}`);
+    }
 
-  if (data.status !== 'OK') {
-    throw new Error(`Places API error: ${data.status}`);
+    const data = await response.json();
+    console.log('Places API response status:', data.status);
+
+    if (data.status !== 'OK') {
+      throw new Error(`Places API error: ${data.status}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Places API error:', error);
+    throw error;
   }
-
-  return data;
 }
