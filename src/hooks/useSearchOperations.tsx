@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { executeSearch, loadMore } from '@/utils/searchOperations';
 import { toast } from 'sonner';

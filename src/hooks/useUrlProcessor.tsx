@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { detectChatbot } from '@/utils/chatbotDetection';
@@ -55,54 +56,6 @@ export const useUrlProcessor = () => {
     }
   };
 
-  const processSearchResults = async (newResults: Result[]) => {
-    setIsProcessing(true);
-    
-    setResults(prev => [
-      ...prev,
-      ...newResults.map(result => ({ ...result, status: 'Processing...' }))
-    ]);
-
-    try {
-      const concurrencyLimit = 10;
-      const chunks = [];
-      for (let i = 0; i < newResults.length; i += concurrencyLimit) {
-        chunks.push(newResults.slice(i, i + concurrencyLimit));
-      }
-
-      for (const chunk of chunks) {
-        await Promise.all(chunk.map(async (result) => {
-          try {
-            const chatbotResponse = await detectChatbot(result.url);
-            setResults(prev => prev.map(r => 
-              r.url === result.url ? {
-                ...r,
-                status: chatbotResponse.status,
-                details: {
-                  ...r.details,
-                  chatSolutions: chatbotResponse.chatSolutions,
-                  lastChecked: chatbotResponse.lastChecked
-                }
-              } : r
-            ));
-          } catch (error) {
-            console.error(`Error processing ${result.url}:`, error);
-            setResults(prev => prev.map(r => 
-              r.url === result.url ? { ...r, status: 'Error analyzing URL' } : r
-            ));
-          }
-        }));
-      }
-
-      toast.success('Analysis complete!');
-    } catch (error) {
-      console.error('Error processing search results:', error);
-      toast.error('Error processing URLs');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const clearResults = () => {
     setResults([]);
     toast.success('Ready for a new search');
@@ -112,7 +65,6 @@ export const useUrlProcessor = () => {
     results,
     isProcessing,
     processUrls,
-    processSearchResults,
     clearResults
   };
 };
