@@ -21,16 +21,16 @@ export const useAdminStatus = () => {
         return false;
       }
 
+      // Use the improved RLS policy to check admin status
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('user_id')
         .eq('user_id', session.session.user.id)
-        .single();
+        .maybeSingle();
 
       if (adminError) {
         console.error('Admin check error:', adminError);
-        toast.error('You do not have admin access');
-        navigate('/dashboard');
+        toast.error('Error checking admin status');
         return false;
       }
 

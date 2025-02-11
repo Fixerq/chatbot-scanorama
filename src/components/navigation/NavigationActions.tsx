@@ -29,23 +29,33 @@ export const NavigationActions = ({
   const session = useSession();
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [isSupportOpen, setIsSupportOpen] = React.useState(false);
+  const [isChecking, setIsChecking] = React.useState(true);
 
   React.useEffect(() => {
     const checkAdminStatus = async () => {
-      if (!session?.user?.id) return;
-
-      const { data: adminData, error } = await supabase
-        .from('admin_users')
-        .select('user_id')
-        .eq('user_id', session.user.id)
-        .single();
-      
-      if (error) {
-        console.error('Error checking admin status:', error);
+      if (!session?.user?.id) {
+        setIsChecking(false);
         return;
       }
-      
-      setIsAdmin(!!adminData);
+
+      try {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('user_id')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error checking admin status:', error);
+          return;
+        }
+
+        setIsAdmin(!!data);
+      } catch (error) {
+        console.error('Error in admin check:', error);
+      } finally {
+        setIsChecking(false);
+      }
     };
 
     checkAdminStatus();
@@ -71,7 +81,7 @@ export const NavigationActions = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {isAdmin && (
+          {!isChecking && isAdmin && (
             <DropdownMenuItem onClick={() => navigate('/admin')}>
               Admin Panel
             </DropdownMenuItem>

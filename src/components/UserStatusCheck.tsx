@@ -14,18 +14,17 @@ export const UserStatusCheck = () => {
     const checkAdminStatus = async () => {
       if (!session?.user?.id) {
         console.log('No user session found');
+        setIsAdmin(false);
         setIsLoading(false);
         return;
       }
-
-      console.log('Checking admin status for user:', session.user.id);
 
       try {
         const { data, error } = await supabase
           .from('admin_users')
           .select('user_id')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error checking admin status:', error);
@@ -33,7 +32,6 @@ export const UserStatusCheck = () => {
           return;
         }
 
-        console.log('Admin check result:', data ? 'Is Admin' : 'Regular User');
         setIsAdmin(!!data);
       } catch (error) {
         console.error('Error in admin check:', error);
