@@ -41,7 +41,7 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',  // Fixed: Using the correct model name
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
