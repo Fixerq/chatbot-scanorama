@@ -1,4 +1,6 @@
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 export async function searchBusinessesWithAI(query: string, region: string, country: string): Promise<Array<{
@@ -39,7 +41,7 @@ export async function searchBusinessesWithAI(query: string, region: string, coun
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

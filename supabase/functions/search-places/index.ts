@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { SearchParams, BusinessSearchResult, SubscriptionData } from './types.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
@@ -89,12 +90,17 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
   }
 }
 
-async function performBusinessSearch(params: SearchParams): Promise<BusinessSearchResult> {
-  console.log('Starting business search with params:', params);
+async function handleSearch(params: SearchParams, userId: string): Promise<BusinessSearchResult> {
+  console.log('Processing search with params:', params);
   
   try {
     const businesses = await searchBusinessesWithAI(params.query, params.region || '', params.country);
-    console.log(`Found ${businesses.length} businesses through AI`);
+    console.log(`Search completed with ${businesses.length} results`);
+    
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
 
     const results = businesses.map(business => ({
       url: business.website || '',
@@ -102,38 +108,16 @@ async function performBusinessSearch(params: SearchParams): Promise<BusinessSear
         title: business.name,
         description: business.description,
         lastChecked: new Date().toISOString(),
-        address: business.address || '',
-        businessType: business.businessType || '',
+        address: business.address,
+        businessType: business.businessType,
         confidence: business.confidenceScore,
       }
     }));
 
-    return {
-      results,
-      hasMore: false // AI provides all results at once
-    };
-  } catch (error) {
-    console.error('Error in business search:', error);
-    throw error;
-  }
-}
-
-async function handleSearch(params: SearchParams, userId: string): Promise<BusinessSearchResult> {
-  console.log('Processing search with params:', params);
-  
-  try {
-    const results = await performBusinessSearch(params);
-    console.log(`Search completed with ${results.results.length} results`);
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
-
     const { error: insertError } = await supabase
       .from('analyzed_urls')
       .insert(
-        results.results.map(result => ({
+        results.map(result => ({
           url: result.url,
           user_id: userId,
           title: result.details.title,
@@ -143,47 +127,36 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
           ai_generated: true,
           confidence_score: result.details.confidence,
           search_query: params.query,
-          search_region: params.region,
-          business_type: result.details.businessType
+          search_region: params.region || ''
         }))
       );
 
     if (insertError) {
       console.error('Error recording search results:', insertError);
-      // Don't throw the error, just log it - we still want to return results
     }
 
-    return results;
+    return {
+      results,
+      hasMore: false
+    };
   } catch (error) {
     console.error('Search error:', error);
     throw error;
   }
 }
 
-async function handleRequest(req: Request) {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log('Starting to parse request body');
     const { action, params } = await req.json()
-    console.log('Request parsed:', { action, params })
+    console.log('Request received:', { action, params })
 
     console.log('Auth header:', req.headers.get('Authorization'));
-    console.log('Starting user verification');
     const userId = await verifyUser(req.headers.get('Authorization'));
     console.log('User verified:', userId);
-
-    if (action === 'checkSubscription') {
-      const subscriptionData = await getSubscriptionData(userId);
-      console.log('Subscription check completed:', subscriptionData);
-      
-      return new Response(
-        JSON.stringify({ success: true, data: subscriptionData }),
-        { headers: corsHeaders }
-      );
-    }
 
     if (action === 'search') {
       console.log('Starting search flow');
@@ -191,19 +164,15 @@ async function handleRequest(req: Request) {
       console.log('Got subscription data:', subscription);
       
       if (subscription.status !== 'active') {
-        console.error('Subscription not active:', subscription);
         throw new Error('Subscription is not active');
       }
       
       if (subscription.searches_remaining <= 0) {
-        console.error('No searches remaining:', subscription);
         throw new Error('No searches remaining this month');
       }
 
-      const searchParams = params as SearchParams;
-      console.log('Starting search with params:', searchParams);
-      const result = await handleSearch(searchParams, userId);
-      console.log('Search completed successfully');
+      const result = await handleSearch(params as SearchParams, userId);
+      console.log('Search completed successfully:', result);
       
       return new Response(
         JSON.stringify({ success: true, data: result }),
@@ -211,29 +180,19 @@ async function handleRequest(req: Request) {
       );
     }
 
-    console.error('Invalid action type:', action);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'Invalid action type'
-      }),
-      { headers: corsHeaders }
-    );
+    throw new Error('Invalid action type');
 
   } catch (error) {
-    console.error('Error in handleRequest:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Error in handleRequest:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Internal server error'
+        error: error.message
       }),
       { 
-        status: 200, // Always return 200 to avoid CORS issues
+        status: 200,
         headers: corsHeaders
       }
     );
   }
-}
-
-serve(handleRequest)
+});
