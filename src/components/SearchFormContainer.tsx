@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Result } from './ResultsTable';
 import { useSearchState } from '../hooks/useSearchState';
@@ -8,10 +9,18 @@ import { useSearchOperations } from '@/hooks/useSearchOperations';
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
   isProcessing: boolean;
-  triggerNewSearch?: boolean; // Changed from onNewSearch?: () => void to boolean
+  setIsProcessing: (value: boolean) => void;
+  triggerNewSearch?: boolean;
+  onError?: (error: Error) => void;
 }
 
-const SearchFormContainer = ({ onResults, isProcessing, triggerNewSearch }: SearchFormContainerProps) => {
+const SearchFormContainer = ({ 
+  onResults, 
+  isProcessing, 
+  setIsProcessing,
+  triggerNewSearch,
+  onError 
+}: SearchFormContainerProps) => {
   const {
     searchState,
     updateSearchState,
@@ -26,13 +35,20 @@ const SearchFormContainer = ({ onResults, isProcessing, triggerNewSearch }: Sear
   } = useSearchOperations(onResults);
 
   const onSubmit = () => {
+    setIsProcessing(true);
     handleSearch(
       searchState.query,
       searchState.country,
       searchState.region,
       searchState.apiKey,
       searchState.resultsLimit
-    );
+    ).catch(error => {
+      if (onError) {
+        onError(error);
+      }
+    }).finally(() => {
+      setIsProcessing(false);
+    });
   };
 
   const onLoadMore = () => {
