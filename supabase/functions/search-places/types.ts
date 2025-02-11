@@ -21,3 +21,12 @@ export interface BusinessSearchResult {
   }>;
   hasMore: boolean;
 }
+
+export interface SubscriptionData {
+  level: string;
+  stripe_customer_id: string | null;
+  status: string;
+  searches_remaining: number;
+  searches_used: number;
+  total_searches: number;
+}
