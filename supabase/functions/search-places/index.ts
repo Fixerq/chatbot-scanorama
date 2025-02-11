@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { SearchParams, BusinessSearchResult, SubscriptionData } from './types.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 import { verifyUser } from './auth.ts'
-import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts'
+import { searchBusinessesWithAI } from './openaiSearch.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,44 +93,24 @@ async function performBusinessSearch(params: SearchParams): Promise<BusinessSear
   console.log('Starting business search with params:', params);
   
   try {
-    const searchLocation = `${params.query} in ${params.region}, ${params.country}`;
-    const coordinates = await getLocationCoordinates(searchLocation);
-    console.log('Location coordinates:', coordinates);
+    const businesses = await searchBusinessesWithAI(params.query, params.region || '', params.country);
+    console.log(`Found ${businesses.length} businesses through AI`);
 
-    const placesData = await searchNearbyPlaces(searchLocation, coordinates);
-    console.log(`Found ${placesData.results.length} places`);
-
-    const detailedResults = await Promise.all(
-      placesData.results.slice(0, 20).map(async (place) => {
-        try {
-          const details = await getPlaceDetails(place.place_id);
-          
-          return {
-            url: details.result?.website || '',
-            details: {
-              title: place.name,
-              description: `${place.name} - ${place.formatted_address}`,
-              lastChecked: new Date().toISOString(),
-              address: details.result?.formatted_address || place.formatted_address,
-              phone: details.result?.formatted_phone_number || '',
-              mapsUrl: details.result?.url || '',
-              types: place.types,
-              rating: place.rating
-            }
-          };
-        } catch (error) {
-          console.error('Error fetching place details:', error);
-          return null;
-        }
-      })
-    );
-
-    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => result !== null);
-    console.log(`Found ${validResults.length} valid business results`);
+    const results = businesses.map(business => ({
+      url: business.website || '',
+      details: {
+        title: business.name,
+        description: business.description,
+        lastChecked: new Date().toISOString(),
+        address: business.address || '',
+        businessType: business.businessType || '',
+        confidence: business.confidenceScore,
+      }
+    }));
 
     return {
-      results: validResults,
-      hasMore: placesData.next_page_token !== undefined
+      results,
+      hasMore: false // AI provides all results at once
     };
   } catch (error) {
     console.error('Error in business search:', error);
@@ -159,7 +139,12 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
           title: result.details.title,
           description: result.details.description,
           status: 'completed',
-          details: result.details
+          details: result.details,
+          ai_generated: true,
+          confidence_score: result.details.confidence,
+          search_query: params.query,
+          search_region: params.region,
+          business_type: result.details.businessType
         }))
       );
 

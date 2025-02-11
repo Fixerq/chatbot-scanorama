@@ -26,7 +26,10 @@ export type Database = {
       }
       analyzed_urls: {
         Row: {
+          ai_generated: boolean | null
+          business_type: string | null
           chat_solutions: string[] | null
+          confidence_score: number | null
           created_at: string
           description: string | null
           details: Json | null
@@ -39,6 +42,8 @@ export type Database = {
           place_data: Json | null
           place_id: string | null
           rating: number | null
+          search_query: string | null
+          search_region: string | null
           status: string
           technologies: string[] | null
           title: string | null
@@ -46,7 +51,10 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_generated?: boolean | null
+          business_type?: string | null
           chat_solutions?: string[] | null
+          confidence_score?: number | null
           created_at?: string
           description?: string | null
           details?: Json | null
@@ -59,6 +67,8 @@ export type Database = {
           place_data?: Json | null
           place_id?: string | null
           rating?: number | null
+          search_query?: string | null
+          search_region?: string | null
           status: string
           technologies?: string[] | null
           title?: string | null
@@ -66,7 +76,10 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_generated?: boolean | null
+          business_type?: string | null
           chat_solutions?: string[] | null
+          confidence_score?: number | null
           created_at?: string
           description?: string | null
           details?: Json | null
@@ -79,6 +92,8 @@ export type Database = {
           place_data?: Json | null
           place_id?: string | null
           rating?: number | null
+          search_query?: string | null
+          search_region?: string | null
           status?: string
           technologies?: string[] | null
           title?: string | null
