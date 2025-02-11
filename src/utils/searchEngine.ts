@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const performGoogleSearch = async (
   query: string,
   country: string,
-  region?: string
+  region: string
 ): Promise<{ results: SearchResult[]; hasMore: boolean } | null> => {
   try {
     console.log('Starting search:', { query, country, region });
@@ -42,4 +42,3 @@ export const performGoogleSearch = async (
     throw error;
   }
 };
-
