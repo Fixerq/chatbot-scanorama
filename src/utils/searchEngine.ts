@@ -6,7 +6,7 @@ export const performGoogleSearch = async (
   query: string,
   country: string,
   region: string
-): Promise<{ results: SearchResult[]; hasMore: boolean } | null> => {
+): Promise<{ results: SearchResult[]; hasMore: boolean; searchBatchId: string } | null> => {
   try {
     console.log('Starting search:', { query, country, region });
 
@@ -35,7 +35,8 @@ export const performGoogleSearch = async (
 
     return {
       results: data.data.results,
-      hasMore: data.data.hasMore
+      hasMore: data.data.hasMore,
+      searchBatchId: data.data.searchBatchId
     };
   } catch (error) {
     console.error('Error performing search:', error);

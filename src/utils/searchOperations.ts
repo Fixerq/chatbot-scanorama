@@ -34,13 +34,15 @@ export const executeSearch = async (
     const existingUrls = new Set(currentResults.map(r => r.url));
     const newResults = searchResult.results
       .filter(result => !existingUrls.has(result.url))
-      .map(result => ({
+      .map((result, index) => ({
         url: result.url,
         details: {
           title: result.title,
           description: result.description,
           lastChecked: new Date().toISOString()
-        }
+        },
+        searchBatchId: searchResult.searchBatchId,
+        resultPosition: index + 1
       }));
 
     return {
@@ -79,15 +81,18 @@ export const loadMore = async (
     }
 
     const existingUrls = new Set(currentResults.map(r => r.url));
+    const currentResultsCount = currentResults.length;
     const newResults = searchResult.results
       .filter(result => !existingUrls.has(result.url))
-      .map(result => ({
+      .map((result, index) => ({
         url: result.url,
         details: {
           title: result.title,
           description: result.description,
           lastChecked: new Date().toISOString()
-        }
+        },
+        searchBatchId: searchResult.searchBatchId,
+        resultPosition: currentResultsCount + index + 1
       }));
 
     return {

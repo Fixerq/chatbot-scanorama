@@ -42,6 +42,8 @@ export type Database = {
           place_data: Json | null
           place_id: string | null
           rating: number | null
+          result_position: number | null
+          search_batch_id: string | null
           search_query: string | null
           search_region: string | null
           status: string
@@ -67,6 +69,8 @@ export type Database = {
           place_data?: Json | null
           place_id?: string | null
           rating?: number | null
+          result_position?: number | null
+          search_batch_id?: string | null
           search_query?: string | null
           search_region?: string | null
           status: string
@@ -92,6 +96,8 @@ export type Database = {
           place_data?: Json | null
           place_id?: string | null
           rating?: number | null
+          result_position?: number | null
+          search_batch_id?: string | null
           search_query?: string | null
           search_region?: string | null
           status?: string

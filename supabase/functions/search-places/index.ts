@@ -93,6 +93,9 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
+    // Generate a unique batch ID for this search
+    const searchBatchId = crypto.randomUUID();
+
     const results = businesses.map(business => ({
       url: business.website || '',
       details: {
@@ -107,14 +110,14 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
 
     if (results.length === 0) {
       console.log('No results found');
-      return { results: [], hasMore: false };
+      return { results: [], hasMore: false, searchBatchId };
     }
 
-    // Record search results
+    // Record search results with batch ID and position
     const { error: insertError } = await supabase
       .from('analyzed_urls')
       .insert(
-        results.map(result => ({
+        results.map((result, index) => ({
           url: result.url,
           user_id: userId,
           title: result.details.title,
@@ -124,7 +127,9 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
           ai_generated: true,
           confidence_score: result.details.confidence,
           search_query: params.query,
-          search_region: params.region || ''
+          search_region: params.region || '',
+          search_batch_id: searchBatchId,
+          result_position: index + 1
         }))
       );
 
@@ -135,7 +140,8 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
 
     return {
       results,
-      hasMore: false
+      hasMore: false,
+      searchBatchId
     };
   } catch (error) {
     console.error('Search error:', error);
@@ -189,4 +195,3 @@ serve(async (req) => {
     );
   }
 });
-
