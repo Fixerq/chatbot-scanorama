@@ -18,88 +18,92 @@ async function getLocationCoordinates(region: string, country: string) {
     if (data.results?.[0]?.geometry?.location) {
       return data.results[0].geometry.location;
     }
+    throw new Error('Location not found');
   } catch (error) {
     console.error('Geocoding error:', error);
+    throw new Error('Failed to get location coordinates');
   }
-  return null;
 }
 
 async function searchBusinesses(query: string, country: string, region?: string) {
   const GOOGLE_API_KEY = Deno.env.get('Google API');
-  const GOOGLE_CX = Deno.env.get('GOOGLE_CX');
 
-  if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+  if (!GOOGLE_API_KEY) {
     console.error('Missing Google API configuration');
-    return { results: [], hasMore: false };
+    throw new Error('API configuration missing');
   }
 
-  const searchQuery = region 
-    ? `${query} business in ${region}, ${country}`  // Added 'business' keyword
-    : `${query} business in ${country}`;
+  if (!region) {
+    throw new Error('Region is required for local business search');
+  }
 
   try {
-    // First use Google Custom Search to get initial results
-    const searchUrl = `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(searchQuery)}`;
-    const response = await fetch(searchUrl);
-    const data = await response.json();
+    // Get coordinates for the region
+    const location = await getLocationCoordinates(region, country);
+    console.log('Location coordinates:', location);
 
-    if (!response.ok) {
-      console.error('Google API error:', data);
-      return { results: [], hasMore: false };
+    // Use Places Nearby Search API
+    const placesEndpoint = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+    const searchParams = new URLSearchParams({
+      location: `${location.lat},${location.lng}`,
+      radius: '80000', // 50 miles in meters
+      keyword: query,
+      type: 'establishment',
+      key: GOOGLE_API_KEY
+    });
+
+    const response = await fetch(`${placesEndpoint}?${searchParams}`);
+    const data = await response.json();
+    console.log('Places API response status:', data.status);
+
+    if (data.status !== 'OK') {
+      throw new Error(`Places API error: ${data.status}`);
     }
 
-    // Process and filter results to focus on business websites
-    const results = data.items?.filter(item => {
-      const url = item.link.toLowerCase();
-      const title = item.title.toLowerCase();
-      const snippet = item.snippet.toLowerCase();
-      
-      // Exclude common non-business domains
-      const excludedDomains = [
-        '.gov', '.edu', '.org',
-        'linkedin.com', 'indeed.com', 'glassdoor.com',
-        'wikipedia.org', 'yelp.com', 'yellowpages.com'
-      ];
-      
-      if (excludedDomains.some(domain => url.includes(domain))) {
-        return false;
-      }
+    // Get detailed information for each place
+    const detailedResults = await Promise.all(
+      data.results.slice(0, 20).map(async (place) => {
+        const detailsEndpoint = 'https://maps.googleapis.com/maps/api/place/details/json';
+        const detailsParams = new URLSearchParams({
+          place_id: place.place_id,
+          fields: 'website,formatted_phone_number,formatted_address,url',
+          key: GOOGLE_API_KEY
+        });
 
-      // Look for business indicators in the content
-      const businessIndicators = [
-        'business hours', 'contact us', 'services',
-        'about us', 'testimonials', 'our team',
-        'free quote', 'call us', 'local business'
-      ];
+        try {
+          const detailsResponse = await fetch(`${detailsEndpoint}?${detailsParams}`);
+          const detailsData = await detailsResponse.json();
 
-      const hasBusinessIndicator = businessIndicators.some(indicator => 
-        title.includes(indicator) || snippet.includes(indicator)
-      );
+          return {
+            url: detailsData.result?.website || '',
+            details: {
+              title: place.name,
+              description: `${place.name} - ${place.vicinity}`,
+              lastChecked: new Date().toISOString(),
+              address: detailsData.result?.formatted_address || place.vicinity,
+              phone: detailsData.result?.formatted_phone_number || '',
+              mapsUrl: detailsData.result?.url || '',
+              types: place.types,
+              rating: place.rating
+            }
+          };
+        } catch (error) {
+          console.error('Error fetching place details:', error);
+          return null;
+        }
+      })
+    );
 
-      // Look for location relevance
-      const locationRelevant = region 
-        ? (title + snippet).toLowerCase().includes(region.toLowerCase())
-        : true;
-
-      return hasBusinessIndicator && locationRelevant;
-    }).map(item => ({
-      url: item.link,
-      details: {
-        title: item.title,
-        description: item.snippet,
-        lastChecked: new Date().toISOString()
-      }
-    })) || [];
-
-    console.log(`Found ${results.length} filtered business results`);
+    const validResults = detailedResults.filter(result => result !== null);
+    console.log(`Found ${validResults.length} valid business results`);
 
     return {
-      results: results.slice(0, 20), // Limit to top 20 results
-      hasMore: data.queries?.nextPage ? true : false
+      results: validResults,
+      hasMore: data.next_page_token ? true : false
     };
   } catch (error) {
     console.error('Search error:', error);
-    return { results: [], hasMore: false };
+    throw error;
   }
 }
 
@@ -160,7 +164,7 @@ serve(async (req) => {
     }
 
     if (type === 'search') {
-      if (!query || !country) {
+      if (!query || !country || !region) {
         return new Response(
           JSON.stringify({ 
             error: 'Missing required parameters',
