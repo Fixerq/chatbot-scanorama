@@ -28,4 +28,3 @@ export const validateSearchRequest = (action: string, params: any): string | nul
 
   return validateSearchParams(params as SearchParams);
 };
-
