@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleOptions } from "../_shared/cors.ts";
 import { verifyUser } from "./auth.ts";
 import { SearchRequest, SearchResponse } from "./types.ts";
 
@@ -10,19 +10,13 @@ serve(async (req) => {
   const origin = req.headers.get('origin') || '*';
   console.log('Incoming request from origin:', origin);
   
-  try {
-    // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          ...corsHeaders,
-          'Access-Control-Allow-Origin': origin,
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-        }
-      });
-    }
+  // Handle CORS preflight
+  const corsResponse = handleOptions(req);
+  if (corsResponse) {
+    return corsResponse;
+  }
 
+  try {
     if (req.method !== 'POST') {
       throw new Error(`Method ${req.method} not allowed`);
     }
@@ -55,7 +49,13 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ apiKey: FIRECRAWL_API_KEY }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': origin } }
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': origin 
+          } 
+        }
       );
     }
 
