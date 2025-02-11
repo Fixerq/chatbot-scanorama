@@ -54,6 +54,7 @@ export const useSearchState = () => {
           }));
         }
       } catch (error) {
+        // Error is already handled in FirecrawlService
         console.error('Error initializing API key:', error);
       }
     };

@@ -1,4 +1,3 @@
-
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat, CrawlDocument } from './types';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +19,9 @@ export class FirecrawlService {
   private static MAX_API_LIMIT = 10;
   private static retryCount = 0;
   private static MAX_RETRIES = 3;
-  private static RETRY_DELAY = 1000; // 1 second
+  private static RETRY_DELAY = 1000;
+  private static apiKey: string | null = null;
+  private static lastAccessToken: string | null = null;
 
   private static async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -33,6 +34,11 @@ export class FirecrawlService {
       if (!session?.access_token) {
         console.log('No active session, skipping API key fetch');
         return '';
+      }
+
+      // Return cached key if session hasn't changed
+      if (this.apiKey && session.access_token === this.lastAccessToken) {
+        return this.apiKey;
       }
 
       // Only attempt to fetch API key if we're authenticated
@@ -61,6 +67,8 @@ export class FirecrawlService {
       }
 
       this.retryCount = 0; // Reset retry count on success
+      this.apiKey = data.apiKey;
+      this.lastAccessToken = session.access_token;
       return data.apiKey;
     } catch (error) {
       console.error('Error getting API key:', error);
