@@ -9,37 +9,42 @@ async function getLocationCoordinates(region: string, country: string) {
   const geocodeEndpoint = 'https://maps.googleapis.com/maps/api/geocode/json';
   
   try {
+    const locationQuery = `${region}, ${country}`;
+    console.log('Geocoding location:', locationQuery);
+    
     const response = await fetch(
-      `${geocodeEndpoint}?address=${encodeURIComponent(`${region}, ${country}`)}&key=${GOOGLE_API_KEY}`
+      `${geocodeEndpoint}?address=${encodeURIComponent(locationQuery)}&key=${GOOGLE_API_KEY}`
     );
     const data = await response.json();
-    console.log('Geocoding response:', data.status);
+    console.log('Geocoding response status:', data.status);
     
     if (data.results?.[0]?.geometry?.location) {
+      console.log('Found coordinates:', data.results[0].geometry.location);
       return data.results[0].geometry.location;
     }
-    throw new Error('Location not found');
+    throw new Error(`Location not found for: ${locationQuery}`);
   } catch (error) {
     console.error('Geocoding error:', error);
-    throw new Error('Failed to get location coordinates');
+    throw error;
   }
 }
 
-async function searchBusinesses(query: string, country: string, region?: string) {
+async function searchBusinesses(params: { query: string; country: string; region?: string }) {
   const GOOGLE_API_KEY = Deno.env.get('Google API');
+  console.log('Search params:', JSON.stringify(params));
 
   if (!GOOGLE_API_KEY) {
     console.error('Missing Google API configuration');
     throw new Error('API configuration missing');
   }
 
-  if (!region) {
+  if (!params.region) {
     throw new Error('Region is required for local business search');
   }
 
   try {
     // Get coordinates for the region
-    const location = await getLocationCoordinates(region, country);
+    const location = await getLocationCoordinates(params.region, params.country);
     console.log('Location coordinates:', location);
 
     // Use Places Nearby Search API
@@ -47,11 +52,12 @@ async function searchBusinesses(query: string, country: string, region?: string)
     const searchParams = new URLSearchParams({
       location: `${location.lat},${location.lng}`,
       radius: '80000', // 50 miles in meters
-      keyword: query,
+      keyword: params.query,
       type: 'establishment',
       key: GOOGLE_API_KEY
     });
 
+    console.log('Searching with URL:', `${placesEndpoint}?${searchParams}`);
     const response = await fetch(`${placesEndpoint}?${searchParams}`);
     const data = await response.json();
     console.log('Places API response status:', data.status);
@@ -59,6 +65,8 @@ async function searchBusinesses(query: string, country: string, region?: string)
     if (data.status !== 'OK') {
       throw new Error(`Places API error: ${data.status}`);
     }
+
+    console.log(`Found ${data.results.length} places`);
 
     // Get detailed information for each place
     const detailedResults = await Promise.all(
@@ -182,7 +190,7 @@ serve(async (req) => {
       }
 
       console.log('Executing search with params:', { query, country, region });
-      const searchResults = await searchBusinesses(query, country, region);
+      const searchResults = await searchBusinesses({ query, country, region });
 
       return new Response(
         JSON.stringify({ 

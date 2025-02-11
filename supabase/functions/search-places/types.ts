@@ -14,6 +14,11 @@ export interface SearchResponse {
       title: string;
       description: string;
       lastChecked: string;
+      address?: string;
+      phone?: string;
+      mapsUrl?: string;
+      types?: string[];
+      rating?: number;
     };
   }>;
   hasMore: boolean;
