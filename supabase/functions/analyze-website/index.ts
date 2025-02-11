@@ -4,18 +4,17 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { analyzeChatbot } from "./analyzer.ts";
 import type { RequestData } from "./types.ts";
 
-const TIMEOUT = 15000; // 15 second timeout
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: {
         ...corsHeaders,
+        'Access-Control-Allow-Headers': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      },
-      status: 204,
+        'Access-Control-Request-Headers': '*',
+        'Access-Control-Max-Age': '86400',
+      }
     });
   }
 
@@ -39,15 +38,10 @@ serve(async (req) => {
 
     // Create timeout controller
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const chatSolutions = await Promise.race([
-        analyzeChatbot(url),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Analysis timed out')), TIMEOUT)
-        )
-      ]);
+      const chatSolutions = await analyzeChatbot(url);
 
       clearTimeout(timeoutId);
       
