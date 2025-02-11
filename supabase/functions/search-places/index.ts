@@ -20,7 +20,7 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
   );
 
   try {
-    console.log('Fetching subscription data for user:', userId);
+    console.log('Fetching subscription for user:', userId);
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .select(`
@@ -32,13 +32,10 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (subError) {
-      console.error('Error fetching subscription:', subError);
-      throw subError;
-    }
+    if (subError) throw subError;
 
+    // Default to starter plan if no subscription found
     if (!subscription) {
-      console.log('No subscription found, returning default starter plan');
       return {
         level: 'starter',
         stripe_customer_id: null,
@@ -49,6 +46,7 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
       };
     }
 
+    // Calculate searches used this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -59,22 +57,11 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
       .eq('user_id', userId)
       .gte('created_at', startOfMonth.toISOString());
 
-    if (searchError) {
-      console.error('Error counting searches:', searchError);
-      throw searchError;
-    }
+    if (searchError) throw searchError;
 
     const searchesUsed = count || 0;
     const totalSearches = subscription.total_searches || 25;
     const remaining = Math.max(0, totalSearches - searchesUsed);
-
-    console.log('Subscription data:', {
-      level: subscription.level,
-      status: subscription.status,
-      remaining,
-      used: searchesUsed,
-      total: totalSearches
-    });
 
     return {
       level: subscription.level,
@@ -85,13 +72,13 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
       total_searches: totalSearches
     };
   } catch (error) {
-    console.error('Error in getSubscriptionData:', error);
+    console.error('Error fetching subscription data:', error);
     throw error;
   }
 }
 
 async function handleSearch(params: SearchParams, userId: string): Promise<BusinessSearchResult> {
-  console.log('Processing search with params:', params);
+  console.log('Processing search:', params);
   
   try {
     if (!params.query || !params.country) {
@@ -99,8 +86,8 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
     }
 
     const businesses = await searchBusinessesWithAI(params.query, params.region || '', params.country);
-    console.log(`Search completed with ${businesses.length} results`);
-    
+    console.log(`Found ${businesses.length} businesses`);
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -118,14 +105,12 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
       }
     }));
 
-    // Log the results before inserting
-    console.log('Preparing to insert results:', results);
-
     if (results.length === 0) {
-      console.log('No results found from AI search');
+      console.log('No results found');
       return { results: [], hasMore: false };
     }
 
+    // Record search results
     const { error: insertError } = await supabase
       .from('analyzed_urls')
       .insert(
@@ -144,11 +129,9 @@ async function handleSearch(params: SearchParams, userId: string): Promise<Busin
       );
 
     if (insertError) {
-      console.error('Error recording search results:', insertError);
-      throw new Error(`Failed to record search results: ${insertError.message}`);
+      console.error('Error recording results:', insertError);
+      throw new Error('Failed to record search results');
     }
-
-    console.log('Successfully recorded search results');
 
     return {
       results,
@@ -169,14 +152,12 @@ serve(async (req) => {
     const { action, params } = await req.json()
     console.log('Request received:', { action, params })
 
-    console.log('Auth header:', req.headers.get('Authorization'));
     const userId = await verifyUser(req.headers.get('Authorization'));
     console.log('User verified:', userId);
 
     if (action === 'search') {
-      console.log('Starting search flow');
       const subscription = await getSubscriptionData(userId);
-      console.log('Got subscription data:', subscription);
+      console.log('Subscription data:', subscription);
       
       if (subscription.status !== 'active') {
         throw new Error('Subscription is not active');
@@ -187,7 +168,7 @@ serve(async (req) => {
       }
 
       const result = await handleSearch(params as SearchParams, userId);
-      console.log('Search completed successfully:', result);
+      console.log('Search completed successfully');
       
       return new Response(
         JSON.stringify({ success: true, data: result }),
@@ -198,16 +179,14 @@ serve(async (req) => {
     throw new Error('Invalid action type');
 
   } catch (error) {
-    console.error('Error in handleRequest:', error);
+    console.error('Request error:', error);
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message
       }),
-      { 
-        status: 200,
-        headers: corsHeaders
-      }
+      { headers: corsHeaders }
     );
   }
 });
+

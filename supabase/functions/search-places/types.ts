@@ -5,6 +5,15 @@ export interface SearchParams {
   region?: string;
 }
 
+export interface BusinessResult {
+  name: string;
+  description: string;
+  website?: string;
+  address?: string;
+  businessType?: string;
+  confidenceScore: number;
+}
+
 export interface BusinessSearchResult {
   results: Array<{
     url: string;
@@ -13,10 +22,8 @@ export interface BusinessSearchResult {
       description: string;
       lastChecked: string;
       address?: string;
-      phone?: string;
-      mapsUrl?: string;
-      types?: string[];
-      rating?: number;
+      businessType?: string;
+      confidence?: number;
     };
   }>;
   hasMore: boolean;

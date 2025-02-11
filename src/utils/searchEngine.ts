@@ -1,24 +1,23 @@
 
 import { SearchResult, SearchResponse } from './types/search';
-import { filterResults } from './helpers/searchHelpers';
 import { supabase } from '@/integrations/supabase/client';
 
 export const performGoogleSearch = async (
   query: string,
   country: string,
-  region?: string,
-  startIndex?: number
+  region?: string
 ): Promise<{ results: SearchResult[]; hasMore: boolean } | null> => {
   try {
-    console.log('Initiating search with params:', { query, country, region, startIndex });
+    console.log('Starting search:', { query, country, region });
 
     const { data, error } = await supabase.functions.invoke<SearchResponse>('search-places', {
       body: {
-        type: 'search',
-        query,
-        country,
-        region,
-        startIndex
+        action: 'search',
+        params: {
+          query,
+          country,
+          region
+        }
       }
     });
 
@@ -28,17 +27,14 @@ export const performGoogleSearch = async (
     }
 
     if (!data?.data) {
-      console.log('No data received from search endpoint');
+      console.log('No results found');
       return null;
     }
 
-    console.log('Search results received:', data.data);
-
-    // Filter results to ensure we only get legitimate businesses
-    const filteredResults = filterResults(data.data.results, query, country, region);
+    console.log('Search completed:', data.data);
 
     return {
-      results: filteredResults,
+      results: data.data.results,
       hasMore: data.data.hasMore
     };
   } catch (error) {
@@ -46,3 +42,4 @@ export const performGoogleSearch = async (
     throw error;
   }
 };
+
