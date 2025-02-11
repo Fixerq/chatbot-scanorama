@@ -15,6 +15,44 @@ serve(async (req) => {
   }
 
   try {
+    const { type } = await req.json();
+    console.log('Request type:', type);
+
+    if (type === 'get_api_key') {
+      const apiKey = Deno.env.get('Firecrawl');
+      console.log('API key fetch attempt');
+      
+      if (!apiKey) {
+        console.error('Firecrawl API key not configured');
+        return new Response(
+          JSON.stringify({ error: 'API key not configured' }),
+          { 
+            status: 500,
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': origin 
+            } 
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          data: { 
+            apiKey: apiKey 
+          }
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': origin 
+          } 
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({ status: 'ok' }),
       { 
