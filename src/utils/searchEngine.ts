@@ -13,10 +13,15 @@ export const performGoogleSearch = async (
   try {
     console.log('Starting search:', { query, country, region });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT);
+    // Create a promise that rejects after the timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Search request timed out'));
+      }, SEARCH_TIMEOUT);
+    });
 
-    const { data, error } = await supabase.functions.invoke<SearchResponse>('search-places', {
+    // Create the actual search promise
+    const searchPromise = supabase.functions.invoke<SearchResponse>('search-places', {
       body: {
         action: 'search',
         params: {
@@ -24,15 +29,18 @@ export const performGoogleSearch = async (
           country,
           region
         }
-      },
-      signal: controller.signal
+      }
     });
 
-    clearTimeout(timeoutId);
+    // Race between the timeout and the search
+    const { data, error } = await Promise.race([
+      searchPromise,
+      timeoutPromise
+    ]) as typeof searchPromise;
 
     if (error) {
       console.error('Search error:', error);
-      if (error.message?.includes('aborted')) {
+      if (error.message?.includes('timed out')) {
         toast.error('Search timed out. Please try again.');
       } else {
         toast.error(error.message || 'Error performing search');
@@ -56,7 +64,7 @@ export const performGoogleSearch = async (
   } catch (error) {
     console.error('Error performing search:', error);
     
-    if (error.name === 'AbortError') {
+    if (error.message?.includes('timed out')) {
       toast.error('Search request timed out. Please try again.');
     } else if (error.message?.includes('network')) {
       toast.error('Network connection error. Please check your internet connection.');
