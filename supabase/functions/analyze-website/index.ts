@@ -1,20 +1,14 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleOptions } from "../_shared/cors.ts";
 import { analyzeChatbot } from "./analyzer.ts";
 import type { RequestData } from "./types.ts";
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-      },
-      status: 204,
-    });
+  const corsResponse = handleOptions(req);
+  if (corsResponse) {
+    return corsResponse;
   }
 
   try {
