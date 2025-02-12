@@ -5,10 +5,10 @@ const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'
 ];
 
-const corsHeaders = {
+export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Content-Type': 'application/json'
 };
 
@@ -77,4 +77,10 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
   throw lastError;
 }
 
-export { corsHeaders };
+export function addCorsHeaders(response: Response): Response {
+  const responseWithCors = new Response(response.body, response);
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    responseWithCors.headers.set(key, value);
+  });
+  return responseWithCors;
+}

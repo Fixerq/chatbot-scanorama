@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { RequestData, ChatDetectionResult, PlaceDetails, ChatbotDetection } from './types.ts';
 import { analyzeChatbot } from './analyzer.ts';
 import { normalizeUrl } from './utils/urlUtils.ts';
-import { corsHeaders } from './utils/httpUtils.ts';
+import { corsHeaders, addCorsHeaders } from './utils/httpUtils.ts';
 
 // Initialize Supabase client with service role for full access
 const supabaseAdmin = createClient(
@@ -53,10 +53,20 @@ serve(async (req) => {
 
   try {
     console.log('Starting website analysis');
+    console.log('Request headers:', Object.fromEntries(req.headers));
     
     // Parse request data
-    const requestData: RequestData = await req.json();
-    console.log('Request data:', requestData);
+    let requestData: RequestData;
+    try {
+      requestData = await req.json();
+      console.log('Request data:', requestData);
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { headers: corsHeaders, status: 400 }
+      );
+    }
     
     if (!requestData?.url) {
       return new Response(
@@ -108,10 +118,10 @@ serve(async (req) => {
 
     if (upsertError) {
       console.error('Database error:', upsertError);
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Failed to store detection results' }),
-        { headers: corsHeaders, status: 500 }
-      );
+        { status: 500 }
+      ));
     }
 
     // Prepare response
@@ -123,10 +133,10 @@ serve(async (req) => {
       lastChecked: timestamp
     };
 
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify(result),
-      { headers: corsHeaders }
-    );
+      { status: 200 }
+    ));
 
   } catch (error) {
     console.error('Analysis error:', error);
@@ -137,12 +147,9 @@ serve(async (req) => {
       lastChecked: new Date().toISOString()
     };
 
-    return new Response(
+    return addCorsHeaders(new Response(
       JSON.stringify(errorResult),
-      { 
-        headers: corsHeaders,
-        status: error.message.includes('required') ? 400 : 500
-      }
-    );
+      { status: error.message.includes('required') ? 400 : 500 }
+    ));
   }
 });
