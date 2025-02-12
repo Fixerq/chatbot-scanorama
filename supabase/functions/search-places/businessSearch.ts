@@ -35,6 +35,12 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
       };
     }
 
+    console.log('Places API Response:', {
+      totalResults: placesData.results.length,
+      hasNextPage: !!placesData.next_page_token,
+      status: placesData.status
+    });
+
     console.log(`Found ${placesData.results.length} initial results`);
     console.log('Initial results details:', placesData.results.map(place => ({
       name: place.name,
@@ -58,6 +64,14 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
       rating: place.rating,
       user_ratings_total: place.user_ratings_total
     })));
+
+    // Log information about result limiting
+    console.log('Result processing info:', {
+      totalResultsAvailable: filteredResults.length,
+      processingLimit: 20,
+      limitingReason: 'API rate limits and cost optimization',
+      hasMoreResults: filteredResults.length > 20 || !!placesData.next_page_token
+    });
 
     // Get detailed information for each place
     const detailedResults = await Promise.all(
@@ -102,9 +116,17 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
       business_type: result.details.businessType
     })));
 
+    const hasMore = filteredResults.length > 20 || !!placesData.next_page_token;
+    console.log('Search completion status:', {
+      processedResults: validResults.length,
+      totalAvailable: filteredResults.length,
+      hasMore,
+      hasNextPageToken: !!placesData.next_page_token
+    });
+
     return {
       results: validResults,
-      hasMore: placesData.next_page_token !== undefined,
+      hasMore,
       searchBatchId: crypto.randomUUID()
     };
   } catch (error) {
