@@ -14,6 +14,8 @@ import ResultStatusCell from './results/ResultStatusCell';
 export interface Result {
   url: string;
   status?: string;
+  business_name?: string;
+  businessName?: string;
   details?: {
     title?: string;
     description?: string;
@@ -21,6 +23,10 @@ export interface Result {
     chatSolutions?: string[];
     website_url?: string | null;
     business_name?: string;
+    fullDetails?: {
+      business_name?: string;
+      title?: string;
+    };
     placeId?: string;
     address?: string;
     businessType?: string;
@@ -48,19 +54,26 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     console.log('Processing business name for result:', {
       hasDetails: !!result.details,
       detailsBusinessName: result.details?.business_name,
-      detailsTitle: result.details?.title,
       fullDetails: result.details
     });
 
-    if (!result.details) return 'N/A';
-
-    // Try different possible locations of the business name
-    const name = result.details.business_name || result.details.title;
+    // Check all possible locations of the business name
+    const name = 
+      // Check in details object
+      result.details?.business_name ||
+      // Check in fullDetails if it exists
+      result.details?.fullDetails?.business_name ||
+      // Check title as fallback
+      result.details?.title ||
+      // Check if business_name exists directly on result
+      result.business_name ||
+      // Final fallback
+      'N/A';
 
     // Log the final resolved name
     console.log('Resolved business name:', name);
 
-    return name || 'N/A';
+    return name;
   };
 
   return (
@@ -75,6 +88,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         </TableHeader>
         <TableBody>
           {results.map((result, index) => {
+            console.log('Raw result data:', JSON.stringify(result, null, 2));
+            
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
@@ -111,3 +126,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
+
