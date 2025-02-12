@@ -78,7 +78,7 @@ export async function getPlaceDetails(placeId: string) {
       throw new Error(`Place details error: ${data.status}`);
     }
     
-    return data;
+    return data.result;
   } catch (error) {
     console.error('Place details error:', error);
     throw error;

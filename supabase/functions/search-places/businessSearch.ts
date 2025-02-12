@@ -28,32 +28,46 @@ const getCachedPlaceDetails = async (
 };
 
 const processSearchResults = async (placesData: any, searchBatchId: string) => {
-  return placesData.results
-    .filter((place: any) => 
+  const results = [];
+  
+  for (const place of placesData.results) {
+    if (
       place.business_status === 'OPERATIONAL' &&
       !place.types?.includes('locality') &&
       !place.types?.includes('political')
-    )
-    .slice(0, 20)
-    .map((result: any) => {
-      const businessName = result.name || result.business_name;
-      const websiteUrl = result.website || result.website_url;
+    ) {
+      console.log('Processing place:', place);
       
-      return {
-        url: websiteUrl || result.url || `https://maps.google.com/?q=${encodeURIComponent(result.name)}`,
-        businessName: businessName, // Add this directly to the root
-        details: {
-          lastChecked: new Date().toISOString(),
-          chatSolutions: [],
-          website_url: websiteUrl,
-          business_name: businessName,
-          address: result.formatted_address || result.vicinity,
-          placeId: result.place_id,
-          businessType: result.types?.[0] || 'business',
-          phoneNumber: result.formatted_phone_number
-        }
-      };
-    });
+      try {
+        const placeDetails = await getPlaceDetails(place.place_id);
+        console.log('Retrieved place details:', placeDetails);
+        
+        const businessName = place.name || placeDetails?.name;
+        const websiteUrl = placeDetails?.website;
+        const mapsUrl = `https://maps.google.com/?q=place_id:${place.place_id}`;
+        
+        results.push({
+          url: websiteUrl || mapsUrl,
+          businessName,
+          details: {
+            lastChecked: new Date().toISOString(),
+            chatSolutions: [],
+            website_url: websiteUrl,
+            business_name: businessName,
+            address: place.formatted_address || place.vicinity,
+            placeId: place.place_id,
+            businessType: place.types?.[0] || 'business',
+            phoneNumber: placeDetails?.formatted_phone_number,
+            maps_url: mapsUrl
+          }
+        });
+      } catch (error) {
+        console.error(`Error processing place ${place.place_id}:`, error);
+      }
+    }
+  }
+  
+  return results.slice(0, 20);
 };
 
 export async function searchBusinesses(
