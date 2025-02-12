@@ -246,6 +246,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cached_analyses: {
+        Row: {
+          analysis_details: Json | null
+          chatbot_providers: string[] | null
+          error_message: string | null
+          has_chatbot: boolean | null
+          id: string
+          is_error: boolean | null
+          last_analyzed: string | null
+          url: string
+        }
+        Insert: {
+          analysis_details?: Json | null
+          chatbot_providers?: string[] | null
+          error_message?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          is_error?: boolean | null
+          last_analyzed?: string | null
+          url: string
+        }
+        Update: {
+          analysis_details?: Json | null
+          chatbot_providers?: string[] | null
+          error_message?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          is_error?: boolean | null
+          last_analyzed?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       cached_places: {
         Row: {
           business_name: string
