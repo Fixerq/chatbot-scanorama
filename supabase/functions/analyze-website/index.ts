@@ -2,12 +2,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateRequest } from './utils/requestValidator.ts';
 import { analyzeWebsite } from './services/websiteAnalyzer.ts';
+import { CHATBOT_PROVIDERS } from './providers/chatbotProviders.ts';
 import { RequestData } from './types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Content-Type': 'application/json'
 };
 
@@ -35,9 +36,11 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        status: 'error',
         error: error.message,
-        chatSolutions: [],
+        status: 'error',
+        has_chatbot: false,
+        providers: [],
+        details: { error: error.message },
         lastChecked: new Date().toISOString()
       }),
       { 

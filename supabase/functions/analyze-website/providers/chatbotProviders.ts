@@ -9,6 +9,59 @@ export const CHATBOT_PROVIDERS = {
       'conversation-ai'
     ]
   },
+  localmed: {
+    name: 'LocalMed',
+    signatures: [
+      'localmed-button',
+      'localmed.com',
+      'local-med'
+    ]
+  },
+  patientpop: {
+    name: 'PatientPop',
+    signatures: [
+      'patientpop',
+      'schedule-widget',
+      'patient-pop'
+    ]
+  },
+  podium: {
+    name: 'Podium',
+    signatures: [
+      'podium-website-widget',
+      'podiumwebsitewidget'
+    ]
+  },
+  weave: {
+    name: 'Weave',
+    signatures: [
+      'weave-widget',
+      'getweave',
+      'weavewidget'
+    ]
+  },
+  birdeye: {
+    name: 'Birdeye',
+    signatures: [
+      'birdeye-chat-widget',
+      'birdeyechat'
+    ]
+  },
+  smilesnap: {
+    name: 'SmileSnap',
+    signatures: [
+      'smilesnap-widget',
+      'smilesnap.io'
+    ]
+  },
+  swell: {
+    name: 'Swell',
+    signatures: [
+      'swellcx',
+      'swellai',
+      'swell.io'
+    ]
+  },
   drift: {
     name: 'Drift',
     signatures: [
@@ -23,14 +76,6 @@ export const CHATBOT_PROVIDERS = {
       'intercom-container',
       'intercom-messenger',
       'intercom.com'
-    ]
-  },
-  hubspot: {
-    name: 'HubSpot',
-    signatures: [
-      'hubspot-messages-iframe',
-      'HubSpot',
-      'hs-script'
     ]
   },
   livechat: {
