@@ -14,7 +14,7 @@ const getCachedPlaceDetails = async (
     .maybeSingle();
 
   if (cachedPlace) {
-    console.log(`Found cached place data:`, cachedPlace);
+    console.log(`Found cached place data for ${placeId}:`, cachedPlace);
     // Update last_accessed timestamp
     await supabaseClient
       .from('cached_places')
@@ -80,7 +80,8 @@ export async function searchBusinesses(
           
           if (cachedData) {
             console.log(`Using cached data for place: ${place.place_id}`, {
-              place_name: place.name,
+              place_id: place.place_id,
+              business_name: place.name,
               cached_business_name: cachedData.business_name
             });
             
@@ -114,7 +115,8 @@ export async function searchBusinesses(
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
 
           console.log(`Processing business name for ${place.place_id}:`, {
-            place_name: place.name,
+            place_id: place.place_id,
+            business_name: place.name,
             details_name: detailsData.result.name
           });
 
@@ -167,7 +169,14 @@ export async function searchBusinesses(
     );
     
     console.log(`Successfully processed ${validResults.length} businesses with details`);
-    console.log('Sample result:', validResults[0]);
+    validResults.forEach((result, index) => {
+      console.log(`Result details for row:`, {
+        index,
+        url: result.url,
+        businessName: result.details.business_name,
+        fullDetails: result.details
+      });
+    });
 
     return {
       results: validResults,
