@@ -7,23 +7,26 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
   try {
+    // Log incoming request details
     console.log('Request received:', {
       method: req.method,
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
 
+    // Always get the origin for CORS
+    const origin = req.headers.get('origin') || '*';
+    
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
-      console.log('Handling OPTIONS request');
-      const origin = req.headers.get('origin') || '*';
+      console.log('Handling OPTIONS request with origin:', origin);
       return new Response('ok', {
         status: 204,
         headers: {
           ...corsHeaders,
           'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
+          'Access-Control-Allow-Headers': '*',
           'Access-Control-Max-Age': '86400'
         }
       });
@@ -33,10 +36,6 @@ serve(async (req) => {
       console.log('Invalid method:', req.method);
       throw new Error('Method not allowed');
     }
-
-    // Get origin for response headers
-    const origin = req.headers.get('origin') || '*';
-    console.log('Request origin:', origin);
 
     // Ensure content-type is application/json
     const contentType = req.headers.get('content-type');
@@ -90,7 +89,7 @@ serve(async (req) => {
     
     console.log('Search completed successfully:', searchResponse);
 
-    // Return successful response
+    // Return successful response with proper CORS headers
     return new Response(
       JSON.stringify({
         data: searchResponse,
@@ -131,4 +130,3 @@ serve(async (req) => {
     );
   }
 });
-
