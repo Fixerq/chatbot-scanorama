@@ -1,3 +1,4 @@
+
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,12 +27,15 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
 
     console.log('Analyzing URL:', cleanUrl);
     
+    const bodyData = { url: cleanUrl };
+    console.log('Request body:', bodyData);
+
     const { data, error } = await supabase.functions.invoke('analyze-website', {
-      method: 'POST',
+      body: JSON.stringify(bodyData),
       headers: {
         'Content-Type': 'application/json',
       },
-      body: { url: cleanUrl }
+      method: 'POST',
     });
 
     if (error) {
