@@ -55,22 +55,53 @@ serve(async (req) => {
     console.log('Starting website analysis');
     console.log('Request headers:', Object.fromEntries(req.headers));
     
-    // Parse request data
-    let requestData: RequestData;
-    try {
-      requestData = await req.json();
-      console.log('Request data:', requestData);
-    } catch (error) {
-      console.error('Error parsing request body:', error);
+    // First check if we have a body
+    if (req.body === null) {
+      console.error('Request body is null');
       return new Response(
-        JSON.stringify({ error: 'Invalid request body' }),
+        JSON.stringify({ error: 'Request body is required' }),
+        { headers: corsHeaders, status: 400 }
+      );
+    }
+
+    // Parse request data with more detailed error handling
+    let requestData: RequestData;
+    let bodyText: string;
+    
+    try {
+      bodyText = await req.text();
+      console.log('Raw request body:', bodyText);
+      
+      if (!bodyText) {
+        console.error('Empty request body');
+        return new Response(
+          JSON.stringify({ error: 'Request body cannot be empty' }),
+          { headers: corsHeaders, status: 400 }
+        );
+      }
+      
+      try {
+        requestData = JSON.parse(bodyText);
+        console.log('Parsed request data:', requestData);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body' }),
+          { headers: corsHeaders, status: 400 }
+        );
+      }
+    } catch (bodyError) {
+      console.error('Error reading request body:', bodyError);
+      return new Response(
+        JSON.stringify({ error: 'Could not read request body' }),
         { headers: corsHeaders, status: 400 }
       );
     }
     
     if (!requestData?.url) {
+      console.error('Missing URL in request:', requestData);
       return new Response(
-        JSON.stringify({ error: 'URL is required' }),
+        JSON.stringify({ error: 'URL is required in request body' }),
         { headers: corsHeaders, status: 400 }
       );
     }
