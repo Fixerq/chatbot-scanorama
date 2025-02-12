@@ -84,7 +84,7 @@ export async function searchBusinesses(
             return {
               url: cachedData.url,
               details: {
-                title: place.name || cachedData.business_name || cachedData.title,
+                title: place.name,
                 description: cachedData.description,
                 lastChecked: new Date().toISOString(),
                 address: cachedData.address,
