@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatDistanceToNow } from 'date-fns';
 
 interface ResultStatusCellProps {
   status: string | undefined;
@@ -16,7 +18,13 @@ interface ResultStatusCellProps {
   chatSolutions?: string[];
 }
 
-const ResultStatusCell = ({ status, hasChatbot, technologies, lastChecked, chatSolutions }: ResultStatusCellProps) => {
+const ResultStatusCell = ({ 
+  status, 
+  hasChatbot, 
+  technologies, 
+  lastChecked,
+  chatSolutions 
+}: ResultStatusCellProps) => {
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
     if (!status) return 'secondary';
     if (status.toLowerCase().includes('error')) return 'destructive';
@@ -26,9 +34,11 @@ const ResultStatusCell = ({ status, hasChatbot, technologies, lastChecked, chatS
 
   const formatTooltipContent = () => {
     const content = [];
+    
     if (lastChecked) {
-      content.push(`Last checked: ${new Date(lastChecked).toLocaleString()}`);
+      content.push(`Last checked: ${formatDistanceToNow(new Date(lastChecked), { addSuffix: true })}`);
     }
+    
     if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
       if (chatSolutions.length === 1) {
         content.push(`Using ${chatSolutions[0]} chatbot`);
@@ -37,6 +47,7 @@ const ResultStatusCell = ({ status, hasChatbot, technologies, lastChecked, chatS
         content.push(`Additional providers: ${chatSolutions.slice(1).join(', ')}`);
       }
     }
+    
     return content.join('\n');
   };
 

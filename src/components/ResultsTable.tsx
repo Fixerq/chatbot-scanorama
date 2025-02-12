@@ -62,18 +62,24 @@ const formatBusinessName = (name: string): string => {
   return formattedWords.join(' ');
 };
 
+const getBusinessName = (result: Result): string => {
+  const name = result.businessName || 
+               result.details?.business_name || 
+               extractNameFromUrl(result.url);
+               
+  return formatBusinessName(name || '');
+};
+
 const extractNameFromUrl = (url: string): string | null => {
   if (!url) return null;
   
   try {
-    // For Google Maps URLs, extract the business name from the query parameter
     if (url.includes('maps.google.com')) {
       const params = new URL(url).searchParams;
       const q = params.get('q');
       return q ? decodeURIComponent(q) : null;
     }
     
-    // For regular URLs, extract from domain
     const domain = new URL(url).hostname
       .replace('www.', '')
       .replace('.com.au', '')
@@ -85,15 +91,6 @@ const extractNameFromUrl = (url: string): string | null => {
   } catch {
     return null;
   }
-};
-
-const getBusinessName = (result: Result): string => {
-  // Extract business name from the result
-  const name = result.businessName || // Try root level first
-               result.details?.business_name || // Then try details
-               extractNameFromUrl(result.url); // Fallback to URL extraction
-
-  return formatBusinessName(name);
 };
 
 const formatInstalledTechnologies = (result: Result) => {
@@ -119,19 +116,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         </TableHeader>
         <TableBody>
           {results.map((result, index) => {
-            console.log('Raw result data:', JSON.stringify(result, null, 2));
-            
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const businessName = getBusinessName(result);
-            
-            console.log('Rendering row:', {
-              index,
-              url: result.url,
-              businessName,
-              hasDetails: !!result.details,
-              fullResult: result
-            });
 
             return (
               <TableRow key={index}>
