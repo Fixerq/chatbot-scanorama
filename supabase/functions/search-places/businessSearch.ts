@@ -1,3 +1,4 @@
+
 import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts';
 import { SearchParams, SearchResponse } from './types.ts';
 
@@ -35,21 +36,21 @@ const processSearchResults = async (placesData: any, searchBatchId: string) => {
     )
     .slice(0, 20)
     .map((result: any) => {
-      const businessName = result.name;
+      const businessName = result.name || result.business_name;
+      const websiteUrl = result.website || result.website_url;
+      
       return {
-        url: result.website || result.url || `https://maps.google.com/?q=${encodeURIComponent(result.name)}`,
-        businessName: businessName,
+        url: websiteUrl || result.url || `https://maps.google.com/?q=${encodeURIComponent(result.name)}`,
+        businessName: businessName, // Add this directly to the root
         details: {
-          business_name: businessName,
-          title: businessName,
-          description: result.formatted_address || result.vicinity,
           lastChecked: new Date().toISOString(),
+          chatSolutions: [],
+          website_url: websiteUrl,
+          business_name: businessName,
           address: result.formatted_address || result.vicinity,
-          businessType: result.types?.[0] || 'business',
-          phoneNumber: result.formatted_phone_number,
           placeId: result.place_id,
-          website_url: result.website || result.url,
-          chatSolutions: []
+          businessType: result.types?.[0] || 'business',
+          phoneNumber: result.formatted_phone_number
         }
       };
     });

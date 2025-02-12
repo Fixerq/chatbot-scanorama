@@ -13,22 +13,15 @@ import ResultStatusCell from './results/ResultStatusCell';
 
 export interface Result {
   url: string;
-  businessName?: string;
+  businessName?: string;  // Add this at root level
   details?: {
     business_name?: string;
-    title?: string;
-    description?: string;
+    website_url?: string;
     lastChecked?: string;
     chatSolutions?: string[];
-    website_url?: string | null;
     address?: string;
-    businessType?: string;
-    phoneNumber?: string;
     placeId?: string;
-    fullDetails?: {
-      business_name?: string;
-      website_url?: string;
-    };
+    businessType?: string;
   };
   status?: string;
 }
@@ -37,31 +30,42 @@ interface ResultsTableProps {
   results: Result[];
 }
 
-const getBusinessName = (result: Result): string => {
-  // Log data before processing for debugging
-  console.log('Processing business name for result:', {
-    businessName: result.businessName,
-    fullDetails: result.details?.fullDetails,
-    details: result.details
-  });
-
-  // Try different possible locations of the business name
-  const name = 
-    result.businessName || // Direct property
-    result.details?.fullDetails?.business_name || // In fullDetails
-    result.details?.business_name || // In details
-    'N/A';
-
-  // Log the final resolved name
-  console.log('Resolved business name:', name);
-
-  return name;
+const extractNameFromUrl = (url: string): string | null => {
+  if (!url) return null;
+  
+  try {
+    // For Google Maps URLs, extract the business name from the query parameter
+    if (url.includes('maps.google.com')) {
+      const params = new URL(url).searchParams;
+      const q = params.get('q');
+      return q ? decodeURIComponent(q) : null;
+    }
+    
+    // For regular URLs, extract from domain
+    const domain = new URL(url).hostname
+      .replace('www.', '')
+      .replace('.com.au', '')
+      .replace('.com', '')
+      .replace('.au', '')
+      .split('.')[0];
+      
+    return domain ? domain.charAt(0).toUpperCase() + domain.slice(1) : null;
+  } catch {
+    return null;
+  }
 };
 
-const getDisplayUrl = (result: Result): string => {
-  return result.details?.website_url || 
-         result.details?.fullDetails?.website_url || 
-         result.url;
+const getBusinessName = (result: Result): string => {
+  // Log the incoming data
+  console.log('Processing result:', result);
+
+  // Extract business name from the result
+  const businessName = result.businessName || // Try root level first
+                      result.details?.business_name || // Then try details
+                      extractNameFromUrl(result.url); // Fallback to URL extraction
+
+  console.log('Resolved business name:', businessName);
+  return businessName || 'N/A';
 };
 
 const formatInstalledTechnologies = (result: Result) => {
@@ -91,12 +95,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
-            const displayUrl = getDisplayUrl(result);
             const businessName = getBusinessName(result);
             
             console.log('Rendering row:', {
               index,
-              url: displayUrl,
+              url: result.url,
               businessName,
               hasDetails: !!result.details,
               fullResult: result
@@ -104,7 +107,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 
             return (
               <TableRow key={index}>
-                <ResultUrlCell url={displayUrl} />
+                <ResultUrlCell url={result.url} />
                 <TableCell className="font-medium">
                   {businessName}
                 </TableCell>
