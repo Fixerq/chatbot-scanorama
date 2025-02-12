@@ -1,3 +1,4 @@
+
 export function normalizeUrl(url: string): string {
   try {
     // Remove any trailing colons and slashes
