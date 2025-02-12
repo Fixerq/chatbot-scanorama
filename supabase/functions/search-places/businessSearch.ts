@@ -36,6 +36,12 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
     }
 
     console.log(`Found ${placesData.results.length} initial results`);
+    console.log('Initial results details:', placesData.results.map(place => ({
+      name: place.name,
+      address: place.formatted_address,
+      types: place.types,
+      business_status: place.business_status
+    })));
 
     // Filter results to ensure they're businesses
     const filteredResults = placesData.results.filter(place => 
@@ -45,6 +51,13 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
     );
 
     console.log(`Filtered to ${filteredResults.length} valid businesses`);
+    console.log('Filtered businesses details:', filteredResults.map(place => ({
+      name: place.name,
+      address: place.formatted_address,
+      types: place.types,
+      rating: place.rating,
+      user_ratings_total: place.user_ratings_total
+    })));
 
     // Get detailed information for each place
     const detailedResults = await Promise.all(
@@ -55,6 +68,12 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
             console.log(`No valid details found for place: ${place.place_id}`);
             return null;
           }
+
+          console.log(`Details retrieved for ${place.name}:`, {
+            has_website: !!detailsData.result.website,
+            has_phone: !!detailsData.result.formatted_phone_number,
+            address_match: detailsData.result.formatted_address === place.formatted_address
+          });
 
           return {
             url: detailsData.result.website || detailsData.result.url || '',
@@ -76,6 +95,12 @@ export async function searchBusinesses(params: SearchParams): Promise<SearchResp
 
     const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => result !== null);
     console.log(`Successfully processed ${validResults.length} businesses with details`);
+    console.log('Final results summary:', validResults.map(result => ({
+      title: result.details.title,
+      has_url: !!result.url,
+      has_phone: !!result.details.phoneNumber,
+      business_type: result.details.businessType
+    })));
 
     return {
       results: validResults,
