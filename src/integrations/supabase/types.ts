@@ -320,28 +320,43 @@ export type Database = {
       }
       edge_function_logs: {
         Row: {
+          client_info: Json | null
+          context: Json | null
           created_at: string | null
           error: string | null
           function_name: string
+          http_status: number | null
           id: number
           request_data: Json | null
           response_data: Json | null
+          severity: string
+          timestamp: string | null
         }
         Insert: {
+          client_info?: Json | null
+          context?: Json | null
           created_at?: string | null
           error?: string | null
           function_name: string
+          http_status?: number | null
           id?: number
           request_data?: Json | null
           response_data?: Json | null
+          severity?: string
+          timestamp?: string | null
         }
         Update: {
+          client_info?: Json | null
+          context?: Json | null
           created_at?: string | null
           error?: string | null
           function_name?: string
+          http_status?: number | null
           id?: number
           request_data?: Json | null
           response_data?: Json | null
+          severity?: string
+          timestamp?: string | null
         }
         Relationships: []
       }
