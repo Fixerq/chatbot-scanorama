@@ -28,17 +28,31 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
-      if (!currentSession) {
+      if (!currentSession?.user) {
         console.log('No active session found during refresh');
-        throw new Error('No active session');
+        if (window.location.pathname !== '/login') {
+          navigate('/login');
+        }
+        return;
+      }
+
+      if (currentSession.expires_at && new Date(currentSession.expires_at * 1000) > new Date()) {
+        console.log('Session still valid, no need to refresh');
+        return;
       }
 
       const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
       
       if (error) {
         console.error('Session refresh failed:', error);
-        if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
-          throw new Error('Invalid session');
+        if (error.message.includes('Invalid Refresh Token') || 
+            error.message.includes('refresh_token_not_found')) {
+          console.log('Invalid refresh token, redirecting to login');
+          await supabase.auth.signOut();
+          if (window.location.pathname !== '/login') {
+            navigate('/login');
+          }
+          return;
         }
         throw error;
       }
@@ -61,8 +75,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Session refresh error:', error);
       await supabase.auth.signOut();
-      toast.error('Your session has expired. Please sign in again.');
-      navigate('/login');
+      if (window.location.pathname !== '/login') {
+        navigate('/login');
+      }
     }
   };
 
