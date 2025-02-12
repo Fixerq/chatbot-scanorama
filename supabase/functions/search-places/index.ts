@@ -2,31 +2,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateSearchRequest } from './validation.ts';
 import { searchBusinesses } from './businessSearch.ts';
-import { corsHeaders, handleOptions } from '../_shared/cors.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
   try {
-    // Log incoming request details
     console.log('Request received:', {
       method: req.method,
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
 
-    // Get origin from request headers
-    const origin = req.headers.get('origin');
-    console.log('Request origin:', origin);
-
-    // Handle CORS preflight requests - MOVED BEFORE ANY OTHER PROCESSING
+    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       console.log('Handling OPTIONS request');
+      const origin = req.headers.get('origin') || '*';
       return new Response('ok', {
+        status: 204,
         headers: {
           ...corsHeaders,
-          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
           'Access-Control-Max-Age': '86400'
         }
       });
@@ -36,6 +33,10 @@ serve(async (req) => {
       console.log('Invalid method:', req.method);
       throw new Error('Method not allowed');
     }
+
+    // Get origin for response headers
+    const origin = req.headers.get('origin') || '*';
+    console.log('Request origin:', origin);
 
     // Ensure content-type is application/json
     const contentType = req.headers.get('content-type');
@@ -89,13 +90,6 @@ serve(async (req) => {
     
     console.log('Search completed successfully:', searchResponse);
 
-    // Prepare response with CORS headers
-    const responseHeaders = {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': origin || '*'
-    };
-
     // Return successful response
     return new Response(
       JSON.stringify({
@@ -104,7 +98,11 @@ serve(async (req) => {
       }),
       { 
         status: 200,
-        headers: responseHeaders
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin
+        }
       }
     );
 
@@ -115,12 +113,7 @@ serve(async (req) => {
       cause: error.cause
     });
     
-    const origin = req.headers.get('origin');
-    const errorHeaders = {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': origin || '*'
-    };
+    const origin = req.headers.get('origin') || '*';
     
     return new Response(
       JSON.stringify({
@@ -129,8 +122,13 @@ serve(async (req) => {
       }),
       { 
         status: error.message === 'Method not allowed' ? 405 : 500,
-        headers: errorHeaders
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': origin
+        }
       }
     );
   }
 });
+
