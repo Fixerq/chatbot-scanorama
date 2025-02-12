@@ -1,20 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateSearchRequest } from './validation.ts';
-import { getLocationCoordinates, searchNearbyPlaces } from './placesApi.ts';
-
-// Updated CORS headers to be more permissive
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': '*',
-  'Access-Control-Allow-Headers': '*',
-  'Access-Control-Expose-Headers': '*',
-  'Access-Control-Max-Age': '86400',
-  'Content-Type': 'application/json'
-};
+import { searchBusinesses } from './businessSearch.ts';
+import { corsHeaders } from './types.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
-  // Handle CORS preflight requests first
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { 
       status: 200,
@@ -23,7 +15,6 @@ serve(async (req) => {
   }
 
   try {
-    // Log incoming request details for debugging
     console.log('Request received:', {
       method: req.method,
       url: req.url,
@@ -44,32 +35,26 @@ serve(async (req) => {
       throw new Error(validationError);
     }
 
-    // Get coordinates for the location
-    const location = await getLocationCoordinates(`${params.region}, ${params.country}`);
-    if (!location) {
-      throw new Error('Location not found');
-    }
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          persistSession: false
+        }
+      }
+    );
 
-    // Search for places near the location
-    const searchResponse = await searchNearbyPlaces(params.query, location);
-    const results = searchResponse.results || [];
+    // Search for businesses
+    const searchResponse = await searchBusinesses(params, supabase);
     
-    console.log(`Found ${results.length} results for query:`, params.query);
+    console.log(`Found ${searchResponse.results.length} results for query: ${params.query}\n`);
 
     // Return successful response
     return new Response(
       JSON.stringify({
-        data: {
-          results: results.map(place => ({
-            title: place.name,
-            description: place.formatted_address,
-            url: place.photos?.[0]?.photo_reference 
-              ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${place.photos[0].photo_reference}&key=${Deno.env.get('GOOGLE_PLACES_API_KEY')}`
-              : `https://maps.google.com/?q=${encodeURIComponent(place.formatted_address)}`,
-          })),
-          hasMore: false,
-          searchBatchId: crypto.randomUUID()
-        }
+        data: searchResponse
       }),
       { 
         status: 200,
@@ -86,7 +71,7 @@ serve(async (req) => {
         status: 'error'
       }),
       { 
-        status: 200, // Keep status 200 but include error in body
+        status: 200,
         headers: corsHeaders
       }
     );

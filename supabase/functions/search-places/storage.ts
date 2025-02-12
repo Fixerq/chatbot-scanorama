@@ -26,14 +26,19 @@ export const storeSearchResults = async (
         search_batch_id: crypto.randomUUID()
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (searchHistoryError) {
       console.error('Error creating search history:', searchHistoryError);
       throw new Error('Failed to record search history');
     }
 
-    // Store search results if any exist
+    if (!searchHistory) {
+      console.error('No search history created');
+      throw new Error('Failed to create search history');
+    }
+
+    // Store search results and cache place details if any exist
     if (results.length > 0) {
       const searchResults = results.map(item => ({
         search_id: searchHistory.id,
@@ -51,7 +56,32 @@ export const storeSearchResults = async (
 
       if (resultsError) {
         console.error('Error storing search results:', resultsError);
-        // Continue execution even if storing results fails
+      }
+
+      // Cache place details for future use
+      const cachePlaces = results.map(item => ({
+        place_id: item.details.placeId,
+        place_data: {
+          title: item.details.title,
+          description: item.details.description,
+          address: item.details.address,
+          businessType: item.details.businessType,
+          phoneNumber: item.details.phoneNumber,
+          url: item.url
+        },
+        search_batch_id: searchHistory.search_batch_id,
+        user_id: userId
+      }));
+
+      const { error: cacheError } = await supabaseAdmin
+        .from('cached_places')
+        .upsert(cachePlaces, {
+          onConflict: 'place_id',
+          ignoreDuplicates: false
+        });
+
+      if (cacheError) {
+        console.error('Error caching place details:', cacheError);
       }
     }
 
@@ -61,4 +91,3 @@ export const storeSearchResults = async (
     throw error;
   }
 };
-
