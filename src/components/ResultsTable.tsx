@@ -31,6 +31,37 @@ interface ResultsTableProps {
   results: Result[];
 }
 
+const formatBusinessName = (name: string): string => {
+  if (!name) return 'N/A';
+
+  // Remove common suffixes
+  const cleanName = name.toLowerCase()
+    .replace(/\.(com|ca|uk|net)$/g, '')
+    .replace(/www\./g, '');
+
+  // Split by common separators
+  const words = cleanName
+    .split(/(?=[A-Z])|[-_]/)
+    .join(' ')
+    .split(/(?=[A-Z])/)
+    .join(' ')
+    .split(/\s+/);
+
+  // Common words to keep lowercase
+  const lowercaseWords = ['and', 'of', 'the', '&'];
+
+  // Capitalize each word unless it's in the lowercaseWords array
+  const formattedWords = words.map((word, index) => {
+    word = word.trim().toLowerCase();
+    if (index === 0 || !lowercaseWords.includes(word)) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
+    return word;
+  });
+
+  return formattedWords.join(' ');
+};
+
 const extractNameFromUrl = (url: string): string | null => {
   if (!url) return null;
   
@@ -61,12 +92,11 @@ const getBusinessName = (result: Result): string => {
   console.log('Processing result:', result);
 
   // Extract business name from the result
-  const businessName = result.businessName || // Try root level first
-                      result.details?.business_name || // Then try details
-                      extractNameFromUrl(result.url); // Fallback to URL extraction
+  const name = result.businessName || // Try root level first
+               result.details?.business_name || // Then try details
+               extractNameFromUrl(result.url); // Fallback to URL extraction
 
-  console.log('Resolved business name:', businessName);
-  return businessName || 'N/A';
+  return formatBusinessName(name);
 };
 
 const formatInstalledTechnologies = (result: Result) => {
