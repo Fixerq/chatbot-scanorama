@@ -58,24 +58,23 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
-            const businessName = result.details?.business_name || '';
             
-            // Debug logging
+            // Directly use the business name from details
+            const businessName = result.details?.business_name;
+            
             console.log('Processing row:', {
               index,
               url: displayUrl,
               businessName,
-              rawBusinessName: result.details?.business_name,
-              fullDetails: result.details,
               hasDetails: !!result.details,
-              rawResult: result
+              fullDetails: result.details
             });
 
             return (
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
                 <TableCell className="font-medium">
-                  {businessName || 'N/A'}
+                  {businessName ? businessName : 'N/A'}
                 </TableCell>
                 <ResultStatusCell 
                   status={result.status}
