@@ -5,7 +5,7 @@ import { analyzeChatbot } from './analyzer.ts';
 import { normalizeUrl } from './utils/urlUtils.ts';
 import { corsHeaders, addCorsHeaders } from './utils/httpUtils.ts';
 import { getBusinessWebsite } from './services/placesService.ts';
-import { saveChatbotDetection } from './services/databaseService.ts';
+import { saveChatbotDetection, logFunctionError } from './services/databaseService.ts';
 import { validateRequest } from './utils/requestValidator.ts';
 
 serve(async (req) => {
@@ -53,6 +53,7 @@ serve(async (req) => {
         });
       } catch (error) {
         console.error('Error fetching business details:', error);
+        await logFunctionError('analyze-website', 'getBusinessWebsite', { placeId: requestData.placeId }, error);
         console.log('Continuing with original Maps URL:', websiteUrl);
       }
     }
@@ -98,6 +99,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Analysis error:', error);
+    await logFunctionError('analyze-website', 'main', { url: req.url, method: req.method }, error);
     
     const errorResult: ChatDetectionResult = {
       status: `Error: ${error.message}`,
@@ -111,4 +113,3 @@ serve(async (req) => {
     ));
   }
 });
-
