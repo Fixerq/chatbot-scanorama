@@ -1,4 +1,3 @@
-
 export interface RequestData {
   url: string;
   placeId?: string;
@@ -23,4 +22,12 @@ export interface ChatbotDetection {
   address?: string | null;
   business_name?: string | null;
   last_checked: string;
+}
+
+export interface FirecrawlAnalysisResult {
+  status: 'success' | 'error';
+  content?: string;
+  analyzed_at: string;
+  error?: string;
+  metadata?: any;
 }

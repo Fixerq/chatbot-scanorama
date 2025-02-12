@@ -429,6 +429,42 @@ export type Database = {
         }
         Relationships: []
       }
+      firecrawl_analysis: {
+        Row: {
+          analyzed_at: string | null
+          content: string | null
+          created_at: string | null
+          detected_platforms: string[] | null
+          error_message: string | null
+          has_chatbot: boolean | null
+          id: string
+          metadata: Json | null
+          url: string
+        }
+        Insert: {
+          analyzed_at?: string | null
+          content?: string | null
+          created_at?: string | null
+          detected_platforms?: string[] | null
+          error_message?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          metadata?: Json | null
+          url: string
+        }
+        Update: {
+          analyzed_at?: string | null
+          content?: string | null
+          created_at?: string | null
+          detected_platforms?: string[] | null
+          error_message?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          metadata?: Json | null
+          url?: string
+        }
+        Relationships: []
+      }
       place_details: {
         Row: {
           address: string | null

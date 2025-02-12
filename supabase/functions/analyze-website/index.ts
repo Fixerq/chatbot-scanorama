@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateRequest } from './utils/requestValidator.ts';
-import { analyzeWebsite } from './services/websiteAnalyzer.ts';
+import { analyzeWithFirecrawl } from './services/firecrawlService.ts';
 import { CHATBOT_PROVIDERS } from './providers/chatbotProviders.ts';
 import { RequestData } from './types.ts';
 
@@ -23,12 +23,34 @@ serve(async (req) => {
     const requestData: RequestData = validateRequest(await req.text());
     console.log('Analyzing website:', requestData.url);
     
-    // Analyze website
-    const result = await analyzeWebsite(requestData.url);
-    console.log('Analysis complete:', result);
+    // Use Firecrawl for analysis
+    const firecrawlResult = await analyzeWithFirecrawl(requestData.url);
+    console.log('Firecrawl analysis complete:', firecrawlResult);
+    
+    if (firecrawlResult.status === 'error') {
+      throw new Error(firecrawlResult.error || 'Analysis failed');
+    }
+
+    // Search for chatbot providers in the Firecrawl content
+    const detectedProviders = [];
+    if (firecrawlResult.content) {
+      for (const [key, provider] of Object.entries(CHATBOT_PROVIDERS)) {
+        if (provider.signatures.some(sig => 
+          firecrawlResult.content.toLowerCase().includes(sig.toLowerCase())
+        )) {
+          detectedProviders.push(provider.name);
+        }
+      }
+    }
     
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({
+        status: 'success',
+        has_chatbot: detectedProviders.length > 0,
+        chatSolutions: detectedProviders,
+        details: firecrawlResult.metadata,
+        lastChecked: firecrawlResult.analyzed_at
+      }),
       { headers: corsHeaders }
     );
   } catch (error) {
