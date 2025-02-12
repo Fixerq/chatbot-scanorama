@@ -246,8 +246,8 @@ export type Database = {
       chatbot_detections: {
         Row: {
           address: string | null
+          chatbot_platforms: string[] | null
           created_at: string
-          detected_platforms: string[] | null
           has_chatbot: boolean | null
           id: string
           last_checked: string
@@ -256,8 +256,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          chatbot_platforms?: string[] | null
           created_at?: string
-          detected_platforms?: string[] | null
           has_chatbot?: boolean | null
           id?: string
           last_checked?: string
@@ -266,8 +266,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          chatbot_platforms?: string[] | null
           created_at?: string
-          detected_platforms?: string[] | null
           has_chatbot?: boolean | null
           id?: string
           last_checked?: string
