@@ -14,17 +14,14 @@ const getCachedPlaceDetails = async (
     .maybeSingle();
 
   if (cachedPlace) {
+    console.log(`Found cached place data:`, cachedPlace);
     // Update last_accessed timestamp
     await supabaseClient
       .from('cached_places')
       .update({ last_accessed: new Date().toISOString() })
       .eq('place_id', placeId);
 
-    // Ensure business_name is included in the returned data
-    return {
-      ...cachedPlace.place_data,
-      business_name: cachedPlace.business_name || cachedPlace.place_data.business_name
-    };
+    return cachedPlace;
   }
 
   return null;
@@ -87,19 +84,28 @@ export async function searchBusinesses(
           const cachedData = await getCachedPlaceDetails(supabaseClient, place.place_id, searchBatchId);
           if (cachedData) {
             console.log(`Using cached data for place: ${place.place_id}`, cachedData);
+            
+            // Extract business name from cached data
+            const businessName = cachedData.business_name || 
+                               cachedData.place_data?.business_name || 
+                               cachedData.place_data?.title ||
+                               place.name;
+                               
+            console.log('Using business name:', businessName);
+
             return {
-              url: cachedData.url,
+              url: cachedData.place_data.url,
               status: 'Analyzing...',
               details: {
-                business_name: cachedData.business_name || place.name,
-                title: place.name,
-                description: cachedData.description,
+                business_name: businessName,
+                title: businessName,
+                description: cachedData.place_data.description,
                 lastChecked: new Date().toISOString(),
-                address: cachedData.address,
-                businessType: cachedData.businessType,
-                phoneNumber: cachedData.phoneNumber,
+                address: cachedData.place_data.address,
+                businessType: cachedData.place_data.businessType,
+                phoneNumber: cachedData.place_data.phoneNumber,
                 placeId: place.place_id,
-                website_url: cachedData.url,
+                website_url: cachedData.place_data.url,
                 chatSolutions: []
               }
             };
@@ -160,7 +166,7 @@ export async function searchBusinesses(
           business_name: result.details.business_name,
           place_data: {
             url: result.url,
-            title: result.details.title,
+            title: result.details.business_name,
             business_name: result.details.business_name,
             description: result.details.description,
             address: result.details.address,
@@ -168,6 +174,9 @@ export async function searchBusinesses(
             phoneNumber: result.details.phoneNumber
           },
           last_accessed: new Date().toISOString()
+        }, {
+          onConflict: 'place_id',
+          ignoreDuplicates: false
         })
     );
 
