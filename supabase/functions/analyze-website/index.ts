@@ -80,7 +80,7 @@ const supabase = createClient(
 
 async function analyzeWebsite(url: string): Promise<ChatDetectionResult> {
   try {
-    console.log('Checking cache for URL:', url);
+    console.log('Starting analysis for URL:', url);
     
     // Check cache first
     const { data: cachedResult, error: cacheError } = await supabase
@@ -120,25 +120,31 @@ async function analyzeWebsite(url: string): Promise<ChatDetectionResult> {
     }
 
     const html = await response.text();
+    console.log('Successfully fetched HTML content');
 
     // Check for chatbot providers
     const detectedProviders = [];
     const details = {};
 
     for (const [key, provider] of Object.entries(CHATBOT_PROVIDERS)) {
-      const detected = provider.signatures.some(sig => 
-        html.toLowerCase().includes(sig.toLowerCase())
-      );
+      try {
+        const detected = provider.signatures.some(sig => 
+          html.toLowerCase().includes(sig.toLowerCase())
+        );
 
-      if (detected) {
-        detectedProviders.push(provider.name);
-        details[key] = {
-          detected: true,
-          name: provider.name,
-          signatures_found: provider.signatures.filter(sig => 
-            html.toLowerCase().includes(sig.toLowerCase())
-          )
-        };
+        if (detected) {
+          detectedProviders.push(provider.name);
+          details[key] = {
+            detected: true,
+            name: provider.name,
+            signatures_found: provider.signatures.filter(sig => 
+              html.toLowerCase().includes(sig.toLowerCase())
+            )
+          };
+          console.log('Detected provider:', provider.name);
+        }
+      } catch (providerError) {
+        console.error(`Error checking provider ${key}:`, providerError);
       }
     }
 
@@ -201,9 +207,11 @@ serve(async (req) => {
   try {
     // Parse and validate request
     const requestData: RequestData = validateRequest(await req.text());
+    console.log('Analyzing website:', requestData.url);
     
     // Analyze website
     const result = await analyzeWebsite(requestData.url);
+    console.log('Analysis complete:', result);
     
     return new Response(
       JSON.stringify(result),
@@ -220,7 +228,7 @@ serve(async (req) => {
         lastChecked: new Date().toISOString()
       }),
       { 
-        status: 500,
+        status: 200, // Return 200 even for errors
         headers: corsHeaders
       }
     );
