@@ -84,13 +84,15 @@ export async function searchBusinesses(
             return {
               url: cachedData.url,
               details: {
-                title: cachedData.title || place.name,
+                title: place.name || cachedData.business_name || cachedData.title,
                 description: cachedData.description,
                 lastChecked: new Date().toISOString(),
                 address: cachedData.address,
                 businessType: cachedData.businessType,
                 phoneNumber: cachedData.phoneNumber,
-                placeId: place.place_id
+                placeId: place.place_id,
+                business_name: place.name,
+                website_url: cachedData.url
               }
             };
           }
@@ -108,8 +110,10 @@ export async function searchBusinesses(
             return null;
           }
 
+          const website = detailsData.result.website || detailsData.result.url;
+          
           return {
-            url: detailsData.result.website || detailsData.result.url,
+            url: website,
             details: {
               title: place.name,
               description: place.formatted_address,
@@ -117,7 +121,9 @@ export async function searchBusinesses(
               address: detailsData.result.formatted_address || place.formatted_address,
               businessType: place.types?.[0] || 'business',
               phoneNumber: detailsData.result.formatted_phone_number,
-              placeId: place.place_id
+              placeId: place.place_id,
+              business_name: place.name,
+              website_url: website
             }
           };
         } catch (error) {
@@ -142,6 +148,7 @@ export async function searchBusinesses(
           place_data: {
             url: result.url,
             title: result.details.title,
+            business_name: result.details.business_name,
             description: result.details.description,
             address: result.details.address,
             businessType: result.details.businessType,
