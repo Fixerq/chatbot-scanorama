@@ -40,7 +40,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     const chatSolutions = result.details?.chatSolutions || [];
     if (chatSolutions.length === 0) return 'No chatbot detected';
     
-    // Return the first detected chatbot as the primary one
     return chatSolutions[0];
   };
 
@@ -60,8 +59,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
 
-            // Access business name directly from the result details
-            const businessName = result.details?.business_name || '';
+            // Get the business name from the details
+            const businessName = result.details?.business_name || 'N/A';
             
             console.log('Result details for row:', {
               index,
@@ -75,7 +74,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
                 <TableCell>
-                  {businessName || 'N/A'}
+                  {businessName}
                 </TableCell>
                 <ResultStatusCell 
                   status={result.status}

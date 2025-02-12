@@ -89,8 +89,8 @@ export async function searchBusinesses(
               url: cachedData.place_data.url,
               status: 'Analyzing...',
               details: {
-                business_name: place.name,
-                title: place.name,
+                business_name: cachedData.business_name || place.name,
+                title: cachedData.business_name || place.name,
                 description: cachedData.place_data.description,
                 lastChecked: new Date().toISOString(),
                 address: cachedData.place_data.address,
@@ -114,9 +114,10 @@ export async function searchBusinesses(
           const website = detailsData.result.website || detailsData.result.url || 
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
 
+          const businessName = place.name;
           console.log(`Processing business name for ${place.place_id}:`, {
             place_id: place.place_id,
-            business_name: place.name,
+            business_name: businessName,
             details_name: detailsData.result.name
           });
 
@@ -126,10 +127,10 @@ export async function searchBusinesses(
             .upsert({
               place_id: place.place_id,
               search_batch_id: searchBatchId,
-              business_name: place.name,
+              business_name: businessName,
               place_data: {
                 url: website,
-                title: place.name,
+                title: businessName,
                 description: detailsData.result.formatted_address || place.formatted_address,
                 address: detailsData.result.formatted_address || place.formatted_address,
                 businessType: place.types?.[0] || 'business',
@@ -145,8 +146,8 @@ export async function searchBusinesses(
             url: website,
             status: 'Analyzing...',
             details: {
-              business_name: place.name,
-              title: place.name,
+              business_name: businessName,
+              title: businessName,
               description: detailsData.result.formatted_address || place.formatted_address,
               lastChecked: new Date().toISOString(),
               address: detailsData.result.formatted_address || place.formatted_address,
