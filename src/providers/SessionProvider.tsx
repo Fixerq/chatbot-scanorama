@@ -26,8 +26,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        console.log('No active session found during refresh');
+        throw new Error('No active session');
+      }
+
       const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Session refresh failed:', error);
+        if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
+          throw new Error('Invalid session');
+        }
+        throw error;
+      }
       
       if (refreshedSession) {
         console.log('Session refreshed successfully');
@@ -42,12 +56,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
         if (updateError) {
           console.error('Failed to update session:', updateError);
-          throw updateError;
         }
       }
     } catch (error) {
-      console.error('Session refresh failed:', error);
-      toast.error('Session expired. Please log in again.');
+      console.error('Session refresh error:', error);
+      await supabase.auth.signOut();
+      toast.error('Your session has expired. Please sign in again.');
       navigate('/login');
     }
   };
@@ -55,22 +69,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const setupSession = async () => {
       try {
-        // Check if we have an active session
+        setIsLoading(true);
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        if (currentSession?.user) {
-          console.log('Active session found:', currentSession.user.id);
-          await refreshSession();
-        } else {
+        if (!currentSession?.user) {
           console.log('No active session found');
           if (window.location.pathname !== '/login') {
             navigate('/login');
           }
+          return;
         }
+
+        console.log('Active session found:', currentSession.user.id);
+        await refreshSession();
       } catch (error) {
         console.error('Error during session setup:', error);
-        toast.error('Failed to initialize session');
-        navigate('/login');
+        if (window.location.pathname !== '/login') {
+          navigate('/login');
+        }
       } finally {
         setIsInitialized(true);
         setIsLoading(false);
@@ -79,37 +95,34 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     setupSession();
 
-    // Only start refresh interval after initialization
-    let refreshInterval: NodeJS.Timeout;
-    if (isInitialized && session?.user) {
-      console.log('Starting session refresh interval');
-      refreshInterval = setInterval(refreshSession, 10 * 60 * 1000); // Refresh every 10 minutes
-    }
+    const refreshInterval = setInterval(() => {
+      if (isInitialized && session?.user) {
+        refreshSession();
+      }
+    }, 10 * 60 * 1000); // Refresh every 10 minutes
 
     return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
+      clearInterval(refreshInterval);
     };
   }, [session?.user?.id, isInitialized]);
 
-  // Subscribe to auth changes
   useEffect(() => {
-    console.log('Setting up auth state change listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out');
         navigate('/login');
-      } else if (event === 'SIGNED_IN' && isInitialized) {
+      } else if (event === 'SIGNED_IN' && session) {
         console.log('User signed in');
+        setIsInitialized(true);
         await refreshSession();
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
       }
     });
 
     return () => {
-      console.log('Cleaning up auth state change listener');
       subscription.unsubscribe();
     };
   }, [isInitialized]);
