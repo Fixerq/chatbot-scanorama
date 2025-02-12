@@ -12,20 +12,20 @@ export const ALLOWED_ORIGINS = [
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Methods': '*',
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400',
   'Content-Type': 'application/json'
 };
 
-export const addCorsHeaders = (response: Response, origin: string): Response => {
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin as any) ? origin : '*';
-  
+export const addCorsHeaders = (response: Response): Response => {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', allowedOrigin);
-  headers.set('Access-Control-Allow-Methods', corsHeaders['Access-Control-Allow-Methods']);
-  headers.set('Access-Control-Allow-Headers', corsHeaders['Access-Control-Allow-Headers']);
-  headers.set('Access-Control-Max-Age', corsHeaders['Access-Control-Max-Age']);
+  
+  // Add all CORS headers
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    headers.set(key, value);
+  });
   
   return new Response(response.body, {
     status: response.status,

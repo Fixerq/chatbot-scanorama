@@ -13,21 +13,13 @@ serve(async (req) => {
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
-
-    const origin = req.headers.get('origin') || '*';
     
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
-      console.log('Handling OPTIONS request with origin:', origin);
+      console.log('Handling OPTIONS request');
       return new Response('ok', {
-        status: 204,
-        headers: {
-          ...corsHeaders,
-          'Access-Control-Allow-Origin': origin,
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
-          'Access-Control-Max-Age': '86400'
-        }
+        status: 200,
+        headers: corsHeaders
       });
     }
 
@@ -96,14 +88,12 @@ serve(async (req) => {
       }),
       { 
         status: 200,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }
     );
 
     // Return response with CORS headers
-    return addCorsHeaders(response, origin);
+    return addCorsHeaders(response);
 
   } catch (error) {
     console.error('Error details:', {
@@ -112,8 +102,6 @@ serve(async (req) => {
       cause: error.cause
     });
     
-    const origin = req.headers.get('origin') || '*';
-    
     const errorResponse = new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
@@ -121,12 +109,10 @@ serve(async (req) => {
       }),
       { 
         status: error.message === 'Method not allowed' ? 405 : 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }
     );
 
-    return addCorsHeaders(errorResponse, origin);
+    return addCorsHeaders(errorResponse);
   }
 });
