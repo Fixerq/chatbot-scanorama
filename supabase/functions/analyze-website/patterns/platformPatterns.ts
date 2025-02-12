@@ -33,3 +33,4 @@ export const PLATFORM_PATTERNS = {
     /zopim-chat/i
   ]
 };
+
