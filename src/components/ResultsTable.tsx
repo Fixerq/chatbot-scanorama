@@ -59,17 +59,17 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
+
+            // Accessing the business name from place_data in the cached results
+            const businessName = result.details?.business_name || 'N/A';
             
-            // Debug logging for business name values
-            console.log('Business details:', {
-              resultId: index,
-              businessName: result.details?.business_name,
-              title: result.details?.title,
+            console.log('Result details for row:', {
+              index,
+              url: displayUrl,
+              businessName,
               fullDetails: result.details
             });
-            
-            const businessName = result.details?.business_name || result.details?.title || 'N/A';
-            
+
             return (
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
@@ -93,3 +93,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
+
