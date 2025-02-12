@@ -536,6 +536,57 @@ export type Database = {
         }
         Relationships: []
       }
+      website_analyses: {
+        Row: {
+          business_signals_found: string[] | null
+          chatbot_platforms: string[] | null
+          created_at: string | null
+          error_message: string | null
+          has_business_signals: boolean | null
+          has_chatbot: boolean | null
+          has_contact: boolean | null
+          has_location: boolean | null
+          id: string
+          last_checked: string | null
+          normalized_url: string
+          status: Database["public"]["Enums"]["website_analysis_status"] | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          business_signals_found?: string[] | null
+          chatbot_platforms?: string[] | null
+          created_at?: string | null
+          error_message?: string | null
+          has_business_signals?: boolean | null
+          has_chatbot?: boolean | null
+          has_contact?: boolean | null
+          has_location?: boolean | null
+          id?: string
+          last_checked?: string | null
+          normalized_url: string
+          status?: Database["public"]["Enums"]["website_analysis_status"] | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          business_signals_found?: string[] | null
+          chatbot_platforms?: string[] | null
+          created_at?: string | null
+          error_message?: string | null
+          has_business_signals?: boolean | null
+          has_chatbot?: boolean | null
+          has_contact?: boolean | null
+          has_location?: boolean | null
+          id?: string
+          last_checked?: string | null
+          normalized_url?: string
+          status?: Database["public"]["Enums"]["website_analysis_status"] | null
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -554,6 +605,7 @@ export type Database = {
     }
     Enums: {
       subscription_level: "starter" | "pro" | "premium" | "founders" | "admin"
+      website_analysis_status: "success" | "error"
     }
     CompositeTypes: {
       [_ in never]: never
