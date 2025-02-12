@@ -9,7 +9,7 @@ const getCachedPlaceDetails = async (
 ) => {
   const { data: cachedPlace } = await supabaseClient
     .from('cached_places')
-    .select('place_data, business_name, google_business_name')
+    .select('place_data, business_name')
     .eq('place_id', placeId)
     .maybeSingle();
 
@@ -89,7 +89,6 @@ export async function searchBusinesses(
               status: 'Analyzing...',
               details: {
                 business_name: place.name,
-                google_business_name: place.name,
                 title: place.name,
                 description: cachedData.place_data.description,
                 lastChecked: new Date().toISOString(),
@@ -115,23 +114,20 @@ export async function searchBusinesses(
           const website = detailsData.result.website || detailsData.result.url || 
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
 
-          console.log(`Setting business names for ${place.place_id}:`, {
-            name: place.name,
-            detailsName: detailsData.result.name
+          console.log(`Setting business name for ${place.place_id}:`, {
+            name: place.name
           });
 
-          // Store in cache with the Google-provided name
+          // Store in cache with the business name
           await supabaseClient
             .from('cached_places')
             .upsert({
               place_id: place.place_id,
               search_batch_id: searchBatchId,
               business_name: place.name,
-              google_business_name: place.name,
               place_data: {
                 url: website,
                 title: place.name,
-                business_name: place.name,
                 description: detailsData.result.formatted_address || place.formatted_address,
                 address: detailsData.result.formatted_address || place.formatted_address,
                 businessType: place.types?.[0] || 'business',
@@ -148,7 +144,6 @@ export async function searchBusinesses(
             status: 'Analyzing...',
             details: {
               business_name: place.name,
-              google_business_name: place.name,
               title: place.name,
               description: detailsData.result.formatted_address || place.formatted_address,
               lastChecked: new Date().toISOString(),

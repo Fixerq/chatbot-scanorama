@@ -20,8 +20,7 @@ export interface Result {
     lastChecked?: string;
     chatSolutions?: string[];
     website_url?: string | null;
-    business_name?: string | null;
-    google_business_name?: string | null;
+    business_name?: string;
     placeId?: string;
     address?: string;
     businessType?: string;
@@ -65,7 +64,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
                 <TableCell>
-                  {result.details?.google_business_name || 'N/A'}
+                  {result.details?.business_name || 'N/A'}
                 </TableCell>
                 <ResultStatusCell 
                   status={result.status}
@@ -84,4 +83,3 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
-
