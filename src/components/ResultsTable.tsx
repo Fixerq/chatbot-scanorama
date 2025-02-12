@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -18,6 +19,8 @@ export interface Result {
     description?: string;
     lastChecked?: string;
     chatSolutions?: string[];
+    website_url?: string | null;
+    business_name?: string;
   };
 }
 
@@ -51,11 +54,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           {results.map((result, index) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
+            const displayUrl = result.details?.website_url || result.url;
             
             return (
               <TableRow key={index}>
-                <ResultUrlCell url={result.url} />
-                <TableCell>{result.details?.title || 'N/A'}</TableCell>
+                <ResultUrlCell url={displayUrl} />
+                <TableCell>{result.details?.business_name || 'N/A'}</TableCell>
                 <ResultStatusCell 
                   status={result.status}
                   hasChatbot={hasChatbot}
@@ -73,3 +77,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
+

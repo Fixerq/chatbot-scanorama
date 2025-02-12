@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { detectChatbot } from '@/utils/chatbotDetection';
 import { ChatbotDetectionResponse } from '@/types/chatbot';
@@ -16,7 +17,9 @@ export const useChatbotAnalysis = () => {
             details: {
               ...result.details,
               chatSolutions: response.chatSolutions || [],
-              lastChecked: response.lastChecked
+              lastChecked: response.lastChecked,
+              website_url: result.details?.website_url || null,
+              business_name: result.details?.business_name || null
             }
           };
         } catch (error) {
@@ -33,3 +36,4 @@ export const useChatbotAnalysis = () => {
 
   return { analyzeChatbots };
 };
+

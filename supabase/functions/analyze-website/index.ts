@@ -6,7 +6,6 @@ import { analyzeChatbot } from './analyzer.ts';
 import { normalizeUrl } from './utils/urlUtils.ts';
 import { corsHeaders, addCorsHeaders } from './utils/httpUtils.ts';
 
-// Initialize Supabase client with service role for full access
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -26,7 +25,7 @@ async function getBusinessWebsite(placeId: string): Promise<PlaceDetails> {
     throw new Error('Google Places API Key not configured');
   }
 
-  const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=website,formatted_phone_number,formatted_address&key=${GOOGLE_API_KEY}`;
+  const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=website,formatted_phone_number,formatted_address,name&key=${GOOGLE_API_KEY}`;
   
   try {
     const response = await fetch(detailsUrl);
@@ -37,7 +36,8 @@ async function getBusinessWebsite(placeId: string): Promise<PlaceDetails> {
     return {
       website: data.result?.website,
       phone: data.result?.formatted_phone_number,
-      address: data.result?.formatted_address
+      address: data.result?.formatted_address,
+      business_name: data.result?.name
     };
   } catch (error) {
     console.error('Error fetching place details:', error);
@@ -46,16 +46,13 @@ async function getBusinessWebsite(placeId: string): Promise<PlaceDetails> {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     console.log('Starting website analysis');
-    console.log('Request headers:', Object.fromEntries(req.headers));
     
-    // First check if we have a body
     if (req.body === null) {
       console.error('Request body is null');
       return new Response(
@@ -64,7 +61,6 @@ serve(async (req) => {
       );
     }
 
-    // Parse request data with more detailed error handling
     let requestData: RequestData;
     let bodyText: string;
     
@@ -107,8 +103,10 @@ serve(async (req) => {
     }
 
     let websiteUrl = requestData.url;
+    let originalUrl = websiteUrl;
     let phone: string | null = null;
     let address: string | null = null;
+    let businessName: string | null = null;
 
     // Handle Google Maps URLs
     if (websiteUrl.includes('maps.google') && requestData.placeId) {
@@ -118,6 +116,9 @@ serve(async (req) => {
         websiteUrl = details.website;
         phone = details.phone || null;
         address = details.address || null;
+        businessName = details.business_name || null;
+      } else {
+        console.log('No website found for place ID, using Maps URL');
       }
     }
 
@@ -132,11 +133,13 @@ serve(async (req) => {
 
     // Prepare detection record
     const detection: ChatbotDetection = {
-      url: normalizedUrl,
+      url: originalUrl, // Store the original URL (maps URL if from Places API)
+      website_url: websiteUrl !== originalUrl ? websiteUrl : null, // Store the actual business website if different
       chatbot_platforms: chatbotPlatforms,
       has_chatbot: chatbotPlatforms.length > 0,
       phone,
       address,
+      business_name: businessName,
       last_checked: timestamp
     };
 
@@ -184,3 +187,4 @@ serve(async (req) => {
     ));
   }
 });
+
