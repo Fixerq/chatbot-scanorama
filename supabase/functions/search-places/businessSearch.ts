@@ -84,15 +84,8 @@ export async function searchBusinesses(
           const cachedData = await getCachedPlaceDetails(supabaseClient, place.place_id, searchBatchId);
           if (cachedData) {
             console.log(`Using cached data for place: ${place.place_id}`, cachedData);
+            const businessName = cachedData.business_name || place.name;
             
-            // Extract business name from cached data
-            const businessName = cachedData.business_name || 
-                               cachedData.place_data?.business_name || 
-                               cachedData.place_data?.title ||
-                               place.name;
-                               
-            console.log('Using business name:', businessName);
-
             return {
               url: cachedData.place_data.url,
               status: 'Analyzing...',
@@ -126,6 +119,28 @@ export async function searchBusinesses(
           const businessName = detailsData.result.name || place.name;
           console.log(`Setting business name for ${place.place_id}:`, businessName);
 
+          // Store in cache
+          await supabaseClient
+            .from('cached_places')
+            .upsert({
+              place_id: place.place_id,
+              search_batch_id: searchBatchId,
+              business_name: businessName,
+              place_data: {
+                url: website,
+                title: businessName,
+                business_name: businessName,
+                description: detailsData.result.formatted_address || place.formatted_address,
+                address: detailsData.result.formatted_address || place.formatted_address,
+                businessType: place.types?.[0] || 'business',
+                phoneNumber: detailsData.result.formatted_phone_number
+              },
+              last_accessed: new Date().toISOString()
+            }, {
+              onConflict: 'place_id',
+              ignoreDuplicates: false
+            });
+
           return {
             url: website,
             status: 'Analyzing...',
@@ -156,33 +171,6 @@ export async function searchBusinesses(
     console.log(`Successfully processed ${validResults.length} businesses with details`);
     console.log('Sample result:', validResults[0]);
 
-    // Cache the valid results
-    const cachePromises = validResults.map(result => 
-      supabaseClient
-        .from('cached_places')
-        .upsert({
-          place_id: result.details.placeId,
-          search_batch_id: searchBatchId,
-          business_name: result.details.business_name,
-          place_data: {
-            url: result.url,
-            title: result.details.business_name,
-            business_name: result.details.business_name,
-            description: result.details.description,
-            address: result.details.address,
-            businessType: result.details.businessType,
-            phoneNumber: result.details.phoneNumber
-          },
-          last_accessed: new Date().toISOString()
-        }, {
-          onConflict: 'place_id',
-          ignoreDuplicates: false
-        })
-    );
-
-    await Promise.all(cachePromises);
-    console.log('Successfully cached place details');
-
     return {
       results: validResults,
       hasMore: false,
@@ -193,3 +181,4 @@ export async function searchBusinesses(
     throw error;
   }
 }
+

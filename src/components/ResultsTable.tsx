@@ -45,15 +45,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   };
 
   const getBusinessName = (result: Result): string => {
-    // Return the first non-null value in order of preference
-    const name = result.details?.business_name || 
-                result.details?.title || 
-                'N/A';
-                
+    if (!result.details) return 'N/A';
+    
+    // Get business name from details
+    const name = result.details.business_name || result.details.title || 'N/A';
+    
     console.log('Getting business name for result:', {
-      placeId: result.details?.placeId,
-      business_name: result.details?.business_name,
-      title: result.details?.title,
+      placeId: result.details.placeId,
+      business_name: result.details.business_name,
+      title: result.details.title,
+      details: result.details,
       returned_name: name
     });
     
