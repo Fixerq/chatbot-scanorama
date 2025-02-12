@@ -2,7 +2,11 @@
 project_id = "engage"
 
 [deploy]
-allow_net = ["*"]
+allow_net = [
+  "maps.googleapis.com",
+  "*.google.com",
+  "*"
+]
 
 [http_server]
 port = 54321
@@ -12,3 +16,4 @@ headers = [
   "Access-Control-Allow-Methods: GET, POST, OPTIONS",
   "Content-Type: application/json"
 ]
+

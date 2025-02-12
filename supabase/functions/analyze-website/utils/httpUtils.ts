@@ -29,6 +29,7 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
   for (let i = 0; i < maxRetries; i++) {
     try {
       console.log(`Attempt ${i + 1} for URL: ${url}`);
+      console.log('Using headers:', getHeaders(i));
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -36,13 +37,14 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
       const response = await fetch(url, { 
         headers: getHeaders(i),
         redirect: 'follow',
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'omit' // Explicitly omit credentials
       });
       
       clearTimeout(timeoutId);
       
       console.log(`Response status: ${response.status} for ${url}`);
-      console.log(`Response headers:`, Object.fromEntries(response.headers));
+      console.log('Response headers:', Object.fromEntries(response.headers));
 
       if (response.ok) {
         console.log(`Successfully fetched ${url} on attempt ${i + 1}`);
@@ -58,19 +60,26 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
       }
       
       lastError = new Error(`HTTP error! status: ${response.status}`);
+      console.error(`HTTP error on attempt ${i + 1}:`, lastError);
     } catch (error) {
       console.error(`Attempt ${i + 1} failed:`, error);
       lastError = error;
       
       if (error.name === 'AbortError') {
+        console.error('Request timed out');
         throw new Error('Request timed out');
       }
       
       // Only retry if we haven't reached max retries
-      if (i === maxRetries - 1) throw error;
+      if (i === maxRetries - 1) {
+        console.error('Max retries reached, giving up');
+        throw error;
+      }
       
       // Exponential backoff
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      const backoffTime = Math.pow(2, i) * 1000;
+      console.log(`Waiting ${backoffTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
   }
   
