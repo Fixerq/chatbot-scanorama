@@ -8,13 +8,15 @@ export interface ChatDetectionResult {
   status: string;
   chatSolutions: string[];
   lastChecked: string;
+  website_url?: string | null;
+  business_name?: string | null;
 }
 
 export interface PlaceDetails {
-  website?: string;
-  phone?: string;
-  address?: string;
-  business_name?: string;
+  website: string | null;
+  phone: string | null;
+  address: string | null;
+  business_name: string | null;
 }
 
 export interface ChatbotDetection {
@@ -27,4 +29,3 @@ export interface ChatbotDetection {
   business_name?: string | null;
   last_checked: string;
 }
-

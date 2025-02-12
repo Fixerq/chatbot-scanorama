@@ -345,6 +345,56 @@ export type Database = {
         }
         Relationships: []
       }
+      place_details: {
+        Row: {
+          address: string | null
+          analyzed: boolean | null
+          business_name: string | null
+          chatbot_detection_id: string | null
+          created_at: string | null
+          id: string
+          phone: string | null
+          place_id: string | null
+          updated_at: string | null
+          url: string
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          analyzed?: boolean | null
+          business_name?: string | null
+          chatbot_detection_id?: string | null
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          place_id?: string | null
+          updated_at?: string | null
+          url: string
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          analyzed?: boolean | null
+          business_name?: string | null
+          chatbot_detection_id?: string | null
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          place_id?: string | null
+          updated_at?: string | null
+          url?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_details_chatbot_detection_id_fkey"
+            columns: ["chatbot_detection_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_detections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           api_key: string | null
