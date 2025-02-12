@@ -243,6 +243,39 @@ export type Database = {
         }
         Relationships: []
       }
+      chatbot_detections: {
+        Row: {
+          address: string | null
+          created_at: string
+          detected_platforms: string[] | null
+          has_chatbot: boolean | null
+          id: string
+          last_checked: string
+          phone: string | null
+          url: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          detected_platforms?: string[] | null
+          has_chatbot?: boolean | null
+          id?: string
+          last_checked?: string
+          phone?: string | null
+          url: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          detected_platforms?: string[] | null
+          has_chatbot?: boolean | null
+          id?: string
+          last_checked?: string
+          phone?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string | null
