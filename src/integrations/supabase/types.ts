@@ -245,7 +245,7 @@ export type Database = {
       }
       cached_places: {
         Row: {
-          business_name: string | null
+          business_name: string
           created_at: string | null
           id: number
           last_accessed: string | null
@@ -255,7 +255,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          business_name?: string | null
+          business_name?: string
           created_at?: string | null
           id?: number
           last_accessed?: string | null
@@ -265,7 +265,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          business_name?: string | null
+          business_name?: string
           created_at?: string | null
           id?: number
           last_accessed?: string | null
