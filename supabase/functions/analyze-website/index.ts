@@ -1,110 +1,147 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, handleOptions } from "../_shared/cors.ts";
-import { analyzeChatbot } from "./analyzer.ts";
-import type { RequestData } from "./types.ts";
+import { createClient } from '@supabase/supabase-js';
+import { RequestData, ChatDetectionResult, PlaceDetails, ChatbotDetection } from './types.ts';
+import { analyzeChatbot } from './analyzer.ts';
+import { normalizeUrl } from './utils/urlUtils.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
+// Initialize Supabase client with service role for full access
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  {
+    auth: {
+      persistSession: false
+    }
+  }
+);
+
+async function getBusinessWebsite(placeId: string): Promise<PlaceDetails> {
+  console.log('Fetching place details for:', placeId);
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
+  
+  if (!GOOGLE_API_KEY) {
+    console.error('Missing Google Places API Key');
+    throw new Error('Google Places API Key not configured');
+  }
+
+  const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=website,formatted_phone_number,formatted_address&key=${GOOGLE_API_KEY}`;
+  
+  try {
+    const response = await fetch(detailsUrl);
+    const data = await response.json();
+    
+    console.log('Place details response:', data);
+    
+    return {
+      website: data.result?.website,
+      phone: data.result?.formatted_phone_number,
+      address: data.result?.formatted_address
+    };
+  } catch (error) {
+    console.error('Error fetching place details:', error);
+    throw new Error('Failed to fetch place details');
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  const corsResponse = handleOptions(req);
-  if (corsResponse) {
-    return corsResponse;
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('Analyzing website: Starting request processing');
+    console.log('Starting website analysis');
     
-    if (req.method !== 'POST') {
-      throw new Error('Method not allowed');
-    }
-
-    // Parse request body
-    let requestData: RequestData;
-    try {
-      requestData = await req.json();
-      console.log('Request data received:', requestData);
-    } catch (parseError) {
-      console.error('Error parsing request JSON:', parseError);
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid JSON in request body',
-          status: 'Error parsing request',
-          lastChecked: new Date().toISOString()
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Validate URL
+    // Parse request data
+    const requestData: RequestData = await req.json();
+    console.log('Request data:', requestData);
+    
     if (!requestData?.url) {
-      console.error('Missing URL in request');
-      return new Response(
-        JSON.stringify({
-          error: 'URL is required',
-          status: 'Missing required parameter',
-          lastChecked: new Date().toISOString()
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('URL is required');
     }
 
-    const url = requestData.url.trim();
-    if (!url) {
-      console.error('Empty URL after trimming');
-      return new Response(
-        JSON.stringify({
-          error: 'URL cannot be empty',
-          status: 'Invalid URL',
-          lastChecked: new Date().toISOString()
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    let websiteUrl = requestData.url;
+    let phone: string | null = null;
+    let address: string | null = null;
 
-    console.log('Starting chatbot analysis for URL:', url);
-    const chatSolutions = await analyzeChatbot(url);
-    console.log('Chatbot analysis complete:', { url, chatSolutions });
-    
-    return new Response(
-      JSON.stringify({
-        status: chatSolutions.length > 0 ? 
-          `Chatbot detected (${chatSolutions.join(', ')})` : 
-          'No chatbot detected',
-        chatSolutions,
-        lastChecked: new Date().toISOString()
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Handle Google Maps URLs
+    if (websiteUrl.includes('maps.google') && requestData.placeId) {
+      console.log('Processing Google Maps URL with place ID:', requestData.placeId);
+      const details = await getBusinessWebsite(requestData.placeId);
+      if (details.website) {
+        websiteUrl = details.website;
+        phone = details.phone || null;
+        address = details.address || null;
       }
+    }
+
+    // Normalize and analyze URL
+    const normalizedUrl = normalizeUrl(websiteUrl);
+    console.log('Normalized URL:', normalizedUrl);
+    
+    const chatbotPlatforms = await analyzeChatbot(normalizedUrl);
+    console.log('Detected chatbot platforms:', chatbotPlatforms);
+    
+    const timestamp = new Date().toISOString();
+
+    // Prepare detection record
+    const detection: ChatbotDetection = {
+      url: normalizedUrl,
+      chatbot_platforms: chatbotPlatforms,
+      has_chatbot: chatbotPlatforms.length > 0,
+      phone,
+      address,
+      last_checked: timestamp
+    };
+
+    // Store results in database
+    const { error: upsertError } = await supabaseAdmin
+      .from('chatbot_detections')
+      .upsert(detection, {
+        onConflict: 'url'
+      });
+
+    if (upsertError) {
+      console.error('Database error:', upsertError);
+      throw new Error('Failed to store detection results');
+    }
+
+    // Prepare response
+    const result: ChatDetectionResult = {
+      status: chatbotPlatforms.length > 0 ? 
+        `Chatbot detected (${chatbotPlatforms.join(', ')})` : 
+        'No chatbot detected',
+      chatSolutions: chatbotPlatforms,
+      lastChecked: timestamp
+    };
+
+    return new Response(
+      JSON.stringify(result),
+      { headers: corsHeaders }
     );
 
   } catch (error) {
-    console.error('Error in analyze-website function:', error);
+    console.error('Analysis error:', error);
     
-    // Ensure we have a valid error message
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const timestamp = new Date().toISOString();
+    const errorResult: ChatDetectionResult = {
+      status: `Error: ${error.message}`,
+      chatSolutions: [],
+      lastChecked: new Date().toISOString()
+    };
 
     return new Response(
-      JSON.stringify({
-        error: errorMessage,
-        status: 'Error analyzing website',
-        lastChecked: timestamp,
-        details: error instanceof Error ? error.stack : undefined
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      JSON.stringify(errorResult),
+      { 
+        headers: corsHeaders,
+        status: error.message.includes('required') ? 400 : 500
       }
     );
   }
