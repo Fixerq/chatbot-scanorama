@@ -87,7 +87,7 @@ export async function searchBusinesses(
               url: cachedData.url,
               status: 'Analyzing...',
               details: {
-                business_name: place.name,
+                business_name: place.name, // Ensure business name is set from place name
                 title: place.name,
                 description: cachedData.description,
                 lastChecked: new Date().toISOString(),
@@ -103,6 +103,8 @@ export async function searchBusinesses(
 
           // If not in cache, fetch from API
           const detailsData = await getPlaceDetails(place.place_id);
+          console.log('Place details:', detailsData?.result);
+          
           if (!detailsData?.result) {
             console.log(`No valid details found for place: ${place.place_id}`);
             return null;
@@ -115,7 +117,7 @@ export async function searchBusinesses(
             url: website,
             status: 'Analyzing...',
             details: {
-              business_name: place.name,
+              business_name: place.name, // Set business name from place name
               title: place.name,
               description: place.formatted_address,
               lastChecked: new Date().toISOString(),
@@ -139,6 +141,7 @@ export async function searchBusinesses(
     );
     
     console.log(`Successfully processed ${validResults.length} businesses with details`);
+    console.log('Sample result:', validResults[0]);
 
     // Cache the valid results
     const cachePromises = validResults.map(result => 
@@ -146,6 +149,7 @@ export async function searchBusinesses(
         .from('cached_places')
         .upsert({
           place_id: result.details.placeId,
+          search_batch_id: searchBatchId,
           place_data: {
             url: result.url,
             title: result.details.title,

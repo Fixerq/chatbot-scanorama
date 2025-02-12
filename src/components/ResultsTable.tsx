@@ -57,6 +57,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const displayUrl = result.details?.website_url || result.url;
             const businessName = result.details?.business_name || 'N/A';
             
+            console.log('Result details:', result.details); // Add logging to check the data
+            
             return (
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
@@ -78,4 +80,3 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
-
