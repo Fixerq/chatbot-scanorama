@@ -88,9 +88,6 @@ const extractNameFromUrl = (url: string): string | null => {
 };
 
 const getBusinessName = (result: Result): string => {
-  // Log the incoming data
-  console.log('Processing result:', result);
-
   // Extract business name from the result
   const name = result.businessName || // Try root level first
                result.details?.business_name || // Then try details
