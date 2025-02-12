@@ -60,44 +60,43 @@ serve(async (req) => {
 
   try {
     console.log('Starting website analysis');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    if (!req.body) {
-      console.error('Request body is null');
+    const contentType = req.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+
+    const rawBody = await req.text();
+    console.log('Raw request body:', rawBody);
+
+    if (!rawBody) {
+      console.error('Empty request body received');
       return addCorsHeaders(new Response(
-        JSON.stringify({ error: 'Request body is required' }),
+        JSON.stringify({ error: 'Request body cannot be empty' }),
         { status: 400 }
       ));
     }
 
     let requestData: RequestData;
-    let bodyText: string;
-    
     try {
-      bodyText = await req.text();
-      console.log('Raw request body:', bodyText);
-      
-      if (!bodyText) {
-        console.error('Empty request body');
-        return addCorsHeaders(new Response(
-          JSON.stringify({ error: 'Request body cannot be empty' }),
-          { status: 400 }
-        ));
-      }
-      
-      requestData = JSON.parse(bodyText);
+      requestData = JSON.parse(rawBody);
       console.log('Parsed request data:', requestData);
-      
-      if (!requestData || typeof requestData !== 'object') {
-        throw new Error('Invalid request data format');
-      }
     } catch (error) {
-      console.error('Body parsing error:', error);
+      console.error('JSON parsing error:', error);
       return addCorsHeaders(new Response(
-        JSON.stringify({ error: `Invalid request body: ${error.message}` }),
+        JSON.stringify({ error: `Invalid JSON in request body: ${error.message}` }),
         { status: 400 }
       ));
     }
-    
+
+    if (!requestData || typeof requestData !== 'object') {
+      console.error('Invalid request data format:', requestData);
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: 'Request body must be a valid JSON object' }),
+        { status: 400 }
+      ));
+    }
+
     if (!requestData.url) {
       console.error('Missing URL in request:', requestData);
       return addCorsHeaders(new Response(
@@ -132,7 +131,6 @@ serve(async (req) => {
         });
       } catch (error) {
         console.error('Error fetching business details:', error);
-        // Continue with original URL if place details fetch fails
         console.log('Continuing with original Maps URL:', websiteUrl);
       }
     }
@@ -180,7 +178,9 @@ serve(async (req) => {
         `Chatbot detected (${chatbotPlatforms.join(', ')})` : 
         'No chatbot detected',
       chatSolutions: chatbotPlatforms,
-      lastChecked: timestamp
+      lastChecked: timestamp,
+      website_url: websiteUrl,
+      business_name: businessName
     };
 
     return addCorsHeaders(new Response(
