@@ -87,7 +87,7 @@ export async function searchBusinesses(
               url: cachedData.url,
               status: 'Analyzing...',
               details: {
-                business_name: place.name, // Ensure business name is set from place name
+                business_name: cachedData.business_name || place.name,
                 title: place.name,
                 description: cachedData.description,
                 lastChecked: new Date().toISOString(),
@@ -117,9 +117,9 @@ export async function searchBusinesses(
             url: website,
             status: 'Analyzing...',
             details: {
-              business_name: place.name, // Set business name from place name
-              title: place.name,
-              description: place.formatted_address,
+              business_name: detailsData.result.name, // Use the name from the detailed response
+              title: detailsData.result.name,
+              description: detailsData.result.formatted_address || place.formatted_address,
               lastChecked: new Date().toISOString(),
               address: detailsData.result.formatted_address || place.formatted_address,
               businessType: place.types?.[0] || 'business',
@@ -137,7 +137,7 @@ export async function searchBusinesses(
     );
 
     const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
-      result !== null && result.details.business_name
+      result !== null && result.details.business_name !== undefined
     );
     
     console.log(`Successfully processed ${validResults.length} businesses with details`);

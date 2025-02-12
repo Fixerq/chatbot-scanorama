@@ -20,7 +20,7 @@ export interface Result {
     lastChecked?: string;
     chatSolutions?: string[];
     website_url?: string | null;
-    business_name?: string;
+    business_name?: string | null;
   };
 }
 
@@ -40,6 +40,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     return chatSolutions[0];
   };
 
+  const getBusinessName = (result: Result): string => {
+    const businessName = result.details?.business_name;
+    console.log('Processing business name:', businessName);
+    return businessName || 'N/A';
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -55,9 +61,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
-            const businessName = result.details?.business_name || 'N/A';
+            const businessName = getBusinessName(result);
             
-            console.log('Result details:', result.details); // Add logging to check the data
+            console.log('Result details:', {
+              url: displayUrl,
+              business_name: businessName,
+              full_details: result.details
+            });
             
             return (
               <TableRow key={index}>
