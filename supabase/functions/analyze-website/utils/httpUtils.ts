@@ -1,3 +1,4 @@
+
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -44,6 +45,14 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
       
       console.log(`Response status: ${response.status} for ${url}`);
       console.log('Response headers:', Object.fromEntries(response.headers));
+
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, i) * 1000;
+        console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
 
       if (response.ok) {
         console.log(`Successfully fetched ${url} on attempt ${i + 1}`);
