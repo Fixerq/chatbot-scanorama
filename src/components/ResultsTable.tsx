@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Table,
@@ -13,7 +12,7 @@ import ResultStatusCell from './results/ResultStatusCell';
 
 export interface Result {
   url: string;
-  businessName?: string;  // Add this at root level
+  businessName?: string;  
   details?: {
     business_name?: string;
     website_url?: string;
@@ -22,6 +21,8 @@ export interface Result {
     address?: string;
     placeId?: string;
     businessType?: string;
+    title?: string;
+    description?: string;
   };
   status?: string;
 }

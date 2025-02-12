@@ -59,7 +59,11 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     
     switch (value) {
       case 'name':
-        sorted.sort((a, b) => (a.details?.title || '').localeCompare(b.details?.title || ''));
+        sorted.sort((a, b) => {
+          const nameA = a.details?.business_name || '';
+          const nameB = b.details?.business_name || '';
+          return nameA.localeCompare(nameB);
+        });
         break;
       case 'url':
         sorted.sort((a, b) => a.url.localeCompare(b.url));

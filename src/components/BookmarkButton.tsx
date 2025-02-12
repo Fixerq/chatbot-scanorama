@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Bookmark } from 'lucide-react';
@@ -28,7 +29,7 @@ const BookmarkButton = ({ results }: BookmarkButtonProps) => {
       url: result.url,
       status: result.status,
       details: {
-        title: result.details?.title,
+        business_name: result.details?.business_name,
         description: result.details?.description,
         lastChecked: result.details?.lastChecked,
         chatSolutions: result.details?.chatSolutions

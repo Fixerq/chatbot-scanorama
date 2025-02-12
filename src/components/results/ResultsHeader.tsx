@@ -25,7 +25,7 @@ const ResultsHeader = ({
     try {
       const csvData = results.map(result => ({
         URL: result.url,
-        'Business Name': result.details?.title || 'N/A',
+        'Business Name': result.details?.business_name || 'N/A',
         'Technologies': result.details?.chatSolutions?.join(', ') || 'No chatbot detected',
         'Last Checked': result.details?.lastChecked ? new Date(result.details.lastChecked).toLocaleString() : 'N/A',
         Status: result.status || 'N/A'
