@@ -14,20 +14,33 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
 
-    // Handle CORS preflight requests
-    const optionsResponse = handleOptions(req);
-    if (optionsResponse) return optionsResponse;
-
     // Get origin from request headers
     const origin = req.headers.get('origin');
     console.log('Request origin:', origin);
 
+    // Handle CORS preflight requests - MOVED BEFORE ANY OTHER PROCESSING
+    if (req.method === 'OPTIONS') {
+      console.log('Handling OPTIONS request');
+      return new Response('ok', {
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+          'Access-Control-Max-Age': '86400'
+        }
+      });
+    }
+
     if (req.method !== 'POST') {
+      console.log('Invalid method:', req.method);
       throw new Error('Method not allowed');
     }
 
     // Ensure content-type is application/json
     const contentType = req.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+    
     if (!contentType?.includes('application/json')) {
       throw new Error('Content-Type must be application/json');
     }
@@ -35,7 +48,7 @@ serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
-      console.log('Request body parsed successfully:', requestBody);
+      console.log('Request body:', requestBody);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       throw new Error('Invalid JSON in request body');
@@ -60,7 +73,7 @@ serve(async (req) => {
       throw new Error('Server configuration error');
     }
 
-    console.log('Initializing Supabase client with URL:', supabaseUrl);
+    console.log('Initializing Supabase client');
     
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
@@ -74,9 +87,9 @@ serve(async (req) => {
     console.log('Starting business search with params:', params);
     const searchResponse = await searchBusinesses(params, supabase);
     
-    console.log(`Found ${searchResponse.results.length} results for query: ${params.query}`);
+    console.log('Search completed successfully:', searchResponse);
 
-    // Set CORS headers based on origin
+    // Prepare response with CORS headers
     const responseHeaders = {
       ...corsHeaders,
       'Content-Type': 'application/json',
@@ -96,13 +109,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Request error:', {
+    console.error('Error details:', {
       message: error.message,
       stack: error.stack,
       cause: error.cause
     });
     
-    // Include origin in error response headers
     const origin = req.headers.get('origin');
     const errorHeaders = {
       ...corsHeaders,
