@@ -82,8 +82,13 @@ export async function searchBusinesses(
         try {
           // Check cache first
           const cachedData = await getCachedPlaceDetails(supabaseClient, place.place_id, searchBatchId);
+          
           if (cachedData) {
-            console.log(`Using cached data for place: ${place.place_id}`);
+            console.log(`Using cached data for place: ${place.place_id}`, {
+              business_name: place.name,
+              cached_data: cachedData
+            });
+            
             return {
               url: cachedData.place_data.url,
               status: 'Analyzing...',
@@ -115,7 +120,8 @@ export async function searchBusinesses(
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
 
           console.log(`Setting business name for ${place.place_id}:`, {
-            name: place.name
+            name: place.name,
+            detailsName: detailsData.result.name
           });
 
           // Store in cache with the business name
@@ -131,7 +137,8 @@ export async function searchBusinesses(
                 description: detailsData.result.formatted_address || place.formatted_address,
                 address: detailsData.result.formatted_address || place.formatted_address,
                 businessType: place.types?.[0] || 'business',
-                phoneNumber: detailsData.result.formatted_phone_number
+                phoneNumber: detailsData.result.formatted_phone_number,
+                business_name: place.name
               },
               last_accessed: new Date().toISOString()
             }, {
@@ -179,4 +186,3 @@ export async function searchBusinesses(
     throw error;
   }
 }
-

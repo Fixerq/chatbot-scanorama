@@ -59,6 +59,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
+            
+            // Debug logging for business name values
+            console.log('Business details:', {
+              resultId: index,
+              businessName: result.details?.business_name,
+              title: result.details?.title,
+              fullDetails: result.details
+            });
+            
             const businessName = result.details?.business_name || result.details?.title || 'N/A';
             
             return (
