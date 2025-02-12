@@ -8,7 +8,7 @@ import { RequestData } from './types.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Content-Type': 'application/json'
 };
 
@@ -19,8 +19,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Received request:', req.method);
+    const body = await req.text();
+    console.log('Request body:', body);
+
     // Parse and validate request
-    const requestData: RequestData = validateRequest(await req.text());
+    const requestData: RequestData = validateRequest(body);
     console.log('Analyzing website:', requestData.url);
     
     // Use Firecrawl for analysis
@@ -39,18 +43,23 @@ serve(async (req) => {
           firecrawlResult.content.toLowerCase().includes(sig.toLowerCase())
         )) {
           detectedProviders.push(provider.name);
+          console.log('Detected provider:', provider.name);
         }
       }
     }
     
+    const response = {
+      status: 'success',
+      has_chatbot: detectedProviders.length > 0,
+      chatSolutions: detectedProviders,
+      details: firecrawlResult.metadata,
+      lastChecked: firecrawlResult.analyzed_at
+    };
+    
+    console.log('Sending response:', response);
+    
     return new Response(
-      JSON.stringify({
-        status: 'success',
-        has_chatbot: detectedProviders.length > 0,
-        chatSolutions: detectedProviders,
-        details: firecrawlResult.metadata,
-        lastChecked: firecrawlResult.analyzed_at
-      }),
+      JSON.stringify(response),
       { headers: corsHeaders }
     );
   } catch (error) {

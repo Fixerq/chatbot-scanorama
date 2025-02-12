@@ -25,8 +25,11 @@ export const analyzeWithFirecrawl = async (url: string): Promise<FirecrawlAnalys
       limit: 1,
       scrapeOptions: {
         formats: ['html', 'markdown'],
+        timeout: 30000 // 30 second timeout
       }
     });
+
+    console.log('Raw Firecrawl response:', response);
 
     if (!response.success) {
       throw new Error(response.error || 'Firecrawl analysis failed');
