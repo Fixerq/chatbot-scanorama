@@ -62,11 +62,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             // Get the business name from the details
             const businessName = result.details?.business_name || 'N/A';
             
+            // Add more detailed logging
             console.log('Result details for row:', {
               index,
               url: displayUrl,
               businessName,
+              rawBusinessName: result.details?.business_name,
               fullDetails: result.details,
+              hasDetails: !!result.details,
               rawResult: result
             });
 
@@ -93,3 +96,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
+
