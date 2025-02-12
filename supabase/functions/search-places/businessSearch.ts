@@ -80,7 +80,7 @@ export async function searchBusinesses(
           
           if (cachedData) {
             console.log(`Using cached data for place: ${place.place_id}`, {
-              business_name: place.name,
+              business_name: cachedData.business_name,
               cached_data: cachedData
             });
             
@@ -88,7 +88,7 @@ export async function searchBusinesses(
               url: cachedData.place_data.url,
               status: 'Analyzing...',
               details: {
-                business_name: cachedData.business_name,
+                business_name: cachedData.business_name || place.name,
                 title: place.name,
                 description: cachedData.place_data.description,
                 lastChecked: new Date().toISOString(),
@@ -113,11 +113,6 @@ export async function searchBusinesses(
           const website = detailsData.result.website || detailsData.result.url || 
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
 
-          console.log(`Setting business name for ${place.place_id}:`, {
-            name: place.name,
-            detailsName: detailsData.result.name
-          });
-
           // Store in cache with the business name
           await supabaseClient
             .from('cached_places')
@@ -132,7 +127,6 @@ export async function searchBusinesses(
                 address: detailsData.result.formatted_address || place.formatted_address,
                 businessType: place.types?.[0] || 'business',
                 phoneNumber: detailsData.result.formatted_phone_number,
-                business_name: place.name
               },
               last_accessed: new Date().toISOString()
             }, {
