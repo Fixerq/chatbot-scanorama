@@ -9,7 +9,7 @@ const getCachedPlaceDetails = async (
 ) => {
   const { data: cachedPlace } = await supabaseClient
     .from('cached_places')
-    .select('place_data')
+    .select('place_data, business_name')
     .eq('place_id', placeId)
     .maybeSingle();
 
@@ -20,7 +20,11 @@ const getCachedPlaceDetails = async (
       .update({ last_accessed: new Date().toISOString() })
       .eq('place_id', placeId);
 
-    return cachedPlace.place_data;
+    // Ensure business_name is included in the returned data
+    return {
+      ...cachedPlace.place_data,
+      business_name: cachedPlace.business_name || cachedPlace.place_data.business_name
+    };
   }
 
   return null;
@@ -82,7 +86,7 @@ export async function searchBusinesses(
           // Check cache first
           const cachedData = await getCachedPlaceDetails(supabaseClient, place.place_id, searchBatchId);
           if (cachedData) {
-            console.log(`Using cached data for place: ${place.place_id}`);
+            console.log(`Using cached data for place: ${place.place_id}`, cachedData);
             return {
               url: cachedData.url,
               status: 'Analyzing...',
@@ -113,12 +117,15 @@ export async function searchBusinesses(
           const website = detailsData.result.website || detailsData.result.url || 
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
           
+          const businessName = detailsData.result.name || place.name;
+          console.log(`Setting business name for ${place.place_id}:`, businessName);
+
           return {
             url: website,
             status: 'Analyzing...',
             details: {
-              business_name: detailsData.result.name, // Use the name from the detailed response
-              title: detailsData.result.name,
+              business_name: businessName,
+              title: businessName,
               description: detailsData.result.formatted_address || place.formatted_address,
               lastChecked: new Date().toISOString(),
               address: detailsData.result.formatted_address || place.formatted_address,
@@ -150,6 +157,7 @@ export async function searchBusinesses(
         .upsert({
           place_id: result.details.placeId,
           search_batch_id: searchBatchId,
+          business_name: result.details.business_name,
           place_data: {
             url: result.url,
             title: result.details.title,
