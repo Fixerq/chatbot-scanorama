@@ -29,23 +29,31 @@ async function getBusinessWebsite(placeId: string): Promise<PlaceDetails> {
   
   try {
     const response = await fetch(detailsUrl);
-    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Google Places API returned status: ${response.status}`);
+    }
     
-    console.log('Place details response:', data);
+    const data = await response.json();
+    console.log('Google Places API response:', data);
+    
+    if (!data.result) {
+      throw new Error('No result found in Places API response');
+    }
     
     return {
-      website: data.result?.website,
-      phone: data.result?.formatted_phone_number,
-      address: data.result?.formatted_address,
-      business_name: data.result?.name
+      website: data.result.website || null,
+      phone: data.result.formatted_phone_number || null,
+      address: data.result.formatted_address || null,
+      business_name: data.result.name || null
     };
   } catch (error) {
     console.error('Error fetching place details:', error);
-    throw new Error('Failed to fetch place details');
+    throw new Error(`Failed to fetch place details: ${error.message}`);
   }
 }
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -53,12 +61,12 @@ serve(async (req) => {
   try {
     console.log('Starting website analysis');
     
-    if (req.body === null) {
+    if (!req.body) {
       console.error('Request body is null');
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'Request body is required' }),
-        { headers: corsHeaders, status: 400 }
-      );
+        { status: 400 }
+      ));
     }
 
     let requestData: RequestData;
@@ -70,36 +78,32 @@ serve(async (req) => {
       
       if (!bodyText) {
         console.error('Empty request body');
-        return new Response(
+        return addCorsHeaders(new Response(
           JSON.stringify({ error: 'Request body cannot be empty' }),
-          { headers: corsHeaders, status: 400 }
-        );
+          { status: 400 }
+        ));
       }
       
-      try {
-        requestData = JSON.parse(bodyText);
-        console.log('Parsed request data:', requestData);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        return new Response(
-          JSON.stringify({ error: 'Invalid JSON in request body' }),
-          { headers: corsHeaders, status: 400 }
-        );
+      requestData = JSON.parse(bodyText);
+      console.log('Parsed request data:', requestData);
+      
+      if (!requestData || typeof requestData !== 'object') {
+        throw new Error('Invalid request data format');
       }
-    } catch (bodyError) {
-      console.error('Error reading request body:', bodyError);
-      return new Response(
-        JSON.stringify({ error: 'Could not read request body' }),
-        { headers: corsHeaders, status: 400 }
-      );
+    } catch (error) {
+      console.error('Body parsing error:', error);
+      return addCorsHeaders(new Response(
+        JSON.stringify({ error: `Invalid request body: ${error.message}` }),
+        { status: 400 }
+      ));
     }
     
-    if (!requestData?.url) {
+    if (!requestData.url) {
       console.error('Missing URL in request:', requestData);
-      return new Response(
+      return addCorsHeaders(new Response(
         JSON.stringify({ error: 'URL is required in request body' }),
-        { headers: corsHeaders, status: 400 }
-      );
+        { status: 400 }
+      ));
     }
 
     let websiteUrl = requestData.url;
@@ -111,20 +115,31 @@ serve(async (req) => {
     // Handle Google Maps URLs
     if (websiteUrl.includes('maps.google') && requestData.placeId) {
       console.log('Processing Google Maps URL with place ID:', requestData.placeId);
-      const details = await getBusinessWebsite(requestData.placeId);
-      if (details.website) {
-        websiteUrl = details.website;
-        phone = details.phone || null;
-        address = details.address || null;
-        businessName = details.business_name || null;
-      } else {
-        console.log('No website found for place ID, using Maps URL');
+      try {
+        const details = await getBusinessWebsite(requestData.placeId);
+        if (details.website) {
+          websiteUrl = details.website;
+        }
+        phone = details.phone;
+        address = details.address;
+        businessName = details.business_name;
+        
+        console.log('Successfully fetched business details:', {
+          websiteUrl,
+          businessName,
+          phone,
+          address
+        });
+      } catch (error) {
+        console.error('Error fetching business details:', error);
+        // Continue with original URL if place details fetch fails
+        console.log('Continuing with original Maps URL:', websiteUrl);
       }
     }
 
-    // Normalize and analyze URL
+    // Normalize URL for analysis
     const normalizedUrl = normalizeUrl(websiteUrl);
-    console.log('Normalized URL:', normalizedUrl);
+    console.log('Normalized URL for analysis:', normalizedUrl);
     
     const chatbotPlatforms = await analyzeChatbot(normalizedUrl);
     console.log('Detected chatbot platforms:', chatbotPlatforms);
@@ -133,8 +148,8 @@ serve(async (req) => {
 
     // Prepare detection record
     const detection: ChatbotDetection = {
-      url: originalUrl, // Store the original URL (maps URL if from Places API)
-      website_url: websiteUrl !== originalUrl ? websiteUrl : null, // Store the actual business website if different
+      url: originalUrl,
+      website_url: websiteUrl !== originalUrl ? websiteUrl : null,
       chatbot_platforms: chatbotPlatforms,
       has_chatbot: chatbotPlatforms.length > 0,
       phone,
@@ -143,7 +158,8 @@ serve(async (req) => {
       last_checked: timestamp
     };
 
-    // Store results in database
+    console.log('Saving detection record:', detection);
+
     const { error: upsertError } = await supabaseAdmin
       .from('chatbot_detections')
       .upsert(detection, {
@@ -187,4 +203,3 @@ serve(async (req) => {
     ));
   }
 });
-

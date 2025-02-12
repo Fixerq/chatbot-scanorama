@@ -18,15 +18,16 @@ export const useChatbotAnalysis = () => {
               ...result.details,
               chatSolutions: response.chatSolutions || [],
               lastChecked: response.lastChecked,
-              website_url: result.details?.website_url || null,
-              business_name: result.details?.business_name || null
+              website_url: response.website_url || null,
+              business_name: response.business_name || null
             }
           };
         } catch (error) {
           console.error(`Error analyzing ${result.url}:`, error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           return {
             ...result,
-            status: 'Error analyzing URL'
+            status: `Error: ${errorMessage}`
           };
         }
       })
@@ -36,4 +37,3 @@ export const useChatbotAnalysis = () => {
 
   return { analyzeChatbots };
 };
-

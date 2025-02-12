@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
 import { formatUrl } from '@/utils/urlFormatting';
@@ -16,7 +17,8 @@ const ResultUrlCell = ({ url }: ResultUrlCellProps) => {
           href={fullUrl}
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 truncate max-w-[300px] inline-block"
+          title={fullUrl}
         >
           {displayUrl}
         </a>
