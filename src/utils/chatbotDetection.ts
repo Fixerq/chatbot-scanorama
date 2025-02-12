@@ -1,4 +1,3 @@
-
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,15 +26,23 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
 
     console.log('Analyzing URL:', cleanUrl);
     
-    const bodyData = { url: cleanUrl };
-    console.log('Request body:', bodyData);
+    // Extract place ID if it's a Google Maps URL
+    const placeIdMatch = cleanUrl.match(/place\/[^\/]+\/([^\/\?]+)/);
+    const placeId = placeIdMatch ? placeIdMatch[1] : null;
+    
+    const body = {
+      url: cleanUrl,
+      placeId
+    };
+    
+    console.log('Request body:', body);
 
     const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: JSON.stringify(bodyData),
+      body: JSON.stringify(body),
       headers: {
         'Content-Type': 'application/json',
+        'x-application-name': 'detectify'
       },
-      method: 'POST',
     });
 
     if (error) {
