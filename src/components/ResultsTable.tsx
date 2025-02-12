@@ -58,12 +58,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
-
-            // Get the business name from the details
-            const businessName = result.details?.business_name || 'N/A';
+            const businessName = result.details?.business_name || '';
             
-            // Add more detailed logging
-            console.log('Result details for row:', {
+            // Debug logging
+            console.log('Processing row:', {
               index,
               url: displayUrl,
               businessName,
@@ -76,8 +74,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             return (
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
-                <TableCell>
-                  {businessName}
+                <TableCell className="font-medium">
+                  {businessName || 'N/A'}
                 </TableCell>
                 <ResultStatusCell 
                   status={result.status}
@@ -96,4 +94,3 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
-
