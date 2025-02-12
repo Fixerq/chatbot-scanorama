@@ -10,6 +10,7 @@ export const ALLOWED_ORIGINS = [
   'http://localhost:3000'
 ];
 
+// Explicitly include x-application-name in allowed headers
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
