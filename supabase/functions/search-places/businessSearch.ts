@@ -73,6 +73,8 @@ export async function searchBusinesses(
       )
       .slice(0, 20);
 
+    console.log(`Processing ${filteredResults.length} filtered results`);
+
     // Get detailed information for each place
     const detailedResults = await Promise.all(
       filteredResults.map(async (place) => {
@@ -83,7 +85,9 @@ export async function searchBusinesses(
             console.log(`Using cached data for place: ${place.place_id}`);
             return {
               url: cachedData.url,
+              status: 'Analyzing...',
               details: {
+                business_name: place.name,
                 title: place.name,
                 description: cachedData.description,
                 lastChecked: new Date().toISOString(),
@@ -91,8 +95,8 @@ export async function searchBusinesses(
                 businessType: cachedData.businessType,
                 phoneNumber: cachedData.phoneNumber,
                 placeId: place.place_id,
-                business_name: place.name,
-                website_url: cachedData.url
+                website_url: cachedData.url,
+                chatSolutions: []
               }
             };
           }
@@ -104,17 +108,14 @@ export async function searchBusinesses(
             return null;
           }
 
-          // Only include businesses with websites
-          if (!detailsData.result.website && !detailsData.result.url) {
-            console.log(`No website found for place: ${place.place_id}`);
-            return null;
-          }
-
-          const website = detailsData.result.website || detailsData.result.url;
+          const website = detailsData.result.website || detailsData.result.url || 
+                         `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
           
           return {
             url: website,
+            status: 'Analyzing...',
             details: {
+              business_name: place.name,
               title: place.name,
               description: place.formatted_address,
               lastChecked: new Date().toISOString(),
@@ -122,8 +123,8 @@ export async function searchBusinesses(
               businessType: place.types?.[0] || 'business',
               phoneNumber: detailsData.result.formatted_phone_number,
               placeId: place.place_id,
-              business_name: place.name,
-              website_url: website
+              website_url: website,
+              chatSolutions: []
             }
           };
         } catch (error) {
@@ -134,7 +135,7 @@ export async function searchBusinesses(
     );
 
     const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
-      result !== null && result.details.title && result.url
+      result !== null && result.details.business_name
     );
     
     console.log(`Successfully processed ${validResults.length} businesses with details`);
