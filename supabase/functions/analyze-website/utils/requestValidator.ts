@@ -2,7 +2,10 @@
 import { RequestData } from '../types.ts';
 
 export function validateRequest(rawBody: string): RequestData {
-  if (!rawBody) {
+  console.log('Validating request body:', rawBody);
+  
+  // Check for empty or whitespace-only body
+  if (!rawBody || rawBody.trim() === '') {
     console.error('Empty request body received');
     throw new Error('Request body cannot be empty');
   }
@@ -26,6 +29,10 @@ export function validateRequest(rawBody: string): RequestData {
     throw new Error('URL is required in request body');
   }
 
+  if (typeof requestData.url !== 'string') {
+    console.error('Invalid URL type in request:', typeof requestData.url);
+    throw new Error('URL must be a string');
+  }
+
   return requestData;
 }
-

@@ -22,6 +22,10 @@ serve(async (req) => {
     const contentType = req.headers.get('content-type');
     console.log('Content-Type:', contentType);
 
+    if (!contentType?.includes('application/json')) {
+      throw new Error('Content-Type must be application/json');
+    }
+
     const rawBody = await req.text();
     console.log('Raw request body:', rawBody);
 
@@ -94,12 +98,19 @@ serve(async (req) => {
 
     return addCorsHeaders(new Response(
       JSON.stringify(result),
-      { status: 200 }
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     ));
 
   } catch (error) {
     console.error('Analysis error:', error);
-    await logFunctionError('analyze-website', 'main', { url: req.url, method: req.method }, error);
+    await logFunctionError('analyze-website', 'main', { url: req.url, method: req.method }, error, {
+      headers: Object.fromEntries(req.headers.entries())
+    });
     
     const errorResult: ChatDetectionResult = {
       status: `Error: ${error.message}`,
@@ -109,7 +120,13 @@ serve(async (req) => {
 
     return addCorsHeaders(new Response(
       JSON.stringify(errorResult),
-      { status: error.message.includes('required') ? 400 : 500 }
+      { 
+        status: error.message.includes('Content-Type') || 
+                error.message.includes('required') ? 400 : 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     ));
   }
 });

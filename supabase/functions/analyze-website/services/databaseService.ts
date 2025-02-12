@@ -32,7 +32,8 @@ export async function logFunctionError(
   functionName: string,
   operation: string,
   requestData: unknown,
-  error: unknown
+  error: unknown,
+  context: Record<string, unknown> = {}
 ): Promise<void> {
   try {
     const { error: logError } = await supabaseAdmin
@@ -43,7 +44,14 @@ export async function logFunctionError(
           operation,
           data: requestData
         },
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        severity: 'error',
+        context,
+        timestamp: new Date().toISOString(),
+        client_info: {
+          user_agent: Deno.env.get('USER_AGENT'),
+          ip: Deno.env.get('CF_CONNECTING_IP')
+        }
       });
 
     if (logError) {
