@@ -243,6 +243,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cached_places: {
+        Row: {
+          created_at: string | null
+          id: number
+          last_accessed: string | null
+          place_data: Json
+          place_id: string
+          search_batch_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          last_accessed?: string | null
+          place_data: Json
+          place_id: string
+          search_batch_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          last_accessed?: string | null
+          place_data?: Json
+          place_id?: string
+          search_batch_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chatbot_detections: {
         Row: {
           address: string | null
@@ -697,6 +727,10 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_cached_places: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
