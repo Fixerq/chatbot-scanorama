@@ -21,6 +21,7 @@ export interface Result {
     chatSolutions?: string[];
     website_url?: string | null;
     business_name?: string | null;
+    google_business_name?: string | null;
     placeId?: string;
     address?: string;
     businessType?: string;
@@ -55,18 +56,20 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
       return 'N/A';
     }
 
-    // Get business name from details, with detailed logging
+    // Prioritize Google's business name, then fall back to other sources
+    const googleBusinessName = result.details.google_business_name || '';
     const businessName = result.details.business_name || '';
     const title = result.details.title || '';
     
     console.log('Business name components:', {
+      googleBusinessName,
       businessName,
       title,
       fullDetails: result.details
     });
     
     // Return the first available value in order of preference
-    const name = businessName || title || 'N/A';
+    const name = googleBusinessName || businessName || title || 'N/A';
     
     console.log('Final business name:', name);
     return name;

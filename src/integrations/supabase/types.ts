@@ -32,6 +32,7 @@ export type Database = {
           description: string | null
           details: Json | null
           formatted_address: string | null
+          google_business_name: string | null
           icon: string | null
           icon_background_color: string | null
           icon_mask_base_uri: string | null
@@ -66,6 +67,7 @@ export type Database = {
           description?: string | null
           details?: Json | null
           formatted_address?: string | null
+          google_business_name?: string | null
           icon?: string | null
           icon_background_color?: string | null
           icon_mask_base_uri?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           description?: string | null
           details?: Json | null
           formatted_address?: string | null
+          google_business_name?: string | null
           icon?: string | null
           icon_background_color?: string | null
           icon_mask_base_uri?: string | null
@@ -247,6 +250,7 @@ export type Database = {
         Row: {
           business_name: string
           created_at: string | null
+          google_business_name: string | null
           id: number
           last_accessed: string | null
           place_data: Json
@@ -257,6 +261,7 @@ export type Database = {
         Insert: {
           business_name?: string
           created_at?: string | null
+          google_business_name?: string | null
           id?: number
           last_accessed?: string | null
           place_data: Json
@@ -267,6 +272,7 @@ export type Database = {
         Update: {
           business_name?: string
           created_at?: string | null
+          google_business_name?: string | null
           id?: number
           last_accessed?: string | null
           place_data?: Json
