@@ -25,7 +25,16 @@ serve(async (req) => {
       throw new Error('Method not allowed');
     }
 
-    const { action, params } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body parsed successfully:', requestBody);
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      throw new Error('Invalid JSON in request body');
+    }
+
+    const { action, params } = requestBody;
     console.log('Search request:', { action, params });
 
     // Validate search parameters
@@ -36,34 +45,49 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false
-        }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase configuration');
+      throw new Error('Server configuration error');
+    }
+
+    console.log('Initializing Supabase client with URL:', supabaseUrl);
+    
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false
       }
-    );
+    });
 
     // Search for businesses
+    console.log('Starting business search with params:', params);
     const searchResponse = await searchBusinesses(params, supabase);
     
-    console.log(`Found ${searchResponse.results.length} results for query: ${params.query}\n`);
+    console.log(`Found ${searchResponse.results.length} results for query: ${params.query}`);
 
     // Return successful response
     return new Response(
       JSON.stringify({
-        data: searchResponse
+        data: searchResponse,
+        status: 'success'
       }),
       { 
         status: 200,
-        headers: corsHeaders
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
 
   } catch (error) {
-    console.error('Request error:', error);
+    console.error('Request error:', {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause
+    });
     
     return new Response(
       JSON.stringify({
@@ -71,8 +95,11 @@ serve(async (req) => {
         status: 'error'
       }),
       { 
-        status: 200,
-        headers: corsHeaders
+        status: error.message === 'Method not allowed' ? 405 : 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
   }
