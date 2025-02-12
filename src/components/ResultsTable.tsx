@@ -13,30 +13,40 @@ import ResultStatusCell from './results/ResultStatusCell';
 
 export interface Result {
   url: string;
-  status?: string;
-  business_name?: string;
   businessName?: string;
   details?: {
+    business_name?: string;
     title?: string;
     description?: string;
     lastChecked?: string;
     chatSolutions?: string[];
     website_url?: string | null;
-    business_name?: string;
-    fullDetails?: {
-      business_name?: string;
-      title?: string;
-    };
-    placeId?: string;
     address?: string;
     businessType?: string;
     phoneNumber?: string;
+    placeId?: string;
   };
+  status?: string;
 }
 
 interface ResultsTableProps {
   results: Result[];
 }
+
+const extractBusinessNameFromUrl = (url: string): string | null => {
+  if (!url) return null;
+  try {
+    const domain = new URL(url).hostname;
+    return domain
+      .replace(/^www\.|\.com\.au$|\.au$/, '')
+      .split(/[.-]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+      .trim();
+  } catch {
+    return null;
+  }
+};
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   const formatInstalledTechnologies = (result: Result) => {
@@ -50,30 +60,24 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   };
 
   const getBusinessName = (result: Result): string => {
-    // Log data before processing for debugging
+    // Log the incoming data for debugging
     console.log('Processing business name for result:', {
-      hasDetails: !!result.details,
+      url: result.url,
+      rawBusinessName: result.businessName,
       detailsBusinessName: result.details?.business_name,
-      fullDetails: result.details
+      fullResult: result
     });
 
-    // Check all possible locations of the business name
-    const name = 
-      // Check in details object
-      result.details?.business_name ||
-      // Check in fullDetails if it exists
-      result.details?.fullDetails?.business_name ||
-      // Check title as fallback
-      result.details?.title ||
-      // Check if business_name exists directly on result
-      result.business_name ||
-      // Final fallback
-      'N/A';
+    // Try all possible locations of the business name
+    const businessName = 
+      result.businessName || // Direct property
+      result.details?.business_name || // In details
+      result.details?.title || // Fallback to title
+      extractBusinessNameFromUrl(result.url); // Last resort
 
-    // Log the final resolved name
-    console.log('Resolved business name:', name);
-
-    return name;
+    console.log('Resolved business name:', businessName);
+    
+    return businessName || 'N/A';
   };
 
   return (
@@ -100,7 +104,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               url: displayUrl,
               businessName,
               hasDetails: !!result.details,
-              fullDetails: result.details
+              fullResult: result
             });
 
             return (
@@ -126,4 +130,3 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
-

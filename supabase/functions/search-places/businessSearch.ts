@@ -1,4 +1,3 @@
-
 import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts';
 import { SearchParams, SearchResponse } from './types.ts';
 
@@ -25,6 +24,35 @@ const getCachedPlaceDetails = async (
   }
 
   return null;
+};
+
+const processSearchResults = async (placesData: any, searchBatchId: string) => {
+  return placesData.results
+    .filter((place: any) => 
+      place.business_status === 'OPERATIONAL' &&
+      !place.types?.includes('locality') &&
+      !place.types?.includes('political')
+    )
+    .slice(0, 20)
+    .map((result: any) => {
+      const businessName = result.name;
+      return {
+        url: result.website || result.url || `https://maps.google.com/?q=${encodeURIComponent(result.name)}`,
+        businessName: businessName,
+        details: {
+          business_name: businessName,
+          title: businessName,
+          description: result.formatted_address || result.vicinity,
+          lastChecked: new Date().toISOString(),
+          address: result.formatted_address || result.vicinity,
+          businessType: result.types?.[0] || 'business',
+          phoneNumber: result.formatted_phone_number,
+          placeId: result.place_id,
+          website_url: result.website || result.url,
+          chatSolutions: []
+        }
+      };
+    });
 };
 
 export async function searchBusinesses(
@@ -62,125 +90,12 @@ export async function searchBusinesses(
     }
 
     const searchBatchId = crypto.randomUUID();
-
-    const filteredResults = placesData.results
-      .filter(place => 
-        place.business_status === 'OPERATIONAL' &&
-        !place.types?.includes('locality') &&
-        !place.types?.includes('political')
-      )
-      .slice(0, 20);
-
-    console.log(`Processing ${filteredResults.length} filtered results`);
-
-    const detailedResults = await Promise.all(
-      filteredResults.map(async (place) => {
-        try {
-          const cachedData = await getCachedPlaceDetails(supabaseClient, place.place_id, searchBatchId);
-          
-          if (cachedData) {
-            console.log(`Using cached data for place: ${place.place_id}`, {
-              place_id: place.place_id,
-              business_name: place.name,
-              cached_business_name: cachedData.business_name
-            });
-            
-            return {
-              url: cachedData.place_data.url,
-              status: 'Analyzing...',
-              details: {
-                business_name: cachedData.business_name || place.name,
-                title: cachedData.business_name || place.name,
-                description: cachedData.place_data.description,
-                lastChecked: new Date().toISOString(),
-                address: cachedData.place_data.address,
-                businessType: cachedData.place_data.businessType,
-                phoneNumber: cachedData.place_data.phoneNumber,
-                placeId: place.place_id,
-                website_url: cachedData.place_data.url,
-                chatSolutions: []
-              }
-            };
-          }
-
-          const detailsData = await getPlaceDetails(place.place_id);
-          console.log('Place details:', detailsData?.result);
-          
-          if (!detailsData?.result) {
-            console.log(`No valid details found for place: ${place.place_id}`);
-            return null;
-          }
-
-          const website = detailsData.result.website || detailsData.result.url || 
-                         `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
-
-          const businessName = place.name;
-          console.log(`Processing business name for ${place.place_id}:`, {
-            place_id: place.place_id,
-            business_name: businessName,
-            details_name: detailsData.result.name
-          });
-
-          // Store in cache with the business name
-          await supabaseClient
-            .from('cached_places')
-            .upsert({
-              place_id: place.place_id,
-              search_batch_id: searchBatchId,
-              business_name: businessName,
-              place_data: {
-                url: website,
-                title: businessName,
-                description: detailsData.result.formatted_address || place.formatted_address,
-                address: detailsData.result.formatted_address || place.formatted_address,
-                businessType: place.types?.[0] || 'business',
-                phoneNumber: detailsData.result.formatted_phone_number,
-              },
-              last_accessed: new Date().toISOString()
-            }, {
-              onConflict: 'place_id',
-              ignoreDuplicates: false
-            });
-
-          return {
-            url: website,
-            status: 'Analyzing...',
-            details: {
-              business_name: businessName,
-              title: businessName,
-              description: detailsData.result.formatted_address || place.formatted_address,
-              lastChecked: new Date().toISOString(),
-              address: detailsData.result.formatted_address || place.formatted_address,
-              businessType: place.types?.[0] || 'business',
-              phoneNumber: detailsData.result.formatted_phone_number,
-              placeId: place.place_id,
-              website_url: website,
-              chatSolutions: []
-            }
-          };
-        } catch (error) {
-          console.error(`Error fetching details for place ${place.place_id}:`, error);
-          return null;
-        }
-      })
-    );
-
-    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
-      result !== null && result.details?.business_name !== undefined
-    );
+    const processedResults = await processSearchResults(placesData, searchBatchId);
     
-    console.log(`Successfully processed ${validResults.length} businesses with details`);
-    validResults.forEach((result, index) => {
-      console.log(`Result details for row:`, {
-        index,
-        url: result.url,
-        businessName: result.details.business_name,
-        fullDetails: result.details
-      });
-    });
-
+    console.log('Processed results:', processedResults);
+    
     return {
-      results: validResults,
+      results: processedResults,
       hasMore: false,
       searchBatchId
     };
