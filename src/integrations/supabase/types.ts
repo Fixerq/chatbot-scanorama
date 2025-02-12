@@ -250,7 +250,7 @@ export type Database = {
         Row: {
           business_name: string
           created_at: string | null
-          google_business_name: string | null
+          google_business_name: string
           id: number
           last_accessed: string | null
           place_data: Json
@@ -261,7 +261,7 @@ export type Database = {
         Insert: {
           business_name?: string
           created_at?: string | null
-          google_business_name?: string | null
+          google_business_name?: string
           id?: number
           last_accessed?: string | null
           place_data: Json
@@ -272,7 +272,7 @@ export type Database = {
         Update: {
           business_name?: string
           created_at?: string | null
-          google_business_name?: string | null
+          google_business_name?: string
           id?: number
           last_accessed?: string | null
           place_data?: Json
