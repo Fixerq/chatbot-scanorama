@@ -1,6 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { RequestData, ChatDetectionResult, PlaceDetails, ChatbotDetection } from './types.ts';
 import { analyzeChatbot } from './analyzer.ts';
 import { normalizeUrl } from './utils/urlUtils.ts';
