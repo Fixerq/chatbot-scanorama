@@ -55,7 +55,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
-            const businessName = result.details?.business_name || result.details?.title || 'N/A';
+            const businessName = result.details?.business_name || 'N/A';
             
             return (
               <TableRow key={index}>
@@ -78,3 +78,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
+
