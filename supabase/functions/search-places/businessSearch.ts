@@ -83,17 +83,14 @@ export async function searchBusinesses(
           // Check cache first
           const cachedData = await getCachedPlaceDetails(supabaseClient, place.place_id, searchBatchId);
           if (cachedData) {
-            console.log(`Using cached data for place: ${place.place_id}`, cachedData);
-            const googleBusinessName = cachedData.google_business_name || place.name;
-            const businessName = cachedData.business_name || googleBusinessName;
-            
+            console.log(`Using cached data for place: ${place.place_id}`);
             return {
               url: cachedData.place_data.url,
               status: 'Analyzing...',
               details: {
-                business_name: businessName,
-                google_business_name: googleBusinessName,
-                title: businessName,
+                business_name: place.name,
+                google_business_name: place.name,
+                title: place.name,
                 description: cachedData.place_data.description,
                 lastChecked: new Date().toISOString(),
                 address: cachedData.place_data.address,
@@ -117,26 +114,24 @@ export async function searchBusinesses(
 
           const website = detailsData.result.website || detailsData.result.url || 
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
-          
-          const googleBusinessName = place.name;
-          const businessName = detailsData.result.name || googleBusinessName;
+
           console.log(`Setting business names for ${place.place_id}:`, {
-            googleBusinessName,
-            businessName
+            name: place.name,
+            detailsName: detailsData.result.name
           });
 
-          // Store in cache
+          // Store in cache with the Google-provided name
           await supabaseClient
             .from('cached_places')
             .upsert({
               place_id: place.place_id,
               search_batch_id: searchBatchId,
-              business_name: businessName,
-              google_business_name: googleBusinessName,
+              business_name: place.name,
+              google_business_name: place.name,
               place_data: {
                 url: website,
-                title: businessName,
-                business_name: businessName,
+                title: place.name,
+                business_name: place.name,
                 description: detailsData.result.formatted_address || place.formatted_address,
                 address: detailsData.result.formatted_address || place.formatted_address,
                 businessType: place.types?.[0] || 'business',
@@ -152,9 +147,9 @@ export async function searchBusinesses(
             url: website,
             status: 'Analyzing...',
             details: {
-              business_name: businessName,
-              google_business_name: googleBusinessName,
-              title: businessName,
+              business_name: place.name,
+              google_business_name: place.name,
+              title: place.name,
               description: detailsData.result.formatted_address || place.formatted_address,
               lastChecked: new Date().toISOString(),
               address: detailsData.result.formatted_address || place.formatted_address,

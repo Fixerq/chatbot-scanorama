@@ -46,33 +46,25 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   };
 
   const getBusinessName = (result: Result): string => {
-    console.log('Processing business name for result:', {
-      url: result.url,
-      details: result.details
-    });
-
     if (!result.details) {
-      console.log('No details available for result');
+      console.log('No details available for result:', result.url);
       return 'N/A';
     }
 
-    // Prioritize Google's business name, then fall back to other sources
-    const googleBusinessName = result.details.google_business_name || '';
-    const businessName = result.details.business_name || '';
-    const title = result.details.title || '';
+    // Use the Google-provided name as the primary source
+    const businessName = result.details.google_business_name || 
+                        result.details.business_name || 
+                        result.details.title || 
+                        'N/A';
     
-    console.log('Business name components:', {
-      googleBusinessName,
-      businessName,
-      title,
-      fullDetails: result.details
+    console.log('Business name components for', result.url, ':', {
+      googleBusinessName: result.details.google_business_name,
+      businessName: result.details.business_name,
+      title: result.details.title,
+      finalName: businessName
     });
     
-    // Return the first available value in order of preference
-    const name = googleBusinessName || businessName || title || 'N/A';
-    
-    console.log('Final business name:', name);
-    return name;
+    return businessName;
   };
 
   return (
