@@ -43,6 +43,26 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     return chatSolutions[0];
   };
 
+  const getBusinessName = (result: Result): string => {
+    // Log data before processing for debugging
+    console.log('Processing business name for result:', {
+      hasDetails: !!result.details,
+      detailsBusinessName: result.details?.business_name,
+      detailsTitle: result.details?.title,
+      fullDetails: result.details
+    });
+
+    if (!result.details) return 'N/A';
+
+    // Try different possible locations of the business name
+    const name = result.details.business_name || result.details.title;
+
+    // Log the final resolved name
+    console.log('Resolved business name:', name);
+
+    return name || 'N/A';
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -58,11 +78,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
+            const businessName = getBusinessName(result);
             
-            // Directly use the business name from details
-            const businessName = result.details?.business_name;
-            
-            console.log('Processing row:', {
+            console.log('Rendering row:', {
               index,
               url: displayUrl,
               businessName,
@@ -74,7 +92,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
                 <TableCell className="font-medium">
-                  {businessName ? businessName : 'N/A'}
+                  {businessName}
                 </TableCell>
                 <ResultStatusCell 
                   status={result.status}
