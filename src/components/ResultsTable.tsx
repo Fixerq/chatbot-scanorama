@@ -45,19 +45,30 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   };
 
   const getBusinessName = (result: Result): string => {
-    if (!result.details) return 'N/A';
+    console.log('Processing business name for result:', {
+      url: result.url,
+      details: result.details
+    });
+
+    if (!result.details) {
+      console.log('No details available for result');
+      return 'N/A';
+    }
+
+    // Get business name from details, with detailed logging
+    const businessName = result.details.business_name || '';
+    const title = result.details.title || '';
     
-    // Get business name from details
-    const name = result.details.business_name || result.details.title || 'N/A';
-    
-    console.log('Getting business name for result:', {
-      placeId: result.details.placeId,
-      business_name: result.details.business_name,
-      title: result.details.title,
-      details: result.details,
-      returned_name: name
+    console.log('Business name components:', {
+      businessName,
+      title,
+      fullDetails: result.details
     });
     
+    // Return the first available value in order of preference
+    const name = businessName || title || 'N/A';
+    
+    console.log('Final business name:', name);
     return name;
   };
 
