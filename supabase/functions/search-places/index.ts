@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateSearchRequest } from './validation.ts';
 import { searchBusinesses } from './businessSearch.ts';
-import { corsHeaders } from '../_shared/cors.ts';
+import { corsHeaders, addCorsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
@@ -14,7 +14,6 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
 
-    // Always get the origin for CORS
     const origin = req.headers.get('origin') || '*';
     
     // Handle CORS preflight requests
@@ -26,7 +25,7 @@ serve(async (req) => {
           ...corsHeaders,
           'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': '*',
+          'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
           'Access-Control-Max-Age': '86400'
         }
       });
@@ -89,8 +88,8 @@ serve(async (req) => {
     
     console.log('Search completed successfully:', searchResponse);
 
-    // Return successful response with proper CORS headers
-    return new Response(
+    // Create base response
+    const response = new Response(
       JSON.stringify({
         data: searchResponse,
         status: 'success'
@@ -98,12 +97,13 @@ serve(async (req) => {
       { 
         status: 200,
         headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin
+          'Content-Type': 'application/json'
         }
       }
     );
+
+    // Return response with CORS headers
+    return addCorsHeaders(response, origin);
 
   } catch (error) {
     console.error('Error details:', {
@@ -114,7 +114,7 @@ serve(async (req) => {
     
     const origin = req.headers.get('origin') || '*';
     
-    return new Response(
+    const errorResponse = new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
         status: 'error'
@@ -122,11 +122,11 @@ serve(async (req) => {
       { 
         status: error.message === 'Method not allowed' ? 405 : 500,
         headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': origin
+          'Content-Type': 'application/json'
         }
       }
     );
+
+    return addCorsHeaders(errorResponse, origin);
   }
 });
