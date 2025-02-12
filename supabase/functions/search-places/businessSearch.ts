@@ -64,12 +64,14 @@ export async function searchBusinesses(
 
     const searchBatchId = crypto.randomUUID();
 
-    // Filter results to ensure they're businesses
-    const filteredResults = placesData.results.filter(place => 
-      place.business_status === 'OPERATIONAL' &&
-      !place.types?.includes('locality') &&
-      !place.types?.includes('political')
-    );
+    // Filter results to ensure they're businesses and limit to 20
+    const filteredResults = placesData.results
+      .filter(place => 
+        place.business_status === 'OPERATIONAL' &&
+        !place.types?.includes('locality') &&
+        !place.types?.includes('political')
+      )
+      .slice(0, 20);
 
     // Get detailed information for each place
     const detailedResults = await Promise.all(
@@ -82,7 +84,7 @@ export async function searchBusinesses(
             return {
               url: cachedData.url,
               details: {
-                title: cachedData.title,
+                title: cachedData.title || place.name,
                 description: cachedData.description,
                 lastChecked: new Date().toISOString(),
                 address: cachedData.address,
@@ -100,8 +102,14 @@ export async function searchBusinesses(
             return null;
           }
 
+          // Only include businesses with websites
+          if (!detailsData.result.website && !detailsData.result.url) {
+            console.log(`No website found for place: ${place.place_id}`);
+            return null;
+          }
+
           return {
-            url: detailsData.result.website || detailsData.result.url || '',
+            url: detailsData.result.website || detailsData.result.url,
             details: {
               title: place.name,
               description: place.formatted_address,
@@ -119,14 +127,36 @@ export async function searchBusinesses(
       })
     );
 
-    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => result !== null);
+    const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
+      result !== null && result.details.title && result.url
+    );
+    
     console.log(`Successfully processed ${validResults.length} businesses with details`);
 
-    const hasMore = filteredResults.length > validResults.length || !!placesData.next_page_token;
+    // Cache the valid results
+    const cachePromises = validResults.map(result => 
+      supabaseClient
+        .from('cached_places')
+        .upsert({
+          place_id: result.details.placeId,
+          place_data: {
+            url: result.url,
+            title: result.details.title,
+            description: result.details.description,
+            address: result.details.address,
+            businessType: result.details.businessType,
+            phoneNumber: result.details.phoneNumber
+          },
+          last_accessed: new Date().toISOString()
+        })
+    );
+
+    await Promise.all(cachePromises);
+    console.log('Successfully cached place details');
 
     return {
       results: validResults,
-      hasMore,
+      hasMore: false,
       searchBatchId
     };
   } catch (error) {
