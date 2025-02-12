@@ -80,15 +80,15 @@ export async function searchBusinesses(
           
           if (cachedData) {
             console.log(`Using cached data for place: ${place.place_id}`, {
-              business_name: cachedData.business_name,
-              cached_data: cachedData
+              place_name: place.name,
+              cached_business_name: cachedData.business_name
             });
             
             return {
               url: cachedData.place_data.url,
               status: 'Analyzing...',
               details: {
-                business_name: cachedData.business_name || place.name,
+                business_name: place.name,
                 title: place.name,
                 description: cachedData.place_data.description,
                 lastChecked: new Date().toISOString(),
@@ -112,6 +112,11 @@ export async function searchBusinesses(
 
           const website = detailsData.result.website || detailsData.result.url || 
                          `https://maps.google.com/?q=${encodeURIComponent(place.name)}`;
+
+          console.log(`Processing business name for ${place.place_id}:`, {
+            place_name: place.name,
+            details_name: detailsData.result.name
+          });
 
           // Store in cache with the business name
           await supabaseClient
