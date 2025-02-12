@@ -2,17 +2,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateSearchRequest } from './validation.ts';
 import { searchBusinesses } from './businessSearch.ts';
-import { corsHeaders } from './types.ts';
+import { corsHeaders, handleOptions } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      status: 200,
-      headers: corsHeaders
-    });
-  }
+  const optionsResponse = handleOptions(req);
+  if (optionsResponse) return optionsResponse;
 
   try {
     console.log('Request received:', {
@@ -23,6 +19,12 @@ serve(async (req) => {
 
     if (req.method !== 'POST') {
       throw new Error('Method not allowed');
+    }
+
+    // Ensure content-type is application/json
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      throw new Error('Content-Type must be application/json');
     }
 
     let requestBody;
@@ -57,7 +59,9 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
-        persistSession: false
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
       }
     });
 

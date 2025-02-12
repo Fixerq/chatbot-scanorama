@@ -9,24 +9,14 @@ export const ALLOWED_ORIGINS = [
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Request-Headers': '*',
+  'Access-Control-Max-Age': '86400',
 };
 
 export const handleOptions = (req: Request) => {
-  const origin = req.headers.get('origin') || '*';
-  
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Max-Age': '86400',
-      }
-    });
+    return new Response('ok', { headers: corsHeaders });
   }
   return null;
 };
