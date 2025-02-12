@@ -4,13 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { RequestData, ChatDetectionResult, PlaceDetails, ChatbotDetection } from './types.ts';
 import { analyzeChatbot } from './analyzer.ts';
 import { normalizeUrl } from './utils/urlUtils.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Content-Type': 'application/json'
-};
+import { corsHeaders } from './utils/httpUtils.ts';
 
 // Initialize Supabase client with service role for full access
 const supabaseAdmin = createClient(
@@ -65,7 +59,10 @@ serve(async (req) => {
     console.log('Request data:', requestData);
     
     if (!requestData?.url) {
-      throw new Error('URL is required');
+      return new Response(
+        JSON.stringify({ error: 'URL is required' }),
+        { headers: corsHeaders, status: 400 }
+      );
     }
 
     let websiteUrl = requestData.url;
@@ -111,7 +108,10 @@ serve(async (req) => {
 
     if (upsertError) {
       console.error('Database error:', upsertError);
-      throw new Error('Failed to store detection results');
+      return new Response(
+        JSON.stringify({ error: 'Failed to store detection results' }),
+        { headers: corsHeaders, status: 500 }
+      );
     }
 
     // Prepare response

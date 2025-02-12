@@ -5,6 +5,13 @@ const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'
 ];
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
 const getHeaders = (attempt: number) => ({
   'User-Agent': USER_AGENTS[attempt % USER_AGENTS.length],
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -33,8 +40,7 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
       });
       
       clearTimeout(timeoutId);
-
-      // Log response details for debugging
+      
       console.log(`Response status: ${response.status} for ${url}`);
       console.log(`Response headers:`, Object.fromEntries(response.headers));
 
@@ -70,3 +76,5 @@ export async function fetchWithRetry(url: string, maxRetries = 2, timeout = 1000
   
   throw lastError;
 }
+
+export { corsHeaders };
