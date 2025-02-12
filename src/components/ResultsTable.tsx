@@ -41,9 +41,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   };
 
   const getBusinessName = (result: Result): string => {
-    const businessName = result.details?.business_name;
-    console.log('Processing business name:', businessName);
-    return businessName || 'N/A';
+    if (!result.details) return 'N/A';
+    // Try to get the business name from various possible locations
+    return result.details.business_name || result.details.title || 'N/A';
   };
 
   return (
@@ -90,3 +90,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
+
