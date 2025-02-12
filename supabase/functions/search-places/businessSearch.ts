@@ -40,7 +40,6 @@ export async function searchBusinesses(
   }
 
   try {
-    // Get coordinates for the location
     const location = await getLocationCoordinates(`${params.query} in ${params.region}, ${params.country}`);
     if (!location) {
       console.log('No location found for the search parameters');
@@ -52,7 +51,6 @@ export async function searchBusinesses(
     }
     console.log('Location coordinates found:', location);
 
-    // Search for places
     const placesData = await searchNearbyPlaces(`${params.query} in ${params.region}`, location);
     if (!placesData || !placesData.results || placesData.results.length === 0) {
       console.log('No places found for the search parameters');
@@ -65,7 +63,6 @@ export async function searchBusinesses(
 
     const searchBatchId = crypto.randomUUID();
 
-    // Filter results to ensure they're businesses and limit to 20
     const filteredResults = placesData.results
       .filter(place => 
         place.business_status === 'OPERATIONAL' &&
@@ -76,11 +73,9 @@ export async function searchBusinesses(
 
     console.log(`Processing ${filteredResults.length} filtered results`);
 
-    // Get detailed information for each place
     const detailedResults = await Promise.all(
       filteredResults.map(async (place) => {
         try {
-          // Check cache first
           const cachedData = await getCachedPlaceDetails(supabaseClient, place.place_id, searchBatchId);
           
           if (cachedData) {
@@ -93,7 +88,7 @@ export async function searchBusinesses(
               url: cachedData.place_data.url,
               status: 'Analyzing...',
               details: {
-                business_name: place.name,
+                business_name: cachedData.business_name,
                 title: place.name,
                 description: cachedData.place_data.description,
                 lastChecked: new Date().toISOString(),
@@ -107,7 +102,6 @@ export async function searchBusinesses(
             };
           }
 
-          // If not in cache, fetch from API
           const detailsData = await getPlaceDetails(place.place_id);
           console.log('Place details:', detailsData?.result);
           
@@ -170,7 +164,7 @@ export async function searchBusinesses(
     );
 
     const validResults = detailedResults.filter((result): result is NonNullable<typeof result> => 
-      result !== null && result.details.business_name !== undefined
+      result !== null && result.details?.business_name !== undefined
     );
     
     console.log(`Successfully processed ${validResults.length} businesses with details`);

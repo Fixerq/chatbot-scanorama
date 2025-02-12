@@ -50,7 +50,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[300px]">Website</TableHead>
-            <TableHead>Name</TableHead>
+            <TableHead>Business Name</TableHead>
             <TableHead>Chatbot Provider</TableHead>
           </TableRow>
         </TableHeader>
@@ -60,21 +60,22 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
 
-            // Accessing the business name from place_data in the cached results
-            const businessName = result.details?.business_name || 'N/A';
+            // Access business name directly from the result details
+            const businessName = result.details?.business_name || '';
             
             console.log('Result details for row:', {
               index,
               url: displayUrl,
               businessName,
-              fullDetails: result.details
+              fullDetails: result.details,
+              rawResult: result
             });
 
             return (
               <TableRow key={index}>
                 <ResultUrlCell url={displayUrl} />
                 <TableCell>
-                  {businessName}
+                  {businessName || 'N/A'}
                 </TableCell>
                 <ResultStatusCell 
                   status={result.status}
@@ -93,4 +94,3 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
-
