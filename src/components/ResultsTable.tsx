@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -21,6 +22,7 @@ export interface Result {
     address?: string;
     placeId?: string;
     businessType?: string;
+    maps_url?: string;
     title?: string;
     description?: string;
   };
@@ -31,29 +33,12 @@ interface ResultsTableProps {
   results: Result[];
 }
 
-const extractNameFromUrl = (url: string): string | null => {
-  if (!url) return null;
+const getDisplayUrl = (result: Result): string => {
+  // Try to get the actual website URL
+  const websiteUrl = result.url || result.details?.website_url;
   
-  try {
-    // For Google Maps URLs, extract the business name from the query parameter
-    if (url.includes('maps.google.com')) {
-      const params = new URL(url).searchParams;
-      const q = params.get('q');
-      return q ? decodeURIComponent(q) : null;
-    }
-    
-    // For regular URLs, extract from domain
-    const domain = new URL(url).hostname
-      .replace('www.', '')
-      .replace('.com.au', '')
-      .replace('.com', '')
-      .replace('.au', '')
-      .split('.')[0];
-      
-    return domain ? domain.charAt(0).toUpperCase() + domain.slice(1) : null;
-  } catch {
-    return null;
-  }
+  // If no website URL is available, fall back to maps URL
+  return websiteUrl || result.details?.maps_url || 'N/A';
 };
 
 const getBusinessName = (result: Result): string => {
@@ -63,10 +48,10 @@ const getBusinessName = (result: Result): string => {
   // Extract business name from the result
   const businessName = result.businessName || // Try root level first
                       result.details?.business_name || // Then try details
-                      extractNameFromUrl(result.url); // Fallback to URL extraction
+                      'N/A'; // Fallback if no name found
 
   console.log('Resolved business name:', businessName);
-  return businessName || 'N/A';
+  return businessName;
 };
 
 const formatInstalledTechnologies = (result: Result) => {
@@ -97,10 +82,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
             const technologies = formatInstalledTechnologies(result);
             const businessName = getBusinessName(result);
+            const displayUrl = getDisplayUrl(result);
             
             console.log('Rendering row:', {
               index,
-              url: result.url,
+              url: displayUrl,
               businessName,
               hasDetails: !!result.details,
               fullResult: result
@@ -108,7 +94,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 
             return (
               <TableRow key={index}>
-                <ResultUrlCell url={result.url} />
+                <TableCell>
+                  <a 
+                    href={displayUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-700 underline"
+                  >
+                    {displayUrl}
+                  </a>
+                </TableCell>
                 <TableCell className="font-medium">
                   {businessName}
                 </TableCell>

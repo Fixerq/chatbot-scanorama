@@ -35,25 +35,20 @@ const processSearchResults = async (placesData: any, searchBatchId: string) => {
       !place.types?.includes('political')
     )
     .slice(0, 20)
-    .map((result: any) => {
-      const businessName = result.name || result.business_name;
-      const websiteUrl = result.website || result.website_url;
-      
-      return {
-        url: websiteUrl || result.url || `https://maps.google.com/?q=${encodeURIComponent(result.name)}`,
-        businessName: businessName, // Add this directly to the root
-        details: {
-          lastChecked: new Date().toISOString(),
-          chatSolutions: [],
-          website_url: websiteUrl,
-          business_name: businessName,
-          address: result.formatted_address || result.vicinity,
-          placeId: result.place_id,
-          businessType: result.types?.[0] || 'business',
-          phoneNumber: result.formatted_phone_number
-        }
-      };
-    });
+    .map((result: any) => ({
+      url: result.website || '', // Use the actual website URL
+      businessName: result.name,
+      details: {
+        lastChecked: new Date().toISOString(),
+        chatSolutions: [],
+        website_url: result.website || '', // Store website URL here too
+        business_name: result.name,
+        address: result.formatted_address || result.vicinity,
+        placeId: result.place_id,
+        businessType: result.types?.[0] || 'business',
+        maps_url: `https://maps.google.com/?q=${encodeURIComponent(result.name)}` // Keep maps URL as backup
+      }
+    }));
 };
 
 export async function searchBusinesses(
