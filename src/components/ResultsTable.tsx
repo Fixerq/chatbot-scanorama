@@ -21,6 +21,10 @@ export interface Result {
     chatSolutions?: string[];
     website_url?: string | null;
     business_name?: string | null;
+    placeId?: string;
+    address?: string;
+    businessType?: string;
+    phoneNumber?: string;
   };
 }
 
@@ -41,9 +45,19 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   };
 
   const getBusinessName = (result: Result): string => {
-    if (!result.details) return 'N/A';
-    // Try to get the business name from various possible locations
-    return result.details.business_name || result.details.title || 'N/A';
+    // Return the first non-null value in order of preference
+    const name = result.details?.business_name || 
+                result.details?.title || 
+                'N/A';
+                
+    console.log('Getting business name for result:', {
+      placeId: result.details?.placeId,
+      business_name: result.details?.business_name,
+      title: result.details?.title,
+      returned_name: name
+    });
+    
+    return name;
   };
 
   return (
@@ -62,12 +76,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const technologies = formatInstalledTechnologies(result);
             const displayUrl = result.details?.website_url || result.url;
             const businessName = getBusinessName(result);
-            
-            console.log('Result details:', {
-              url: displayUrl,
-              business_name: businessName,
-              full_details: result.details
-            });
             
             return (
               <TableRow key={index}>
