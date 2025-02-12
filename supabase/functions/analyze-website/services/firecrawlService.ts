@@ -1,7 +1,7 @@
 
 import { FirecrawlAnalysisResult } from '../types.ts';
 import { saveChatbotDetection } from './databaseService.ts';
-import FirecrawlApp from '@mendable/firecrawl-js';
+import FirecrawlApp from 'https://esm.sh/@mendable/firecrawl-js@latest';
 
 let firecrawlClient: FirecrawlApp | null = null;
 
