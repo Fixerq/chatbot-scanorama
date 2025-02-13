@@ -81,9 +81,14 @@ export const NavigationActions = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {!isChecking && isAdmin && (
-            <DropdownMenuItem onClick={() => navigate('/admin')}>
-              Admin Panel
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onClick={() => navigate('/admin')}>
+                Admin Panel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/monitoring')}>
+                Monitoring
+              </DropdownMenuItem>
+            </>
           )}
           <DropdownMenuItem onClick={onSubscriptionClick}>
             {isSubscriptionLoading ? (

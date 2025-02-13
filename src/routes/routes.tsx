@@ -9,6 +9,7 @@ import SalesPage from "@/pages/SalesPage";
 import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
 import { Navigate } from "react-router-dom";
+import Monitoring from "@/pages/Monitoring";
 
 interface AppRoute {
   path: string;
@@ -54,6 +55,14 @@ const routes: AppRoute[] = [
     element: (
       <ProtectedRoute>
         <AdminConsole />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/monitoring",
+    element: (
+      <ProtectedRoute>
+        <Monitoring />
       </ProtectedRoute>
     ),
   },
