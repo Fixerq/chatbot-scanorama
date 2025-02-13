@@ -47,9 +47,20 @@ export const isExcludedDomain = (url: string): boolean => {
 
   try {
     const lowerUrl = url.toLowerCase();
-    return EXCLUDED_DOMAINS.some(domain => lowerUrl.includes(domain));
+    // First check for .gov domains specifically
+    if (lowerUrl.includes('.gov')) {
+      console.log('Filtered out .gov domain:', url);
+      return true;
+    }
+    // Then check for other excluded domains
+    const isExcluded = EXCLUDED_DOMAINS.some(domain => lowerUrl.includes(domain));
+    if (isExcluded) {
+      console.log('Filtered out excluded domain:', url);
+    }
+    return isExcluded;
   } catch (error) {
     console.error('Error in isExcludedDomain:', error);
     return false;
   }
 };
+

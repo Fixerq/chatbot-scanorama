@@ -3,8 +3,12 @@ import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
 import { BLOCKED_URLS } from '@/constants/blockedUrls';
 import { performGoogleSearch } from './searchEngine';
+import { isExcludedDomain } from './helpers/domainFilters';
 
 const isUrlBlocked = (url: string): boolean => {
+  if (isExcludedDomain(url)) {
+    return true;
+  }
   return BLOCKED_URLS.some(blockedUrl => url.toLowerCase().includes(blockedUrl.toLowerCase()));
 };
 
@@ -23,7 +27,7 @@ export const performSearch = async (
       return null;
     }
 
-    // Filter out blocked URLs
+    // Filter out blocked URLs and excluded domains
     const filteredResults = searchResult.results.filter(result => !isUrlBlocked(result.url));
 
     if (filteredResults.length === 0) {
@@ -65,7 +69,7 @@ export const loadMoreResults = async (
       return null;
     }
 
-    // Filter out blocked URLs and URLs we already have
+    // Filter out blocked URLs and excluded domains
     const newResults = searchResult.results
       .filter(result => !isUrlBlocked(result.url))
       .filter(newResult => !currentResults.some(existing => existing.url === newResult.url));
@@ -80,3 +84,4 @@ export const loadMoreResults = async (
     return null;
   }
 };
+
