@@ -40,6 +40,7 @@ export const LoginForm = ({ error }: LoginFormProps) => {
             label: 'block text-sm font-medium text-muted-foreground mb-1.5',
             message: 'text-sm text-red-500 mt-1',
             anchor: 'text-[#0FA0CE] hover:text-[#0D8CAD] transition-colors',
+            loader: 'animate-spin text-[#0FA0CE]',
           },
         }}
         localization={{
