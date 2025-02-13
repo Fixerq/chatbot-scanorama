@@ -1090,6 +1090,12 @@ export type Database = {
           metric_value: number
         }[]
       }
+      get_user_status: {
+        Args: {
+          user_uid: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       alert_severity: "error" | "warning" | "info"
