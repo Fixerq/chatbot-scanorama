@@ -1,7 +1,8 @@
-
 export interface RequestData {
   url: string;
   placeId?: string;
+  queueItemId?: string;
+  attempts?: number;
 }
 
 export interface ChatDetectionResult {

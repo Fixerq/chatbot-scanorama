@@ -51,6 +51,25 @@ serve(async (req) => {
         metadata: { clientIP }
       });
 
+      // Update queue item if URL is from queue
+      const body = await req.text();
+      try {
+        const requestData = JSON.parse(body);
+        if (requestData.queueItemId) {
+          await supabase
+            .from('website_analysis_queue')
+            .update({
+              status: 'failed',
+              error_message: errorMessage,
+              attempts: requestData.attempts + 1,
+              last_attempt_at: new Date().toISOString()
+            })
+            .eq('id', requestData.queueItemId);
+        }
+      } catch (e) {
+        console.error('Error parsing request body:', e);
+      }
+
       return createRateLimitResponse(errorMessage);
     }
 
@@ -67,6 +86,17 @@ serve(async (req) => {
       cached = true;
       providersFound = cachedResult.chatSolutions || [];
       
+      if (requestData.queueItemId) {
+        await supabase
+          .from('website_analysis_queue')
+          .update({
+            status: 'completed',
+            analysis_result: cachedResult,
+            last_attempt_at: new Date().toISOString()
+          })
+          .eq('id', requestData.queueItemId);
+      }
+
       const responseTimeMs = Date.now() - startTime;
       await logAnalysis({
         url: requestData.url,
@@ -88,6 +118,18 @@ serve(async (req) => {
       console.warn('Insufficient Firecrawl credits');
       errorMessage = 'Insufficient Firecrawl credits';
       
+      if (requestData.queueItemId) {
+        await supabase
+          .from('website_analysis_queue')
+          .update({
+            status: 'failed',
+            error_message: errorMessage,
+            attempts: requestData.attempts + 1,
+            last_attempt_at: new Date().toISOString()
+          })
+          .eq('id', requestData.queueItemId);
+      }
+
       const responseTimeMs = Date.now() - startTime;
       await logAnalysis({
         url: requestData.url,
@@ -106,6 +148,19 @@ serve(async (req) => {
     
     if (firecrawlResult.status === 'error') {
       errorMessage = firecrawlResult.error || 'Analysis failed';
+      
+      if (requestData.queueItemId) {
+        await supabase
+          .from('website_analysis_queue')
+          .update({
+            status: 'failed',
+            error_message: errorMessage,
+            attempts: requestData.attempts + 1,
+            last_attempt_at: new Date().toISOString()
+          })
+          .eq('id', requestData.queueItemId);
+      }
+
       throw new Error(errorMessage);
     }
 
@@ -128,6 +183,17 @@ serve(async (req) => {
       details: firecrawlResult.metadata,
       lastChecked: firecrawlResult.analyzed_at
     };
+
+    if (requestData.queueItemId) {
+      await supabase
+        .from('website_analysis_queue')
+        .update({
+          status: 'completed',
+          analysis_result: result,
+          last_attempt_at: new Date().toISOString()
+        })
+        .eq('id', requestData.queueItemId);
+    }
 
     await updateCache(
       requestData.url,
@@ -167,4 +233,3 @@ serve(async (req) => {
     return createErrorResponse(error.message);
   }
 });
-
