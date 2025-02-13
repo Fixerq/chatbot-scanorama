@@ -1045,6 +1045,12 @@ export type Database = {
         }
         Returns: Json
       }
+      check_user_is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
