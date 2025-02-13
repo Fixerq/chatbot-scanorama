@@ -3,12 +3,13 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
+import { ChatDetectionResult } from '@/types/chatbot';
 
 interface QueuedAnalysis {
   id: string;
   website_url: string;
   status: string;
-  analysis_result: any;
+  analysis_result: ChatDetectionResult;
   error_message: string | null;
 }
 
@@ -77,13 +78,14 @@ export const useAnalysisQueue = () => {
         }
 
         if (queueItem.status === 'completed' && queueItem.analysis_result) {
+          const analysisResult = queueItem.analysis_result as ChatDetectionResult;
           return {
             ...result,
             status: 'Success',
             details: {
               ...result.details,
-              chatSolutions: queueItem.analysis_result.chatSolutions || [],
-              lastChecked: queueItem.analysis_result.lastChecked
+              chatSolutions: analysisResult.chatSolutions || [],
+              lastChecked: analysisResult.lastChecked
             }
           };
         }
