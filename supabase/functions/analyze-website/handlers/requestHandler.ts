@@ -14,8 +14,26 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-const MAX_CONCURRENT_REQUESTS = 3;
+// Reduce max concurrent requests to prevent resource exhaustion
+const MAX_CONCURRENT_REQUESTS = 1;
 const activeRequests = new Set();
+
+// Add request queue
+const requestQueue: Array<() => Promise<void>> = [];
+let isProcessingQueue = false;
+
+async function processQueue() {
+  if (isProcessingQueue || requestQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  while (requestQueue.length > 0 && activeRequests.size < MAX_CONCURRENT_REQUESTS) {
+    const nextRequest = requestQueue.shift();
+    if (nextRequest) {
+      await nextRequest();
+    }
+  }
+  isProcessingQueue = false;
+}
 
 export async function handleRequest(req: Request) {
   const startTime = Date.now();
@@ -27,12 +45,6 @@ export async function handleRequest(req: Request) {
 
   try {
     console.log('Received request:', req.method);
-    
-    // Check if we're at the concurrent request limit
-    if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) {
-      console.log('Too many concurrent requests:', activeRequests.size);
-      throw new Error('Too many concurrent requests. Please try again later.');
-    }
     
     const clientIP = getRealIp(req);
     console.log('Client IP:', clientIP);
@@ -62,48 +74,46 @@ export async function handleRequest(req: Request) {
     const requestData = validateRequest(body);
     const normalizedUrl = normalizeUrl(requestData.url);
     console.log('Analyzing website:', normalizedUrl);
-    
-    const requestId = crypto.randomUUID();
-    activeRequests.add(requestId);
-    
-    try {
-      const cachedResult = await getCachedAnalysis(normalizedUrl);
-      if (cachedResult) {
-        console.log('Cache hit for URL:', normalizedUrl);
-        success = true;
-        cached = true;
-        
-        await logRequestCompletion({
-          url: normalizedUrl,
-          success: true,
-          cached: true,
-          providersFound,
-          responseTimeMs: Date.now() - startTime,
-          metadata: { fromCache: true }
-        });
 
-        return createSuccessResponse({
-          ...cachedResult,
-          fromCache: true
-        });
-      }
-
-      const result = await websiteAnalyzer(normalizedUrl);
-      await updateCache(normalizedUrl, result.has_chatbot, result.chatSolutions, result.details);
+    // Check for cached result first before queueing
+    const cachedResult = await getCachedAnalysis(normalizedUrl);
+    if (cachedResult) {
+      console.log('Cache hit for URL:', normalizedUrl);
+      success = true;
+      cached = true;
       
       await logRequestCompletion({
         url: normalizedUrl,
         success: true,
-        cached: false,
-        providersFound: result.chatSolutions,
+        cached: true,
+        providersFound,
         responseTimeMs: Date.now() - startTime,
-        metadata: {}
+        metadata: { fromCache: true }
       });
-      
-      return createSuccessResponse(result);
-    } finally {
-      activeRequests.delete(requestId);
+
+      return createSuccessResponse({
+        ...cachedResult,
+        fromCache: true
+      });
     }
+
+    // If we're at capacity, add to queue
+    if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) {
+      return new Promise((resolve) => {
+        requestQueue.push(async () => {
+          try {
+            const result = await processAnalysisRequest(normalizedUrl, startTime);
+            resolve(result);
+          } catch (error) {
+            console.error('Error processing queued request:', error);
+            resolve(createErrorResponse(error.message));
+          }
+        });
+        processQueue();
+      });
+    }
+
+    return await processAnalysisRequest(normalizedUrl, startTime);
 
   } catch (error) {
     console.error('Function error:', error);
@@ -119,6 +129,32 @@ export async function handleRequest(req: Request) {
     });
     
     return createErrorResponse(error.message);
+  }
+}
+
+async function processAnalysisRequest(normalizedUrl: string, startTime: number) {
+  const requestId = crypto.randomUUID();
+  activeRequests.add(requestId);
+  
+  try {
+    console.log('Processing analysis request for:', normalizedUrl);
+    
+    const result = await websiteAnalyzer(normalizedUrl);
+    await updateCache(normalizedUrl, result.has_chatbot, result.chatSolutions, result.details);
+    
+    await logRequestCompletion({
+      url: normalizedUrl,
+      success: true,
+      cached: false,
+      providersFound: result.chatSolutions,
+      responseTimeMs: Date.now() - startTime,
+      metadata: {}
+    });
+    
+    return createSuccessResponse(result);
+  } finally {
+    activeRequests.delete(requestId);
+    processQueue();
   }
 }
 

@@ -9,5 +9,22 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  return await handleRequest(req);
+  try {
+    return await handleRequest(req);
+  } catch (error) {
+    console.error('Unhandled error:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        message: error.message
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  }
 });
