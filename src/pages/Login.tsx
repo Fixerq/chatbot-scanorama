@@ -17,6 +17,7 @@ const Login = () => {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const mounted = useRef(true);
+  const authStateSubscription = useRef<{ unsubscribe: () => void }>();
 
   const checkAdminStatus = async (userId: string) => {
     try {
@@ -36,9 +37,10 @@ const Login = () => {
     }
   };
 
-  // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
+      if (!mounted.current) return;
+      
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session && mounted.current) {
@@ -69,7 +71,9 @@ const Login = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (!mounted.current) return;
+
+    authStateSubscription.current = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
       
       console.log('Auth event:', event);
@@ -77,12 +81,14 @@ const Login = () => {
       if (event === 'SIGNED_IN' && session) {
         try {
           const isAdmin = await checkAdminStatus(session.user.id);
-          if (isAdmin) {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
+          if (mounted.current) {
+            if (isAdmin) {
+              navigate('/admin');
+            } else {
+              navigate('/dashboard');
+            }
+            toast.success('Successfully signed in!');
           }
-          toast.success('Successfully signed in!');
         } catch (error) {
           console.error('Auth state change error:', error);
           if (mounted.current) {
@@ -91,7 +97,7 @@ const Login = () => {
         }
       }
       
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' && mounted.current) {
         navigate('/reset-password');
       }
 
@@ -102,9 +108,11 @@ const Login = () => {
 
     return () => {
       mounted.current = false;
-      subscription.unsubscribe();
+      if (authStateSubscription.current) {
+        authStateSubscription.current.unsubscribe();
+      }
     };
-  }, [session, navigate]);
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -205,3 +213,4 @@ const Login = () => {
 };
 
 export default Login;
+

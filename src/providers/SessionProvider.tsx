@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -18,9 +18,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const mounted = useRef(true);
+  const refreshTimeout = useRef<NodeJS.Timeout>();
+  const authStateSubscription = useRef<{ unsubscribe: () => void }>();
 
   const refreshSession = async () => {
-    if (!isInitialized) {
+    if (!isInitialized || !mounted.current) {
       console.log('Session not yet initialized, skipping refresh');
       return;
     }
@@ -36,7 +39,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (currentSession.expires_at && new Date(currentSession.expires_at * 1000) > new Date()) {
+      // Only attempt refresh if session is close to expiring
+      if (currentSession.expires_at && new Date(currentSession.expires_at * 1000) > new Date(Date.now() + 5 * 60 * 1000)) {
         console.log('Session still valid, no need to refresh');
         return;
       }
@@ -52,12 +56,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           if (window.location.pathname !== '/login') {
             navigate('/login');
           }
-          return;
         }
-        throw error;
+        return;
       }
       
-      if (refreshedSession) {
+      if (refreshedSession && mounted.current) {
         console.log('Session refreshed successfully');
         const { error: updateError } = await supabase
           .from('sessions')
@@ -74,15 +77,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Session refresh error:', error);
-      await supabase.auth.signOut();
-      if (window.location.pathname !== '/login') {
-        navigate('/login');
+      if (mounted.current) {
+        await supabase.auth.signOut();
+        if (window.location.pathname !== '/login') {
+          navigate('/login');
+        }
       }
     }
   };
 
   useEffect(() => {
     const setupSession = async () => {
+      if (!mounted.current) return;
+      
       try {
         setIsLoading(true);
         const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -99,30 +106,37 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         await refreshSession();
       } catch (error) {
         console.error('Error during session setup:', error);
-        if (window.location.pathname !== '/login') {
+        if (mounted.current && window.location.pathname !== '/login') {
           navigate('/login');
         }
       } finally {
-        setIsInitialized(true);
-        setIsLoading(false);
+        if (mounted.current) {
+          setIsInitialized(true);
+          setIsLoading(false);
+        }
       }
     };
 
     setupSession();
 
-    const refreshInterval = setInterval(() => {
-      if (isInitialized && session?.user) {
+    refreshTimeout.current = setInterval(() => {
+      if (isInitialized && session?.user && mounted.current) {
         refreshSession();
       }
-    }, 10 * 60 * 1000); // Refresh every 10 minutes
+    }, 4 * 60 * 1000); // Refresh every 4 minutes
 
     return () => {
-      clearInterval(refreshInterval);
+      mounted.current = false;
+      if (refreshTimeout.current) {
+        clearInterval(refreshTimeout.current);
+      }
     };
   }, [session?.user?.id, isInitialized]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    authStateSubscription.current = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted.current) return;
+      
       console.log('Auth state changed:', event);
       
       if (event === 'SIGNED_OUT') {
@@ -138,7 +152,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      if (authStateSubscription.current) {
+        authStateSubscription.current.unsubscribe();
+      }
     };
   }, [isInitialized]);
 
@@ -160,3 +176,4 @@ export const useSessionContext = () => {
   }
   return context;
 };
+
