@@ -4,7 +4,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,6 +16,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const mounted = useRef(true);
 
   const checkAdminStatus = async (userId: string) => {
     try {
@@ -40,7 +41,7 @@ const Login = () => {
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
+        if (session && mounted.current) {
           const isAdmin = await checkAdminStatus(session.user.id);
           if (isAdmin) {
             navigate('/admin');
@@ -50,17 +51,27 @@ const Login = () => {
         }
       } catch (error) {
         console.error('Session check error:', error);
-        setError('Error checking session status');
+        if (mounted.current) {
+          setError('Error checking session status');
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkSession();
+    
+    return () => {
+      mounted.current = false;
+    };
   }, [navigate]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted.current) return;
+      
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN' && session) {
@@ -74,7 +85,9 @@ const Login = () => {
           toast.success('Successfully signed in!');
         } catch (error) {
           console.error('Auth state change error:', error);
-          setError('Error processing your authentication. Please try again.');
+          if (mounted.current) {
+            setError('Error processing your authentication. Please try again.');
+          }
         }
       }
       
@@ -82,12 +95,13 @@ const Login = () => {
         navigate('/reset-password');
       }
 
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' && mounted.current) {
         setError('');
       }
     });
 
     return () => {
+      mounted.current = false;
       subscription.unsubscribe();
     };
   }, [session, navigate]);
