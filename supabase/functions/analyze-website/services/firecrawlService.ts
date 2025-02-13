@@ -28,7 +28,7 @@ export const initializeFirecrawl = () => {
 // Exponential backoff for retries
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const saveWebsiteAnalysis = async (url: string, hasChatbot: boolean, platforms: string[], error?: string) => {
+const saveWebsiteAnalysis = async (url: string, hasChatbot: boolean, platforms: string[], processed: boolean, error?: string) => {
   try {
     const { error: dbError } = await supabaseAdmin
       .from('website_analyses')
@@ -36,6 +36,7 @@ const saveWebsiteAnalysis = async (url: string, hasChatbot: boolean, platforms: 
         url,
         has_chatbot: hasChatbot,
         chatbot_platforms: platforms,
+        processed,
         error: error,
         analyzed_at: new Date().toISOString()
       });
@@ -87,7 +88,7 @@ export const analyzeWithFirecrawl = async (url: string): Promise<FirecrawlAnalys
         }
         if (response.error?.includes('402')) {
           const errorMessage = 'Insufficient Firecrawl credits';
-          await saveWebsiteAnalysis(url, false, [], errorMessage);
+          await saveWebsiteAnalysis(url, false, [], false, errorMessage);
           throw new Error(errorMessage);
         }
         throw new Error(response.error || 'Firecrawl analysis failed');
@@ -109,8 +110,8 @@ export const analyzeWithFirecrawl = async (url: string): Promise<FirecrawlAnalys
         metadata: response.data
       } as FirecrawlAnalysisResult;
 
-      // Save successful analysis
-      await saveWebsiteAnalysis(url, false, []);
+      // Save successful analysis with processed flag
+      await saveWebsiteAnalysis(url, false, [], true);
 
       return analyzed;
 
@@ -120,7 +121,7 @@ export const analyzeWithFirecrawl = async (url: string): Promise<FirecrawlAnalys
       // If it's the last attempt, save the error and throw
       if (attempt === MAX_RETRIES - 1) {
         const errorMessage = handleFirecrawlError(error);
-        await saveWebsiteAnalysis(url, false, [], errorMessage);
+        await saveWebsiteAnalysis(url, false, [], false, errorMessage);
         
         return {
           status: 'error',
@@ -133,7 +134,7 @@ export const analyzeWithFirecrawl = async (url: string): Promise<FirecrawlAnalys
 
   // Fallback error if all retries fail
   const errorMessage = 'Failed to analyze website after multiple attempts';
-  await saveWebsiteAnalysis(url, false, [], errorMessage);
+  await saveWebsiteAnalysis(url, false, [], false, errorMessage);
   
   return {
     status: 'error',

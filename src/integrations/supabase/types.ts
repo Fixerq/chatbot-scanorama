@@ -758,6 +758,7 @@ export type Database = {
           id: string
           last_checked: string | null
           normalized_url: string
+          processed: boolean
           status: Database["public"]["Enums"]["website_analysis_status"] | null
           updated_at: string | null
           url: string
@@ -774,6 +775,7 @@ export type Database = {
           id?: string
           last_checked?: string | null
           normalized_url: string
+          processed?: boolean
           status?: Database["public"]["Enums"]["website_analysis_status"] | null
           updated_at?: string | null
           url: string
@@ -790,6 +792,7 @@ export type Database = {
           id?: string
           last_checked?: string | null
           normalized_url?: string
+          processed?: boolean
           status?: Database["public"]["Enums"]["website_analysis_status"] | null
           updated_at?: string | null
           url?: string
