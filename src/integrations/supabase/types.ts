@@ -1034,8 +1034,8 @@ export type Database = {
       check_rate_limit: {
         Args: {
           p_client_id: string
-          p_window_minutes: number
-          p_max_requests: number
+          p_window_minutes?: number
+          p_max_requests?: number
         }
         Returns: Json
       }

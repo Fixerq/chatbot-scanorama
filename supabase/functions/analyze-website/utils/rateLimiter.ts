@@ -1,18 +1,15 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { RATE_LIMIT } from '../types.ts';
 
 export async function checkRateLimit(supabaseClient: any, ip: string): Promise<boolean> {
-  // Parameters for rate limiting
-  const WINDOW_MINUTES = 60;
-  const MAX_REQUESTS = 60;
-
   try {
     const { data, error } = await supabaseClient.rpc(
       'check_rate_limit',
       {
         p_client_id: ip,
-        p_window_minutes: WINDOW_MINUTES,
-        p_max_requests: MAX_REQUESTS
+        p_window_minutes: RATE_LIMIT.WINDOW_MINUTES,
+        p_max_requests: RATE_LIMIT.MAX_REQUESTS
       }
     );
 
@@ -32,3 +29,4 @@ export async function checkRateLimit(supabaseClient: any, ip: string): Promise<b
     return false;
   }
 }
+

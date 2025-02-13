@@ -45,6 +45,7 @@ export interface RateLimitResponse {
 }
 
 export const RATE_LIMIT = {
-  MAX_REQUESTS: 60,
+  MAX_REQUESTS: 3000,
   WINDOW_MINUTES: 60
 };
+
