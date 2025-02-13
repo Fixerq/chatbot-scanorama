@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateRequest } from './utils/requestValidator.ts';
-import { analyzeWithFirecrawl } from './services/firecrawlService.ts';
+import { analyzeWithFirecrawl, checkFirecrawlCredits } from './services/firecrawlService.ts';
 import { CHATBOT_PROVIDERS } from './providers/chatbotProviders.ts';
 import { RequestData } from './types.ts';
 
@@ -26,6 +26,22 @@ serve(async (req) => {
     // Parse and validate request
     const requestData: RequestData = validateRequest(body);
     console.log('Analyzing website:', requestData.url);
+    
+    // Optional: Check credits before analysis
+    const availableCredits = await checkFirecrawlCredits();
+    if (availableCredits <= 0) {
+      console.warn('Insufficient Firecrawl credits');
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          has_chatbot: false,
+          chatSolutions: [],
+          details: { error: 'Insufficient Firecrawl credits' },
+          lastChecked: new Date().toISOString()
+        }),
+        { headers: corsHeaders }
+      );
+    }
     
     // Use Firecrawl for analysis
     const firecrawlResult = await analyzeWithFirecrawl(requestData.url);
@@ -70,7 +86,7 @@ serve(async (req) => {
         error: error.message,
         status: 'error',
         has_chatbot: false,
-        providers: [],
+        chatSolutions: [],
         details: { error: error.message },
         lastChecked: new Date().toISOString()
       }),
@@ -81,3 +97,5 @@ serve(async (req) => {
     );
   }
 });
+
+</invoke>
