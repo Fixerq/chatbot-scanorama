@@ -18,25 +18,49 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     console.log('Starting chatbot analysis for', searchResults.length, 'results');
     
     try {
-      // Analyze in batches of 5 to avoid overwhelming the server
-      const batchSize = 5;
+      // Process in parallel batches of 10 to balance speed and server load
+      const batchSize = 10;
       const analyzedResults: Result[] = [...searchResults];
+      const totalBatches = Math.ceil(searchResults.length / batchSize);
       
-      for (let i = 0; i < searchResults.length; i += batchSize) {
-        const batch = searchResults.slice(i, i + batchSize);
-        const analyzedBatch = await analyzeChatbots(batch);
+      for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
+        const start = batchNum * batchSize;
+        const batch = searchResults.slice(start, start + batchSize);
         
-        // Update the results for this batch
-        analyzedBatch.forEach((analyzed, index) => {
-          analyzedResults[i + index] = analyzed;
+        // Process each batch in parallel with a 15-second timeout
+        const analysisPromises = batch.map(async (result, index) => {
+          try {
+            const timeout = new Promise<Result>((_, reject) => {
+              setTimeout(() => reject(new Error('Analysis timeout')), 15000);
+            });
+
+            const analysis = analyzeChatbots([result]).then(res => res[0]);
+            const analyzedResult = await Promise.race([analysis, timeout]);
+            analyzedResults[start + index] = analyzedResult;
+            return analyzedResult;
+          } catch (error) {
+            console.error(`Error analyzing ${result.url}:`, error);
+            return {
+              ...result,
+              status: 'Error: Analysis timeout',
+              details: {
+                ...result.details,
+                lastChecked: new Date().toISOString()
+              }
+            };
+          }
         });
+
+        // Wait for the current batch to complete
+        await Promise.all(analysisPromises);
         
-        // Update the UI with progress
+        // Update UI with progress
         updateResults(analyzedResults, results.hasMore);
         
-        // Show progress toast every 5 results
-        if ((i + batchSize) % 10 === 0 || i + batchSize >= searchResults.length) {
-          toast.info(`Analyzed ${Math.min(i + batchSize, searchResults.length)} of ${searchResults.length} websites`);
+        // Show progress toast every 20 results or at the end
+        const processedCount = Math.min((batchNum + 1) * batchSize, searchResults.length);
+        if (processedCount % 20 === 0 || processedCount === searchResults.length) {
+          toast.info(`Analyzed ${processedCount} of ${searchResults.length} websites`);
         }
       }
       
@@ -134,4 +158,3 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     handleLoadMore,
   };
 };
-

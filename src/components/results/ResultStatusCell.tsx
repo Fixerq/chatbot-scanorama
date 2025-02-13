@@ -23,9 +23,9 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   if (isAnalyzing) {
     return (
       <TableCell>
-        <div className="flex items-center space-x-2 text-gray-500">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Analyzing...</span>
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+          <span className="text-blue-600 dark:text-blue-400">Analyzing...</span>
         </div>
       </TableCell>
     );
@@ -33,8 +33,15 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 
   if (status?.toLowerCase().includes('error')) {
     return (
-      <TableCell className="text-red-500">
-        {status}
+      <TableCell>
+        <div className="text-red-500 dark:text-red-400">
+          {status}
+          {lastChecked && (
+            <div className="text-xs text-gray-500 mt-1">
+              Last attempt: {new Date(lastChecked).toLocaleString()}
+            </div>
+          )}
+        </div>
       </TableCell>
     );
   }
@@ -42,8 +49,13 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   return (
     <TableCell>
       <div className="space-y-1">
-        <div className={hasChatbot ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-600 dark:text-gray-400'}>
+        <div className={`${hasChatbot ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
           {technologies}
+          {chatSolutions && chatSolutions.length > 0 && (
+            <div className="text-xs text-green-500 dark:text-green-400 mt-0.5">
+              {chatSolutions.join(', ')}
+            </div>
+          )}
         </div>
         {lastChecked && (
           <div className="text-xs text-gray-500">
@@ -56,4 +68,3 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
-
