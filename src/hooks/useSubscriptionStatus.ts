@@ -26,7 +26,7 @@ export const useSubscriptionStatus = () => {
           .from('subscriptions')
           .select('level, status, total_searches')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (subscriptionError) {
           console.error('Subscription fetch error:', subscriptionError);
