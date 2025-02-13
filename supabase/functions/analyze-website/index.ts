@@ -97,5 +97,3 @@ serve(async (req) => {
     );
   }
 });
-
-</invoke>
