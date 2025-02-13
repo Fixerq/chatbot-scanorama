@@ -29,54 +29,55 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!currentSession?.user) {
-        console.log('No active session found during refresh');
+      if (sessionError) {
+        console.error('Error getting session:', sessionError);
+        throw sessionError;
+      }
+
+      if (!currentSession) {
+        console.log('No active session found, redirecting to login');
+        await supabase.auth.signOut();
         if (window.location.pathname !== '/login') {
           navigate('/login');
         }
         return;
       }
 
-      // Only attempt refresh if session is close to expiring
-      if (currentSession.expires_at && new Date(currentSession.expires_at * 1000) > new Date(Date.now() + 5 * 60 * 1000)) {
+      // Check if we really need to refresh
+      const tokenExpiryTime = new Date((currentSession.expires_at || 0) * 1000);
+      const timeUntilExpiry = tokenExpiryTime.getTime() - Date.now();
+      
+      if (timeUntilExpiry > 5 * 60 * 1000) { // More than 5 minutes until expiry
         console.log('Session still valid, no need to refresh');
         return;
       }
 
-      const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('Session refresh failed:', error);
-        if (error.message.includes('Invalid Refresh Token') || 
-            error.message.includes('refresh_token_not_found')) {
-          console.log('Invalid refresh token, redirecting to login');
+      console.log('Attempting to refresh session');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (refreshError) {
+        console.error('Session refresh failed:', refreshError);
+        // If refresh token is invalid, sign out and redirect
+        if (refreshError.message.includes('refresh_token_not_found') || 
+            refreshError.message.includes('Invalid Refresh Token')) {
+          console.log('Invalid refresh token, signing out');
           await supabase.auth.signOut();
           if (window.location.pathname !== '/login') {
             navigate('/login');
           }
+          toast.error('Your session has expired. Please sign in again.');
         }
         return;
       }
-      
-      if (refreshedSession && mounted.current) {
-        console.log('Session refreshed successfully');
-        const { error: updateError } = await supabase
-          .from('sessions')
-          .upsert({
-            user_id: refreshedSession.user.id,
-            expires_at: new Date(refreshedSession.expires_at!),
-            last_activity: new Date(),
-            metadata: { userAgent: navigator.userAgent }
-          });
 
-        if (updateError) {
-          console.error('Failed to update session:', updateError);
-        }
+      if (refreshData.session) {
+        console.log('Session refreshed successfully');
       }
+
     } catch (error) {
-      console.error('Session refresh error:', error);
+      console.error('Unexpected error during session refresh:', error);
       if (mounted.current) {
         await supabase.auth.signOut();
         if (window.location.pathname !== '/login') {
@@ -91,19 +92,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (!mounted.current) return;
       
       try {
-        setIsLoading(true);
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
         
-        if (!currentSession?.user) {
-          console.log('No active session found');
+        if (initialError) {
+          console.error('Error getting initial session:', initialError);
+          throw initialError;
+        }
+
+        if (!initialSession) {
+          console.log('No initial session found');
           if (window.location.pathname !== '/login') {
             navigate('/login');
           }
-          return;
+        } else {
+          console.log('Initial session found:', initialSession.user.id);
         }
-
-        console.log('Active session found:', currentSession.user.id);
-        await refreshSession();
       } catch (error) {
         console.error('Error during session setup:', error);
         if (mounted.current && window.location.pathname !== '/login') {
@@ -119,11 +122,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     setupSession();
 
+    // Set up periodic session refresh
     refreshTimeout.current = setInterval(() => {
       if (isInitialized && session?.user && mounted.current) {
         refreshSession();
       }
-    }, 4 * 60 * 1000); // Refresh every 4 minutes
+    }, 4 * 60 * 1000); // Check every 4 minutes
 
     return () => {
       mounted.current = false;
@@ -145,7 +149,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       } else if (event === 'SIGNED_IN' && session) {
         console.log('User signed in');
         setIsInitialized(true);
-        await refreshSession();
       } else if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
       }
@@ -178,4 +181,3 @@ export const useSessionContext = () => {
   }
   return context;
 };
-
