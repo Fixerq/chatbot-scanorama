@@ -24,6 +24,10 @@ const Index = () => {
     toast.error('An error occurred during search. Please try again.');
   }, []);
 
+  const handlePageChange = useCallback((page: number) => {
+    handleLoadMore("", "", "", page, (page + 1) * 50);
+  }, [handleLoadMore]);
+
   return (
     <div className="min-h-screen bg-black">
       <NavigationBar />
@@ -41,7 +45,7 @@ const Index = () => {
           onExport={() => {}} 
           onNewSearch={handleNewSearch}
           hasMore={true}
-          onLoadMore={handleLoadMore}
+          onLoadMore={handlePageChange}
           isLoadingMore={isSearching}
         />
       </div>

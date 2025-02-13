@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
@@ -19,8 +20,9 @@ interface ResultsProps {
   onExport: () => void;
   onNewSearch: () => void;
   hasMore?: boolean;
-  onLoadMore?: () => void;
+  onLoadMore?: (currentPage: number) => void;
   isLoadingMore?: boolean;
+  currentPage?: number;
 }
 
 const Results = ({ 
@@ -29,7 +31,8 @@ const Results = ({
   onNewSearch, 
   hasMore = false,
   onLoadMore,
-  isLoadingMore = false
+  isLoadingMore = false,
+  currentPage = 1
 }: ResultsProps) => {
   // Filter out only results with error status
   const validResults = results.filter(r => 
@@ -38,16 +41,15 @@ const Results = ({
   const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
-  const [currentPage, setCurrentPage] = useState(1);
-  const resultsPerPage = 50; // Increased from 25 to 50
+  const [localPage, setLocalPage] = useState(currentPage);
+  const resultsPerPage = 50;
 
   React.useEffect(() => {
-    // Filter out error results whenever the results prop changes
     const newValidResults = results.filter(r => 
       !r.status?.toLowerCase().includes('error analyzing url')
     );
     setFilteredResults(newValidResults);
-    setCurrentPage(1); // Reset to first page when results change
+    setLocalPage(1);
   }, [results]);
 
   const handleFilter = (value: string) => {
@@ -61,7 +63,7 @@ const Results = ({
     }
     
     setFilteredResults(filtered);
-    setCurrentPage(1); // Reset to first page when filtering
+    setLocalPage(1);
   };
 
   const handleSort = (value: string) => {
@@ -88,7 +90,10 @@ const Results = ({
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    setLocalPage(page);
+    if (onLoadMore) {
+      onLoadMore(page);
+    }
   };
 
   if (!validResults || validResults.length === 0) {
@@ -98,9 +103,8 @@ const Results = ({
   const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
   const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
   
-  // Calculate pagination
   const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
-  const startIndex = (currentPage - 1) * resultsPerPage;
+  const startIndex = (localPage - 1) * resultsPerPage;
   const endIndex = startIndex + resultsPerPage;
   const displayedResults = filteredResults.slice(startIndex, endIndex);
 
@@ -127,7 +131,7 @@ const Results = ({
       
       {hasMore && (
         <LoadMoreButton 
-          onLoadMore={onLoadMore || (() => {})}
+          onLoadMore={() => onLoadMore?.(localPage + 1)}
           isProcessing={isLoadingMore}
         />
       )}
@@ -138,31 +142,30 @@ const Results = ({
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious 
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  onClick={() => handlePageChange(localPage - 1)}
+                  className={localPage === 1 ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
               
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                // Show first page, last page, and pages around current page
                 if (
                   page === 1 ||
                   page === totalPages ||
-                  (page >= currentPage - 1 && page <= currentPage + 1)
+                  (page >= localPage - 1 && page <= localPage + 1)
                 ) {
                   return (
                     <PaginationItem key={page}>
                       <PaginationLink
                         onClick={() => handlePageChange(page)}
-                        isActive={currentPage === page}
+                        isActive={localPage === page}
                       >
                         {page}
                       </PaginationLink>
                     </PaginationItem>
                   );
                 } else if (
-                  page === currentPage - 2 ||
-                  page === currentPage + 2
+                  page === localPage - 2 ||
+                  page === localPage + 2
                 ) {
                   return (
                     <PaginationItem key={page}>
@@ -175,8 +178,8 @@ const Results = ({
               
               <PaginationItem>
                 <PaginationNext 
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                  onClick={() => handlePageChange(localPage + 1)}
+                  className={localPage === totalPages ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
             </PaginationContent>
