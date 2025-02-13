@@ -4,6 +4,8 @@ import { RATE_LIMIT } from '../types.ts';
 
 export async function checkRateLimit(supabaseClient: any, ip: string): Promise<boolean> {
   try {
+    console.log('Checking rate limit for IP:', ip);
+    
     const { data, error } = await supabaseClient.rpc(
       'check_rate_limit',
       {
@@ -15,10 +17,26 @@ export async function checkRateLimit(supabaseClient: any, ip: string): Promise<b
 
     if (error) {
       console.error('Error checking rate limit:', error);
-      return false;
+      // On error checking rate limit, allow the request to proceed
+      // Better to potentially allow some requests than block all on error
+      return true;
     }
 
-    if (!data.allowed) {
+    if (!data) {
+      console.error('No data returned from rate limit check');
+      return true;
+    }
+
+    const allowed = data.allowed;
+    console.log('Rate limit check result:', {
+      allowed,
+      currentCount: data.current_count,
+      windowStart: data.window_start,
+      resetAt: data.reset_at,
+      retryAfter: data.retry_after
+    });
+
+    if (!allowed) {
       console.log(`Rate limit exceeded for IP ${ip}. Reset at ${data.reset_at}`);
       return false;
     }
@@ -26,7 +44,7 @@ export async function checkRateLimit(supabaseClient: any, ip: string): Promise<b
     return true;
   } catch (error) {
     console.error('Failed to check rate limit:', error);
-    return false;
+    // On unexpected error, allow the request to proceed
+    return true;
   }
 }
-
