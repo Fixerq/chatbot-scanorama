@@ -1045,6 +1045,12 @@ export type Database = {
         }
         Returns: Json
       }
+      check_subscription_status: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: Json
+      }
       check_user_is_admin: {
         Args: {
           user_id: string
