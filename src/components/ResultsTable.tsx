@@ -34,21 +34,24 @@ interface ResultsTableProps {
 const formatBusinessName = (name: string): string => {
   if (!name) return 'N/A';
 
-  // Remove common suffixes
+  // Remove common TLDs and prefixes
   const cleanName = name.toLowerCase()
-    .replace(/\.(com|ca|uk|net)$/g, '')
-    .replace(/www\./g, '');
+    .replace(/\.(com|ca|uk|net|org|co|io|au)$/g, '')
+    .replace(/www\./g, '')
+    .replace(/^(http:\/\/|https:\/\/)/, '');
 
-  // Split by common separators
-  const words = cleanName
-    .split(/(?=[A-Z])|[-_]/)
-    .join(' ')
-    .split(/(?=[A-Z])/)
-    .join(' ')
-    .split(/\s+/);
+  // Split by common business identifiers and remove them
+  const withoutIdentifiers = cleanName
+    .replace(/(ltd|llc|inc|corporation|corp|pty|limited)\.?\s*$/i, '')
+    .trim();
+
+  // Split by common separators and clean up
+  const words = withoutIdentifiers
+    .split(/[\s_\-]+/)
+    .filter(word => word.length > 0);
 
   // Common words to keep lowercase
-  const lowercaseWords = ['and', 'of', 'the', '&'];
+  const lowercaseWords = ['and', 'of', 'the', '&', 'in', 'on', 'at', 'by', 'for', 'to'];
 
   // Capitalize each word unless it's in the lowercaseWords array
   const formattedWords = words.map((word, index) => {
