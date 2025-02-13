@@ -6,11 +6,13 @@ import SearchFormContainer from '@/components/SearchFormContainer';
 import Results from '@/components/Results';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
+import { useSearchOperations } from '@/hooks/useSearchOperations';
 
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [newSearchTrigger, setNewSearchTrigger] = useState(false);
+  const { handleLoadMore, isSearching } = useSearchOperations(setResults);
 
   const handleNewSearch = useCallback(() => {
     setResults([]);
@@ -38,6 +40,9 @@ const Index = () => {
           results={results}
           onExport={() => {}} 
           onNewSearch={handleNewSearch}
+          hasMore={true}
+          onLoadMore={handleLoadMore}
+          isLoadingMore={isSearching}
         />
       </div>
     </div>

@@ -3,6 +3,7 @@ import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import EmptyResults from './results/EmptyResults';
+import LoadMoreButton from './LoadMoreButton';
 import {
   Pagination,
   PaginationContent,
@@ -17,9 +18,19 @@ interface ResultsProps {
   results?: Result[];
   onExport: () => void;
   onNewSearch: () => void;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }
 
-const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
+const Results = ({ 
+  results = [], 
+  onExport, 
+  onNewSearch, 
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false
+}: ResultsProps) => {
   // Filter out only results with error status
   const validResults = results.filter(r => 
     !r.status?.toLowerCase().includes('error analyzing url')
@@ -113,6 +124,14 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
         <ResultsTable results={displayedResults} />
       </div>
+      
+      {hasMore && (
+        <LoadMoreButton 
+          onLoadMore={onLoadMore || (() => {})}
+          isProcessing={isLoadingMore}
+        />
+      )}
+
       {totalPages > 1 && (
         <div className="flex justify-center mt-6">
           <Pagination>
