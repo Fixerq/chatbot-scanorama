@@ -539,6 +539,27 @@ export type Database = {
         }
         Relationships: []
       }
+      request_limits: {
+        Row: {
+          ip: string
+          last_request: string
+          requests_count: number
+          window_start: string
+        }
+        Insert: {
+          ip: string
+          last_request?: string
+          requests_count?: number
+          window_start?: string
+        }
+        Update: {
+          ip?: string
+          last_request?: string
+          requests_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       search_history: {
         Row: {
           country: string
@@ -809,6 +830,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_cached_places: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_rate_limits: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
