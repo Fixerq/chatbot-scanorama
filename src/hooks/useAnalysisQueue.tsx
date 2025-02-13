@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
-import { ChatDetectionResult } from '@/types/chatbot';
+import { ChatDetectionResult, isChatDetectionResult } from '@/types/chatbot';
 
 interface QueuedAnalysis {
   id: string;
@@ -78,16 +78,24 @@ export const useAnalysisQueue = () => {
         }
 
         if (queueItem.status === 'completed' && queueItem.analysis_result) {
-          const analysisResult = queueItem.analysis_result as ChatDetectionResult;
-          return {
-            ...result,
-            status: 'Success',
-            details: {
-              ...result.details,
-              chatSolutions: analysisResult.chatSolutions || [],
-              lastChecked: analysisResult.lastChecked
-            }
-          };
+          // Add type checking for the analysis result
+          if (isChatDetectionResult(queueItem.analysis_result)) {
+            return {
+              ...result,
+              status: 'Success',
+              details: {
+                ...result.details,
+                chatSolutions: queueItem.analysis_result.chatSolutions || [],
+                lastChecked: queueItem.analysis_result.lastChecked
+              }
+            };
+          } else {
+            console.error('Invalid analysis result format:', queueItem.analysis_result);
+            return {
+              ...result,
+              status: 'Error: Invalid result format'
+            };
+          }
         }
 
         if (queueItem.status === 'failed') {

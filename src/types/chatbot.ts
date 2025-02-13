@@ -19,3 +19,14 @@ export interface ChatDetectionResult {
   business_name?: string | null;
 }
 
+// Helper type guard
+export function isChatDetectionResult(obj: unknown): obj is ChatDetectionResult {
+  const result = obj as ChatDetectionResult;
+  return (
+    typeof result === 'object' &&
+    result !== null &&
+    typeof result.status === 'string' &&
+    Array.isArray(result.chatSolutions) &&
+    typeof result.lastChecked === 'string'
+  );
+}
