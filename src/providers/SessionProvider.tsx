@@ -20,7 +20,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const mounted = useRef(true);
   const refreshTimeout = useRef<NodeJS.Timeout>();
-  const authStateSubscription = useRef<{ unsubscribe: () => void }>();
+  const authStateSubscription = useRef<{ data: { subscription: { unsubscribe: () => void } } }>();
 
   const refreshSession = async () => {
     if (!isInitialized || !mounted.current) {
@@ -134,7 +134,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [session?.user?.id, isInitialized]);
 
   useEffect(() => {
-    authStateSubscription.current = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
       
       console.log('Auth state changed:', event);
@@ -151,9 +151,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    authStateSubscription.current = { data: { subscription } };
+
     return () => {
-      if (authStateSubscription.current) {
-        authStateSubscription.current.unsubscribe();
+      if (authStateSubscription.current?.data.subscription) {
+        authStateSubscription.current.data.subscription.unsubscribe();
       }
     };
   }, [isInitialized]);

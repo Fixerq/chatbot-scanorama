@@ -17,7 +17,7 @@ const Login = () => {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const mounted = useRef(true);
-  const authStateSubscription = useRef<{ unsubscribe: () => void }>();
+  const authStateSubscription = useRef<{ data: { subscription: { unsubscribe: () => void } } }>();
 
   const checkAdminStatus = async (userId: string) => {
     try {
@@ -73,7 +73,7 @@ const Login = () => {
   useEffect(() => {
     if (!mounted.current) return;
 
-    authStateSubscription.current = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
       
       console.log('Auth event:', event);
@@ -106,10 +106,11 @@ const Login = () => {
       }
     });
 
+    authStateSubscription.current = { data: { subscription } };
+
     return () => {
-      mounted.current = false;
-      if (authStateSubscription.current) {
-        authStateSubscription.current.unsubscribe();
+      if (authStateSubscription.current?.data.subscription) {
+        authStateSubscription.current.data.subscription.unsubscribe();
       }
     };
   }, [navigate]);
