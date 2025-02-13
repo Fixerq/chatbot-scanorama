@@ -1,8 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { AdminCheck } from '@/types/auth';
 
-export const useAdminCheck = () => {
-  const checkAdminStatus = async (userId: string) => {
+export const useAdminCheck = (): AdminCheck => {
+  const checkAdminStatus = async (userId: string): Promise<boolean> => {
     try {
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')

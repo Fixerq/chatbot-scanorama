@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAdminCheck } from './useAdminCheck';
+import { AuthState } from '@/types/auth';
 
-export const useAuthState = () => {
+export const useAuthState = (): AuthState => {
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
