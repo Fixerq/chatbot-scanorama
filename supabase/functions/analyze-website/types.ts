@@ -32,3 +32,16 @@ export interface FirecrawlAnalysisResult {
   error?: string;
   metadata?: any;
 }
+
+// Rate limiting types
+export interface RateLimitInfo {
+  ip: string;
+  requests_count: number;
+  window_start: Date;
+  last_request: Date;
+}
+
+export const RATE_LIMIT = {
+  MAX_REQUESTS: 60,
+  WINDOW_MINUTES: 60
+};
