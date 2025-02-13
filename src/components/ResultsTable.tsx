@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -120,7 +121,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <TableBody>
           {results.map((result, index) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
-            const technologies = formatInstalledTechnologies(result);
+            const isAnalyzing = !result.status;
+            const technologies = isAnalyzing ? 'Analyzing...' : formatInstalledTechnologies(result);
             const businessName = getBusinessName(result);
 
             return (
@@ -135,6 +137,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   technologies={technologies}
                   lastChecked={result.details?.lastChecked}
                   chatSolutions={result.details?.chatSolutions}
+                  isAnalyzing={isAnalyzing}
                 />
               </TableRow>
             );
@@ -146,3 +149,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
+

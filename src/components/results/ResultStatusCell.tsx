@@ -1,75 +1,59 @@
 
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { formatDistanceToNow } from 'date-fns';
+import { Loader2 } from 'lucide-react';
 
 interface ResultStatusCellProps {
-  status: string | undefined;
-  hasChatbot: boolean;
+  status?: string;
+  hasChatbot?: boolean;
   technologies: string;
   lastChecked?: string;
   chatSolutions?: string[];
+  isAnalyzing?: boolean;
 }
 
-const ResultStatusCell = ({ 
-  status, 
-  hasChatbot, 
-  technologies, 
+const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
+  status,
+  hasChatbot,
+  technologies,
   lastChecked,
-  chatSolutions 
-}: ResultStatusCellProps) => {
-  const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
-    if (!status) return 'secondary';
-    if (status.toLowerCase().includes('error')) return 'destructive';
-    if (hasChatbot) return 'success';
-    return 'secondary';
-  };
+  chatSolutions,
+  isAnalyzing
+}) => {
+  if (isAnalyzing) {
+    return (
+      <TableCell>
+        <div className="flex items-center space-x-2 text-gray-500">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Analyzing...</span>
+        </div>
+      </TableCell>
+    );
+  }
 
-  const formatTooltipContent = () => {
-    const content = [];
-    
-    if (lastChecked) {
-      content.push(`Last checked: ${formatDistanceToNow(new Date(lastChecked), { addSuffix: true })}`);
-    }
-    
-    if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
-      if (chatSolutions.length === 1) {
-        content.push(`Using ${chatSolutions[0]} chatbot`);
-      } else {
-        content.push(`Primary: ${chatSolutions[0]}`);
-        content.push(`Additional providers: ${chatSolutions.slice(1).join(', ')}`);
-      }
-    }
-    
-    return content.join('\n');
-  };
+  if (status?.toLowerCase().includes('error')) {
+    return (
+      <TableCell className="text-red-500">
+        {status}
+      </TableCell>
+    );
+  }
 
   return (
     <TableCell>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>
-            <Badge 
-              variant={getChatbotStatusColor(status, hasChatbot)}
-              className="cursor-help"
-            >
-              {technologies}
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-[300px] whitespace-pre-line">
-            <p>{formatTooltipContent()}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div className="space-y-1">
+        <div className={hasChatbot ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-600 dark:text-gray-400'}>
+          {technologies}
+        </div>
+        {lastChecked && (
+          <div className="text-xs text-gray-500">
+            Last checked: {new Date(lastChecked).toLocaleString()}
+          </div>
+        )}
+      </div>
     </TableCell>
   );
 };
 
 export default ResultStatusCell;
+
