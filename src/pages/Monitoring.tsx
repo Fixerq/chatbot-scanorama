@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface Metric {
   metric_name: string;
@@ -23,10 +24,18 @@ interface Provider {
   unique_sites: number;
 }
 
+interface AlertThreshold {
+  metric_name: string;
+  current_value: number;
+  threshold_value: number;
+  alert_type: 'error' | 'warning' | 'info';
+}
+
 interface Metrics {
   basic: Metric[];
   errors: ErrorLog[];
   providers: Provider[];
+  alerts: AlertThreshold[];
 }
 
 export default function MonitoringPage() {
@@ -67,10 +76,17 @@ export default function MonitoringPage() {
 
       if (providersError) throw providersError;
 
+      // Get active alerts
+      const { data: alerts, error: alertsError } = await supabase
+        .rpc('check_alert_thresholds');
+
+      if (alertsError) throw alertsError;
+
       setMetrics({
         basic: basicMetrics,
         errors,
-        providers
+        providers,
+        alerts: alerts || []
       });
     } catch (error) {
       console.error('Error fetching metrics:', error);
@@ -90,6 +106,26 @@ export default function MonitoringPage() {
   return (
     <div className="container py-8 space-y-8">
       <h1 className="text-3xl font-bold">System Monitoring</h1>
+      
+      {/* Active Alerts */}
+      {metrics?.alerts && metrics.alerts.length > 0 && (
+        <div className="space-y-4">
+          {metrics.alerts.map((alert, index) => (
+            <Alert 
+              key={index} 
+              variant={alert.alert_type === 'error' ? 'destructive' : 'default'}
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="ml-2">
+                {alert.metric_name} Alert
+              </AlertTitle>
+              <AlertDescription className="ml-2">
+                Current value: {alert.current_value}% (Threshold: {alert.threshold_value}%)
+              </AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
       
       {/* Basic Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

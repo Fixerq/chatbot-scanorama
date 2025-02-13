@@ -24,6 +24,33 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_thresholds: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          id: number
+          metric_name: string
+          threshold_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          id?: number
+          metric_name: string
+          threshold_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          id?: number
+          metric_name?: string
+          threshold_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       analysis_logs: {
         Row: {
           cached: boolean
@@ -948,6 +975,15 @@ export type Database = {
       }
     }
     Functions: {
+      check_alert_thresholds: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          metric_name: string
+          current_value: number
+          threshold_value: number
+          alert_type: string
+        }[]
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
