@@ -38,6 +38,11 @@ interface Metrics {
   alerts: AlertThreshold[];
 }
 
+// Type guard to validate alert type
+function isValidAlertType(type: string): type is AlertThreshold['alert_type'] {
+  return ['error', 'warning', 'info'].includes(type);
+}
+
 export default function MonitoringPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,17 +81,23 @@ export default function MonitoringPage() {
 
       if (providersError) throw providersError;
 
-      // Get active alerts
-      const { data: alerts, error: alertsError } = await supabase
+      // Get active alerts and validate types
+      const { data: alertsData, error: alertsError } = await supabase
         .rpc('check_alert_thresholds');
 
       if (alertsError) throw alertsError;
+
+      // Validate and transform alerts
+      const validatedAlerts: AlertThreshold[] = (alertsData || []).map(alert => ({
+        ...alert,
+        alert_type: isValidAlertType(alert.alert_type) ? alert.alert_type : 'error' // Default to 'error' if invalid
+      }));
 
       setMetrics({
         basic: basicMetrics,
         errors,
         providers,
-        alerts: alerts || []
+        alerts: validatedAlerts
       });
     } catch (error) {
       console.error('Error fetching metrics:', error);
