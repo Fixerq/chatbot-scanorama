@@ -1,4 +1,3 @@
-
 import { FirecrawlAnalysisResult } from '../types.ts';
 import { saveChatbotDetection } from './databaseService.ts';
 import FirecrawlApp from 'https://esm.sh/@mendable/firecrawl-js@latest';
@@ -159,4 +158,3 @@ export const checkFirecrawlCredits = async (): Promise<number> => {
     return 0;
   }
 };
-

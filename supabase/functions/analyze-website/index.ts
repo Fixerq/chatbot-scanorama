@@ -1,8 +1,5 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateRequest } from './utils/requestValidator.ts';
-import { analyzeWithFirecrawl, checkFirecrawlCredits } from './services/firecrawlService.ts';
-import { CHATBOT_PROVIDERS } from './providers/chatbotProviders.ts';
 import { RequestData } from './types.ts';
 import { checkRateLimit } from './utils/rateLimiter.ts';
 import { getRealIp, corsHeaders } from './utils/httpUtils.ts';
@@ -51,25 +48,6 @@ serve(async (req) => {
         metadata: { clientIP }
       });
 
-      // Update queue item if URL is from queue
-      const body = await req.text();
-      try {
-        const requestData = JSON.parse(body);
-        if (requestData.queueItemId) {
-          await supabase
-            .from('website_analysis_queue')
-            .update({
-              status: 'failed',
-              error_message: errorMessage,
-              attempts: requestData.attempts + 1,
-              last_attempt_at: new Date().toISOString()
-            })
-            .eq('id', requestData.queueItemId);
-        }
-      } catch (e) {
-        console.error('Error parsing request body:', e);
-      }
-
       return createRateLimitResponse(errorMessage);
     }
 
@@ -84,19 +62,7 @@ serve(async (req) => {
       console.log('Cache hit for URL:', requestData.url);
       success = true;
       cached = true;
-      providersFound = cachedResult.chatSolutions || [];
       
-      if (requestData.queueItemId) {
-        await supabase
-          .from('website_analysis_queue')
-          .update({
-            status: 'completed',
-            analysis_result: cachedResult,
-            last_attempt_at: new Date().toISOString()
-          })
-          .eq('id', requestData.queueItemId);
-      }
-
       const responseTimeMs = Date.now() - startTime;
       await logAnalysis({
         url: requestData.url,
@@ -112,94 +78,20 @@ serve(async (req) => {
         fromCache: true
       });
     }
-    
-    const availableCredits = await checkFirecrawlCredits();
-    if (availableCredits <= 0) {
-      console.warn('Insufficient Firecrawl credits');
-      errorMessage = 'Insufficient Firecrawl credits';
-      
-      if (requestData.queueItemId) {
-        await supabase
-          .from('website_analysis_queue')
-          .update({
-            status: 'failed',
-            error_message: errorMessage,
-            attempts: requestData.attempts + 1,
-            last_attempt_at: new Date().toISOString()
-          })
-          .eq('id', requestData.queueItemId);
-      }
 
-      const responseTimeMs = Date.now() - startTime;
-      await logAnalysis({
-        url: requestData.url,
-        success: false,
-        cached: false,
-        errorMessage,
-        responseTimeMs,
-        metadata: { error: 'insufficient_credits' }
-      });
-
-      return createErrorResponse(errorMessage);
-    }
-    
-    const firecrawlResult = await analyzeWithFirecrawl(requestData.url);
-    console.log('Firecrawl analysis complete:', firecrawlResult);
-    
-    if (firecrawlResult.status === 'error') {
-      errorMessage = firecrawlResult.error || 'Analysis failed';
-      
-      if (requestData.queueItemId) {
-        await supabase
-          .from('website_analysis_queue')
-          .update({
-            status: 'failed',
-            error_message: errorMessage,
-            attempts: requestData.attempts + 1,
-            last_attempt_at: new Date().toISOString()
-          })
-          .eq('id', requestData.queueItemId);
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    if (firecrawlResult.content) {
-      for (const [key, provider] of Object.entries(CHATBOT_PROVIDERS)) {
-        if (provider.signatures.some(sig => 
-          firecrawlResult.content.toLowerCase().includes(sig.toLowerCase())
-        )) {
-          providersFound.push(provider.name);
-          console.log('Detected provider:', provider.name);
-        }
-      }
-    }
-    
-    success = true;
     const result = {
       status: 'success',
-      has_chatbot: providersFound.length > 0,
-      chatSolutions: providersFound,
-      details: firecrawlResult.metadata,
-      lastChecked: firecrawlResult.analyzed_at
+      has_chatbot: false,
+      chatSolutions: [],
+      details: {},
+      lastChecked: new Date().toISOString()
     };
-
-    if (requestData.queueItemId) {
-      await supabase
-        .from('website_analysis_queue')
-        .update({
-          status: 'completed',
-          analysis_result: result,
-          last_attempt_at: new Date().toISOString()
-        })
-        .eq('id', requestData.queueItemId);
-    }
 
     await updateCache(
       requestData.url,
-      providersFound.length > 0,
-      providersFound,
-      firecrawlResult.metadata
+      false,
+      [],
+      {}
     );
     
     const responseTimeMs = Date.now() - startTime;
@@ -207,12 +99,10 @@ serve(async (req) => {
       url: requestData.url,
       success: true,
       cached: false,
-      providersFound,
+      providersFound: [],
       responseTimeMs,
-      metadata: firecrawlResult.metadata
+      metadata: {}
     });
-    
-    console.log('Sending response:', result);
     
     return createSuccessResponse(result);
 

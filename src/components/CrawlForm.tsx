@@ -7,7 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import EmailResults from './EmailResults';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-import { toast } from 'sonner';
 
 interface CrawlResult {
   success: boolean;
@@ -46,17 +45,31 @@ export const CrawlForm = () => {
     setCrawlResult(null);
     
     try {
-      // TODO: Implement website crawling using Supabase Edge Function
+      // Call to Supabase Edge Function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-website`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCrawlResult(data);
       toast({
-        title: "Feature in development",
-        description: "Website crawling functionality is being updated",
+        title: "Success",
+        description: "Website analyzed successfully",
         duration: 3000,
       });
     } catch (error) {
-      console.error('Error crawling website:', error);
+      console.error('Error analyzing website:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to crawl website",
+        description: error instanceof Error ? error.message : "Failed to analyze website",
         variant: "destructive",
         duration: 3000,
       });
@@ -91,7 +104,7 @@ export const CrawlForm = () => {
           disabled={isLoading || (!isSubscriptionLoading && subscriptionData?.searchesRemaining === 0)}
           className="w-full bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200"
         >
-          {isLoading ? "Crawling..." : "Start Crawl"}
+          {isLoading ? "Analyzing..." : "Start Analysis"}
         </Button>
         
         {!isSubscriptionLoading && subscriptionData && subscriptionData.searchesRemaining !== -1 && (
@@ -104,7 +117,7 @@ export const CrawlForm = () => {
       {crawlResult && (
         <>
           <Card className="mt-6 p-4">
-            <h3 className="text-lg font-semibold mb-2">Crawl Results</h3>
+            <h3 className="text-lg font-semibold mb-2">Analysis Results</h3>
             <div className="space-y-2 text-sm">
               <p>Status: {crawlResult.status}</p>
               <p>Completed Pages: {crawlResult.completed}</p>
