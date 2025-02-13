@@ -888,7 +888,64 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      analysis_dashboard: {
+        Row: {
+          avg_response_time_seconds: number | null
+          cache_hit_rate: number | null
+          cached_requests: number | null
+          success_rate: number | null
+          successful_requests: number | null
+          time_bucket: string | null
+          total_requests: number | null
+          unique_urls_analyzed: number | null
+        }
+        Relationships: []
+      }
+      error_monitoring: {
+        Row: {
+          affected_urls: string[] | null
+          error_count: number | null
+          time_bucket: string | null
+          unique_errors: string | null
+        }
+        Relationships: []
+      }
+      provider_analysis: {
+        Row: {
+          detection_count: number | null
+          detection_rate: number | null
+          provider_name: string | null
+          unique_sites: number | null
+        }
+        Relationships: []
+      }
+      rate_limit_status: {
+        Row: {
+          client_ip: string | null
+          remaining_requests: number | null
+          request_count: number | null
+          reset_time: string | null
+          status: string | null
+          window_start: string | null
+        }
+        Insert: {
+          client_ip?: string | null
+          remaining_requests?: never
+          request_count?: number | null
+          reset_time?: never
+          status?: never
+          window_start?: string | null
+        }
+        Update: {
+          client_ip?: string | null
+          remaining_requests?: never
+          request_count?: number | null
+          reset_time?: never
+          status?: never
+          window_start?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_expired_sessions: {
@@ -908,6 +965,15 @@ export type Database = {
           user_id_param: string
         }
         Returns: undefined
+      }
+      get_performance_metrics: {
+        Args: {
+          time_window?: unknown
+        }
+        Returns: {
+          metric_name: string
+          metric_value: number
+        }[]
       }
     }
     Enums: {
