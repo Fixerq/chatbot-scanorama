@@ -1,3 +1,4 @@
+
 export interface RequestData {
   url: string;
   placeId?: string;
