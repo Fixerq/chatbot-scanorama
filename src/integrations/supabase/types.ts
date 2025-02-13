@@ -24,6 +24,48 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_logs: {
+        Row: {
+          cached: boolean
+          error_message: string | null
+          id: number
+          is_rate_limited: boolean | null
+          metadata: Json | null
+          providers_found: string[] | null
+          rate_limit_remaining: number | null
+          response_time_ms: number | null
+          success: boolean
+          timestamp: string
+          url: string
+        }
+        Insert: {
+          cached: boolean
+          error_message?: string | null
+          id?: number
+          is_rate_limited?: boolean | null
+          metadata?: Json | null
+          providers_found?: string[] | null
+          rate_limit_remaining?: number | null
+          response_time_ms?: number | null
+          success: boolean
+          timestamp?: string
+          url: string
+        }
+        Update: {
+          cached?: boolean
+          error_message?: string | null
+          id?: number
+          is_rate_limited?: boolean | null
+          metadata?: Json | null
+          providers_found?: string[] | null
+          rate_limit_remaining?: number | null
+          response_time_ms?: number | null
+          success?: boolean
+          timestamp?: string
+          url?: string
+        }
+        Relationships: []
+      }
       analyzed_urls: {
         Row: {
           business_type: string | null
