@@ -913,6 +913,53 @@ export type Database = {
         }
         Relationships: []
       }
+      website_analysis_queue: {
+        Row: {
+          analysis_result: Json | null
+          attempts: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+          website_url: string
+        }
+        Insert: {
+          analysis_result?: Json | null
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          website_url: string
+        }
+        Update: {
+          analysis_result?: Json | null
+          attempts?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          website_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_analysis_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       analysis_dashboard: {
