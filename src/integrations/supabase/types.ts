@@ -1031,6 +1031,12 @@ export type Database = {
           alert_type: string
         }[]
       }
+      check_if_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           p_client_id: string
