@@ -1,3 +1,4 @@
+
 export interface RequestData {
   url: string;
   placeId?: string;
@@ -35,11 +36,12 @@ export interface FirecrawlAnalysisResult {
 }
 
 // Rate limiting types
-export interface RateLimitInfo {
-  ip: string;
-  requests_count: number;
-  window_start: Date;
-  last_request: Date;
+export interface RateLimitResponse {
+  allowed: boolean;
+  current_count: number;
+  window_start: string;
+  reset_at: string;
+  retry_after: number;
 }
 
 export const RATE_LIMIT = {

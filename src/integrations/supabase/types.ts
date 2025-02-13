@@ -1031,6 +1031,14 @@ export type Database = {
           alert_type: string
         }[]
       }
+      check_rate_limit: {
+        Args: {
+          p_client_id: string
+          p_window_minutes: number
+          p_max_requests: number
+        }
+        Returns: Json
+      }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
