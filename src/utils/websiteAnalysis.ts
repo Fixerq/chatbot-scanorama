@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface WebsiteAnalysisResult {
@@ -42,11 +43,43 @@ export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult
     const validatedUrl = validateUrl(url);
     console.log('Processing URL:', validatedUrl);
 
+    // First check cache
+    const { data: cachedResult } = await supabase
+      .from('chatbot_detections')
+      .select('*')
+      .eq('website_url', validatedUrl)
+      .maybeSingle();
+
+    if (cachedResult) {
+      console.log('Found cached result for:', validatedUrl);
+      return {
+        status: 'Success',
+        details: {
+          lastChecked: cachedResult.last_checked,
+          chatSolutions: cachedResult.chatbot_providers || [],
+        }
+      };
+    }
+
+    // If no cached result, queue for analysis
+    const { data: queueItem, error: queueError } = await supabase
+      .from('website_analysis_queue')
+      .insert([{
+        website_url: validatedUrl,
+        status: 'pending'
+      }])
+      .select()
+      .single();
+
+    if (queueError) {
+      throw new Error('Failed to queue website for analysis');
+    }
+
     return {
-      status: 'Success',
+      status: 'Queued',
       details: {
         lastChecked: new Date().toISOString(),
-        chatSolutions: [] // Initialize empty array for now
+        chatSolutions: []
       }
     };
 

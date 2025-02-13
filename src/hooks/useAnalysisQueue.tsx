@@ -13,9 +13,114 @@ interface QueuedAnalysis {
   error_message: string | null;
 }
 
+const RETRY_DELAY = 2000; // 2 seconds between retries
+const MAX_RETRIES = 3;
+
 export const useAnalysisQueue = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [queuedResults, setQueuedResults] = useState<Result[]>([]);
+
+  const processUrl = async (url: string, attempt = 1): Promise<void> => {
+    try {
+      console.log(`Processing URL (attempt ${attempt}):`, url);
+      
+      const { error } = await supabase
+        .from('website_analysis_queue')
+        .insert([{
+          website_url: url,
+          status: 'pending'
+        }]);
+
+      if (error) {
+        console.error('Error enqueueing URL:', error);
+        setQueuedResults(prev => prev.map(result => 
+          result.url === url ? { ...result, status: 'Error: Failed to queue' } : result
+        ));
+        return;
+      }
+
+      // Update local state to show processing
+      setQueuedResults(prev => prev.map(result => 
+        result.url === url ? { ...result, status: 'Processing...' } : result
+      ));
+
+      // Poll for result
+      let pollCount = 0;
+      const pollInterval = setInterval(async () => {
+        pollCount++;
+        console.log(`Polling for results (attempt ${pollCount}):`, url);
+
+        const { data: queueItem, error: pollError } = await supabase
+          .from('website_analysis_queue')
+          .select('*')
+          .eq('website_url', url)
+          .maybeSingle();
+
+        if (pollError) {
+          console.error('Error polling queue:', pollError);
+          return;
+        }
+
+        if (!queueItem) {
+          return;
+        }
+
+        if (queueItem.status === 'completed' && queueItem.analysis_result) {
+          clearInterval(pollInterval);
+          
+          if (isChatDetectionResult(queueItem.analysis_result)) {
+            setQueuedResults(prev => prev.map(result => 
+              result.url === url ? {
+                ...result,
+                status: 'Success',
+                details: {
+                  ...result.details,
+                  chatSolutions: queueItem.analysis_result.chatSolutions || [],
+                  lastChecked: queueItem.analysis_result.lastChecked
+                }
+              } : result
+            ));
+          }
+        } else if (queueItem.status === 'failed') {
+          clearInterval(pollInterval);
+          if (attempt < MAX_RETRIES) {
+            console.log(`Retrying URL ${url} (attempt ${attempt + 1})`);
+            setTimeout(() => processUrl(url, attempt + 1), RETRY_DELAY);
+          } else {
+            setQueuedResults(prev => prev.map(result => 
+              result.url === url ? {
+                ...result,
+                status: `Error: ${queueItem.error_message || 'Analysis failed'}`
+              } : result
+            ));
+          }
+        }
+
+        // Stop polling after 2 minutes to prevent infinite polling
+        if (pollCount > 60) {
+          clearInterval(pollInterval);
+          setQueuedResults(prev => prev.map(result => 
+            result.url === url ? {
+              ...result,
+              status: 'Error: Analysis timeout'
+            } : result
+          ));
+        }
+      }, 2000); // Poll every 2 seconds
+
+      // Cleanup interval after 2 minutes
+      setTimeout(() => clearInterval(pollInterval), 120000);
+
+    } catch (error) {
+      console.error(`Error processing ${url}:`, error);
+      setQueuedResults(prev => prev.map(result => 
+        result.url === url ? {
+          ...result,
+          status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        } : result
+      ));
+    }
+  };
 
   const enqueueUrls = async (urls: string[]) => {
     setIsProcessing(true);
@@ -26,105 +131,17 @@ export const useAnalysisQueue = () => {
     setQueuedResults(initialResults);
 
     try {
-      // Add URLs to the queue
+      // Process URLs sequentially to avoid overwhelming the system
       for (const url of urls) {
-        const { error } = await supabase
-          .from('website_analysis_queue')
-          .insert([{
-            website_url: url,
-            status: 'pending'
-          }]);
-
-        if (error) {
-          console.error('Error enqueueing URL:', error);
-          setQueuedResults(prev => prev.map(result => 
-            result.url === url ? { ...result, status: 'Error: Failed to queue' } : result
-          ));
-        }
+        await processUrl(url);
       }
-
-      // Start polling for results
-      pollQueueResults(urls);
     } catch (error) {
       console.error('Error processing URLs:', error);
       toast.error('Error adding URLs to analysis queue');
+    } finally {
       setIsProcessing(false);
     }
   };
-
-  const pollQueueResults = useCallback(async (urls: string[]) => {
-    const pollInterval = setInterval(async () => {
-      const { data: queueItems, error } = await supabase
-        .from('website_analysis_queue')
-        .select('*')
-        .in('website_url', urls);
-
-      if (error) {
-        console.error('Error polling queue:', error);
-        return;
-      }
-
-      let allComplete = true;
-      const updatedResults = queuedResults.map(result => {
-        const queueItem = queueItems?.find(item => item.website_url === result.url);
-        if (!queueItem) return result;
-
-        if (queueItem.status === 'pending' || queueItem.status === 'processing') {
-          allComplete = false;
-          return {
-            ...result,
-            status: queueItem.status === 'pending' ? 'Queued' : 'Processing...'
-          };
-        }
-
-        if (queueItem.status === 'completed' && queueItem.analysis_result) {
-          // Add type checking for the analysis result
-          if (isChatDetectionResult(queueItem.analysis_result)) {
-            return {
-              ...result,
-              status: 'Success',
-              details: {
-                ...result.details,
-                chatSolutions: queueItem.analysis_result.chatSolutions || [],
-                lastChecked: queueItem.analysis_result.lastChecked
-              }
-            };
-          } else {
-            console.error('Invalid analysis result format:', queueItem.analysis_result);
-            return {
-              ...result,
-              status: 'Error: Invalid result format'
-            };
-          }
-        }
-
-        if (queueItem.status === 'failed') {
-          return {
-            ...result,
-            status: `Error: ${queueItem.error_message || 'Analysis failed'}`
-          };
-        }
-
-        return result;
-      });
-
-      setQueuedResults(updatedResults);
-
-      if (allComplete) {
-        clearInterval(pollInterval);
-        setIsProcessing(false);
-        toast.success('Analysis complete!');
-      }
-    }, 2000); // Poll every 2 seconds
-
-    // Cleanup interval after 10 minutes to prevent infinite polling
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      setIsProcessing(false);
-    }, 600000);
-
-    return () => clearInterval(pollInterval);
-  }, [queuedResults]);
 
   const clearResults = () => {
     setQueuedResults([]);
