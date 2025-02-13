@@ -44,10 +44,15 @@ const processSearchResults = async (placesData: any, searchBatchId: string) => {
         
         const businessName = place.name || placeDetails?.name;
         const websiteUrl = placeDetails?.website;
-        const mapsUrl = `https://maps.google.com/?q=place_id:${place.place_id}`;
+        
+        // Skip results without a website URL (Google Maps URLs)
+        if (!websiteUrl) {
+          console.log('Skipping place without website URL:', businessName);
+          continue;
+        }
         
         results.push({
-          url: websiteUrl || mapsUrl,
+          url: websiteUrl,
           businessName,
           details: {
             lastChecked: new Date().toISOString(),
@@ -57,8 +62,7 @@ const processSearchResults = async (placesData: any, searchBatchId: string) => {
             address: place.formatted_address || place.vicinity,
             placeId: place.place_id,
             businessType: place.types?.[0] || 'business',
-            phoneNumber: placeDetails?.formatted_phone_number,
-            maps_url: mapsUrl
+            phoneNumber: placeDetails?.formatted_phone_number
           }
         });
       } catch (error) {
