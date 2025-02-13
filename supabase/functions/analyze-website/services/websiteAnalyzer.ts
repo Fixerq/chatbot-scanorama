@@ -12,6 +12,18 @@ async function tryFetch(url: string): Promise<Response> {
   try {
     const response = await fetch(url, { headers });
     if (response.ok) return response;
+    
+    console.log(`Initial fetch failed for ${url} with status ${response.status}`);
+    
+    // If the response is a redirect, follow it
+    if (response.status === 301 || response.status === 302) {
+      const redirectUrl = response.headers.get('location');
+      if (redirectUrl) {
+        console.log(`Following redirect to ${redirectUrl}`);
+        const redirectResponse = await fetch(redirectUrl, { headers });
+        if (redirectResponse.ok) return redirectResponse;
+      }
+    }
   } catch (error) {
     console.log(`Failed to fetch ${url}:`, error);
   }
@@ -23,21 +35,25 @@ async function tryFetch(url: string): Promise<Response> {
       console.log('Trying HTTPS version:', httpsUrl);
       const response = await fetch(httpsUrl, { headers });
       if (response.ok) return response;
+      
+      console.log(`HTTPS attempt failed with status ${response.status}`);
     } catch (error) {
       console.log('HTTPS attempt failed:', error);
     }
   }
 
-  // If original failed, try the other protocol
+  // If still not successful, try the other protocol
   const alternateUrl = url.startsWith('https://') 
     ? url.replace('https://', 'http://')
     : url.replace('http://', 'https://');
 
   console.log('Trying alternate protocol:', alternateUrl);
   const response = await fetch(alternateUrl, { headers });
+  
   if (!response.ok) {
-    throw new Error(`Failed to fetch website: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch website (status: ${response.status}). Tried both HTTP and HTTPS.`);
   }
+  
   return response;
 }
 
@@ -59,8 +75,16 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
     // Clean up the URL
     const cleanUrl = url.trim().replace(/\/$/, '');
     
+    // Add www. if not present and no subdomain exists
+    const urlObj = new URL(cleanUrl);
+    if (!urlObj.hostname.includes('.') && !urlObj.hostname.startsWith('www.')) {
+      urlObj.hostname = 'www.' + urlObj.hostname;
+      console.log('Added www subdomain:', urlObj.toString());
+    }
+    
     // Fetch the website content with retry logic
-    const response = await tryFetch(cleanUrl);
+    console.log('Attempting to fetch:', urlObj.toString());
+    const response = await tryFetch(urlObj.toString());
     const html = await response.text();
     console.log('Successfully fetched website content');
 
@@ -100,21 +124,27 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
         dynamic_loading: hasDynamicChat,
         chat_elements: hasChatElements,
         meta_tags: hasMetaTags,
-        websockets: hasWebSockets
+        websockets: hasWebSockets,
+        url: cleanUrl
       },
       lastChecked: new Date().toISOString()
     };
 
   } catch (error) {
     console.error('Error analyzing website:', error);
+    
+    // Return a more detailed error status
     return {
       status: 'error',
       error: error.message,
       has_chatbot: false,
       chatSolutions: [],
-      details: {},
+      details: {
+        url: url,
+        errorType: error.name,
+        errorMessage: error.message
+      },
       lastChecked: new Date().toISOString()
     };
   }
 }
-
