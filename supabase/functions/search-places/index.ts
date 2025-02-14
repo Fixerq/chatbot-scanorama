@@ -13,10 +13,14 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
     
-    // Handle CORS
+    // Handle CORS preflight request
     if (req.method === 'OPTIONS') {
       return new Response('ok', { 
-        headers: corsHeaders,
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Max-Age': '86400',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        },
         status: 204 
       });
     }
@@ -90,7 +94,8 @@ serve(async (req) => {
       { 
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Vary': 'Origin'
         },
         status: 200
       }
@@ -112,7 +117,8 @@ serve(async (req) => {
         status: error.message === 'Method not allowed' ? 405 : 500,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Vary': 'Origin'
         }
       }
     );
