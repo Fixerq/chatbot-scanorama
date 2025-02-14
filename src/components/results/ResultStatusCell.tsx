@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Loader2, Bot, XCircle } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
 interface ResultStatusCellProps {
   status?: string;
   hasChatbot?: boolean;
@@ -13,7 +11,6 @@ interface ResultStatusCellProps {
   chatSolutions?: string[];
   isAnalyzing?: boolean;
 }
-
 const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   status,
   hasChatbot,
@@ -23,40 +20,25 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   isAnalyzing
 }) => {
   if (isAnalyzing || status?.toLowerCase() === 'analyzing...') {
-    return (
-      <TableCell>
-        <div className="flex items-center space-x-2">
-          <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-          <span className="text-blue-600 dark:text-blue-400">Analyzing...</span>
-        </div>
-      </TableCell>
-    );
+    return;
   }
-
   if (status?.toLowerCase().includes('error')) {
-    return (
-      <TableCell>
+    return <TableCell>
         <div className="text-red-500 dark:text-red-400">
           <div className="flex items-center space-x-2">
             <XCircle className="w-4 h-4" />
             <span>{status}</span>
           </div>
-          {lastChecked && (
-            <div className="text-xs text-gray-500 mt-1">
+          {lastChecked && <div className="text-xs text-gray-500 mt-1">
               Last attempt: {new Date(lastChecked).toLocaleString()}
-            </div>
-          )}
+            </div>}
         </div>
-      </TableCell>
-    );
+      </TableCell>;
   }
-
-  return (
-    <TableCell>
+  return <TableCell>
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
-          {hasChatbot ? (
-            <TooltipProvider>
+          {hasChatbot ? <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
                   <Badge variant="success" className="flex items-center gap-1">
@@ -68,33 +50,22 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
                   <p>A chatbot was found on this website</p>
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <Badge variant="secondary" className="flex items-center gap-1">
+            </TooltipProvider> : <Badge variant="secondary" className="flex items-center gap-1">
               <XCircle className="w-3 h-3" />
               <span>No Chatbot Found</span>
-            </Badge>
-          )}
+            </Badge>}
         </div>
         
-        {chatSolutions && chatSolutions.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {chatSolutions.map((solution, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
+        {chatSolutions && chatSolutions.length > 0 && <div className="flex flex-wrap gap-1">
+            {chatSolutions.map((solution, index) => <Badge key={index} variant="outline" className="text-xs">
                 {solution}
-              </Badge>
-            ))}
-          </div>
-        )}
+              </Badge>)}
+          </div>}
         
-        {lastChecked && (
-          <div className="text-xs text-gray-500">
+        {lastChecked && <div className="text-xs text-gray-500">
             Last checked: {new Date(lastChecked).toLocaleString()}
-          </div>
-        )}
+          </div>}
       </div>
-    </TableCell>
-  );
+    </TableCell>;
 };
-
 export default ResultStatusCell;
