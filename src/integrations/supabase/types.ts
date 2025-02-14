@@ -956,10 +956,14 @@ export type Database = {
         Row: {
           analysis_result: Json | null
           attempts: number | null
+          backoff_interval: unknown
           created_at: string | null
           error_message: string | null
           id: string
           last_attempt_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
           next_retry_at: string | null
           priority: number | null
           status: string
@@ -970,10 +974,14 @@ export type Database = {
         Insert: {
           analysis_result?: Json | null
           attempts?: number | null
+          backoff_interval?: unknown
           created_at?: string | null
           error_message?: string | null
           id?: string
           last_attempt_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
           next_retry_at?: string | null
           priority?: number | null
           status?: string
@@ -984,10 +992,14 @@ export type Database = {
         Update: {
           analysis_result?: Json | null
           attempts?: number | null
+          backoff_interval?: unknown
           created_at?: string | null
           error_message?: string | null
           id?: string
           last_attempt_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
           next_retry_at?: string | null
           priority?: number | null
           status?: string
@@ -1132,6 +1144,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_rate_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_stuck_analyses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
