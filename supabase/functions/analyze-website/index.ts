@@ -16,7 +16,32 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let executionId: string | null = null;
+
   try {
+    // Create execution record
+    const { data: executionData, error: executionError } = await supabaseClient
+      .from('function_executions')
+      .insert({
+        function_name: 'analyze-website',
+        status: 'running'
+      })
+      .select()
+      .single();
+
+    if (executionError) {
+      console.error('Error creating execution record:', executionError);
+      throw new Error('Failed to create execution record');
+    }
+
+    executionId = executionData.id;
+    console.log('Created execution record:', executionId);
+
     // Read request body
     const rawBody = await req.text();
     console.log('Raw request body:', rawBody);
@@ -57,11 +82,6 @@ serve(async (req) => {
         }
       );
     }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
 
     // Update analysis request status to processing
     console.log('Updating request status to processing:', requestId);
@@ -107,6 +127,23 @@ serve(async (req) => {
       console.error('Error updating analysis results:', resultError);
     }
 
+    // Update execution record as completed
+    if (executionId) {
+      const endTime = new Date();
+      const { error: completionError } = await supabaseClient
+        .from('function_executions')
+        .update({
+          status: 'completed',
+          completed_at: endTime.toISOString(),
+          execution_time: `${(endTime.getTime() - new Date(executionData.started_at).getTime()) / 1000} seconds`
+        })
+        .eq('id', executionId);
+
+      if (completionError) {
+        console.error('Error updating execution record:', completionError);
+      }
+    }
+
     return new Response(
       JSON.stringify(result),
       {
@@ -120,12 +157,19 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
 
     try {
-      if (requestId) {
-        const supabaseClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
+      // Update execution record as failed
+      if (executionId) {
+        const endTime = new Date();
+        await supabaseClient
+          .from('function_executions')
+          .update({
+            status: 'failed',
+            completed_at: endTime.toISOString(),
+          })
+          .eq('id', executionId);
+      }
 
+      if (requestId) {
         await supabaseClient
           .from('analysis_requests')
           .update({
@@ -136,7 +180,7 @@ serve(async (req) => {
           .eq('id', requestId);
       }
     } catch (updateError) {
-      console.error('Error updating request status:', updateError);
+      console.error('Error updating status:', updateError);
     }
 
     return new Response(

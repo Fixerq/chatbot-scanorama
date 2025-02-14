@@ -759,6 +759,36 @@ export type Database = {
         }
         Relationships: []
       }
+      function_executions: {
+        Row: {
+          completed_at: string | null
+          execution_time: unknown | null
+          function_name: string
+          id: string
+          memory_usage: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          execution_time?: unknown | null
+          function_name: string
+          id?: string
+          memory_usage?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          execution_time?: unknown | null
+          function_name?: string
+          id?: string
+          memory_usage?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       live_element_patterns: {
         Row: {
           created_at: string | null
@@ -1468,6 +1498,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_cached_places: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_executions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
