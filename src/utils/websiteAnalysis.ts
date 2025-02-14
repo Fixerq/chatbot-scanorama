@@ -58,11 +58,15 @@ function validateUrl(url: string): string {
   }
 }
 
-export const analyzeWebsites = async (urls: string[]): Promise<WebsiteAnalysisResult[]> => {
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const analyzeWebsites = async (urls: string[], retryCount = 0): Promise<WebsiteAnalysisResult[]> => {
   console.log('Analyzing batch of URLs:', urls);
   
   try {
-    // Get active detection patterns once for all URLs
     const patterns = await getActivePatterns();
     console.log(`Loaded ${patterns.length} detection patterns`);
 
@@ -75,6 +79,11 @@ export const analyzeWebsites = async (urls: string[]): Promise<WebsiteAnalysisRe
 
     if (error) {
       console.error('Batch analysis error:', error);
+      if (retryCount < MAX_RETRIES && error.status === 429) {
+        console.log(`Retrying after delay (attempt ${retryCount + 1})`);
+        await delay(RETRY_DELAY * (retryCount + 1));
+        return analyzeWebsites(urls, retryCount + 1);
+      }
       throw error;
     }
 

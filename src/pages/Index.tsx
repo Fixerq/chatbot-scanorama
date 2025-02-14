@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import NavigationBar from '@/components/NavigationBar';
 import Header from '@/components/Header';
 import SearchFormContainer from '@/components/SearchFormContainer';
@@ -19,26 +19,45 @@ const Index = () => {
   });
   
   const { handleLoadMore, isSearching } = useSearchOperations(setResults);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const handleNewSearch = useCallback(() => {
-    setResults([]);
-    setNewSearchTrigger(prev => !prev);
+    if (mounted.current) {
+      setResults([]);
+      setNewSearchTrigger(prev => !prev);
+    }
   }, []);
 
   const handleSearchError = useCallback((error: Error) => {
     console.error('Search error:', error);
-    toast.error('An error occurred during search. Please try again.');
+    if (mounted.current) {
+      toast.error('An error occurred during search. Please try again.');
+    }
   }, []);
 
   const handlePageChange = useCallback((page: number) => {
-    handleLoadMore(
-      searchParams.query,
-      searchParams.country, 
-      searchParams.region,
-      page, 
-      (page + 1) * 50
-    );
+    if (mounted.current) {
+      handleLoadMore(
+        searchParams.query,
+        searchParams.country, 
+        searchParams.region,
+        page, 
+        (page + 1) * 50
+      );
+    }
   }, [handleLoadMore, searchParams]);
+
+  const handleResults = useCallback((newResults: Result[]) => {
+    if (mounted.current) {
+      setResults(newResults);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-black">
@@ -46,7 +65,7 @@ const Index = () => {
       <div className="container py-8">
         <Header />
         <SearchFormContainer 
-          onResults={setResults}
+          onResults={handleResults}
           isProcessing={isProcessing}
           setIsProcessing={setIsProcessing}
           triggerNewSearch={newSearchTrigger}
