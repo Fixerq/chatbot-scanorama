@@ -962,6 +962,13 @@ export type Database = {
       }
     }
     Views: {
+      admin_users_mv: {
+        Row: {
+          created_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       analysis_dashboard: {
         Row: {
           avg_response_time_seconds: number | null
@@ -1115,6 +1122,10 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      refresh_admin_users_mv: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
