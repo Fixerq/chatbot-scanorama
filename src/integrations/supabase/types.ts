@@ -1331,6 +1331,30 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      increment_analysis_retries: {
+        Args: {
+          request_id: string
+        }
+        Returns: {
+          analysis_result: Json | null
+          attempts: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          last_error: string | null
+          max_retries: number | null
+          next_retry_at: string | null
+          result: Json | null
+          retries: number | null
+          retry_after: string | null
+          retry_count: number | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          updated_at: string | null
+          website_url: string
+        }[]
+      }
       is_admin: {
         Args: {
           user_id: string

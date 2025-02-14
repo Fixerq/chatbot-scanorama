@@ -72,6 +72,21 @@ export const checkAnalysisStatus = async (requestId: string): Promise<QueuedAnal
   return transformDatabaseResponse(request);
 };
 
+export const incrementRetries = async (requestId: string): Promise<QueuedAnalysis> => {
+  console.log('Incrementing retries for request:', requestId);
+  
+  const { data: request, error } = await supabase
+    .rpc('increment_analysis_retries', { request_id: requestId })
+    .single();
+
+  if (error) {
+    console.error('Error incrementing retries:', error);
+    throw new Error(`Error incrementing retries: ${error.message}`);
+  }
+
+  return transformDatabaseResponse(request);
+};
+
 export const invokeAnalysisFunction = async (url: string, requestId: string): Promise<ChatDetectionResult> => {
   console.log('Invoking analysis function for URL:', url, 'requestId:', requestId);
   
@@ -103,3 +118,4 @@ export const invokeAnalysisFunction = async (url: string, requestId: string): Pr
     throw error;
   }
 };
+
