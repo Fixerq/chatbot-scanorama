@@ -68,14 +68,19 @@ export const useAnalysisQueue = () => {
         if (queueItem.status === 'completed' && queueItem.analysis_result) {
           clearInterval(pollInterval);
           
-          // Check if the analysis_result has the expected structure
-          if (typeof queueItem.analysis_result === 'object' && 
-              queueItem.analysis_result !== null &&
-              'status' in queueItem.analysis_result &&
-              'chatSolutions' in queueItem.analysis_result &&
-              'lastChecked' in queueItem.analysis_result) {
+          // Convert the JSON result to unknown first, then validate its structure
+          const rawResult = queueItem.analysis_result as unknown;
+          
+          // Type guard to validate the raw result
+          if (typeof rawResult === 'object' && 
+              rawResult !== null &&
+              'status' in rawResult &&
+              'chatSolutions' in rawResult &&
+              'lastChecked' in rawResult &&
+              Array.isArray((rawResult as any).chatSolutions)) {
             
-            const analysisResult = queueItem.analysis_result as ChatDetectionResult;
+            // Now we can safely cast to ChatDetectionResult
+            const analysisResult = rawResult as ChatDetectionResult;
             
             if (isChatDetectionResult(analysisResult)) {
               setQueuedResults(prev => prev.map(result => 
@@ -86,6 +91,14 @@ export const useAnalysisQueue = () => {
                     chatSolutions: analysisResult.chatSolutions,
                     lastChecked: analysisResult.lastChecked
                   }
+                } : result
+              ));
+            } else {
+              console.error('Invalid ChatDetectionResult structure:', analysisResult);
+              setQueuedResults(prev => prev.map(result => 
+                result.url === url ? {
+                  ...result,
+                  status: 'Error: Invalid analysis result structure'
                 } : result
               ));
             }
@@ -172,3 +185,4 @@ export const useAnalysisQueue = () => {
     clearResults
   };
 };
+
