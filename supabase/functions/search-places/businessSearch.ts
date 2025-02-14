@@ -70,7 +70,7 @@ export async function searchBusinesses(params: {
     }
 
     if (params.nextPageToken) {
-      url += `&pagetoken=${params.nextPageToken}`;
+      url = `${baseUrl}?pagetoken=${params.nextPageToken}&key=${apiKey}`;
     }
 
     console.log('Fetching URL:', url);

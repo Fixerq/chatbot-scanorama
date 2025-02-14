@@ -85,7 +85,12 @@ export const useSearchOperations = (setResults: (results: Result[]) => void) => 
 
       if (data?.data?.results) {
         const newResults = data.data.results as Result[];
-        const combinedResults = [...currentResults, ...newResults];
+        
+        // Filter out duplicates based on URL
+        const existingUrls = new Set(currentResults.map(r => r.url));
+        const uniqueNewResults = newResults.filter(result => !existingUrls.has(result.url));
+        
+        const combinedResults = [...currentResults, ...uniqueNewResults];
         setCurrentResults(combinedResults);
         setResults(combinedResults);
         setNextPageToken(data.data.nextPageToken);
