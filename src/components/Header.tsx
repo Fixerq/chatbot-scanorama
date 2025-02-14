@@ -1,12 +1,21 @@
+
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Bot, Search, BarChart3, Crown } from 'lucide-react';
+import { Bot, Search, BarChart3, Crown, Cog } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
 const Header = () => {
   return <div className="relative mb-12">
       <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/30 via-blue-600/30 to-cyan-600/30 rounded-[2rem] blur-xl animate-gradient" />
       
       <Card className="relative bg-black/60 backdrop-blur-lg border-none shadow-xl hover:shadow-2xl transition-all duration-500 rounded-[2rem] overflow-hidden">
         <CardContent className="pt-12 pb-14 px-8">
+          <div className="absolute top-4 right-4">
+            <Link to="/settings">
+              <Cog className="w-6 h-6 text-cyan-400 hover:text-cyan-300 transition-colors" />
+            </Link>
+          </div>
+          
           <div className="flex flex-col items-center space-y-10">            
             <div className="text-center space-y-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-400/20 mb-4">
@@ -73,4 +82,5 @@ const Header = () => {
       </Card>
     </div>;
 };
+
 export default Header;
