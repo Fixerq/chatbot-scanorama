@@ -5,7 +5,6 @@ import ResultsHeader from './ResultsHeader';
 import ResultsFilters from './ResultsFilters';
 import ResultsContent from './ResultsContent';
 import { useResultsState } from '@/hooks/useResultsState';
-import AnalyzeActions from './AnalyzeActions';
 
 interface ResultsContainerProps {
   results: Result[];
@@ -47,16 +46,13 @@ const ResultsContainer = ({
           onFilterChange={handleFilter}
           onSortChange={handleSort}
         />
-        <div className="flex items-center gap-4">
-          <AnalyzeActions results={filteredResults} />
-          <ResultsHeader
-            results={results}
-            totalCount={results.length}
-            chatbotCount={chatbotCount}
-            onNewSearch={onNewSearch}
-            onExport={onExport}
-          />
-        </div>
+        <ResultsHeader
+          results={results}
+          totalCount={results.length}
+          chatbotCount={chatbotCount}
+          onNewSearch={onNewSearch}
+          onExport={onExport}
+        />
       </div>
       <ResultsContent
         results={filteredResults}
