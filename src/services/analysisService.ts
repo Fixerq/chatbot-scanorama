@@ -119,3 +119,29 @@ export const invokeAnalysisFunction = async (url: string, requestId: string): Pr
   }
 };
 
+export const subscribeToAnalysisUpdates = (
+  requestId: string,
+  callback: (analysis: QueuedAnalysis) => void
+): (() => void) => {
+  const subscription = supabase
+    .channel('analysis_updates')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'analysis_requests',
+        filter: `id=eq.${requestId}`
+      },
+      (payload) => {
+        if (payload.new) {
+          callback(transformDatabaseResponse(payload.new));
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(subscription);
+  };
+};
