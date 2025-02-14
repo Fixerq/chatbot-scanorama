@@ -1,5 +1,4 @@
 
-// Import from Deno standard library
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from '../_shared/cors.ts';
 import { validateSearchRequest } from './validation.ts';
@@ -15,17 +14,9 @@ serve(async (req) => {
     });
     
     // Handle CORS
-    const origin = req.headers.get('origin') || '*';
-    const responseHeaders = {
-      ...corsHeaders,
-      'Access-Control-Allow-Origin': origin,
-      'Content-Type': 'application/json'
-    };
-
-    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response('ok', { 
-        headers: responseHeaders,
+        headers: corsHeaders,
         status: 204 
       });
     }
@@ -104,7 +95,10 @@ serve(async (req) => {
         status: 'success'
       }),
       { 
-        headers: responseHeaders,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         status: 200
       }
     );
@@ -116,13 +110,6 @@ serve(async (req) => {
       cause: error.cause
     });
     
-    const origin = req.headers.get('origin') || '*';
-    const errorHeaders = {
-      ...corsHeaders,
-      'Access-Control-Allow-Origin': origin,
-      'Content-Type': 'application/json'
-    };
-    
     return new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
@@ -130,7 +117,10 @@ serve(async (req) => {
       }),
       { 
         status: error.message === 'Method not allowed' ? 405 : 500,
-        headers: errorHeaders
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
   }
