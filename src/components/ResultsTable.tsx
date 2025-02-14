@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Table,
@@ -27,6 +26,7 @@ export interface Result {
   };
   status?: string;
   nextPageToken?: string;
+  isAnalyzing?: boolean;
 }
 
 interface ResultsTableProps {
