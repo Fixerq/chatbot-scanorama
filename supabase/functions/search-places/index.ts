@@ -14,9 +14,13 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
     
-    // Always add CORS headers to all responses
+    // Handle CORS
+    const origin = req.headers.get('origin');
     const responseHeaders = {
       ...corsHeaders,
+      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       'Content-Type': 'application/json'
     };
 
@@ -114,6 +118,15 @@ serve(async (req) => {
       cause: error.cause
     });
     
+    const origin = req.headers.get('origin');
+    const errorHeaders = {
+      ...corsHeaders,
+      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Content-Type': 'application/json'
+    };
+    
     return new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
@@ -121,10 +134,7 @@ serve(async (req) => {
       }),
       { 
         status: error.message === 'Method not allowed' ? 405 : 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: errorHeaders
       }
     );
   }
