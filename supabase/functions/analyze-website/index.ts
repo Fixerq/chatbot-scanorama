@@ -10,8 +10,30 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let requestBody;
   try {
-    const { url, requestId } = await req.json();
+    // Clone request before consuming body
+    const reqClone = req.clone();
+    requestBody = await reqClone.json();
+  } catch (error) {
+    console.error('Error parsing request body:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: 'Invalid JSON in request body',
+        status: 'error',
+        has_chatbot: false,
+        chatSolutions: [],
+        lastChecked: new Date().toISOString()
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      }
+    );
+  }
+
+  try {
+    const { url, requestId } = requestBody;
     console.log('Received analysis request:', { url, requestId });
     
     if (!url) {
@@ -23,26 +45,31 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Update analysis request status to processing
+    // Update analysis request status to processing only if requestId exists
     if (requestId) {
       console.log('Updating request status to processing:', requestId);
-      await supabaseClient
+      const { error: updateError } = await supabaseClient
         .from('analysis_requests')
         .update({ 
           status: 'processing',
           started_at: new Date().toISOString()
         })
         .eq('id', requestId);
+
+      if (updateError) {
+        console.error('Error updating request status:', updateError);
+        // Continue with analysis even if status update fails
+      }
     }
 
     console.log('Starting website analysis for:', url);
     const result = await websiteAnalyzer(url);
     console.log('Analysis completed successfully:', result);
 
-    // Update analysis request with results
+    // Update analysis request with results if requestId exists
     if (requestId) {
       console.log('Updating request with results:', requestId);
-      await supabaseClient
+      const { error: resultError } = await supabaseClient
         .from('analysis_requests')
         .update({
           status: 'completed',
@@ -50,6 +77,11 @@ serve(async (req) => {
           analysis_result: result
         })
         .eq('id', requestId);
+
+      if (resultError) {
+        console.error('Error updating analysis results:', resultError);
+        // Continue to return results even if status update fails
+      }
     }
 
     return new Response(
@@ -67,9 +99,9 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     console.error('Analysis error:', errorMessage);
 
-    // Update analysis request with error if we have a requestId
+    // Try to update analysis request with error if we have a requestId
     try {
-      const requestId = req.body ? (JSON.parse(await req.text())).requestId : null;
+      const { requestId } = requestBody;
       if (requestId) {
         console.log('Updating request with error:', requestId);
         const supabaseClient = createClient(
@@ -77,7 +109,7 @@ serve(async (req) => {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
-        await supabaseClient
+        const { error: updateError } = await supabaseClient
           .from('analysis_requests')
           .update({
             status: 'failed',
@@ -85,6 +117,10 @@ serve(async (req) => {
             error_message: errorMessage
           })
           .eq('id', requestId);
+
+        if (updateError) {
+          console.error('Error updating request status:', updateError);
+        }
       }
     } catch (updateError) {
       console.error('Error updating request status:', updateError);
