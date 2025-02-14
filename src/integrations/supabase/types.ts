@@ -51,6 +51,30 @@ export type Database = {
         }
         Relationships: []
       }
+      allowed_origins: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          origin: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          origin: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          origin?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       analysis_cache: {
         Row: {
           analysis_result: Json

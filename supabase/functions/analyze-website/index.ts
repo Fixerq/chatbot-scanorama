@@ -1,26 +1,24 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, getCorsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
 serve(async (req) => {
-  const headers = getCorsHeaders(req);
+  const headers = await getCorsHeaders(req);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers, status: 204 });
   }
 
   let executionId: string | null = null;
+  let supabaseClient: ReturnType<typeof createClient>;
 
   try {
-    const supabaseClient = createClient(
+    supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Create execution record
     const { data: executionData, error: executionError } = await supabaseClient
       .from('function_executions')
       .insert({
@@ -45,14 +43,11 @@ serve(async (req) => {
     executionId = executionData.id;
     console.log('Created execution record:', executionId);
 
-    // Read request body
     const rawBody = await req.text();
     console.log('Raw request body:', rawBody);
 
-    // Parse JSON safely
-    let { url, requestId } = JSON.parse(rawBody);
+    const { url, requestId } = JSON.parse(rawBody);
 
-    // Validate required fields
     if (!url || !requestId) {
       console.error('Missing required fields:', { url, requestId });
       return new Response(
@@ -65,7 +60,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate URL format
     try {
       new URL(url);
     } catch (error) {
@@ -80,7 +74,6 @@ serve(async (req) => {
       );
     }
 
-    // Update analysis request status to processing
     console.log('Updating request status to processing:', requestId);
     const { error: updateError } = await supabaseClient
       .from('analysis_requests')
@@ -102,13 +95,11 @@ serve(async (req) => {
       );
     }
 
-    // Perform analysis
     console.log('Starting website analysis for:', url);
     const result = await websiteAnalyzer(url);
 
     console.log('Analysis completed successfully:', result);
 
-    // Update analysis request with results
     console.log('Updating request with results:', requestId);
     const { error: resultError } = await supabaseClient
       .from('analysis_requests')
@@ -131,7 +122,6 @@ serve(async (req) => {
       );
     }
 
-    // Update execution record as completed
     if (executionId) {
       const endTime = new Date();
       const { error: completionError } = await supabaseClient
@@ -158,7 +148,6 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
 
     try {
-      // Update execution record as failed
       if (executionId) {
         const endTime = new Date();
         await supabaseClient

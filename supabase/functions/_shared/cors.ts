@@ -1,10 +1,4 @@
 
-const ALLOWED_ORIGINS = [
-  'https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com',
-  'https://cfelpyucqllkshmlkwxz.supabase.co',
-  'http://localhost:3000',  // For local development
-];
-
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*', // We'll dynamically set this based on the request origin
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,12 +6,40 @@ export const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
-export function getCorsHeaders(request: Request) {
-  const origin = request.headers.get('origin');
-  return {
-    ...corsHeaders,
-    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin ?? '') 
-      ? origin 
-      : ALLOWED_ORIGINS[0]
-  };
+export async function getCorsHeaders(request: Request) {
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get the request origin
+    const origin = request.headers.get('origin');
+    
+    if (!origin) {
+      return corsHeaders;
+    }
+
+    // Query the allowed_origins table
+    const { data: allowedOrigins, error } = await supabaseClient
+      .from('allowed_origins')
+      .select('origin')
+      .eq('origin', origin)
+      .single();
+
+    if (error) {
+      console.error('Error checking allowed origins:', error);
+      return corsHeaders;
+    }
+
+    // If the origin is allowed, return it in the headers
+    return {
+      ...corsHeaders,
+      'Access-Control-Allow-Origin': allowedOrigins ? origin : corsHeaders['Access-Control-Allow-Origin']
+    };
+  } catch (error) {
+    console.error('Error in getCorsHeaders:', error);
+    return corsHeaders;
+  }
 }
+
