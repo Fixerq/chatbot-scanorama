@@ -37,8 +37,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!currentSession) {
-        console.log('No active session found, redirecting to login');
-        await supabase.auth.signOut();
+        console.log('No active session found');
+        localStorage.removeItem('supabase.auth.token');
         if (window.location.pathname !== '/login') {
           navigate('/login');
         }
@@ -59,14 +59,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       if (refreshError) {
         console.error('Session refresh failed:', refreshError);
-        // If refresh token is invalid, sign out and redirect
-        if (refreshError.message.includes('refresh_token_not_found') || 
-            refreshError.message.includes('Invalid Refresh Token')) {
-          console.log('Invalid refresh token, signing out');
-          await supabase.auth.signOut();
-          if (window.location.pathname !== '/login') {
-            navigate('/login');
-          }
+        localStorage.removeItem('supabase.auth.token');
+        await supabase.auth.signOut();
+        if (window.location.pathname !== '/login') {
+          navigate('/login');
           toast.error('Your session has expired. Please sign in again.');
         }
         return;
@@ -79,9 +75,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Unexpected error during session refresh:', error);
       if (mounted.current) {
+        localStorage.removeItem('supabase.auth.token');
         await supabase.auth.signOut();
         if (window.location.pathname !== '/login') {
           navigate('/login');
+          toast.error('An error occurred with your session. Please sign in again.');
         }
       }
     }
@@ -101,6 +99,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
         if (!initialSession) {
           console.log('No initial session found');
+          localStorage.removeItem('supabase.auth.token');
           if (window.location.pathname !== '/login') {
             navigate('/login');
           }
@@ -109,6 +108,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error during session setup:', error);
+        localStorage.removeItem('supabase.auth.token');
         if (mounted.current && window.location.pathname !== '/login') {
           navigate('/login');
         }
@@ -145,6 +145,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out');
+        localStorage.removeItem('supabase.auth.token');
         navigate('/login');
       } else if (event === 'SIGNED_IN' && session) {
         console.log('User signed in');

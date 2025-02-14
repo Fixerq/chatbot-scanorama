@@ -27,9 +27,12 @@ export const useAuthState = (): AuthState => {
           } else {
             navigate('/dashboard');
           }
+        } else {
+          localStorage.removeItem('supabase.auth.token');
         }
       } catch (error) {
         console.error('Session check error:', error);
+        localStorage.removeItem('supabase.auth.token');
         if (mounted.current) {
           setError('Error checking session status');
         }
@@ -79,6 +82,7 @@ export const useAuthState = (): AuthState => {
       }
 
       if (event === 'SIGNED_OUT' && mounted.current) {
+        localStorage.removeItem('supabase.auth.token');
         setError('');
       }
     });
