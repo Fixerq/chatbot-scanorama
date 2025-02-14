@@ -11,19 +11,19 @@ serve(async (req) => {
     headers: Object.fromEntries(req.headers.entries())
   });
 
-  // Always add CORS headers to all responses
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { 
+      headers: corsHeaders,
+      status: 204 
+    });
+  }
+
+  // Create base headers for all responses
   const responseHeaders = {
     ...corsHeaders,
     'Content-Type': 'application/json'
   };
-
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      headers: responseHeaders,
-      status: 204 
-    });
-  }
 
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -79,7 +79,7 @@ serve(async (req) => {
         }),
         { 
           headers: responseHeaders,
-          status: 400
+          status: 400 
         }
       );
     }
@@ -93,7 +93,7 @@ serve(async (req) => {
         JSON.stringify({
           error: 'Invalid URL format',
           status: 'error',
-          details: `URL must start with http:// or https://`
+          details: 'URL must start with http:// or https://'
         }),
         {
           headers: responseHeaders,
@@ -180,7 +180,7 @@ serve(async (req) => {
       JSON.stringify(result),
       {
         headers: responseHeaders,
-        status: 200,
+        status: 200
       }
     );
 
@@ -188,7 +188,6 @@ serve(async (req) => {
     console.error('Analysis error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
 
-    // Always include CORS headers in error responses
     try {
       // Update execution record as failed
       if (executionId) {
@@ -218,7 +217,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: errorMessage,
         status: 'error',
         has_chatbot: false,
@@ -227,8 +226,9 @@ serve(async (req) => {
       }),
       {
         headers: responseHeaders,
-        status: 500,
+        status: 500
       }
     );
   }
 });
+
