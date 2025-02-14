@@ -1,33 +1,18 @@
 
-export interface ChatbotDetectionResponse {
-  status: string;
-  chatSolutions?: string[];
-  lastChecked?: string;
-  website_url?: string | null;
-  business_name?: string | null;
-  phone?: string | null;
-  address?: string | null;
-}
-
 export interface ChatDetectionResult {
   status: string;
+  has_chatbot: boolean;
   chatSolutions: string[];
   lastChecked: string;
-  note?: string;
-  error?: string;
-  website_url?: string | null;
-  business_name?: string | null;
 }
 
-// Helper type guard
-export function isChatDetectionResult(obj: unknown): obj is ChatDetectionResult {
-  const result = obj as ChatDetectionResult;
+export function isChatDetectionResult(obj: any): obj is ChatDetectionResult {
   return (
-    typeof result === 'object' &&
-    result !== null &&
-    typeof result.status === 'string' &&
-    Array.isArray(result.chatSolutions) &&
-    typeof result.lastChecked === 'string'
+    obj &&
+    typeof obj.status === 'string' &&
+    typeof obj.has_chatbot === 'boolean' &&
+    Array.isArray(obj.chatSolutions) &&
+    typeof obj.lastChecked === 'string'
   );
 }
 

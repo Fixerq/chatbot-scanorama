@@ -40,3 +40,4 @@ export const loggingService = {
     console.error('Invalid analysis result format:', result);
   }
 };
+

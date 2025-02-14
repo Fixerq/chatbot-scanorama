@@ -28,3 +28,4 @@ export const ANALYSIS_CONSTANTS: AnalysisConstants = {
   POLLING_INTERVAL: 2000,
   MAX_POLLING_ATTEMPTS: 30
 };
+
