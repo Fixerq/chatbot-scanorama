@@ -1026,6 +1026,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      check_admin_no_recursion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_admin_status: {
         Args: {
           user_id: string
