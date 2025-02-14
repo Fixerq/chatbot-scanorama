@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
@@ -10,12 +11,21 @@ export const useNavigation = () => {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear any local storage keys related to auth
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (supabaseUrl) {
+        const authTokenKey = `sb-${supabaseUrl.split('//')[1]}-auth-token`;
+        localStorage.removeItem(authTokenKey);
+      }
+      
       toast.success('Logged out successfully');
-      navigate('/login');
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Error logging out:', error);
-      toast.error('Failed to log out');
+      toast.error('Failed to log out. Please try again.');
     }
   };
 

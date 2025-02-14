@@ -22,7 +22,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const refreshTimeout = useRef<NodeJS.Timeout>();
   const authStateSubscription = useRef<{ data: { subscription: { unsubscribe: () => void } } }>();
 
-  // Get the Supabase URL from environment variable
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const authTokenKey = `sb-${supabaseUrl?.split('//')[1]}-auth-token`;
 
@@ -44,12 +43,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         console.log('No active session found');
         localStorage.removeItem(authTokenKey);
         if (window.location.pathname !== '/login') {
-          navigate('/login');
+          navigate('/login', { replace: true });
         }
         return;
       }
 
-      // Check if we need to refresh
       const tokenExpiryTime = new Date((currentSession.expires_at || 0) * 1000);
       const timeUntilExpiry = tokenExpiryTime.getTime() - Date.now();
       
@@ -66,7 +64,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(authTokenKey);
         await supabase.auth.signOut();
         if (window.location.pathname !== '/login') {
-          navigate('/login');
+          navigate('/login', { replace: true });
           toast.error('Your session has expired. Please sign in again.');
         }
         return;
@@ -82,7 +80,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(authTokenKey);
         await supabase.auth.signOut();
         if (window.location.pathname !== '/login') {
-          navigate('/login');
+          navigate('/login', { replace: true });
           toast.error('An error occurred with your session. Please sign in again.');
         }
       }
@@ -105,7 +103,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           console.log('No initial session found');
           localStorage.removeItem(authTokenKey);
           if (window.location.pathname !== '/login') {
-            navigate('/login');
+            navigate('/login', { replace: true });
           }
         } else {
           console.log('Initial session found:', initialSession.user.id);
@@ -114,7 +112,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         console.error('Error during session setup:', error);
         localStorage.removeItem(authTokenKey);
         if (mounted.current && window.location.pathname !== '/login') {
-          navigate('/login');
+          navigate('/login', { replace: true });
         }
       } finally {
         if (mounted.current) {
@@ -126,12 +124,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     setupSession();
 
-    // Set up periodic session refresh
     refreshTimeout.current = setInterval(() => {
       if (isInitialized && session?.user && mounted.current) {
         refreshSession();
       }
-    }, 4 * 60 * 1000); // Check every 4 minutes
+    }, 4 * 60 * 1000);
 
     return () => {
       mounted.current = false;
@@ -152,7 +149,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_OUT') {
         console.log('User signed out');
         localStorage.removeItem(authTokenKey);
-        navigate('/login');
+        navigate('/login', { replace: true });
       } else if (event === 'SIGNED_IN' && session) {
         console.log('User signed in');
         setIsInitialized(true);
@@ -188,4 +185,3 @@ export const useSessionContext = () => {
   }
   return context;
 };
-
