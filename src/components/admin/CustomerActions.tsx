@@ -8,6 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CustomerActionsProps {
   userId: string;
@@ -17,8 +19,24 @@ interface CustomerActionsProps {
 
 export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: CustomerActionsProps) => {
   const handleResetSearches = async () => {
-    // Add your reset searches logic here
-    onCustomerUpdate();
+    try {
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ total_searches: 0 })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error resetting searches:', error);
+        toast.error('Failed to reset searches');
+        return;
+      }
+
+      toast.success('Successfully reset searches');
+      onCustomerUpdate();
+    } catch (error) {
+      console.error('Error in handleResetSearches:', error);
+      toast.error('An unexpected error occurred');
+    }
   };
 
   return (
@@ -37,3 +55,4 @@ export const CustomerActions = ({ userId, totalSearches, onCustomerUpdate }: Cus
     </DropdownMenu>
   );
 };
+
