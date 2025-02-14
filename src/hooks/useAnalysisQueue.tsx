@@ -113,6 +113,13 @@ export const useAnalysisQueue = () => {
     try {
       console.log(`Processing URL (attempt ${attempt}):`, url);
       
+      // Log Supabase client status
+      console.log('Supabase client config:', {
+        url: supabase.config.supabaseUrl,
+        hasAnonKey: !!supabase.config.supabaseKey,
+        headers: supabase.config.headers
+      });
+      
       // Create analysis request record
       const { data: request, error: insertError } = await supabase
         .from('analysis_requests')
@@ -139,10 +146,15 @@ export const useAnalysisQueue = () => {
       ));
 
       // Call the analyze-website function
+      console.log('Invoking analyze-website function with params:', { url, requestId: request.id });
+      
       const { data: analysisResult, error: analysisError } = await supabase.functions.invoke<ChatDetectionResult>(
         'analyze-website',
         {
-          body: { url, requestId: request.id }
+          body: { url, requestId: request.id },
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
       );
 
