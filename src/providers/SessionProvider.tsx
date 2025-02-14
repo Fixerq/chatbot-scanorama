@@ -22,6 +22,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const refreshTimeout = useRef<NodeJS.Timeout>();
   const authStateSubscription = useRef<{ data: { subscription: { unsubscribe: () => void } } }>();
 
+  // Get the Supabase URL from environment variable
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const authTokenKey = `sb-${supabaseUrl?.split('//')[1]}-auth-token`;
+
   const refreshSession = async () => {
     if (!isInitialized || !mounted.current) {
       console.log('Session not yet initialized, skipping refresh');
@@ -38,7 +42,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       if (!currentSession) {
         console.log('No active session found');
-        localStorage.removeItem('sb-' + supabase.supabaseUrl + '-auth-token');
+        localStorage.removeItem(authTokenKey);
         if (window.location.pathname !== '/login') {
           navigate('/login');
         }
@@ -59,7 +63,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       if (refreshError) {
         console.error('Session refresh failed:', refreshError);
-        localStorage.removeItem('sb-' + supabase.supabaseUrl + '-auth-token');
+        localStorage.removeItem(authTokenKey);
         await supabase.auth.signOut();
         if (window.location.pathname !== '/login') {
           navigate('/login');
@@ -75,7 +79,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Unexpected error during session refresh:', error);
       if (mounted.current) {
-        localStorage.removeItem('sb-' + supabase.supabaseUrl + '-auth-token');
+        localStorage.removeItem(authTokenKey);
         await supabase.auth.signOut();
         if (window.location.pathname !== '/login') {
           navigate('/login');
@@ -99,7 +103,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
         if (!initialSession) {
           console.log('No initial session found');
-          localStorage.removeItem('sb-' + supabase.supabaseUrl + '-auth-token');
+          localStorage.removeItem(authTokenKey);
           if (window.location.pathname !== '/login') {
             navigate('/login');
           }
@@ -108,7 +112,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error during session setup:', error);
-        localStorage.removeItem('sb-' + supabase.supabaseUrl + '-auth-token');
+        localStorage.removeItem(authTokenKey);
         if (mounted.current && window.location.pathname !== '/login') {
           navigate('/login');
         }
@@ -147,7 +151,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out');
-        localStorage.removeItem('sb-' + supabase.supabaseUrl + '-auth-token');
+        localStorage.removeItem(authTokenKey);
         navigate('/login');
       } else if (event === 'SIGNED_IN' && session) {
         console.log('User signed in');
@@ -184,3 +188,4 @@ export const useSessionContext = () => {
   }
   return context;
 };
+
