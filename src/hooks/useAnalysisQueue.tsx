@@ -68,17 +68,33 @@ export const useAnalysisQueue = () => {
         if (queueItem.status === 'completed' && queueItem.analysis_result) {
           clearInterval(pollInterval);
           
-          const analysisResult = queueItem.analysis_result as ChatDetectionResult;
-          
-          if (isChatDetectionResult(analysisResult)) {
+          // Check if the analysis_result has the expected structure
+          if (typeof queueItem.analysis_result === 'object' && 
+              queueItem.analysis_result !== null &&
+              'status' in queueItem.analysis_result &&
+              'chatSolutions' in queueItem.analysis_result &&
+              'lastChecked' in queueItem.analysis_result) {
+            
+            const analysisResult = queueItem.analysis_result as ChatDetectionResult;
+            
+            if (isChatDetectionResult(analysisResult)) {
+              setQueuedResults(prev => prev.map(result => 
+                result.url === url ? {
+                  ...result,
+                  status: 'Success',
+                  details: {
+                    chatSolutions: analysisResult.chatSolutions,
+                    lastChecked: analysisResult.lastChecked
+                  }
+                } : result
+              ));
+            }
+          } else {
+            console.error('Invalid analysis result structure:', queueItem.analysis_result);
             setQueuedResults(prev => prev.map(result => 
               result.url === url ? {
                 ...result,
-                status: 'Success',
-                details: {
-                  chatSolutions: analysisResult.chatSolutions,
-                  lastChecked: analysisResult.lastChecked
-                }
+                status: 'Error: Invalid analysis result format'
               } : result
             ));
           }
@@ -156,4 +172,3 @@ export const useAnalysisQueue = () => {
     clearResults
   };
 };
-
