@@ -121,7 +121,7 @@ serve(async (req) => {
       }),
       { 
         status: error.message === 'Method not allowed' ? 405 : 500,
-        headers: { 
+        headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
         }
