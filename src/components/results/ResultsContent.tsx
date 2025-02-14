@@ -32,7 +32,12 @@ const ResultsContent = ({
   isLoadingMore = false
 }: ResultsContentProps) => {
   if (!results || results.length === 0) {
-    return <EmptyResults onNewSearch={() => {}} />;
+    return (
+      <EmptyResults 
+        onNewSearch={() => {}} 
+        message="No analyzed results found. Please wait while websites are being analyzed."
+      />
+    );
   }
 
   const handlePageChange = (page: number) => {
@@ -117,3 +122,4 @@ const ResultsContent = ({
 };
 
 export default ResultsContent;
+

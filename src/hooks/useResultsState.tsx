@@ -3,24 +3,36 @@ import { useState, useEffect } from 'react';
 import { Result } from '@/components/ResultsTable';
 
 export const useResultsState = (initialResults: Result[] = []) => {
-  const [filteredResults, setFilteredResults] = useState<Result[]>(initialResults.filter(r => 
-    !r.status?.toLowerCase().includes('error analyzing url')
-  ));
+  // Only include results that have been successfully analyzed
+  const [filteredResults, setFilteredResults] = useState<Result[]>(
+    initialResults.filter(r => {
+      const status = r.status?.toLowerCase() || '';
+      return !status.includes('error') && 
+             !status.includes('analyzing') && 
+             status !== '' &&
+             !r.isAnalyzing;
+    })
+  );
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
   const [localPage, setLocalPage] = useState(1);
 
   useEffect(() => {
-    const newValidResults = initialResults.filter(r => 
-      !r.status?.toLowerCase().includes('error analyzing url')
-    );
-    setFilteredResults(newValidResults);
+    // Update filtered results when initial results change
+    const successfulResults = initialResults.filter(r => {
+      const status = r.status?.toLowerCase() || '';
+      return !status.includes('error') && 
+             !status.includes('analyzing') && 
+             status !== '' &&
+             !r.isAnalyzing;
+    });
+    setFilteredResults(successfulResults);
     setLocalPage(1);
   }, [initialResults]);
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
-    let filtered = [...filteredResults];
+    let filtered = filteredResults;
     
     if (value === 'chatbot') {
       filtered = filtered.filter(r => r.details?.chatSolutions?.length > 0);
@@ -65,3 +77,4 @@ export const useResultsState = (initialResults: Result[] = []) => {
     handleSort
   };
 };
+

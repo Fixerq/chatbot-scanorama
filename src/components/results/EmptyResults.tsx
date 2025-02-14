@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -5,19 +6,22 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface EmptyResultsProps {
   onNewSearch: () => void;
+  message?: string;
 }
 
-const EmptyResults = ({ onNewSearch }: EmptyResultsProps) => {
+const EmptyResults = ({ onNewSearch, message }: EmptyResultsProps) => {
   return (
     <Alert className="mt-10 bg-black/20 border-cyan-500/20 text-cyan-100 rounded-[1.25rem] backdrop-blur-sm">
       <AlertDescription className="space-y-4">
-        <p>No results found. Try:</p>
-        <ul className="list-disc pl-4 space-y-2 text-cyan-200/70">
-          <li>Using more general search terms</li>
-          <li>Checking for spelling mistakes</li>
-          <li>Removing location-specific terms</li>
-          <li>Using different keywords related to your search</li>
-        </ul>
+        <p>{message || 'No results found. Try:'}</p>
+        {!message && (
+          <ul className="list-disc pl-4 space-y-2 text-cyan-200/70">
+            <li>Using more general search terms</li>
+            <li>Checking for spelling mistakes</li>
+            <li>Removing location-specific terms</li>
+            <li>Using different keywords related to your search</li>
+          </ul>
+        )}
         <Button 
           variant="outline" 
           onClick={onNewSearch} 
@@ -32,3 +36,4 @@ const EmptyResults = ({ onNewSearch }: EmptyResultsProps) => {
 };
 
 export default EmptyResults;
+
