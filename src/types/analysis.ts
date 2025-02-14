@@ -7,6 +7,10 @@ export interface QueuedAnalysis {
   status: string;
   analysis_result: ChatDetectionResult | null;
   error_message: string | null;
+  retry_count: number;
+  max_retries: number;
+  last_error: string | null;
+  retry_after: string | null;
   started_at?: string;
   completed_at?: string;
   created_at?: string;

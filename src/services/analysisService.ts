@@ -20,6 +20,10 @@ const transformDatabaseResponse = (response: any): QueuedAnalysis => {
     status: response.status,
     analysis_result: analysisResult,
     error_message: response.error_message,
+    retry_count: response.retry_count,
+    max_retries: response.max_retries,
+    last_error: response.last_error,
+    retry_after: response.retry_after,
     started_at: response.started_at,
     completed_at: response.completed_at,
     created_at: response.created_at,
@@ -36,7 +40,9 @@ export const createAnalysisRequest = async (url: string): Promise<QueuedAnalysis
     .from('analysis_requests')
     .insert([{
       website_url: url,
-      status: 'pending'
+      status: 'pending',
+      retry_count: 0,
+      max_retries: 3
     }])
     .select()
     .single();
@@ -97,3 +103,4 @@ export const invokeAnalysisFunction = async (url: string, requestId: string): Pr
     throw error;
   }
 };
+

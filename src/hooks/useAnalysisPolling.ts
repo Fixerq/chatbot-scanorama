@@ -33,9 +33,18 @@ export const useAnalysisPolling = (
           return true;
         }
       } else if (request.status === 'failed') {
+        const errorMessage = request.error_message || 'Analysis failed';
+        const retryInfo = request.retry_count < request.max_retries 
+          ? ` (Retry ${request.retry_count + 1}/${request.max_retries})` 
+          : ' (Max retries reached)';
+        
         loggingService.logAnalysisError(url, request.error_message);
-        updateResults(url, { status: `Error: ${request.error_message || 'Analysis failed'}` });
-        return true;
+        updateResults(url, { 
+          status: `Error: ${errorMessage}${retryInfo}`
+        });
+        
+        // If retrying, we should continue polling
+        return request.retry_count >= request.max_retries;
       }
 
       return false;
@@ -68,3 +77,4 @@ export const useAnalysisPolling = (
 
   return { startPolling };
 };
+

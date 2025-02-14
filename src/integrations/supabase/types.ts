@@ -125,7 +125,11 @@ export type Database = {
           created_at: string | null
           error_message: string | null
           id: string
+          last_error: string | null
+          max_retries: number | null
           next_retry_at: string | null
+          retry_after: string | null
+          retry_count: number | null
           started_at: string | null
           status: string
           updated_at: string | null
@@ -138,7 +142,11 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           id?: string
+          last_error?: string | null
+          max_retries?: number | null
           next_retry_at?: string | null
+          retry_after?: string | null
+          retry_count?: number | null
           started_at?: string | null
           status?: string
           updated_at?: string | null
@@ -151,7 +159,11 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           id?: string
+          last_error?: string | null
+          max_retries?: number | null
           next_retry_at?: string | null
+          retry_after?: string | null
+          retry_count?: number | null
           started_at?: string | null
           status?: string
           updated_at?: string | null
