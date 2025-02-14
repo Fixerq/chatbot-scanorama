@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Result } from './ResultsTable';
 import { useSearchState } from '../hooks/useSearchState';
@@ -12,6 +11,7 @@ interface SearchFormContainerProps {
   setIsProcessing: (value: boolean) => void;
   triggerNewSearch?: boolean;
   onError?: (error: Error) => void;
+  onSearchParamsChange?: (params: { query: string; country: string; region: string }) => void;
 }
 
 const SearchFormContainer = ({ 
@@ -19,7 +19,8 @@ const SearchFormContainer = ({
   isProcessing, 
   setIsProcessing,
   triggerNewSearch,
-  onError 
+  onError,
+  onSearchParamsChange 
 }: SearchFormContainerProps) => {
   const {
     searchState,
@@ -49,6 +50,15 @@ const SearchFormContainer = ({
     }).finally(() => {
       setIsProcessing(false);
     });
+
+    // Update parent component with search parameters
+    if (onSearchParamsChange) {
+      onSearchParamsChange({
+        query: searchState.query,
+        country: searchState.country,
+        region: searchState.region
+      });
+    }
   };
 
   const onLoadMore = () => {

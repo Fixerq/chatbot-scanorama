@@ -12,6 +12,12 @@ const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [newSearchTrigger, setNewSearchTrigger] = useState(false);
+  const [searchParams, setSearchParams] = useState({
+    query: '',
+    country: '',
+    region: ''
+  });
+  
   const { handleLoadMore, isSearching } = useSearchOperations(setResults);
 
   const handleNewSearch = useCallback(() => {
@@ -25,8 +31,14 @@ const Index = () => {
   }, []);
 
   const handlePageChange = useCallback((page: number) => {
-    handleLoadMore("", "", "", page, (page + 1) * 50);
-  }, [handleLoadMore]);
+    handleLoadMore(
+      searchParams.query,
+      searchParams.country, 
+      searchParams.region,
+      page, 
+      (page + 1) * 50
+    );
+  }, [handleLoadMore, searchParams]);
 
   return (
     <div className="min-h-screen bg-black">
@@ -39,6 +51,7 @@ const Index = () => {
           setIsProcessing={setIsProcessing}
           triggerNewSearch={newSearchTrigger}
           onError={handleSearchError}
+          onSearchParamsChange={setSearchParams}
         />
         <Results 
           results={results}

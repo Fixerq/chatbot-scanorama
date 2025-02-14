@@ -12,6 +12,15 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   const { validateSearchParams } = useSearchValidation();
   const { analyzeChatbots } = useChatbotAnalysis();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [currentSearchParams, setCurrentSearchParams] = useState<{
+    query: string;
+    country: string;
+    region: string;
+  }>({
+    query: '',
+    country: '',
+    region: ''
+  });
 
   const startAnalysis = async (searchResults: Result[]) => {
     setIsAnalyzing(true);
@@ -85,6 +94,9 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     console.log('Starting search operation');
     setIsSearching(true);
     
+    // Store the current search parameters for load more functionality
+    setCurrentSearchParams({ query, country, region });
+    
     try {
       const searchResult = await executeSearch(
         query,
@@ -124,11 +136,11 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     newLimit: number
   ) => {
     try {
-      console.log('Loading more results');
+      console.log('Loading more results with params:', currentSearchParams);
       const moreResults = await loadMore(
-        query,
-        country,
-        region,
+        currentSearchParams.query,
+        currentSearchParams.country,
+        currentSearchParams.region,
         results.currentResults,
         newLimit
       );
