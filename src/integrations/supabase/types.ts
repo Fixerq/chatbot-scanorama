@@ -960,6 +960,8 @@ export type Database = {
           error_message: string | null
           id: string
           last_attempt_at: string | null
+          next_retry_at: string | null
+          priority: number | null
           status: string
           updated_at: string | null
           user_id: string | null
@@ -972,6 +974,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           last_attempt_at?: string | null
+          next_retry_at?: string | null
+          priority?: number | null
           status?: string
           updated_at?: string | null
           user_id?: string | null
@@ -984,6 +988,8 @@ export type Database = {
           error_message?: string | null
           id?: string
           last_attempt_at?: string | null
+          next_retry_at?: string | null
+          priority?: number | null
           status?: string
           updated_at?: string | null
           user_id?: string | null
