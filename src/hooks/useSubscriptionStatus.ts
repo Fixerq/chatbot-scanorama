@@ -21,12 +21,11 @@ export const useSubscriptionStatus = () => {
       }
 
       try {
-        // First get the user's subscription
+        // Get the user's subscription from the new table
         const { data: subscription, error: subscriptionError } = await supabase
-          .from('subscriptions')
+          .from('subscriptions_with_user')
           .select('level, status, total_searches')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+          .single();
 
         if (subscriptionError) {
           console.error('Subscription fetch error:', subscriptionError);
@@ -52,7 +51,6 @@ export const useSubscriptionStatus = () => {
         const { count: searchCount, error: searchError } = await supabase
           .from('analyzed_urls')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', session.user.id)
           .gte('created_at', startOfMonth.toISOString());
 
         if (searchError) {
