@@ -1,3 +1,4 @@
+
 export const platformPatterns = {
   'Intercom': [/intercom/i, /widget\.intercom\.io/i],
   'Drift': [/drift\.com/i, /js\.driftt\.com/i, /drift-frame/i],
@@ -8,6 +9,15 @@ export const platformPatterns = {
   'HubSpot': [/hubspot/i, /js\.hs-scripts\.com/i],
   'Facebook Messenger': [/facebook\.com\/customer_chat/i, /connect\.facebook\.net.*\/sdk\/xfbml\.customerchat/i],
   'WhatsApp': [/wa\.me/i, /whatsapp/i, /api\.whatsapp\.com/i],
-  'Gist': [/getgist\.com/i, /gist\.build/i], // Added Gist chat detection
-  'Custom Chat': [/chat-widget/i, /chat-container/i, /chat-box/i, /messenger-widget/i]
+  'Gist': [/getgist\.com/i, /gist\.build/i],
+  'Engage.ai': [/engageai/i, /engage\.ai/i, /engage-widget/i],
+  'Custom Chat': [
+    /chat-widget/i, 
+    /chat-container/i, 
+    /chat-box/i, 
+    /messenger-widget/i,
+    /widget-container/i,
+    /chat-bubble/i,
+    /chat-icon/i
+  ]
 };

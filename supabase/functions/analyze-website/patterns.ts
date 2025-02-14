@@ -17,7 +17,8 @@ export const PLATFORM_PATTERNS = {
   'Weave': ['weave-widget', 'getweave'],
   'Birdeye': ['birdeye-chat-widget', 'birdeyechat'],
   'SmileSnap': ['smilesnap-widget', 'smilesnap.io'],
-  'Swell': ['swellcx', 'swellai', 'swell.io']
+  'Swell': ['swellcx', 'swellai', 'swell.io'],
+  'Engage.ai': ['engageai', 'engage.ai', 'engagebot', 'engage-widget']
 };
 
 export const MESSENGER_PATTERNS = {
@@ -31,7 +32,11 @@ export const MESSENGER_PATTERNS = {
     'chat-popup',
     'chat-window',
     'chat-launcher',
-    'chat-trigger'
+    'chat-trigger',
+    'messenger-frame',
+    'messenger-widget',
+    'message-us',
+    'live-chat'
   ]
 };
 
@@ -42,7 +47,10 @@ export const SUPPORT_PATTERNS = {
     'help-widget',
     'help-chat',
     'customer-support',
-    'live-support'
+    'live-support',
+    'book-appointment',
+    'appointment-widget',
+    'schedule-widget'
   ]
 };
 
@@ -53,7 +61,11 @@ export const CUSTOM_PATTERNS = {
     'messenger.js',
     'chat-init.js',
     'initChat',
-    'loadChat'
+    'loadChat',
+    'chat-bubble',
+    'chat-icon',
+    'chat-greeting',
+    'widget-container'
   ]
 };
 
