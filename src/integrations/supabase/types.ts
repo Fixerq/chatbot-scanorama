@@ -75,135 +75,6 @@ export type Database = {
         }
         Relationships: []
       }
-      analysis_cache: {
-        Row: {
-          analysis_result: Json
-          created_at: string | null
-          last_checked: string | null
-          updated_at: string | null
-          url: string
-        }
-        Insert: {
-          analysis_result: Json
-          created_at?: string | null
-          last_checked?: string | null
-          updated_at?: string | null
-          url: string
-        }
-        Update: {
-          analysis_result?: Json
-          created_at?: string | null
-          last_checked?: string | null
-          updated_at?: string | null
-          url?: string
-        }
-        Relationships: []
-      }
-      analysis_logs: {
-        Row: {
-          cached: boolean
-          error_message: string | null
-          id: number
-          is_rate_limited: boolean | null
-          metadata: Json | null
-          providers_found: string[] | null
-          rate_limit_remaining: number | null
-          response_time_ms: number | null
-          success: boolean
-          timestamp: string
-          url: string
-        }
-        Insert: {
-          cached: boolean
-          error_message?: string | null
-          id?: number
-          is_rate_limited?: boolean | null
-          metadata?: Json | null
-          providers_found?: string[] | null
-          rate_limit_remaining?: number | null
-          response_time_ms?: number | null
-          success: boolean
-          timestamp?: string
-          url: string
-        }
-        Update: {
-          cached?: boolean
-          error_message?: string | null
-          id?: number
-          is_rate_limited?: boolean | null
-          metadata?: Json | null
-          providers_found?: string[] | null
-          rate_limit_remaining?: number | null
-          response_time_ms?: number | null
-          success?: boolean
-          timestamp?: string
-          url?: string
-        }
-        Relationships: []
-      }
-      analysis_requests: {
-        Row: {
-          analysis_result: Json | null
-          attempts: number | null
-          completed_at: string | null
-          created_at: string | null
-          details: Json | null
-          error_message: string | null
-          id: string
-          last_error: string | null
-          max_retries: number | null
-          next_retry_at: string | null
-          result: Json | null
-          retries: number | null
-          retry_after: string | null
-          retry_count: number | null
-          started_at: string | null
-          status: Database["public"]["Enums"]["request_status"]
-          updated_at: string | null
-          website_url: string
-        }
-        Insert: {
-          analysis_result?: Json | null
-          attempts?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          details?: Json | null
-          error_message?: string | null
-          id?: string
-          last_error?: string | null
-          max_retries?: number | null
-          next_retry_at?: string | null
-          result?: Json | null
-          retries?: number | null
-          retry_after?: string | null
-          retry_count?: number | null
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["request_status"]
-          updated_at?: string | null
-          website_url: string
-        }
-        Update: {
-          analysis_result?: Json | null
-          attempts?: number | null
-          completed_at?: string | null
-          created_at?: string | null
-          details?: Json | null
-          error_message?: string | null
-          id?: string
-          last_error?: string | null
-          max_retries?: number | null
-          next_retry_at?: string | null
-          result?: Json | null
-          retries?: number | null
-          retry_after?: string | null
-          retry_count?: number | null
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["request_status"]
-          updated_at?: string | null
-          website_url?: string
-        }
-        Relationships: []
-      }
       analysis_results: {
         Row: {
           business_name: string | null
@@ -519,39 +390,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cached_analyses: {
-        Row: {
-          analysis_details: Json | null
-          chatbot_providers: string[] | null
-          error_message: string | null
-          has_chatbot: boolean | null
-          id: string
-          is_error: boolean | null
-          last_analyzed: string | null
-          url: string
-        }
-        Insert: {
-          analysis_details?: Json | null
-          chatbot_providers?: string[] | null
-          error_message?: string | null
-          has_chatbot?: boolean | null
-          id?: string
-          is_error?: boolean | null
-          last_analyzed?: string | null
-          url: string
-        }
-        Update: {
-          analysis_details?: Json | null
-          chatbot_providers?: string[] | null
-          error_message?: string | null
-          has_chatbot?: boolean | null
-          id?: string
-          is_error?: boolean | null
-          last_analyzed?: string | null
-          url?: string
-        }
-        Relationships: []
-      }
       cached_places: {
         Row: {
           business_name: string
@@ -582,123 +420,6 @@ export type Database = {
           place_id?: string
           search_batch_id?: string
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      chatbot_detection_patterns: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: number
-          is_active: boolean | null
-          method: Database["public"]["Enums"]["detection_method"]
-          pattern: string
-          priority: number | null
-          provider: string | null
-          timeout_ms: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: number
-          is_active?: boolean | null
-          method: Database["public"]["Enums"]["detection_method"]
-          pattern: string
-          priority?: number | null
-          provider?: string | null
-          timeout_ms?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: number
-          is_active?: boolean | null
-          method?: Database["public"]["Enums"]["detection_method"]
-          pattern?: string
-          priority?: number | null
-          provider?: string | null
-          timeout_ms?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      chatbot_detections: {
-        Row: {
-          address: string | null
-          business_name: string | null
-          chatbot_platforms: string[] | null
-          created_at: string
-          has_chatbot: boolean | null
-          has_live_elements: boolean | null
-          id: string
-          last_checked: string
-          live_elements: Json | null
-          phone: string | null
-          url: string
-          website_url: string | null
-        }
-        Insert: {
-          address?: string | null
-          business_name?: string | null
-          chatbot_platforms?: string[] | null
-          created_at?: string
-          has_chatbot?: boolean | null
-          has_live_elements?: boolean | null
-          id?: string
-          last_checked?: string
-          live_elements?: Json | null
-          phone?: string | null
-          url: string
-          website_url?: string | null
-        }
-        Update: {
-          address?: string | null
-          business_name?: string | null
-          chatbot_platforms?: string[] | null
-          created_at?: string
-          has_chatbot?: boolean | null
-          has_live_elements?: boolean | null
-          id?: string
-          last_checked?: string
-          live_elements?: Json | null
-          phone?: string | null
-          url?: string
-          website_url?: string | null
-        }
-        Relationships: []
-      }
-      chatbot_reports: {
-        Row: {
-          business_name: string | null
-          chatbot_solutions: string[] | null
-          created_at: string | null
-          has_chatbot: boolean | null
-          id: string
-          last_checked: string | null
-          updated_at: string | null
-          website_url: string
-        }
-        Insert: {
-          business_name?: string | null
-          chatbot_solutions?: string[] | null
-          created_at?: string | null
-          has_chatbot?: boolean | null
-          id?: string
-          last_checked?: string | null
-          updated_at?: string | null
-          website_url: string
-        }
-        Update: {
-          business_name?: string | null
-          chatbot_solutions?: string[] | null
-          created_at?: string | null
-          has_chatbot?: boolean | null
-          id?: string
-          last_checked?: string | null
-          updated_at?: string | null
-          website_url?: string
         }
         Relationships: []
       }
@@ -816,36 +537,6 @@ export type Database = {
         }
         Relationships: []
       }
-      function_executions: {
-        Row: {
-          completed_at: string | null
-          execution_time: unknown | null
-          function_name: string
-          id: string
-          memory_usage: number | null
-          started_at: string
-          status: string
-        }
-        Insert: {
-          completed_at?: string | null
-          execution_time?: unknown | null
-          function_name: string
-          id?: string
-          memory_usage?: number | null
-          started_at?: string
-          status?: string
-        }
-        Update: {
-          completed_at?: string | null
-          execution_time?: unknown | null
-          function_name?: string
-          id?: string
-          memory_usage?: number | null
-          started_at?: string
-          status?: string
-        }
-        Relationships: []
-      }
       live_element_patterns: {
         Row: {
           created_at: string | null
@@ -919,15 +610,7 @@ export type Database = {
           url?: string
           website_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "place_details_chatbot_detection_id_fkey"
-            columns: ["chatbot_detection_id"]
-            isOneToOne: false
-            referencedRelation: "chatbot_detections"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -950,39 +633,6 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
-        }
-        Relationships: []
-      }
-      proxy_pool: {
-        Row: {
-          created_at: string | null
-          failure_count: number | null
-          id: string
-          is_active: boolean | null
-          last_used: string | null
-          proxy_url: string
-          success_count: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          failure_count?: number | null
-          id?: string
-          is_active?: boolean | null
-          last_used?: string | null
-          proxy_url: string
-          success_count?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          failure_count?: number | null
-          id?: string
-          is_active?: boolean | null
-          last_used?: string | null
-          proxy_url?: string
-          success_count?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1273,168 +923,12 @@ export type Database = {
         }
         Relationships: []
       }
-      website_analyses: {
-        Row: {
-          business_signals_found: string[] | null
-          chatbot_platforms: string[] | null
-          created_at: string | null
-          error_message: string | null
-          has_business_signals: boolean | null
-          has_chatbot: boolean | null
-          has_contact: boolean | null
-          has_location: boolean | null
-          id: string
-          last_checked: string | null
-          normalized_url: string
-          processed: boolean
-          status: Database["public"]["Enums"]["website_analysis_status"] | null
-          updated_at: string | null
-          url: string
-        }
-        Insert: {
-          business_signals_found?: string[] | null
-          chatbot_platforms?: string[] | null
-          created_at?: string | null
-          error_message?: string | null
-          has_business_signals?: boolean | null
-          has_chatbot?: boolean | null
-          has_contact?: boolean | null
-          has_location?: boolean | null
-          id?: string
-          last_checked?: string | null
-          normalized_url: string
-          processed?: boolean
-          status?: Database["public"]["Enums"]["website_analysis_status"] | null
-          updated_at?: string | null
-          url: string
-        }
-        Update: {
-          business_signals_found?: string[] | null
-          chatbot_platforms?: string[] | null
-          created_at?: string | null
-          error_message?: string | null
-          has_business_signals?: boolean | null
-          has_chatbot?: boolean | null
-          has_contact?: boolean | null
-          has_location?: boolean | null
-          id?: string
-          last_checked?: string | null
-          normalized_url?: string
-          processed?: boolean
-          status?: Database["public"]["Enums"]["website_analysis_status"] | null
-          updated_at?: string | null
-          url?: string
-        }
-        Relationships: []
-      }
-      website_analysis_cache: {
-        Row: {
-          created_at: string
-          id: number
-          result: Json
-          updated_at: string
-          url: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          result: Json
-          updated_at?: string
-          url: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          result?: Json
-          updated_at?: string
-          url?: string
-        }
-        Relationships: []
-      }
-      website_analysis_queue: {
-        Row: {
-          analysis_result: Json | null
-          attempts: number | null
-          backoff_interval: unknown
-          created_at: string | null
-          error_message: string | null
-          id: string
-          last_attempt_at: string | null
-          locked_at: string | null
-          locked_by: string | null
-          max_attempts: number
-          next_retry_at: string | null
-          priority: number | null
-          status: string
-          updated_at: string | null
-          user_id: string | null
-          website_url: string
-        }
-        Insert: {
-          analysis_result?: Json | null
-          attempts?: number | null
-          backoff_interval?: unknown
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          last_attempt_at?: string | null
-          locked_at?: string | null
-          locked_by?: string | null
-          max_attempts?: number
-          next_retry_at?: string | null
-          priority?: number | null
-          status?: string
-          updated_at?: string | null
-          user_id?: string | null
-          website_url: string
-        }
-        Update: {
-          analysis_result?: Json | null
-          attempts?: number | null
-          backoff_interval?: unknown
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          last_attempt_at?: string | null
-          locked_at?: string | null
-          locked_by?: string | null
-          max_attempts?: number
-          next_retry_at?: string | null
-          priority?: number | null
-          status?: string
-          updated_at?: string | null
-          user_id?: string | null
-          website_url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "website_analysis_queue_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       admin_users_mv: {
         Row: {
           created_at: string | null
           user_id: string | null
-        }
-        Relationships: []
-      }
-      analysis_dashboard: {
-        Row: {
-          avg_response_time_seconds: number | null
-          cache_hit_rate: number | null
-          cached_requests: number | null
-          success_rate: number | null
-          successful_requests: number | null
-          time_bucket: string | null
-          total_requests: number | null
-          unique_urls_analyzed: number | null
         }
         Relationships: []
       }
@@ -1447,24 +941,6 @@ export type Database = {
           resolved_count: number | null
           unresolved_count: number | null
           website_url: string | null
-        }
-        Relationships: []
-      }
-      error_monitoring: {
-        Row: {
-          affected_urls: string[] | null
-          error_count: number | null
-          time_bucket: string | null
-          unique_errors: string | null
-        }
-        Relationships: []
-      }
-      provider_analysis: {
-        Row: {
-          detection_count: number | null
-          detection_rate: number | null
-          provider_name: string | null
-          unique_sites: number | null
         }
         Relationships: []
       }
@@ -1550,10 +1026,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      cleanup_old_analysis_cache: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       cleanup_old_cached_places: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1566,10 +1038,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      cleanup_stuck_analyses: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       clear_search_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1579,13 +1047,6 @@ export type Database = {
           user_id_param: string
         }
         Returns: undefined
-      }
-      get_next_available_proxy: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          proxy_url: string
-          proxy_id: string
-        }[]
       }
       get_performance_metrics: {
         Args: {
@@ -1601,35 +1062,6 @@ export type Database = {
           user_uid: string
         }
         Returns: Json
-      }
-      handle_stale_requests: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      increment_analysis_retries: {
-        Args: {
-          request_id: string
-        }
-        Returns: {
-          analysis_result: Json | null
-          attempts: number | null
-          completed_at: string | null
-          created_at: string | null
-          details: Json | null
-          error_message: string | null
-          id: string
-          last_error: string | null
-          max_retries: number | null
-          next_retry_at: string | null
-          result: Json | null
-          retries: number | null
-          retry_after: string | null
-          retry_count: number | null
-          started_at: string | null
-          status: Database["public"]["Enums"]["request_status"]
-          updated_at: string | null
-          website_url: string
-        }[]
       }
       is_admin: {
         Args: {
