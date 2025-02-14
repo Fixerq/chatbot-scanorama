@@ -1,7 +1,33 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { QueuedAnalysis } from '@/types/analysis';
-import { ChatDetectionResult } from '@/types/chatbot';
+import { ChatDetectionResult, isChatDetectionResult } from '@/types/chatbot';
+
+const transformDatabaseResponse = (response: any): QueuedAnalysis => {
+  let analysisResult: ChatDetectionResult | null = null;
+  
+  if (response.analysis_result) {
+    if (isChatDetectionResult(response.analysis_result)) {
+      analysisResult = response.analysis_result;
+    } else {
+      console.warn('Invalid analysis result format:', response.analysis_result);
+    }
+  }
+
+  return {
+    id: response.id,
+    website_url: response.website_url,
+    status: response.status,
+    analysis_result: analysisResult,
+    error_message: response.error_message,
+    started_at: response.started_at,
+    completed_at: response.completed_at,
+    created_at: response.created_at,
+    updated_at: response.updated_at,
+    next_retry_at: response.next_retry_at,
+    attempts: response.attempts
+  };
+};
 
 export const createAnalysisRequest = async (url: string): Promise<QueuedAnalysis> => {
   const { data: request, error: insertError } = await supabase
@@ -17,7 +43,7 @@ export const createAnalysisRequest = async (url: string): Promise<QueuedAnalysis
     throw new Error(`Failed to create analysis request: ${insertError.message}`);
   }
 
-  return request;
+  return transformDatabaseResponse(request);
 };
 
 export const checkAnalysisStatus = async (requestId: string): Promise<QueuedAnalysis> => {
@@ -31,7 +57,7 @@ export const checkAnalysisStatus = async (requestId: string): Promise<QueuedAnal
     throw new Error(`Error checking analysis status: ${error.message}`);
   }
 
-  return request;
+  return transformDatabaseResponse(request);
 };
 
 export const invokeAnalysisFunction = async (url: string, requestId: string): Promise<ChatDetectionResult> => {
@@ -55,4 +81,3 @@ export const invokeAnalysisFunction = async (url: string, requestId: string): Pr
 
   return analysisResult;
 };
-
