@@ -10,11 +10,20 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Log incoming request details
+  console.log('Incoming request:', {
+    method: req.method,
+    headers: Object.fromEntries(req.headers),
+    url: req.url
+  });
+
   let requestBody;
   try {
     // Clone request before consuming body
     const reqClone = req.clone();
-    requestBody = await reqClone.json();
+    const text = await reqClone.text();
+    console.log('Request body text:', text);
+    requestBody = JSON.parse(text);
   } catch (error) {
     console.error('Error parsing request body:', error);
     return new Response(
@@ -23,7 +32,8 @@ serve(async (req) => {
         status: 'error',
         has_chatbot: false,
         chatSolutions: [],
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
+        details: error instanceof Error ? error.message : 'Unknown parsing error'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -33,11 +43,15 @@ serve(async (req) => {
   }
 
   try {
+    // Validate required fields
     const { url, requestId } = requestBody;
-    console.log('Received analysis request:', { url, requestId });
     
     if (!url) {
       throw new Error('URL is required');
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      throw new Error('Invalid URL format - must start with http:// or https://');
     }
 
     const supabaseClient = createClient(
@@ -45,7 +59,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Update analysis request status to processing only if requestId exists
+    // Update analysis request status to processing if requestId exists
     if (requestId) {
       console.log('Updating request status to processing:', requestId);
       const { error: updateError } = await supabaseClient
@@ -100,10 +114,9 @@ serve(async (req) => {
     console.error('Analysis error:', errorMessage);
 
     // Try to update analysis request with error if we have a requestId
-    try {
-      const { requestId } = requestBody;
-      if (requestId) {
-        console.log('Updating request with error:', requestId);
+    if (requestBody?.requestId) {
+      try {
+        console.log('Updating request with error:', requestBody.requestId);
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -116,14 +129,14 @@ serve(async (req) => {
             completed_at: new Date().toISOString(),
             error_message: errorMessage
           })
-          .eq('id', requestId);
+          .eq('id', requestBody.requestId);
 
         if (updateError) {
           console.error('Error updating request status:', updateError);
         }
+      } catch (updateError) {
+        console.error('Error updating request status:', updateError);
       }
-    } catch (updateError) {
-      console.error('Error updating request status:', updateError);
     }
 
     return new Response(
