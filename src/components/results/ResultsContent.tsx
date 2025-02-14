@@ -31,15 +31,16 @@ const ResultsContent = ({
   onLoadMore,
   isLoadingMore = false
 }: ResultsContentProps) => {
-  // Less strict filtering to show more results
+  // Less strict filtering to show results even with partial failures
   const validResults = results.filter(r => {
-    const hasStatus = r.status === 'success' || r.status === 'Success';
-    const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
-    const isAnalyzed = hasStatus || hasDetails || r.has_chatbot !== undefined;
-    return isAnalyzed;
+    const hasValidStatus = r.status !== undefined;
+    const hasAnyDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
+    const hasAnalysisResult = hasValidStatus || hasAnyDetails || r.has_chatbot !== undefined;
+    return hasAnalysisResult;
   });
 
-  if (!validResults || validResults.length === 0) {
+  // Show empty state only if there are truly no results
+  if (!results || results.length === 0) {
     return (
       <EmptyResults 
         onNewSearch={() => {}} 
@@ -65,6 +66,7 @@ const ResultsContent = ({
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
         <ResultsTable 
           results={displayedResults}
+          isLoading={isLoadingMore}
         />
       </div>
       

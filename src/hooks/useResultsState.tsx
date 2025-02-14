@@ -10,13 +10,13 @@ export const useResultsState = (initialResults: Result[] = []) => {
 
   useEffect(() => {
     // Update filtered results when initial results change
-    let updatedResults = initialResults;
+    let updatedResults = [...initialResults];
 
-    // Filter to show results that have completed analysis or have details
+    // Less strict filtering to show more results
     updatedResults = updatedResults.filter(r => {
-      const hasCompletedAnalysis = r.status === 'success' || r.status === 'Success';
+      const hasValidStatus = r.status !== undefined;
       const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
-      return hasCompletedAnalysis || hasDetails;
+      return hasValidStatus || hasDetails;
     });
 
     setFilteredResults(updatedResults);
@@ -27,11 +27,11 @@ export const useResultsState = (initialResults: Result[] = []) => {
     setFilterValue(value);
     let filtered = [...initialResults];
     
-    // First filter for valid results
+    // Less strict filtering for valid results
     filtered = filtered.filter(r => {
-      const hasCompletedAnalysis = r.status === 'success' || r.status === 'Success';
+      const hasValidStatus = r.status !== undefined;
       const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
-      return hasCompletedAnalysis || hasDetails;
+      return hasValidStatus || hasDetails;
     });
     
     if (value === 'chatbot') {
@@ -66,8 +66,8 @@ export const useResultsState = (initialResults: Result[] = []) => {
         break;
       case 'url':
         sorted.sort((a, b) => {
-          const urlA = a.details?.website_url || a.url;
-          const urlB = b.details?.website_url || b.url;
+          const urlA = a.details?.website_url || a.url || '';
+          const urlB = b.details?.website_url || b.url || '';
           return urlA.localeCompare(urlB);
         });
         break;
