@@ -7,24 +7,14 @@ import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import EmailResults from './EmailResults';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-
-interface CrawlResult {
-  success: boolean;
-  status?: string;
-  completed?: number;
-  total?: number;
-  creditsUsed?: number;
-  expiresAt?: string;
-  data?: any[];
-  emails?: string[];
-}
+import { createAnalysisRequest, invokeAnalysisFunction } from '@/services/analysisService';
 
 export const CrawlForm = () => {
   const { toast } = useToast();
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [crawlResult, setCrawlResult] = useState<CrawlResult | null>(null);
+  const [crawlResult, setCrawlResult] = useState<any | null>(null);
   const { subscriptionData, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,21 +35,15 @@ export const CrawlForm = () => {
     setCrawlResult(null);
     
     try {
-      // Call to Supabase Edge Function
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-website`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setCrawlResult(data);
+      // Create analysis request
+      const request = await createAnalysisRequest(url);
+      console.log('Analysis request created:', request);
+      
+      // Start the analysis
+      const result = await invokeAnalysisFunction(url, request.id);
+      console.log('Analysis completed:', result);
+      
+      setCrawlResult(result);
       toast({
         title: "Success",
         description: "Website analyzed successfully",
@@ -120,10 +104,10 @@ export const CrawlForm = () => {
             <h3 className="text-lg font-semibold mb-2">Analysis Results</h3>
             <div className="space-y-2 text-sm">
               <p>Status: {crawlResult.status}</p>
-              <p>Completed Pages: {crawlResult.completed}</p>
-              <p>Total Pages: {crawlResult.total}</p>
-              <p>Credits Used: {crawlResult.creditsUsed}</p>
-              <p>Expires At: {new Date(crawlResult.expiresAt || '').toLocaleString()}</p>
+              {crawlResult.chatSolutions?.length > 0 && (
+                <p>Chat Solutions: {crawlResult.chatSolutions.join(', ')}</p>
+              )}
+              <p>Last Checked: {new Date(crawlResult.lastChecked).toLocaleString()}</p>
             </div>
           </Card>
           
@@ -133,3 +117,4 @@ export const CrawlForm = () => {
     </div>
   );
 };
+
