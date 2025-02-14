@@ -15,12 +15,10 @@ serve(async (req) => {
     });
     
     // Handle CORS
-    const origin = req.headers.get('origin');
+    const origin = req.headers.get('origin') || '*';
     const responseHeaders = {
       ...corsHeaders,
-      'Access-Control-Allow-Origin': origin || '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Origin': origin,
       'Content-Type': 'application/json'
     };
 
@@ -118,12 +116,10 @@ serve(async (req) => {
       cause: error.cause
     });
     
-    const origin = req.headers.get('origin');
+    const origin = req.headers.get('origin') || '*';
     const errorHeaders = {
       ...corsHeaders,
-      'Access-Control-Allow-Origin': origin || '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Origin': origin,
       'Content-Type': 'application/json'
     };
     
