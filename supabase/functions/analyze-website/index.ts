@@ -45,7 +45,17 @@ serve(async (req) => {
 
     if (executionError) {
       console.error('Error creating execution record:', executionError);
-      throw new Error('Failed to create execution record');
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to create execution record',
+          status: 'error',
+          details: executionError
+        }),
+        { 
+          headers: responseHeaders,
+          status: 500 
+        }
+      );
     }
 
     executionId = executionData.id;
@@ -68,8 +78,8 @@ serve(async (req) => {
           details: 'Both "url" and "requestId" must be provided'
         }),
         { 
-          status: 400,
-          headers: responseHeaders
+          headers: responseHeaders,
+          status: 400
         }
       );
     }
@@ -86,8 +96,8 @@ serve(async (req) => {
           details: `URL must start with http:// or https://`
         }),
         {
-          status: 400,
-          headers: responseHeaders
+          headers: responseHeaders,
+          status: 400
         }
       );
     }
@@ -104,6 +114,17 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating request status:', updateError);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to update request status',
+          status: 'error',
+          details: updateError
+        }),
+        { 
+          headers: responseHeaders,
+          status: 500 
+        }
+      );
     }
 
     // Perform analysis
@@ -125,6 +146,17 @@ serve(async (req) => {
 
     if (resultError) {
       console.error('Error updating analysis results:', resultError);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to update analysis results',
+          status: 'error',
+          details: resultError
+        }),
+        { 
+          headers: responseHeaders,
+          status: 500 
+        }
+      );
     }
 
     // Update execution record as completed
@@ -149,13 +181,14 @@ serve(async (req) => {
       {
         headers: responseHeaders,
         status: 200,
-      },
+      }
     );
 
   } catch (error) {
     console.error('Analysis error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
 
+    // Always include CORS headers in error responses
     try {
       // Update execution record as failed
       if (executionId) {
@@ -170,7 +203,7 @@ serve(async (req) => {
           .eq('id', executionId);
       }
 
-      if (requestId) {
+      if (req.body && 'requestId' in req.body) {
         await supabaseClient
           .from('analysis_requests')
           .update({
@@ -178,7 +211,7 @@ serve(async (req) => {
             completed_at: new Date().toISOString(),
             error_message: errorMessage
           })
-          .eq('id', requestId);
+          .eq('id', req.body.requestId);
       }
     } catch (updateError) {
       console.error('Error updating status:', updateError);
@@ -194,9 +227,8 @@ serve(async (req) => {
       }),
       {
         headers: responseHeaders,
-        status: 200,
-      },
+        status: 500,
+      }
     );
   }
 });
-
