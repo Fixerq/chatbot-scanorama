@@ -91,11 +91,14 @@ export const invokeAnalysisFunction = async (url: string, requestId: string): Pr
   console.log('Invoking analysis function for URL:', url, 'requestId:', requestId);
   
   try {
-    // Simplified request payload
+    console.log('Request payload:', { url, requestId });
     const { data, error } = await supabase.functions.invoke<ChatDetectionResult>(
       'analyze-website',
       {
-        body: { url, requestId }
+        body: JSON.stringify({ url, requestId }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
     );
 

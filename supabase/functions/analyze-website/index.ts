@@ -11,8 +11,35 @@ serve(async (req) => {
   }
 
   try {
-    // Simple JSON parsing of the request body
-    const { url, requestId } = await req.json();
+    // Log request details for debugging
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
+    // Clone request to safely read body
+    const clonedReq = req.clone();
+    const bodyText = await clonedReq.text();
+    console.log('Raw request body:', bodyText);
+
+    // Validate that we have a non-empty body
+    if (!bodyText || bodyText.trim() === '') {
+      throw new Error('Request body is empty');
+    }
+
+    // Parse JSON body
+    let requestData;
+    try {
+      requestData = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      throw new Error(`Invalid JSON in request body: ${parseError.message}`);
+    }
+
+    // Validate request data
+    if (!requestData || typeof requestData !== 'object') {
+      throw new Error('Request body must be a valid JSON object');
+    }
+
+    const { url, requestId } = requestData;
     
     // Validate required fields
     if (!url) {
