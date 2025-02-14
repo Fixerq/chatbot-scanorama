@@ -1345,6 +1345,7 @@ export type Database = {
     Enums: {
       alert_severity: "error" | "warning" | "info"
       detection_method: "selector" | "script" | "iframe" | "text" | "mutation"
+      request_status: "pending" | "processing" | "completed" | "failed"
       subscription_level: "starter" | "pro" | "premium" | "founders" | "admin"
       website_analysis_status: "success" | "error"
     }

@@ -103,4 +103,3 @@ export const invokeAnalysisFunction = async (url: string, requestId: string): Pr
     throw error;
   }
 };
-

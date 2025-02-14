@@ -23,4 +23,3 @@ export function isChatDetectionResult(obj: any): obj is ChatDetectionResult {
     typeof obj.lastChecked === 'string'
   );
 }
-
