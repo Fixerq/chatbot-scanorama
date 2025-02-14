@@ -51,6 +51,30 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_cache: {
+        Row: {
+          analysis_result: Json
+          created_at: string | null
+          last_checked: string | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          analysis_result: Json
+          created_at?: string | null
+          last_checked?: string | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          analysis_result?: Json
+          created_at?: string | null
+          last_checked?: string | null
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       analysis_logs: {
         Row: {
           cached: boolean
@@ -1160,6 +1184,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_analysis_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
