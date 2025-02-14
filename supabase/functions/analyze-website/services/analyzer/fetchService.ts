@@ -1,4 +1,4 @@
-import { FETCH_TIMEOUT } from '../constants.ts';
+import { FETCH_TIMEOUT, RETRY_DELAY, MAX_RETRIES } from '../constants.ts';
 
 // Expanded list of modern user agents including mobile browsers
 const USER_AGENTS = [
@@ -44,7 +44,7 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     console.log('[Fetch Service] Timeout reached for:', url);
-    controller.abort();
+    controller.abort('timeout');
   }, FETCH_TIMEOUT);
 
   const fetchWithConfig = async (fetchUrl: string, retryCount = 0): Promise<Response> => {
@@ -72,17 +72,15 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
       headers,
       signal: controller.signal,
       redirect: 'follow',
-      credentials: 'omit' // Don't send or receive cookies
+      credentials: 'omit',
+      // Add timeout to fetch
+      signal: AbortSignal.timeout(FETCH_TIMEOUT)
     };
 
-    // Add proxy configuration if provided
     if (proxyUrl) {
       try {
-        // Parse proxy URL
         const proxyUrlObj = new URL(proxyUrl);
         fetchOptions.mode = 'no-cors';
-        // Set proxy headers
-        // Note: The exact headers needed will depend on your proxy service
         headers['Proxy-Authorization'] = `Basic ${btoa(`${proxyUrlObj.username}:${proxyUrlObj.password}`)}`;
       } catch (error) {
         console.error('[Fetch Service] Invalid proxy URL:', error);
@@ -92,13 +90,12 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
     try {
       console.log(`[Fetch Service] Attempting fetch for ${fetchUrl} (attempt ${retryCount + 1})`);
       
-      // Add a random delay between 2-5 seconds
-      const randomDelay = Math.floor(Math.random() * 3000) + 2000;
+      // Add a random delay between 1-3 seconds
+      const randomDelay = Math.floor(Math.random() * 2000) + 1000;
       await new Promise(resolve => setTimeout(resolve, randomDelay));
 
       const response = await fetch(fetchUrl, fetchOptions);
       
-      // Handle specific status codes
       if (response.status === 403) {
         console.log(`[Fetch Service] Received 403 for ${fetchUrl}, will retry with different user agent`);
         throw new Error('403 Forbidden');
@@ -114,12 +111,15 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
     } catch (error) {
       console.error(`[Fetch Service] Error fetching ${fetchUrl}:`, error);
       
-      if (error.name === 'AbortError') {
-        throw new Error(`Timeout after ${FETCH_TIMEOUT}ms fetching ${fetchUrl}`);
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        if (error.message === 'timeout') {
+          throw new Error(`Timeout after ${FETCH_TIMEOUT}ms fetching ${fetchUrl}`);
+        }
+        throw new Error(`Request aborted fetching ${fetchUrl}`);
       }
 
       // Enhanced retry logic for specific cases
-      if (retryCount < 3 && (
+      if (retryCount < MAX_RETRIES && (
         error.message.includes('403') ||
         error.message.includes('ECONNRESET') ||
         error.message.includes('ETIMEDOUT') ||
@@ -131,7 +131,7 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
         error.status === 503
       )) {
         console.log(`[Fetch Service] Retrying fetch for ${fetchUrl} after error: ${error.message}`);
-        const delay = Math.pow(2, retryCount) * 3000; // Longer exponential backoff starting at 3 seconds
+        const delay = Math.pow(2, retryCount) * RETRY_DELAY;
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchWithConfig(fetchUrl, retryCount + 1);
       }

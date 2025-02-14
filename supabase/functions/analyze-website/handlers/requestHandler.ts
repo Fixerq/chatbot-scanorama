@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { validateRequest } from '../utils/requestValidator.ts';
 import { checkRateLimit } from '../utils/rateLimiter.ts';
@@ -20,22 +19,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_CONCURRENT_REQUESTS = 5;
-const REQUEST_TIMEOUT = 30000; // 30 seconds
+const MAX_ACTIVE_REQUESTS = 3;
+const REQUEST_TIMEOUT = 50000; // 50 seconds
 const activeRequests = new Set();
 
 async function processAnalysisRequest(url: string, startTime: number): Promise<ChatDetectionResult> {
-  const requestId = crypto.randomUUID();
-  activeRequests.add(requestId);
-  
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Analysis timeout')), REQUEST_TIMEOUT);
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, REQUEST_TIMEOUT);
 
   try {
-    const result = await Promise.race([
+    const [result] = await Promise.all([
       websiteAnalyzer(url),
-      timeoutPromise
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Analysis timeout')), REQUEST_TIMEOUT);
+      })
     ]);
 
     await updateCache(url, result.has_chatbot, result.chatSolutions, result.details);
@@ -50,10 +49,12 @@ async function processAnalysisRequest(url: string, startTime: number): Promise<C
     
     return result;
   } catch (error) {
-    console.error('[Handler] Error in processAnalysisRequest:', error);
+    if (error.name === 'AbortError' || error.message.includes('timeout')) {
+      throw new Error(`Analysis timed out after ${REQUEST_TIMEOUT}ms`);
+    }
     throw error;
   } finally {
-    activeRequests.delete(requestId);
+    clearTimeout(timeoutId);
   }
 }
 
@@ -64,10 +65,16 @@ export async function handleRequest(req: Request) {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const startTime = Date.now();
-  const clientIP = getRealIp(req);
+  if (activeRequests.size >= MAX_ACTIVE_REQUESTS) {
+    return createErrorResponse('Too many concurrent requests. Please try again later.', 429);
+  }
 
+  const startTime = Date.now();
+  const requestId = crypto.randomUUID();
+  activeRequests.add(requestId);
+  
   try {
+    const clientIP = getRealIp(req);
     const isAllowed = await checkRateLimit(supabase, clientIP);
     if (!isAllowed) {
       console.log('[Handler] Rate limit exceeded for IP:', clientIP);
@@ -135,6 +142,15 @@ export async function handleRequest(req: Request) {
       responseTimeMs: Date.now() - startTime
     });
     
-    return createErrorResponse(error.message);
+    let statusCode = 500;
+    if (error.message.includes('timeout')) {
+      statusCode = 504; // Gateway Timeout
+    } else if (error.message.includes('rate limit')) {
+      statusCode = 429; // Too Many Requests
+    }
+    
+    return createErrorResponse(error.message, statusCode);
+  } finally {
+    activeRequests.delete(requestId);
   }
 }
