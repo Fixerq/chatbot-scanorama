@@ -187,8 +187,10 @@ export type Database = {
           created_at: string | null
           details: Json | null
           has_chatbot: boolean | null
+          has_live_elements: boolean | null
           id: string
           last_checked: string | null
+          live_elements: Json[] | null
           status: string | null
           updated_at: string | null
           url: string
@@ -200,8 +202,10 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           has_chatbot?: boolean | null
+          has_live_elements?: boolean | null
           id?: string
           last_checked?: string | null
+          live_elements?: Json[] | null
           status?: string | null
           updated_at?: string | null
           url: string
@@ -213,8 +217,10 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           has_chatbot?: boolean | null
+          has_live_elements?: boolean | null
           id?: string
           last_checked?: string | null
+          live_elements?: Json[] | null
           status?: string | null
           updated_at?: string | null
           url?: string
