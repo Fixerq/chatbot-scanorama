@@ -121,10 +121,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, isLoading }) => {
             const isAnalyzing = !result.status;
             const technologies = isAnalyzing ? 'Analyzing...' : formatInstalledTechnologies(result);
             const businessName = getBusinessName(result);
+            const websiteUrl = result.details?.website_url || result.url;
 
             return (
               <TableRow key={index} className={isLoading ? 'opacity-50' : ''}>
-                <ResultUrlCell url={result.url} />
+                <ResultUrlCell url={websiteUrl} />
                 <TableCell className="font-medium">
                   {businessName}
                 </TableCell>
