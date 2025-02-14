@@ -1022,6 +1022,10 @@ export type Database = {
       }
     }
     Functions: {
+      check_admin_access: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_admin_status: {
         Args: {
           user_id: string
