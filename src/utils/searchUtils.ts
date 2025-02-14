@@ -6,10 +6,35 @@ import { performGoogleSearch } from './searchEngine';
 import { isExcludedDomain } from './helpers/domainFilters';
 
 const isUrlBlocked = (url: string): boolean => {
-  if (isExcludedDomain(url)) {
+  if (!url) return true;
+  
+  try {
+    const urlObject = new URL(url);
+    const hostname = urlObject.hostname.toLowerCase();
+    
+    // Block all Google domains
+    if (hostname.includes('google.') || hostname === 'google.com') {
+      console.log('Blocked Google domain:', url);
+      return true;
+    }
+    
+    // Check excluded domains
+    if (isExcludedDomain(url)) {
+      console.log('Blocked excluded domain:', url);
+      return true;
+    }
+    
+    // Check blocked URLs list
+    if (BLOCKED_URLS.some(blockedUrl => url.toLowerCase().includes(blockedUrl.toLowerCase()))) {
+      console.log('Blocked URL pattern:', url);
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking URL:', url, error);
     return true;
   }
-  return BLOCKED_URLS.some(blockedUrl => url.toLowerCase().includes(blockedUrl.toLowerCase()));
 };
 
 export const performSearch = async (
@@ -31,8 +56,18 @@ export const performSearch = async (
       return null;
     }
 
+    console.log('Raw search results:', searchResult.results.length);
+    
     // Filter out blocked URLs and excluded domains
-    const filteredResults = searchResult.results.filter(result => !isUrlBlocked(result.url));
+    const filteredResults = searchResult.results.filter(result => {
+      const blocked = isUrlBlocked(result.url);
+      if (blocked) {
+        console.log('Filtered out URL:', result.url);
+      }
+      return !blocked;
+    });
+
+    console.log('Filtered results:', filteredResults.length);
 
     if (filteredResults.length === 0) {
       toast.warning('No valid results found after filtering. Try adjusting your search terms.');
@@ -88,4 +123,3 @@ export const loadMoreResults = async (
     return null;
   }
 };
-

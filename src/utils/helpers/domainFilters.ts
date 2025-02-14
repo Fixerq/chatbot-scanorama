@@ -27,6 +27,7 @@ export const EXCLUDED_DOMAINS = [
   'microsoft.com',
   'apple.com',
   'google.com',
+  'maps.google.com',
   'facebook.com',
   'amazon.com',
   
@@ -66,20 +67,29 @@ export const isExcludedDomain = (url: string): boolean => {
 
   try {
     const lowerUrl = url.toLowerCase();
-    // First check for .gov domains specifically
-    if (lowerUrl.includes('.gov')) {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+
+    // First check for Google domains specifically
+    if (hostname.includes('google.') || hostname === 'google.com') {
+      console.log('Filtered out Google domain:', url);
+      return true;
+    }
+
+    // Then check for .gov domains specifically
+    if (hostname.includes('.gov')) {
       console.log('Filtered out .gov domain:', url);
       return true;
     }
-    // Then check for other excluded domains
-    const isExcluded = EXCLUDED_DOMAINS.some(domain => lowerUrl.includes(domain));
+
+    // Check other excluded domains
+    const isExcluded = EXCLUDED_DOMAINS.some(domain => hostname.includes(domain.toLowerCase()));
     if (isExcluded) {
       console.log('Filtered out excluded domain:', url);
     }
     return isExcluded;
   } catch (error) {
     console.error('Error in isExcludedDomain:', error);
-    return false;
+    return true; // Block invalid URLs
   }
 };
-

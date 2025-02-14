@@ -10,19 +10,17 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
   try {
     // Skip problematic URLs
     const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('maps.google.com') || 
-        lowerUrl.includes('google.com/maps') ||
-        lowerUrl.includes('www.google.com') ||
-        lowerUrl.includes('google.com')) {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    
+    // Block all Google domains
+    if (hostname.includes('google.') || hostname === 'google.com') {
       console.log('Google domain detected, skipping analysis:', url);
       throw new Error('Google domains are not supported for analysis');
     }
 
     // Clean up the URL
     const cleanUrl = url.trim().replace(/\/$/, '');
-    
-    // Parse URL
-    const urlObj = new URL(cleanUrl);
     
     // Add www. if not present and no subdomain exists
     if (!urlObj.hostname.includes('.') && !urlObj.hostname.startsWith('www.')) {
