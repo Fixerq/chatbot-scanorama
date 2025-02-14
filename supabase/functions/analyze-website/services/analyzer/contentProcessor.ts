@@ -33,6 +33,15 @@ export async function processContent(reader: ReadableStreamDefaultReader<Uint8Ar
       if (done) break;
       html += decoder.decode(value, { stream: true });
       
+      // Skip analysis if the content appears to be from Google Maps
+      if (html.toLowerCase().includes('maps.google.com') || 
+          html.toLowerCase().includes('google.com/maps') ||
+          html.includes('Google Maps JavaScript API') ||
+          html.includes('google-maps-api')) {
+        console.log('Google Maps content detected, skipping analysis');
+        break;
+      }
+      
       // Check for chat solutions
       for (const [provider, patterns] of Object.entries(CHAT_PATTERNS)) {
         if (!detectedSolutions.includes(provider)) {
@@ -105,3 +114,4 @@ function calculateConfidence(match: string, type: string): number {
   // Ensure confidence stays in valid range
   return Math.min(Math.max(confidence, 0), 1);
 }
+
