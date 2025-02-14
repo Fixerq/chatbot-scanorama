@@ -1,21 +1,39 @@
 
 import { FETCH_TIMEOUT } from '../constants.ts';
 
-// Expanded list of user agents including mobile browsers
+// Expanded list of modern user agents including mobile browsers
 const USER_AGENTS = [
-  // Desktop Chrome
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  // Desktop Firefox
+  // Desktop Chrome (Windows)
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+  // Desktop Chrome (Mac)
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+  // Desktop Firefox (Windows)
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0',
+  // Desktop Firefox (Mac)
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0',
-  // Mobile browsers
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.119 Mobile/15E148 Safari/604.1',
-  'Mozilla/5.0 (Linux; Android 10; SM-A205U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.119 Mobile Safari/537.36'
+  // Desktop Safari
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
+  // Mobile Chrome (iOS)
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/121.0.6167.66 Mobile/15E148 Safari/604.1',
+  // Mobile Chrome (Android)
+  'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.66 Mobile Safari/537.36',
+  // Mobile Safari
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+];
+
+// Common browser features to include in Accept header
+const ACCEPT_VALUES = [
+  'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+  'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+  'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 ];
 
 const getRandomUserAgent = () => {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+};
+
+const getRandomAccept = () => {
+  return ACCEPT_VALUES[Math.floor(Math.random() * ACCEPT_VALUES.length)];
 };
 
 export async function tryFetch(url: string): Promise<Response> {
@@ -28,10 +46,10 @@ export async function tryFetch(url: string): Promise<Response> {
   }, FETCH_TIMEOUT);
 
   const fetchWithConfig = async (fetchUrl: string, retryCount = 0): Promise<Response> => {
-    // More extensive browser-like headers
+    // Enhanced browser-like headers
     const headers = {
       'User-Agent': getRandomUserAgent(),
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept': getRandomAccept(),
       'Accept-Language': 'en-US,en;q=0.9',
       'Accept-Encoding': 'gzip, deflate, br',
       'Connection': 'keep-alive',
@@ -40,22 +58,34 @@ export async function tryFetch(url: string): Promise<Response> {
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-Site': 'none',
       'Sec-Fetch-User': '?1',
-      'Cache-Control': 'max-age=0'
+      'Cache-Control': 'max-age=0',
+      'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'DNT': '1',
+      'Pragma': 'no-cache'
     };
 
     try {
       console.log(`[Fetch Service] Attempting fetch for ${fetchUrl} (attempt ${retryCount + 1})`);
       
-      // Add a small random delay before each request to avoid rate limiting
-      const randomDelay = Math.floor(Math.random() * 2000) + 1000; // 1-3 seconds
+      // Add a random delay between 2-5 seconds
+      const randomDelay = Math.floor(Math.random() * 3000) + 2000;
       await new Promise(resolve => setTimeout(resolve, randomDelay));
 
       const response = await fetch(fetchUrl, { 
         headers,
         signal: controller.signal,
-        redirect: 'follow'
+        redirect: 'follow',
+        credentials: 'omit' // Don't send or receive cookies
       });
       
+      // Handle specific status codes
+      if (response.status === 403) {
+        console.log(`[Fetch Service] Received 403 for ${fetchUrl}, will retry with different user agent`);
+        throw new Error('403 Forbidden');
+      }
+
       if (response.ok) {
         console.log(`[Fetch Service] Successful fetch for ${fetchUrl}`);
         return response;
@@ -70,8 +100,9 @@ export async function tryFetch(url: string): Promise<Response> {
         throw new Error(`Timeout after ${FETCH_TIMEOUT}ms fetching ${fetchUrl}`);
       }
 
-      // Enhanced retry logic for specific types of errors
+      // Enhanced retry logic for specific cases
       if (retryCount < 3 && (
+        error.message.includes('403') ||
         error.message.includes('ECONNRESET') ||
         error.message.includes('ETIMEDOUT') ||
         error.message.includes('ENOTFOUND') ||
@@ -82,7 +113,7 @@ export async function tryFetch(url: string): Promise<Response> {
         error.status === 503
       )) {
         console.log(`[Fetch Service] Retrying fetch for ${fetchUrl} after error: ${error.message}`);
-        const delay = Math.pow(2, retryCount) * 2000; // Exponential backoff starting at 2 seconds
+        const delay = Math.pow(2, retryCount) * 3000; // Longer exponential backoff starting at 3 seconds
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchWithConfig(fetchUrl, retryCount + 1);
       }
