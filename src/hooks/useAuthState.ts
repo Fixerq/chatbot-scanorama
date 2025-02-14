@@ -23,16 +23,24 @@ export const useAuthState = (): AuthState => {
         
         if (sessionError) {
           console.error('Session error:', sessionError);
+          if (sessionError.message?.includes('refresh_token_not_found')) {
+            // This is an expected error when there's no session, so we handle it silently
+            setIsLoading(false);
+            return;
+          }
           throw sessionError;
         }
 
-        if (session && mounted.current) {
+        if (session?.user && mounted.current) {
+          console.log('Valid session found, checking admin status');
           const isAdmin = await checkAdminStatus(session.user.id);
           if (isAdmin) {
             navigate('/admin');
           } else {
             navigate('/dashboard');
           }
+        } else {
+          console.log('No valid session found');
         }
       } catch (error) {
         console.error('Session check error:', error);
