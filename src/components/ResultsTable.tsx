@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -23,10 +24,17 @@ export interface Result {
     businessType?: string;
     title?: string;
     description?: string;
+    dynamic_loading?: boolean;
+    chat_elements?: boolean;
+    meta_tags?: boolean;
+    websockets?: boolean;
   };
   status?: string;
+  has_chatbot?: boolean;
+  chatbot_solutions?: string[];
   nextPageToken?: string;
   isAnalyzing?: boolean;
+  lastChecked?: string;
 }
 
 interface ResultsTableProps {
@@ -98,7 +106,7 @@ const formatInstalledTechnologies = (result: Result) => {
   if (!result.status) return 'Analyzing...';
   if (result.status.toLowerCase().includes('error')) return result.status;
   
-  const chatSolutions = result.details?.chatSolutions || [];
+  const chatSolutions = result.chatbot_solutions || result.details?.chatSolutions || [];
   if (chatSolutions.length === 0) return 'No chatbot detected';
   
   return chatSolutions[0];
@@ -120,7 +128,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
         </TableHeader>
         <TableBody>
           {results.map((result, index) => {
-            const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
+            const hasChatbot = result.has_chatbot || 
+              (result.details?.chatSolutions && result.details.chatSolutions.length > 0);
             const isResultAnalyzing = !result.status;
             const technologies = isResultAnalyzing ? 'Analyzing...' : formatInstalledTechnologies(result);
             const businessName = getBusinessName(result);
@@ -136,8 +145,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   status={result.status}
                   hasChatbot={hasChatbot}
                   technologies={technologies}
-                  lastChecked={result.details?.lastChecked}
-                  chatSolutions={result.details?.chatSolutions}
+                  lastChecked={result.lastChecked || result.details?.lastChecked}
+                  chatSolutions={result.chatbot_solutions || result.details?.chatSolutions}
                   isAnalyzing={isResultAnalyzing}
                 />
               </TableRow>

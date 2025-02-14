@@ -177,6 +177,48 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_results: {
+        Row: {
+          business_name: string | null
+          chatbot_solutions: string[] | null
+          created_at: string | null
+          details: Json | null
+          has_chatbot: boolean | null
+          id: string
+          last_checked: string | null
+          status: string | null
+          updated_at: string | null
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          details?: Json | null
+          has_chatbot?: boolean | null
+          id?: string
+          last_checked?: string | null
+          status?: string | null
+          updated_at?: string | null
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          details?: Json | null
+          has_chatbot?: boolean | null
+          id?: string
+          last_checked?: string | null
+          status?: string | null
+          updated_at?: string | null
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       analyzed_urls: {
         Row: {
           business_type: string | null

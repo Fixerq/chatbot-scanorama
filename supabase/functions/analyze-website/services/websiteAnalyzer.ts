@@ -1,4 +1,3 @@
-
 import { ChatDetectionResult } from '../types.ts';
 import { tryFetch } from './analyzer/fetchService.ts';
 import { processContent } from './analyzer/contentProcessor.ts';
@@ -45,7 +44,40 @@ async function logBlockedRequest(
   }
 }
 
-export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult> {
+async function saveAnalysisResult(
+  url: string,
+  result: ChatDetectionResult,
+  userId?: string
+) {
+  if (!userId) {
+    console.log('[Analyzer] No user ID provided, skipping result storage');
+    return;
+  }
+
+  try {
+    const { error } = await supabase.from('analysis_results').insert({
+      url,
+      status: result.status,
+      has_chatbot: result.has_chatbot,
+      chatbot_solutions: result.chatSolutions,
+      details: result.details,
+      last_checked: result.lastChecked,
+      user_id: userId
+    });
+
+    if (error) {
+      console.error('[Analyzer] Error saving analysis result:', error);
+      throw error;
+    }
+
+    console.log('[Analyzer] Successfully saved analysis result for:', url);
+  } catch (error) {
+    console.error('[Analyzer] Failed to save analysis result:', error);
+    throw error;
+  }
+}
+
+export async function websiteAnalyzer(url: string, userId?: string): Promise<ChatDetectionResult> {
   console.log('[Analyzer] Starting analysis for:', url);
   
   try {
@@ -125,7 +157,7 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       liveElements: liveElements.length
     });
 
-    return {
+    const result = {
       status: 'success',
       has_chatbot,
       has_live_elements,
@@ -141,9 +173,13 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       lastChecked: new Date().toISOString()
     };
 
+    // Save the result to the database
+    await saveAnalysisResult(cleanUrl, result, userId);
+
+    return result;
+
   } catch (error) {
     console.error('[Analyzer] Error analyzing website:', error);
-    throw error;  // Let the error handler in the request handler deal with this
+    throw error;
   }
 }
-
