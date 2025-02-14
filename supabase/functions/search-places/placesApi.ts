@@ -1,4 +1,3 @@
-
 const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
 
 export async function getLocationCoordinates(location: string) {
@@ -86,10 +85,6 @@ export async function getPlaceDetails(placeId: string) {
 }
 
 export async function searchNearbyPlaces(locationQuery: string, location: { lat: number; lng: number }) {
-  if (!GOOGLE_API_KEY) {
-    throw new Error('Google Places API key is not configured');
-  }
-
   const placesEndpoint = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
   const searchParams = new URLSearchParams({
     query: locationQuery,
@@ -128,4 +123,3 @@ export async function searchNearbyPlaces(locationQuery: string, location: { lat:
     throw error;
   }
 }
-

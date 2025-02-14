@@ -1,7 +1,9 @@
+
 import { SearchResult } from './types.ts';
 import { getCachedResults, cacheResults } from './cacheService.ts';
 import { validateSearchRequest } from './validation.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { getPlaceDetails } from './placesApi.ts';
 
 export async function searchBusinesses(params: {
   query: string;
@@ -72,18 +74,51 @@ export async function searchBusinesses(params: {
       };
     }
 
-    const results: SearchResult[] = data.results.map(place => ({
-      title: place.name,
-      description: place.formatted_address,
-      url: `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
-      details: {
-        title: place.name,
-        description: place.formatted_address,
-        address: place.formatted_address,
-        businessType: place.types ? place.types.join(', ') : 'Unknown',
-        placeId: place.place_id
-      }
-    }));
+    // Process each result to include website details
+    const resultsWithDetails = await Promise.all(
+      data.results.map(async (place: any) => {
+        try {
+          // Get additional place details including website
+          if (place.place_id) {
+            const details = await getPlaceDetails(place.place_id);
+            return {
+              title: place.name,
+              description: place.formatted_address,
+              url: details?.website || `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
+              details: {
+                title: place.name,
+                description: place.formatted_address,
+                address: place.formatted_address,
+                businessType: place.types ? place.types.join(', ') : 'Unknown',
+                placeId: place.place_id,
+                website_url: details?.website,
+                business_name: place.name
+              }
+            };
+          }
+          return {
+            title: place.name,
+            description: place.formatted_address,
+            url: `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
+            details: {
+              title: place.name,
+              description: place.formatted_address,
+              address: place.formatted_address,
+              businessType: place.types ? place.types.join(', ') : 'Unknown',
+              placeId: place.place_id,
+              business_name: place.name
+            }
+          };
+        } catch (error) {
+          console.error('Error processing place details:', error);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null results and format them
+    const results = resultsWithDetails
+      .filter((result): result is SearchResult => result !== null);
 
     const hasMore = !!data.next_page_token;
     const nextPageToken = data.next_page_token;
