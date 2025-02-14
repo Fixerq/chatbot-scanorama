@@ -14,9 +14,7 @@ serve(async (req) => {
   // Always add CORS headers to all responses
   const responseHeaders = {
     ...corsHeaders,
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache'
+    'Content-Type': 'application/json'
   };
 
   // Handle CORS preflight requests
@@ -108,7 +106,7 @@ serve(async (req) => {
       console.error('Error updating request status:', updateError);
     }
 
-    // Perform analysis with timeout
+    // Perform analysis
     console.log('Starting website analysis for:', url);
     const result = await websiteAnalyzer(url);
 
@@ -196,7 +194,7 @@ serve(async (req) => {
       }),
       {
         headers: responseHeaders,
-        status: 200, // Always return 200 to handle errors in the frontend
+        status: 200,
       },
     );
   }
