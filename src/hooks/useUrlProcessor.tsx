@@ -8,13 +8,27 @@ export const useUrlProcessor = () => {
     queuedResults: results,
     isProcessing,
     enqueueUrls: processUrls,
-    clearResults
+    clearResults,
+    updateQueuedResult
   } = useAnalysisQueue();
+
+  const processSearchResults = async (searchResults: Result[]) => {
+    // Extract URLs that need analysis
+    const urlsToAnalyze = searchResults
+      .filter(result => !result.status || result.status === 'Queued')
+      .map(result => result.url);
+
+    if (urlsToAnalyze.length > 0) {
+      await processUrls(urlsToAnalyze);
+    }
+  };
 
   return {
     results,
     isProcessing,
     processUrls,
-    clearResults
+    processSearchResults,
+    clearResults,
+    updateQueuedResult
   };
 };

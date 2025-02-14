@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
@@ -26,7 +25,10 @@ export const useAnalysisQueue = () => {
       const request = await createAnalysisRequest(url);
       loggingService.logRequestCreated(request);
 
-      updateQueuedResult(url, { status: 'Processing...' });
+      updateQueuedResult(url, { 
+        status: 'Processing...',
+        isAnalyzing: true 
+      });
 
       loggingService.logFunctionInvocation(url, request.id);
       await invokeAnalysisFunction(url, request.id);
@@ -43,7 +45,8 @@ export const useAnalysisQueue = () => {
       }
       
       updateQueuedResult(url, {
-        status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        isAnalyzing: false
       });
     }
   };
@@ -52,9 +55,16 @@ export const useAnalysisQueue = () => {
     setIsProcessing(true);
     const initialResults = urls.map(url => ({
       url,
-      status: 'Queued'
+      status: 'Queued',
+      isAnalyzing: true
     }));
-    setQueuedResults(initialResults);
+    
+    // Update only the new URLs, keep existing results
+    setQueuedResults(prev => {
+      const existingUrls = new Set(prev.map(r => r.url));
+      const newResults = initialResults.filter(r => !existingUrls.has(r.url));
+      return [...prev, ...newResults];
+    });
 
     try {
       for (const url of urls) {
@@ -77,6 +87,7 @@ export const useAnalysisQueue = () => {
     queuedResults,
     isProcessing,
     enqueueUrls,
-    clearResults
+    clearResults,
+    updateQueuedResult
   };
 };
