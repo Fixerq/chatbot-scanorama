@@ -21,6 +21,24 @@ export const performGoogleSearch = async (
   try {
     console.log('Starting search:', { query, country, region });
 
+    if (!query?.trim()) {
+      console.error('Query parameter is required');
+      toast.error('Search query is required');
+      return null;
+    }
+
+    if (!country?.trim()) {
+      console.error('Country parameter is required');
+      toast.error('Country selection is required');
+      return null;
+    }
+
+    if (!region?.trim()) {
+      console.error('Region parameter is required');
+      toast.error('Region selection is required');
+      return null;
+    }
+
     // Create a promise that rejects after the timeout
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
@@ -29,14 +47,14 @@ export const performGoogleSearch = async (
     });
 
     // Create the actual search promise
-    console.log('Invoking search-places function');
+    console.log('Invoking search-places function with params:', { query, country, region });
     const searchPromise = supabase.functions.invoke<SearchResponse>('search-places', {
       body: {
         action: 'search',
         params: {
-          query,
-          country,
-          region
+          query: query.trim(),
+          country: country.trim(),
+          region: region.trim()
         }
       }
     });
