@@ -7,6 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
   try {
+    // Log request details for debugging
     console.log('Request received:', {
       method: req.method,
       url: req.url,
@@ -15,12 +16,8 @@ serve(async (req) => {
     
     // Handle CORS preflight request
     if (req.method === 'OPTIONS') {
-      return new Response('ok', { 
-        headers: {
-          ...corsHeaders,
-          'Access-Control-Max-Age': '86400',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        },
+      return new Response(null, { 
+        headers: corsHeaders,
         status: 204 
       });
     }
@@ -28,6 +25,16 @@ serve(async (req) => {
     if (req.method !== 'POST') {
       console.log('Invalid method:', req.method);
       throw new Error('Method not allowed');
+    }
+
+    // Get the origin from the request headers
+    const origin = req.headers.get('origin');
+    console.log('Request origin:', origin);
+
+    // Validate origin
+    if (origin !== 'https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com') {
+      console.error('Invalid origin:', origin);
+      throw new Error('Origin not allowed');
     }
 
     let requestBody;
@@ -86,6 +93,7 @@ serve(async (req) => {
       nextPageToken: searchResponse.nextPageToken || 'none'
     });
 
+    // Return the response with proper CORS headers
     return new Response(
       JSON.stringify({
         data: searchResponse,
@@ -94,8 +102,7 @@ serve(async (req) => {
       { 
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Vary': 'Origin'
+          'Content-Type': 'application/json'
         },
         status: 200
       }
@@ -108,6 +115,7 @@ serve(async (req) => {
       cause: error.cause
     });
     
+    // Return error response with proper CORS headers
     return new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
@@ -117,8 +125,7 @@ serve(async (req) => {
         status: error.message === 'Method not allowed' ? 405 : 500,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Vary': 'Origin'
+          'Content-Type': 'application/json'
         }
       }
     );
