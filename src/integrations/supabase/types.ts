@@ -372,6 +372,51 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_requests: {
+        Row: {
+          block_reason: Database["public"]["Enums"]["block_reason_type"]
+          created_at: string | null
+          error_details: string | null
+          headers: Json | null
+          id: string
+          proxy_used: string | null
+          resolution_method: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          retry_count: number | null
+          user_agent: string | null
+          website_url: string
+        }
+        Insert: {
+          block_reason: Database["public"]["Enums"]["block_reason_type"]
+          created_at?: string | null
+          error_details?: string | null
+          headers?: Json | null
+          id?: string
+          proxy_used?: string | null
+          resolution_method?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          retry_count?: number | null
+          user_agent?: string | null
+          website_url: string
+        }
+        Update: {
+          block_reason?: Database["public"]["Enums"]["block_reason_type"]
+          created_at?: string | null
+          error_details?: string | null
+          headers?: Json | null
+          id?: string
+          proxy_used?: string | null
+          resolution_method?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          retry_count?: number | null
+          user_agent?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -767,6 +812,39 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+        }
+        Relationships: []
+      }
+      proxy_pool: {
+        Row: {
+          created_at: string | null
+          failure_count: number | null
+          id: string
+          is_active: boolean | null
+          last_used: string | null
+          proxy_url: string
+          success_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_used?: string | null
+          proxy_url: string
+          success_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_used?: string | null
+          proxy_url?: string
+          success_count?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1222,6 +1300,18 @@ export type Database = {
         }
         Relationships: []
       }
+      blocking_patterns: {
+        Row: {
+          avg_retries: number | null
+          block_count: number | null
+          block_reason: Database["public"]["Enums"]["block_reason_type"] | null
+          latest_block: string | null
+          resolved_count: number | null
+          unresolved_count: number | null
+          website_url: string | null
+        }
+        Relationships: []
+      }
       error_monitoring: {
         Row: {
           affected_urls: string[] | null
@@ -1348,6 +1438,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_next_available_proxy: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          proxy_url: string
+          proxy_id: string
+        }[]
+      }
       get_performance_metrics: {
         Args: {
           time_window?: unknown
@@ -1407,9 +1504,23 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_proxy_status: {
+        Args: {
+          p_proxy_id: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       alert_severity: "error" | "warning" | "info"
+      block_reason_type:
+        | "forbidden_403"
+        | "rate_limit_429"
+        | "timeout"
+        | "connection_refused"
+        | "dns_error"
+        | "other"
       detection_method: "selector" | "script" | "iframe" | "text" | "mutation"
       request_status: "pending" | "processing" | "completed" | "failed"
       subscription_level: "starter" | "pro" | "premium" | "founders" | "admin"
