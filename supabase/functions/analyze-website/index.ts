@@ -5,34 +5,19 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
 serve(async (req) => {
-  console.log('Received request:', {
-    method: req.method,
-    url: req.url,
-    headers: Object.fromEntries(req.headers.entries())
-  });
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      headers: corsHeaders,
-      status: 204 
-    });
+    return new Response('ok', { headers: corsHeaders, status: 204 });
   }
-
-  // Create base headers for all responses
-  const responseHeaders = {
-    ...corsHeaders,
-    'Content-Type': 'application/json'
-  };
-
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
 
   let executionId: string | null = null;
 
   try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Create execution record
     const { data: executionData, error: executionError } = await supabaseClient
       .from('function_executions')
@@ -51,10 +36,7 @@ serve(async (req) => {
           status: 'error',
           details: executionError
         }),
-        { 
-          headers: responseHeaders,
-          status: 500 
-        }
+        { headers: corsHeaders, status: 500 }
       );
     }
 
@@ -77,10 +59,7 @@ serve(async (req) => {
           status: 'error',
           details: 'Both "url" and "requestId" must be provided'
         }),
-        { 
-          headers: responseHeaders,
-          status: 400 
-        }
+        { headers: corsHeaders, status: 400 }
       );
     }
 
@@ -95,10 +74,7 @@ serve(async (req) => {
           status: 'error',
           details: 'URL must start with http:// or https://'
         }),
-        {
-          headers: responseHeaders,
-          status: 400
-        }
+        { headers: corsHeaders, status: 400 }
       );
     }
 
@@ -120,10 +96,7 @@ serve(async (req) => {
           status: 'error',
           details: updateError
         }),
-        { 
-          headers: responseHeaders,
-          status: 500 
-        }
+        { headers: corsHeaders, status: 500 }
       );
     }
 
@@ -152,10 +125,7 @@ serve(async (req) => {
           status: 'error',
           details: resultError
         }),
-        { 
-          headers: responseHeaders,
-          status: 500 
-        }
+        { headers: corsHeaders, status: 500 }
       );
     }
 
@@ -178,10 +148,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(result),
-      {
-        headers: responseHeaders,
-        status: 200
-      }
+      { headers: corsHeaders, status: 200 }
     );
 
   } catch (error) {
@@ -224,10 +191,7 @@ serve(async (req) => {
         chatSolutions: [],
         lastChecked: new Date().toISOString()
       }),
-      {
-        headers: responseHeaders,
-        status: 500
-      }
+      { headers: corsHeaders, status: 500 }
     );
   }
 });
