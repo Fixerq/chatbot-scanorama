@@ -1,20 +1,26 @@
+
 export const formatUrl = (url: string) => {
   try {
-    // Remove protocol (http:// or https://) if present
-    let cleanUrl = url.replace(/^(https?:\/\/)/, '');
+    // Handle empty or invalid URLs
+    if (!url) {
+      return {
+        displayUrl: '',
+        fullUrl: ''
+      };
+    }
+
+    // Create URL object to parse the URL properly
+    const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
     
-    // Get just the hostname (root domain)
-    const hostname = cleanUrl.split('/')[0];
+    // Get the base URL (protocol + hostname)
+    const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
     
-    // Remove any parameters or fragments
-    const rootDomain = hostname.split('?')[0].split('#')[0];
-    
-    // Add back https:// for the actual link
-    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-    
+    // Use just the hostname for display
+    const displayUrl = urlObj.hostname.replace(/^www\./, '');
+
     return {
-      displayUrl: rootDomain,
-      fullUrl: fullUrl
+      displayUrl,
+      fullUrl: baseUrl
     };
   } catch (error) {
     console.error('Error formatting URL:', error);

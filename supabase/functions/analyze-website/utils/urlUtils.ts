@@ -15,8 +15,12 @@ export function normalizeUrl(url: string): string {
     // Remove any extra colons from hostname
     urlObj.hostname = urlObj.hostname.replace(/:/g, '');
     
-    // Remove hash
+    // Remove query parameters and hash
+    urlObj.search = '';
     urlObj.hash = '';
+    
+    // Remove path
+    urlObj.pathname = '/';
     
     // Clean up double slashes (except after protocol)
     let finalUrl = urlObj.toString().replace(/([^:]\/)\/+/g, '$1');
@@ -28,3 +32,4 @@ export function normalizeUrl(url: string): string {
     throw new Error('Invalid URL format');
   }
 }
+
