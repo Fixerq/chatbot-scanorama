@@ -91,28 +91,26 @@ export const invokeAnalysisFunction = async (url: string, requestId: string): Pr
   console.log('Invoking analysis function for URL:', url, 'requestId:', requestId);
   
   try {
-    const { data: analysisResult, error: analysisError } = await supabase.functions.invoke<ChatDetectionResult>(
+    // Simplified request payload
+    const { data, error } = await supabase.functions.invoke<ChatDetectionResult>(
       'analyze-website',
       {
-        body: { url, requestId },
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: { url, requestId }
       }
     );
 
-    if (analysisError) {
-      console.error('Analysis function error:', analysisError);
-      throw new Error(`Analysis error: ${analysisError.message}`);
+    if (error) {
+      console.error('Analysis function error:', error);
+      throw new Error(`Analysis error: ${error.message}`);
     }
 
-    if (!analysisResult) {
+    if (!data) {
       console.error('No analysis result returned');
       throw new Error('No analysis result returned');
     }
 
-    console.log('Analysis completed successfully:', analysisResult);
-    return analysisResult;
+    console.log('Analysis completed successfully:', data);
+    return data;
   } catch (error) {
     console.error('Error invoking analysis function:', error);
     throw error;

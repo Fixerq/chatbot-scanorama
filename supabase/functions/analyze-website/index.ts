@@ -10,42 +10,11 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Log incoming request details
-  console.log('Incoming request:', {
-    method: req.method,
-    headers: Object.fromEntries(req.headers),
-    url: req.url
-  });
-
-  let requestBody;
   try {
-    // Clone request before consuming body
-    const reqClone = req.clone();
-    const text = await reqClone.text();
-    console.log('Request body text:', text);
-    requestBody = JSON.parse(text);
-  } catch (error) {
-    console.error('Error parsing request body:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'Invalid JSON in request body',
-        status: 'error',
-        has_chatbot: false,
-        chatSolutions: [],
-        lastChecked: new Date().toISOString(),
-        details: error instanceof Error ? error.message : 'Unknown parsing error'
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      }
-    );
-  }
-
-  try {
-    // Validate required fields
-    const { url, requestId } = requestBody;
+    // Simple JSON parsing of the request body
+    const { url, requestId } = await req.json();
     
+    // Validate required fields
     if (!url) {
       throw new Error('URL is required');
     }
@@ -72,7 +41,6 @@ serve(async (req) => {
 
       if (updateError) {
         console.error('Error updating request status:', updateError);
-        // Continue with analysis even if status update fails
       }
     }
 
@@ -94,7 +62,6 @@ serve(async (req) => {
 
       if (resultError) {
         console.error('Error updating analysis results:', resultError);
-        // Continue to return results even if status update fails
       }
     }
 
@@ -114,9 +81,9 @@ serve(async (req) => {
     console.error('Analysis error:', errorMessage);
 
     // Try to update analysis request with error if we have a requestId
-    if (requestBody?.requestId) {
+    if (requestId) {
       try {
-        console.log('Updating request with error:', requestBody.requestId);
+        console.log('Updating request with error:', requestId);
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -129,7 +96,7 @@ serve(async (req) => {
             completed_at: new Date().toISOString(),
             error_message: errorMessage
           })
-          .eq('id', requestBody.requestId);
+          .eq('id', requestId);
 
         if (updateError) {
           console.error('Error updating request status:', updateError);
