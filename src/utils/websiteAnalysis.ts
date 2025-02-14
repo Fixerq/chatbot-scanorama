@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface WebsiteAnalysisResult {
   status: string;
@@ -59,7 +60,8 @@ function validateUrl(url: string): string {
 }
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000;
+const RETRY_DELAY = 2000; // Increased delay between retries
+const ANALYSIS_TIMEOUT = 30000; // 30 second timeout for analysis
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -73,17 +75,42 @@ export const analyzeWebsites = async (urls: string[], retryCount = 0): Promise<W
     const validUrls = urls.map(validateUrl);
     console.log('Validated URLs:', validUrls);
 
-    const { data, error } = await supabase.functions.invoke('analyze-website', {
+    // Create a promise that rejects after timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Analysis timeout')), ANALYSIS_TIMEOUT);
+    });
+
+    // Create the analysis promise
+    const analysisPromise = supabase.functions.invoke('analyze-website', {
       body: { urls: validUrls }
     });
 
+    // Race between timeout and analysis
+    const { data, error } = await Promise.race([analysisPromise, timeoutPromise]) as any;
+
     if (error) {
       console.error('Batch analysis error:', error);
-      if (retryCount < MAX_RETRIES && error.status === 429) {
-        console.log(`Retrying after delay (attempt ${retryCount + 1})`);
-        await delay(RETRY_DELAY * (retryCount + 1));
-        return analyzeWebsites(urls, retryCount + 1);
+      
+      // Handle rate limiting
+      if (error.status === 429) {
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Rate limited, retrying after delay (attempt ${retryCount + 1})`);
+          await delay(RETRY_DELAY * (retryCount + 1));
+          return analyzeWebsites(urls, retryCount + 1);
+        }
+        throw new Error('Rate limit exceeded. Please try again later.');
       }
+      
+      // Handle service unavailability
+      if (error.status === 503) {
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Service unavailable, retrying after delay (attempt ${retryCount + 1})`);
+          await delay(RETRY_DELAY * (retryCount + 1));
+          return analyzeWebsites(urls, retryCount + 1);
+        }
+        throw new Error('Service temporarily unavailable. Please try again later.');
+      }
+
       throw error;
     }
 
@@ -99,11 +126,14 @@ export const analyzeWebsites = async (urls: string[], retryCount = 0): Promise<W
 
   } catch (error) {
     console.error('Error processing websites:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    toast.error(errorMessage);
+    
     return urls.map(url => ({
       status: 'Error',
       details: {
         lastChecked: new Date().toISOString(),
-        errorDetails: error instanceof Error ? error.message : 'Unknown error occurred',
+        errorDetails: errorMessage,
         chatSolutions: []
       }
     }));
@@ -116,11 +146,14 @@ export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult
     return results[0];
   } catch (error) {
     console.error('Error analyzing website:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    toast.error(errorMessage);
+    
     return {
       status: 'Error',
       details: {
         lastChecked: new Date().toISOString(),
-        errorDetails: error instanceof Error ? error.message : 'Unknown error occurred',
+        errorDetails: errorMessage,
         chatSolutions: []
       }
     };
