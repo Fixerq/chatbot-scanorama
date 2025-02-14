@@ -4,6 +4,13 @@ export interface ChatDetectionResult {
   has_chatbot: boolean;
   chatSolutions: string[];
   lastChecked: string;
+  details?: {
+    dynamic_loading?: boolean;
+    chat_elements?: boolean;
+    meta_tags?: boolean;
+    websockets?: boolean;
+    url?: string;
+  };
 }
 
 export interface ChatbotDetectionResponse {
@@ -20,6 +27,8 @@ export function isChatDetectionResult(obj: any): obj is ChatDetectionResult {
     typeof obj.status === 'string' &&
     typeof obj.has_chatbot === 'boolean' &&
     Array.isArray(obj.chatSolutions) &&
-    typeof obj.lastChecked === 'string'
+    typeof obj.lastChecked === 'string' &&
+    (!obj.details || typeof obj.details === 'object')
   );
 }
+
