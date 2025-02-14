@@ -451,8 +451,10 @@ export type Database = {
           chatbot_platforms: string[] | null
           created_at: string
           has_chatbot: boolean | null
+          has_live_elements: boolean | null
           id: string
           last_checked: string
+          live_elements: Json | null
           phone: string | null
           url: string
           website_url: string | null
@@ -463,8 +465,10 @@ export type Database = {
           chatbot_platforms?: string[] | null
           created_at?: string
           has_chatbot?: boolean | null
+          has_live_elements?: boolean | null
           id?: string
           last_checked?: string
+          live_elements?: Json | null
           phone?: string | null
           url: string
           website_url?: string | null
@@ -475,8 +479,10 @@ export type Database = {
           chatbot_platforms?: string[] | null
           created_at?: string
           has_chatbot?: boolean | null
+          has_live_elements?: boolean | null
           id?: string
           last_checked?: string
+          live_elements?: Json | null
           phone?: string | null
           url?: string
           website_url?: string | null
@@ -594,6 +600,39 @@ export type Database = {
           id?: string
           metadata?: Json | null
           url?: string
+        }
+        Relationships: []
+      }
+      live_element_patterns: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: number
+          is_active: boolean | null
+          pattern: string
+          priority: number | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          is_active?: boolean | null
+          pattern: string
+          priority?: number | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          is_active?: boolean | null
+          pattern?: string
+          priority?: number | null
+          type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
