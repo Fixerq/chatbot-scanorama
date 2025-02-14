@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Table,
@@ -8,6 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Play } from "lucide-react";
 import ResultUrlCell from './results/ResultUrlCell';
 import ResultStatusCell from './results/ResultStatusCell';
 
@@ -32,6 +33,8 @@ export interface Result {
 interface ResultsTableProps {
   results: Result[];
   isLoading?: boolean;
+  onAnalyzeResult?: (url: string) => void;
+  isAnalyzing?: boolean;
 }
 
 const formatBusinessName = (name: string): string => {
@@ -104,7 +107,12 @@ const formatInstalledTechnologies = (result: Result) => {
   return chatSolutions[0];
 };
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ results, isLoading }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ 
+  results, 
+  isLoading,
+  onAnalyzeResult,
+  isAnalyzing 
+}) => {
   return (
     <div className="rounded-md border">
       <Table>
@@ -113,13 +121,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, isLoading }) => {
             <TableHead className="w-[300px]">Website</TableHead>
             <TableHead>Business Name</TableHead>
             <TableHead>Chatbot Provider</TableHead>
+            <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {results.map((result, index) => {
             const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
-            const isAnalyzing = !result.status;
-            const technologies = isAnalyzing ? 'Analyzing...' : formatInstalledTechnologies(result);
+            const isResultAnalyzing = !result.status;
+            const technologies = isResultAnalyzing ? 'Analyzing...' : formatInstalledTechnologies(result);
             const businessName = getBusinessName(result);
             const websiteUrl = result.details?.website_url || result.url;
 
@@ -135,8 +144,18 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, isLoading }) => {
                   technologies={technologies}
                   lastChecked={result.details?.lastChecked}
                   chatSolutions={result.details?.chatSolutions}
-                  isAnalyzing={isAnalyzing}
+                  isAnalyzing={isResultAnalyzing}
                 />
+                <TableCell>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onAnalyzeResult?.(websiteUrl)}
+                    disabled={isAnalyzing || isResultAnalyzing}
+                  >
+                    <Play className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             );
           })}

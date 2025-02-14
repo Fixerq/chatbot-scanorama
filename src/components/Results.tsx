@@ -1,10 +1,12 @@
-
 import React, { useState } from 'react';
 import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import EmptyResults from './results/EmptyResults';
 import LoadMoreButton from './LoadMoreButton';
+import { Button } from "./ui/button";
+import { Play } from "lucide-react";
+import { useToast } from "./ui/use-toast";
 import {
   Pagination,
   PaginationContent,
@@ -14,6 +16,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { createAnalysisRequest, invokeAnalysisFunction } from '@/services/analysisService';
 
 interface ResultsProps {
   results?: Result[];
@@ -34,15 +37,14 @@ const Results = ({
   isLoadingMore = false,
   currentPage = 1
 }: ResultsProps) => {
-  // Filter out only results with error status
-  const validResults = results.filter(r => 
+  const { toast } = useToast();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [localPage, setLocalPage] = useState(currentPage);
+  const [filteredResults, setFilteredResults] = useState<Result[]>(results.filter(r => 
     !r.status?.toLowerCase().includes('error analyzing url')
-  );
-  const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
+  ));
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
-  const [localPage, setLocalPage] = useState(currentPage);
-  const resultsPerPage = 50;
 
   React.useEffect(() => {
     const newValidResults = results.filter(r => 
@@ -54,7 +56,7 @@ const Results = ({
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
-    let filtered = [...validResults];
+    let filtered = [...filteredResults];
     
     if (value === 'chatbot') {
       filtered = filtered.filter(r => r.details?.chatSolutions?.length > 0);
@@ -96,16 +98,78 @@ const Results = ({
     }
   };
 
-  if (!validResults || validResults.length === 0) {
+  const analyzeAll = async () => {
+    setIsAnalyzing(true);
+    let errorCount = 0;
+
+    try {
+      await Promise.all(filteredResults.map(async (result) => {
+        try {
+          const request = await createAnalysisRequest(result.url);
+          await invokeAnalysisFunction(result.url, request.id);
+        } catch (error) {
+          console.error(`Error analyzing ${result.url}:`, error);
+          errorCount++;
+        }
+      }));
+
+      if (errorCount > 0) {
+        toast({
+          title: "Warning",
+          description: `Analysis completed with ${errorCount} errors`,
+          variant: "destructive",
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "All websites queued for analysis",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Bulk analysis error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start bulk analysis",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const analyzeResult = async (url: string) => {
+    try {
+      const request = await createAnalysisRequest(url);
+      await invokeAnalysisFunction(url, request.id);
+      toast({
+        title: "Success",
+        description: "Website queued for analysis",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error analyzing website:', error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze website",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
+
+  if (!results || results.length === 0) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
-  const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
-  const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
+  const chatbotCount = results.filter(r => r.details?.chatSolutions?.length > 0).length;
+  const noChatbotCount = results.filter(r => !r.details?.chatSolutions?.length).length;
   
-  const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
-  const startIndex = (localPage - 1) * resultsPerPage;
-  const endIndex = startIndex + resultsPerPage;
+  const totalPages = Math.ceil(filteredResults.length / 50);
+  const startIndex = (localPage - 1) * 50;
+  const endIndex = startIndex + 50;
   const displayedResults = filteredResults.slice(startIndex, endIndex);
 
   return (
@@ -117,16 +181,30 @@ const Results = ({
           onFilterChange={handleFilter}
           onSortChange={handleSort}
         />
-        <ResultsHeader
-          results={validResults}
-          totalCount={validResults.length}
-          chatbotCount={chatbotCount}
-          onNewSearch={onNewSearch}
-          onExport={onExport}
-        />
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={analyzeAll}
+            disabled={isAnalyzing || filteredResults.length === 0}
+            className="bg-black hover:bg-gray-800 text-white"
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Analyze All
+          </Button>
+          <ResultsHeader
+            results={results}
+            totalCount={results.length}
+            chatbotCount={chatbotCount}
+            onNewSearch={onNewSearch}
+            onExport={onExport}
+          />
+        </div>
       </div>
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
-        <ResultsTable results={displayedResults} />
+        <ResultsTable 
+          results={displayedResults}
+          onAnalyzeResult={analyzeResult}
+          isAnalyzing={isAnalyzing}
+        />
       </div>
       
       {hasMore && (
