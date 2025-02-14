@@ -944,6 +944,24 @@ export type Database = {
         }
         Relationships: []
       }
+      error_monitoring: {
+        Row: {
+          affected_urls: string[] | null
+          error_count: number | null
+          time_bucket: string | null
+          unique_errors: string | null
+        }
+        Relationships: []
+      }
+      provider_analysis: {
+        Row: {
+          detection_count: number | null
+          detection_rate: number | null
+          provider_name: string | null
+          unique_sites: number | null
+        }
+        Relationships: []
+      }
       rate_limit_status: {
         Row: {
           client_ip: string | null
@@ -1076,6 +1094,10 @@ export type Database = {
         Returns: boolean
       }
       refresh_admin_users_mv: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_monitoring_views: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
