@@ -1106,6 +1106,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_simple: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       alert_severity: "error" | "warning" | "info"
