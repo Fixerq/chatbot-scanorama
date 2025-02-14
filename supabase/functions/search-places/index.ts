@@ -7,14 +7,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
   try {
-    // Log incoming request details
     console.log('Request received:', {
       method: req.method,
       url: req.url,
       headers: Object.fromEntries(req.headers.entries())
     });
     
-    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       console.log('Handling OPTIONS request');
       return new Response('ok', {
@@ -28,7 +26,6 @@ serve(async (req) => {
       throw new Error('Method not allowed');
     }
 
-    // Ensure content-type is application/json
     const contentType = req.headers.get('content-type');
     console.log('Content-Type:', contentType);
     
@@ -47,6 +44,10 @@ serve(async (req) => {
 
     const { action, params } = requestBody;
     console.log('Search request:', { action, params });
+
+    if (!params?.query) {
+      throw new Error('Query parameter is required');
+    }
 
     // Validate search parameters
     const validationError = validateSearchRequest(action, params);
@@ -74,13 +75,20 @@ serve(async (req) => {
       }
     });
 
-    // Search for businesses
-    console.log('Starting business search with params:', params);
+    // Search for businesses with pagination support
+    console.log('Starting business search with params:', {
+      ...params,
+      pageToken: params.nextPageToken || 'not provided'
+    });
+    
     const searchResponse = await searchBusinesses(params, supabase);
     
-    console.log('Search completed successfully:', searchResponse);
+    console.log('Search completed successfully:', {
+      resultsCount: searchResponse.results.length,
+      hasMore: searchResponse.hasMore,
+      nextPageToken: searchResponse.nextPageToken || 'none'
+    });
 
-    // Create base response
     const response = new Response(
       JSON.stringify({
         data: searchResponse,
@@ -92,7 +100,6 @@ serve(async (req) => {
       }
     );
 
-    // Return response with CORS headers
     return addCorsHeaders(response);
 
   } catch (error) {

@@ -10,11 +10,18 @@ interface SearchState {
   apiKey: string;
   resultsLimit: number;
   currentPage: number;
+  nextPageToken?: string;
+  lastSearch?: {
+    query: string;
+    country: string;
+    region: string;
+  };
 }
 
 interface SearchResults {
   currentResults: Result[];
   hasMore: boolean;
+  nextPageToken?: string;
 }
 
 export const useSearchState = () => {
@@ -25,12 +32,15 @@ export const useSearchState = () => {
     apiKey: '',
     resultsLimit: 25,
     currentPage: 1,
+    nextPageToken: undefined,
+    lastSearch: undefined
   };
 
   const [searchState, setSearchState] = useState<SearchState>(initialState);
   const [results, setResults] = useState<SearchResults>({
     currentResults: [],
     hasMore: false,
+    nextPageToken: undefined
   });
   const [isSearching, setIsSearching] = useState(false);
   const location = useLocation();
@@ -44,8 +54,6 @@ export const useSearchState = () => {
       }
 
       try {
-        // TODO: Implement API key retrieval from Supabase
-        // For now, we'll use an empty implementation
         if (isMounted) {
           setSearchState(prev => ({
             ...prev,
@@ -72,11 +80,30 @@ export const useSearchState = () => {
     setResults({
       currentResults: [],
       hasMore: false,
+      nextPageToken: undefined
     });
   }, []);
 
   const updateSearchState = useCallback((updates: Partial<SearchState>) => {
-    setSearchState(prev => ({ ...prev, ...updates }));
+    setSearchState(prev => {
+      // If this is a new search (query, country, or region changed), store it as lastSearch
+      if (
+        updates.query !== undefined || 
+        updates.country !== undefined || 
+        updates.region !== undefined
+      ) {
+        return {
+          ...prev,
+          ...updates,
+          lastSearch: {
+            query: updates.query || prev.query,
+            country: updates.country || prev.country,
+            region: updates.region || prev.region
+          }
+        };
+      }
+      return { ...prev, ...updates };
+    });
   }, []);
 
   return {

@@ -26,35 +26,32 @@ export interface Result {
     description?: string;
   };
   status?: string;
+  nextPageToken?: string;
 }
 
 interface ResultsTableProps {
   results: Result[];
+  isLoading?: boolean;
 }
 
 const formatBusinessName = (name: string): string => {
   if (!name) return 'N/A';
 
-  // Remove common TLDs and prefixes
   const cleanName = name.toLowerCase()
     .replace(/\.(com|ca|uk|net|org|co|io|au)$/g, '')
     .replace(/www\./g, '')
     .replace(/^(http:\/\/|https:\/\/)/, '');
 
-  // Split by common business identifiers and remove them
   const withoutIdentifiers = cleanName
     .replace(/(ltd|llc|inc|corporation|corp|pty|limited)\.?\s*$/i, '')
     .trim();
 
-  // Split by common separators and clean up
   const words = withoutIdentifiers
     .split(/[\s_\-]+/)
     .filter(word => word.length > 0);
 
-  // Common words to keep lowercase
   const lowercaseWords = ['and', 'of', 'the', '&', 'in', 'on', 'at', 'by', 'for', 'to'];
 
-  // Capitalize each word unless it's in the lowercaseWords array
   const formattedWords = words.map((word, index) => {
     word = word.trim().toLowerCase();
     if (index === 0 || !lowercaseWords.includes(word)) {
@@ -107,7 +104,7 @@ const formatInstalledTechnologies = (result: Result) => {
   return chatSolutions[0];
 };
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ results, isLoading }) => {
   return (
     <div className="rounded-md border">
       <Table>
@@ -126,7 +123,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             const businessName = getBusinessName(result);
 
             return (
-              <TableRow key={index}>
+              <TableRow key={index} className={isLoading ? 'opacity-50' : ''}>
                 <ResultUrlCell url={result.url} />
                 <TableCell className="font-medium">
                   {businessName}
@@ -149,4 +146,3 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 };
 
 export default ResultsTable;
-
