@@ -10,13 +10,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Received analyze-website request:', req.method);
     return await handleRequest(req);
   } catch (error) {
-    console.error('Unhandled error:', error);
+    console.error('Unhandled error in analyze-website function:', error);
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        message: error.message
+        message: error.message,
+        status: 'error'
       }),
       {
         status: 500,

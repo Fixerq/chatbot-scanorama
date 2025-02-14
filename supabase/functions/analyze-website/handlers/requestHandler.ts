@@ -15,7 +15,7 @@ const supabase = createClient(
 );
 
 // Reduce max concurrent requests to prevent resource exhaustion
-const MAX_CONCURRENT_REQUESTS = 1;
+const MAX_CONCURRENT_REQUESTS = 3;
 const activeRequests = new Set();
 
 // Add request queue
@@ -55,7 +55,7 @@ export async function handleRequest(req: Request) {
       isRateLimited = true;
       errorMessage = 'Rate limit exceeded. Please try again later.';
       
-      await logRequestCompletion({
+      await logAnalysis({
         url: 'unknown',
         success: false,
         cached: false,
@@ -82,7 +82,7 @@ export async function handleRequest(req: Request) {
       success = true;
       cached = true;
       
-      await logRequestCompletion({
+      await logAnalysis({
         url: normalizedUrl,
         success: true,
         cached: true,
@@ -119,7 +119,7 @@ export async function handleRequest(req: Request) {
     console.error('Function error:', error);
     errorMessage = error.message;
     
-    await logRequestCompletion({
+    await logAnalysis({
       url: error.requestData?.url || 'unknown',
       success: false,
       cached: false,
@@ -142,7 +142,7 @@ async function processAnalysisRequest(normalizedUrl: string, startTime: number) 
     const result = await websiteAnalyzer(normalizedUrl);
     await updateCache(normalizedUrl, result.has_chatbot, result.chatSolutions, result.details);
     
-    await logRequestCompletion({
+    await logAnalysis({
       url: normalizedUrl,
       success: true,
       cached: false,
@@ -158,7 +158,7 @@ async function processAnalysisRequest(normalizedUrl: string, startTime: number) 
   }
 }
 
-async function logRequestCompletion(params: {
+async function logAnalysis(params: {
   url: string;
   success: boolean;
   cached: boolean;

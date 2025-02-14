@@ -44,102 +44,51 @@ export const useAnalysisQueue = () => {
         result.url === url ? { ...result, status: 'Processing...' } : result
       ));
 
-      // Poll for result
-      let pollCount = 0;
-      const pollInterval = setInterval(async () => {
-        pollCount++;
-        console.log(`Polling for results (attempt ${pollCount}):`, url);
+      // Call the analyze-website function directly
+      const { data: analysisResult, error: analysisError } = await supabase.functions.invoke<ChatDetectionResult>(
+        'analyze-website',
+        {
+          body: { url }
+        }
+      );
 
-        const { data: queueItem, error: pollError } = await supabase
-          .from('website_analysis_queue')
-          .select('*')
-          .eq('website_url', url)
-          .maybeSingle();
-
-        if (pollError) {
-          console.error('Error polling queue:', pollError);
+      if (analysisError || !analysisResult) {
+        console.error('Analysis error:', analysisError || 'No result returned');
+        if (attempt < MAX_RETRIES) {
+          console.log(`Retrying URL ${url} (attempt ${attempt + 1})`);
+          setTimeout(() => processUrl(url, attempt + 1), RETRY_DELAY);
           return;
         }
+        setQueuedResults(prev => prev.map(result => 
+          result.url === url ? {
+            ...result,
+            status: `Error: ${analysisError?.message || 'Analysis failed'}`
+          } : result
+        ));
+        return;
+      }
 
-        if (!queueItem) {
-          return;
-        }
-
-        if (queueItem.status === 'completed' && queueItem.analysis_result) {
-          clearInterval(pollInterval);
-          
-          // Convert the JSON result to unknown first, then validate its structure
-          const rawResult = queueItem.analysis_result as unknown;
-          
-          // Type guard to validate the raw result
-          if (typeof rawResult === 'object' && 
-              rawResult !== null &&
-              'status' in rawResult &&
-              'chatSolutions' in rawResult &&
-              'lastChecked' in rawResult &&
-              Array.isArray((rawResult as any).chatSolutions)) {
-            
-            // Now we can safely cast to ChatDetectionResult
-            const analysisResult = rawResult as ChatDetectionResult;
-            
-            if (isChatDetectionResult(analysisResult)) {
-              setQueuedResults(prev => prev.map(result => 
-                result.url === url ? {
-                  ...result,
-                  status: 'Success',
-                  details: {
-                    chatSolutions: analysisResult.chatSolutions,
-                    lastChecked: analysisResult.lastChecked
-                  }
-                } : result
-              ));
-            } else {
-              console.error('Invalid ChatDetectionResult structure:', analysisResult);
-              setQueuedResults(prev => prev.map(result => 
-                result.url === url ? {
-                  ...result,
-                  status: 'Error: Invalid analysis result structure'
-                } : result
-              ));
+      if (isChatDetectionResult(analysisResult)) {
+        setQueuedResults(prev => prev.map(result => 
+          result.url === url ? {
+            ...result,
+            status: analysisResult.status,
+            details: {
+              ...result.details,
+              chatSolutions: analysisResult.chatSolutions,
+              lastChecked: analysisResult.lastChecked
             }
-          } else {
-            console.error('Invalid analysis result structure:', queueItem.analysis_result);
-            setQueuedResults(prev => prev.map(result => 
-              result.url === url ? {
-                ...result,
-                status: 'Error: Invalid analysis result format'
-              } : result
-            ));
-          }
-        } else if (queueItem.status === 'failed') {
-          clearInterval(pollInterval);
-          if (attempt < MAX_RETRIES) {
-            console.log(`Retrying URL ${url} (attempt ${attempt + 1})`);
-            setTimeout(() => processUrl(url, attempt + 1), RETRY_DELAY);
-          } else {
-            setQueuedResults(prev => prev.map(result => 
-              result.url === url ? {
-                ...result,
-                status: `Error: ${queueItem.error_message || 'Analysis failed'}`
-              } : result
-            ));
-          }
-        }
-
-        // Stop polling after 2 minutes to prevent infinite polling
-        if (pollCount > 60) {
-          clearInterval(pollInterval);
-          setQueuedResults(prev => prev.map(result => 
-            result.url === url ? {
-              ...result,
-              status: 'Error: Analysis timeout'
-            } : result
-          ));
-        }
-      }, 2000); // Poll every 2 seconds
-
-      // Cleanup interval after 2 minutes
-      setTimeout(() => clearInterval(pollInterval), 120000);
+          } : result
+        ));
+      } else {
+        console.error('Invalid analysis result structure:', analysisResult);
+        setQueuedResults(prev => prev.map(result => 
+          result.url === url ? {
+            ...result,
+            status: 'Error: Invalid analysis result'
+          } : result
+        ));
+      }
 
     } catch (error) {
       console.error(`Error processing ${url}:`, error);
@@ -185,4 +134,3 @@ export const useAnalysisQueue = () => {
     clearResults
   };
 };
-
