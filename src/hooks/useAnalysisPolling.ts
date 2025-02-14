@@ -4,6 +4,7 @@ import { checkAnalysisStatus } from '@/services/analysisService';
 import { ANALYSIS_CONSTANTS } from '@/types/analysis';
 import { Result } from '@/components/ResultsTable';
 import { isChatDetectionResult } from '@/types/chatbot';
+import { loggingService } from '@/services/loggingService';
 
 export const useAnalysisPolling = (
   updateResults: (url: string, update: Partial<Result>) => void
@@ -17,29 +18,29 @@ export const useAnalysisPolling = (
       if (request.status === 'completed' && request.analysis_result) {
         const result = request.analysis_result;
         if (isChatDetectionResult(result)) {
-          console.log('Analysis completed successfully:', result);
+          loggingService.logAnalysisCompletion(result);
           updateResults(url, {
             status: 'success',
             details: {
               chatSolutions: result.chatSolutions,
-              lastChecked: request.completed_at
+              lastChecked: new Date().toISOString()
             }
           });
           return true;
         } else {
-          console.error('Invalid analysis result format:', result);
+          loggingService.logInvalidResult(result);
           updateResults(url, { status: 'Error: Invalid analysis result format' });
           return true;
         }
       } else if (request.status === 'failed') {
-        console.error('Analysis failed:', request.error_message);
+        loggingService.logAnalysisError(url, request.error_message);
         updateResults(url, { status: `Error: ${request.error_message || 'Analysis failed'}` });
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Error checking analysis status:', error);
+      loggingService.logStatusError(error);
       updateResults(url, { status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` });
       return true;
     }
@@ -67,4 +68,3 @@ export const useAnalysisPolling = (
 
   return { startPolling };
 };
-

@@ -5,6 +5,7 @@ import { Result } from '@/components/ResultsTable';
 import { ANALYSIS_CONSTANTS } from '@/types/analysis';
 import { createAnalysisRequest, invokeAnalysisFunction } from '@/services/analysisService';
 import { useAnalysisPolling } from './useAnalysisPolling';
+import { loggingService } from '@/services/loggingService';
 
 export const useAnalysisQueue = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -20,23 +21,23 @@ export const useAnalysisQueue = () => {
 
   const processUrl = async (url: string, attempt = 1): Promise<void> => {
     try {
-      console.log(`Processing URL (attempt ${attempt}):`, url);
+      loggingService.logAnalysisStart(url, attempt);
       
       const request = await createAnalysisRequest(url);
-      console.log('Analysis request created:', request);
+      loggingService.logRequestCreated(request);
 
       updateQueuedResult(url, { status: 'Processing...' });
 
-      console.log('Invoking analyze-website function with params:', { url, requestId: request.id });
+      loggingService.logFunctionInvocation(url, request.id);
       await invokeAnalysisFunction(url, request.id);
 
-      console.log('Starting polling for analysis status');
+      loggingService.logPollingStart();
       startPolling(request.id, url);
 
     } catch (error) {
-      console.error(`Error processing ${url}:`, error);
+      loggingService.logAnalysisError(url, error);
       if (attempt < ANALYSIS_CONSTANTS.MAX_RETRIES) {
-        console.log(`Retrying URL ${url} (attempt ${attempt + 1})`);
+        loggingService.logRetryAttempt(url, attempt + 1);
         setTimeout(() => processUrl(url, attempt + 1), ANALYSIS_CONSTANTS.RETRY_DELAY);
         return;
       }
@@ -56,12 +57,11 @@ export const useAnalysisQueue = () => {
     setQueuedResults(initialResults);
 
     try {
-      // Process URLs sequentially to avoid overwhelming the system
       for (const url of urls) {
         await processUrl(url);
       }
     } catch (error) {
-      console.error('Error processing URLs:', error);
+      loggingService.logProcessingError(error);
       toast.error('Error adding URLs to analysis queue');
     } finally {
       setIsProcessing(false);
@@ -80,4 +80,3 @@ export const useAnalysisQueue = () => {
     clearResults
   };
 };
-
