@@ -9,6 +9,13 @@ export interface RequestData {
 export interface ChatDetectionResult {
   status: string;
   chatSolutions: string[];
+  has_live_elements?: boolean;
+  liveElements?: Array<{
+    type: string;
+    pattern: string;
+    matched: string;
+    confidence: number;
+  }>;
   lastChecked: string;
   note?: string;
   error?: string;
@@ -21,6 +28,13 @@ export interface ChatbotDetection {
   website_url: string | null;
   chatbot_platforms: string[];
   has_chatbot: boolean;
+  has_live_elements: boolean;
+  live_elements: Array<{
+    type: string;
+    pattern: string;
+    matched: string;
+    confidence: number;
+  }>;
   phone?: string | null;
   address?: string | null;
   business_name?: string | null;

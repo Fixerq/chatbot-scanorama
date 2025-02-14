@@ -20,26 +20,32 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       throw new Error('Could not get response body reader');
     }
 
-    // Process the content and detect chatbot presence
+    // Process the content and detect chatbot and live elements presence
     const {
       hasDynamicChat,
       hasChatElements,
       hasMetaTags,
       hasWebSockets,
-      detectedSolutions
+      detectedSolutions,
+      liveElements
     } = await processContent(reader);
 
     const has_chatbot = hasDynamicChat || hasChatElements || hasMetaTags || hasWebSockets || detectedSolutions.length > 0;
+    const has_live_elements = liveElements.length > 0;
 
     console.log('Final analysis:', {
       has_chatbot,
-      detectedSolutions
+      has_live_elements,
+      detectedSolutions,
+      liveElements
     });
 
     return {
       status: 'success',
       has_chatbot,
+      has_live_elements,
       chatSolutions: detectedSolutions,
+      liveElements,
       details: {
         dynamic_loading: hasDynamicChat,
         chat_elements: hasChatElements,
@@ -57,7 +63,9 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       status: 'error',
       error: error.message,
       has_chatbot: false,
+      has_live_elements: false,
       chatSolutions: [],
+      liveElements: [],
       details: {
         url: url,
         errorType: error.name,
