@@ -1,8 +1,9 @@
 
+// Import from Deno standard library
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from '../_shared/cors.ts';
 import { validateSearchRequest } from './validation.ts';
 import { searchBusinesses } from './businessSearch.ts';
-import { corsHeaders, addCorsHeaders } from '../_shared/cors.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 serve(async (req) => {
@@ -13,11 +14,17 @@ serve(async (req) => {
       headers: Object.fromEntries(req.headers.entries())
     });
     
+    // Always add CORS headers to all responses
+    const responseHeaders = {
+      ...corsHeaders,
+      'Content-Type': 'application/json'
+    };
+
+    // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
-      console.log('Handling OPTIONS request');
-      return new Response('ok', {
-        status: 200,
-        headers: corsHeaders
+      return new Response('ok', { 
+        headers: responseHeaders,
+        status: 204 
       });
     }
 
@@ -89,18 +96,16 @@ serve(async (req) => {
       nextPageToken: searchResponse.nextPageToken || 'none'
     });
 
-    const response = new Response(
+    return new Response(
       JSON.stringify({
         data: searchResponse,
         status: 'success'
       }),
       { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: responseHeaders,
+        status: 200
       }
     );
-
-    return addCorsHeaders(response);
 
   } catch (error) {
     console.error('Error details:', {
@@ -109,17 +114,18 @@ serve(async (req) => {
       cause: error.cause
     });
     
-    const errorResponse = new Response(
+    return new Response(
       JSON.stringify({
         error: error.message || 'An unexpected error occurred',
         status: 'error'
       }),
       { 
         status: error.message === 'Method not allowed' ? 405 : 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
     );
-
-    return addCorsHeaders(errorResponse);
   }
 });
