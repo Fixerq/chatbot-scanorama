@@ -8,6 +8,7 @@ import { logAnalysis } from '../services/loggingService.ts';
 import { createSuccessResponse, createErrorResponse, createRateLimitResponse } from '../utils/responseHandler.ts';
 import { websiteAnalyzer } from '../services/websiteAnalyzer.ts';
 import { normalizeUrl } from '../utils/urlUtils.ts';
+import { ChatDetectionResult } from '../types.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -15,7 +16,7 @@ const supabase = createClient(
 );
 
 // Reduce max concurrent requests to prevent resource exhaustion
-const MAX_CONCURRENT_REQUESTS = 3;
+const MAX_CONCURRENT_REQUESTS = 5;
 const activeRequests = new Set();
 
 // Add request queue
@@ -69,51 +70,70 @@ export async function handleRequest(req: Request) {
     }
 
     const body = await req.text();
-    console.log('Request body:', body);
+    const requestData = JSON.parse(body);
+    console.log('Request body:', requestData);
 
-    const requestData = validateRequest(body);
-    const normalizedUrl = normalizeUrl(requestData.url);
-    console.log('Analyzing website:', normalizedUrl);
-
-    // Check for cached result first before queueing
-    const cachedResult = await getCachedAnalysis(normalizedUrl);
-    if (cachedResult) {
-      console.log('Cache hit for URL:', normalizedUrl);
-      success = true;
-      cached = true;
+    // Handle batch analysis
+    if (Array.isArray(requestData.urls)) {
+      console.log('Processing batch of URLs:', requestData.urls.length);
+      const results: ChatDetectionResult[] = [];
       
-      await logAnalysis({
-        url: normalizedUrl,
-        success: true,
-        cached: true,
-        providersFound,
-        responseTimeMs: Date.now() - startTime,
-        metadata: { fromCache: true }
-      });
-
-      return createSuccessResponse({
-        ...cachedResult,
-        fromCache: true
-      });
-    }
-
-    // If we're at capacity, add to queue
-    if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) {
-      return new Promise((resolve) => {
-        requestQueue.push(async () => {
-          try {
-            const result = await processAnalysisRequest(normalizedUrl, startTime);
-            resolve(result);
-          } catch (error) {
-            console.error('Error processing queued request:', error);
-            resolve(createErrorResponse(error.message));
+      for (const url of requestData.urls) {
+        try {
+          const normalizedUrl = normalizeUrl(url);
+          console.log('Processing URL:', normalizedUrl);
+          
+          // Check cache first
+          const cachedResult = await getCachedAnalysis(normalizedUrl);
+          if (cachedResult) {
+            console.log('Cache hit for URL:', normalizedUrl);
+            results.push({
+              ...cachedResult,
+              fromCache: true
+            });
+            continue;
           }
-        });
-        processQueue();
+          
+          // Analyze website
+          if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) {
+            console.log('Max concurrent requests reached, queueing:', normalizedUrl);
+            const result = await new Promise<ChatDetectionResult>((resolve) => {
+              requestQueue.push(async () => {
+                const analysisResult = await websiteAnalyzer(normalizedUrl);
+                resolve(analysisResult);
+              });
+            });
+            results.push(result);
+          } else {
+            const result = await websiteAnalyzer(normalizedUrl);
+            results.push(result);
+          }
+        } catch (error) {
+          console.error('Error processing URL:', url, error);
+          results.push({
+            status: 'error',
+            chatSolutions: [],
+            has_chatbot: false,
+            has_live_elements: false,
+            error: error.message,
+            lastChecked: new Date().toISOString()
+          });
+        }
+      }
+
+      await processQueue();
+      
+      return new Response(JSON.stringify(results), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       });
     }
 
-    return await processAnalysisRequest(normalizedUrl, startTime);
+    // Handle single URL analysis (backward compatibility)
+    const { url } = validateRequest(body);
+    return await processAnalysisRequest(url, startTime);
 
   } catch (error) {
     console.error('Function error:', error);
@@ -156,17 +176,4 @@ async function processAnalysisRequest(normalizedUrl: string, startTime: number) 
     activeRequests.delete(requestId);
     processQueue();
   }
-}
-
-async function logAnalysis(params: {
-  url: string;
-  success: boolean;
-  cached: boolean;
-  providersFound?: string[];
-  errorMessage?: string;
-  responseTimeMs: number;
-  isRateLimited?: boolean;
-  metadata?: Record<string, unknown>;
-}) {
-  await logAnalysis(params);
 }

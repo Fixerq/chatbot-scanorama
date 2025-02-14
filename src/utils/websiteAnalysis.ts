@@ -58,78 +58,60 @@ function validateUrl(url: string): string {
   }
 }
 
-export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult> => {
+export const analyzeWebsites = async (urls: string[]): Promise<WebsiteAnalysisResult[]> => {
+  console.log('Analyzing batch of URLs:', urls);
+  
   try {
-    if (!url) {
-      console.error('No URL provided');
-      throw new Error('URL is required');
-    }
-
-    // Validate URL before proceeding
-    const validatedUrl = validateUrl(url);
-    console.log('Processing URL:', validatedUrl);
-
-    // First check cache
-    const { data: cachedResult } = await supabase
-      .from('chatbot_detections')
-      .select('*')
-      .eq('website_url', validatedUrl)
-      .maybeSingle();
-
-    if (cachedResult) {
-      console.log('Found cached result for:', validatedUrl);
-      return {
-        status: 'Success',
-        details: {
-          lastChecked: cachedResult.last_checked,
-          chatSolutions: cachedResult.chatbot_platforms || [],
-        }
-      };
-    }
-
-    // Get active detection patterns
+    // Get active detection patterns once for all URLs
     const patterns = await getActivePatterns();
     console.log(`Loaded ${patterns.length} detection patterns`);
 
-    // If no cached result, queue for analysis with patterns
-    const { data: queueItem, error: queueError } = await supabase
-      .from('website_analysis_queue')
-      .insert([{
-        website_url: validatedUrl,
-        status: 'pending',
-        analysis_result: { 
-          patterns: patterns.map(p => ({
-            id: p.id,
-            pattern: p.pattern,
-            method: p.method,
-            provider: p.provider
-          }))
-        }
-      }])
-      .select()
-      .single();
+    const validUrls = urls.map(validateUrl);
+    console.log('Validated URLs:', validUrls);
 
-    if (queueError) {
-      throw new Error('Failed to queue website for analysis');
+    const { data, error } = await supabase.functions.invoke('analyze-website', {
+      body: { urls: validUrls }
+    });
+
+    if (error) {
+      console.error('Batch analysis error:', error);
+      throw error;
     }
 
-    return {
-      status: 'Queued',
+    console.log('Batch analysis results:', data);
+    return data.map((result: any) => ({
+      status: result.status || 'Error',
       details: {
-        lastChecked: new Date().toISOString(),
-        chatSolutions: []
+        lastChecked: result.lastChecked || new Date().toISOString(),
+        chatSolutions: result.chatSolutions || [],
+        errorDetails: result.error
       }
-    };
+    }));
 
   } catch (error) {
-    console.error('Error processing website:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
+    console.error('Error processing websites:', error);
+    return urls.map(url => ({
+      status: 'Error',
+      details: {
+        lastChecked: new Date().toISOString(),
+        errorDetails: error instanceof Error ? error.message : 'Unknown error occurred',
+        chatSolutions: []
+      }
+    }));
+  }
+};
+
+export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult> => {
+  try {
+    const results = await analyzeWebsites([url]);
+    return results[0];
+  } catch (error) {
+    console.error('Error analyzing website:', error);
     return {
       status: 'Error',
-      details: { 
-        errorDetails: errorMessage,
+      details: {
         lastChecked: new Date().toISOString(),
+        errorDetails: error instanceof Error ? error.message : 'Unknown error occurred',
         chatSolutions: []
       }
     };
