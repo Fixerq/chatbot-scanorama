@@ -22,9 +22,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   chatSolutions,
   isAnalyzing
 }) => {
-  const showSpinner = isAnalyzing || status === 'processing';
-
-  if (showSpinner) {
+  if (isAnalyzing || status?.toLowerCase() === 'analyzing...') {
     return (
       <TableCell>
         <div className="flex items-center space-x-2">
@@ -100,4 +98,3 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
-

@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatAnalysisStatus, formatChatbotProviders, getBusinessName } from '@/utils/analysisFormatter';
 import ResultUrlCell from './results/ResultUrlCell';
 import ResultStatusCell from './results/ResultStatusCell';
 
@@ -42,76 +43,6 @@ interface ResultsTableProps {
   isLoading?: boolean;
 }
 
-const formatBusinessName = (name: string): string => {
-  if (!name) return 'N/A';
-
-  const cleanName = name.toLowerCase()
-    .replace(/\.(com|ca|uk|net|org|co|io|au)$/g, '')
-    .replace(/www\./g, '')
-    .replace(/^(http:\/\/|https:\/\/)/, '');
-
-  const withoutIdentifiers = cleanName
-    .replace(/(ltd|llc|inc|corporation|corp|pty|limited)\.?\s*$/i, '')
-    .trim();
-
-  const words = withoutIdentifiers
-    .split(/[\s_\-]+/)
-    .filter(word => word.length > 0);
-
-  const lowercaseWords = ['and', 'of', 'the', '&', 'in', 'on', 'at', 'by', 'for', 'to'];
-
-  const formattedWords = words.map((word, index) => {
-    word = word.trim().toLowerCase();
-    if (index === 0 || !lowercaseWords.includes(word)) {
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    }
-    return word;
-  });
-
-  return formattedWords.join(' ');
-};
-
-const getBusinessName = (result: Result): string => {
-  const name = result.businessName || 
-               result.details?.business_name || 
-               extractNameFromUrl(result.url);
-               
-  return formatBusinessName(name || '');
-};
-
-const extractNameFromUrl = (url: string): string | null => {
-  if (!url) return null;
-  
-  try {
-    if (url.includes('maps.google.com')) {
-      const params = new URL(url).searchParams;
-      const q = params.get('q');
-      return q ? decodeURIComponent(q) : null;
-    }
-    
-    const domain = new URL(url).hostname
-      .replace('www.', '')
-      .replace('.com.au', '')
-      .replace('.com', '')
-      .replace('.au', '')
-      .split('.')[0];
-      
-    return domain ? domain.charAt(0).toUpperCase() + domain.slice(1) : null;
-  } catch {
-    return null;
-  }
-};
-
-const formatInstalledTechnologies = (result: Result) => {
-  if (!result.status) return 'Analyzing...';
-  if (result.status.toLowerCase().includes('error')) return result.status;
-  
-  const chatSolutions = result.chatbot_solutions || result.details?.chatSolutions || [];
-  if (chatSolutions.length === 0) return 'No chatbot detected';
-  
-  return chatSolutions[0];
-};
-
 const ResultsTable: React.FC<ResultsTableProps> = ({ 
   results, 
   isLoading,
@@ -130,10 +61,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           {results.map((result, index) => {
             const hasChatbot = result.has_chatbot || 
               (result.details?.chatSolutions && result.details.chatSolutions.length > 0);
-            const isResultAnalyzing = !result.status;
-            const technologies = isResultAnalyzing ? 'Analyzing...' : formatInstalledTechnologies(result);
-            const businessName = getBusinessName(result);
+            const isResultAnalyzing = !result.status || result.isAnalyzing;
             const websiteUrl = result.details?.website_url || result.url;
+            const businessName = getBusinessName(
+              websiteUrl,
+              result.businessName || result.details?.business_name
+            );
+            const technologies = isResultAnalyzing ? 'Analyzing...' : formatChatbotProviders(
+              result.chatbot_solutions || result.details?.chatSolutions
+            );
 
             return (
               <TableRow key={index} className={isLoading ? 'opacity-50' : ''}>
@@ -142,7 +78,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   {businessName}
                 </TableCell>
                 <ResultStatusCell 
-                  status={result.status}
+                  status={formatAnalysisStatus(result.status, isResultAnalyzing)}
                   hasChatbot={hasChatbot}
                   technologies={technologies}
                   lastChecked={result.lastChecked || result.details?.lastChecked}
