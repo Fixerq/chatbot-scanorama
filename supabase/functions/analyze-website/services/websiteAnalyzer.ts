@@ -10,10 +10,10 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
   try {
     // Process and validate URL
     const { cleanUrl, urlObj } = await processUrl(url);
-    console.log('[Analyzer] Processed URL:', cleanUrl);
+    console.log('[Analyzer] Processed URL:', cleanUrl, 'Original URL:', url);
     
     // Fetch and process the content
-    console.log('[Analyzer] Attempting to fetch:', urlObj.toString());
+    console.log('[Analyzer] Attempting to fetch content from:', urlObj.toString());
     const response = await tryFetch(urlObj.toString());
     
     if (!response.ok) {
@@ -21,6 +21,7 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
     }
     
+    console.log('[Analyzer] Successfully fetched content, getting reader');
     const reader = response.body?.getReader();
     if (!reader) {
       console.error('[Analyzer] Could not get response body reader');
@@ -38,6 +39,15 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       liveElements
     } = await processContent(reader);
 
+    console.log('[Analyzer] Content processing results:', {
+      hasDynamicChat,
+      hasChatElements,
+      hasMetaTags,
+      hasWebSockets,
+      detectedSolutions: detectedSolutions.length,
+      liveElements: liveElements.length
+    });
+
     const has_chatbot = hasDynamicChat || hasChatElements || hasMetaTags || hasWebSockets || detectedSolutions.length > 0;
     const has_live_elements = liveElements.length > 0;
 
@@ -46,7 +56,7 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       has_chatbot,
       has_live_elements,
       detectedSolutions,
-      liveElements
+      liveElements: liveElements.length
     });
 
     return {
@@ -67,19 +77,6 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
 
   } catch (error) {
     console.error('[Analyzer] Error analyzing website:', error);
-    return {
-      status: 'error',
-      error: error.message,
-      has_chatbot: false,
-      has_live_elements: false,
-      chatSolutions: [],
-      liveElements: [],
-      details: {
-        url: url,
-        errorType: error.name,
-        errorMessage: error.message
-      },
-      lastChecked: new Date().toISOString()
-    };
+    throw error; // Let the error handler in the request handler deal with this
   }
 }

@@ -17,16 +17,21 @@ const BLOCKED_DOMAINS = [
 
 export async function processUrl(url: string): Promise<ProcessedUrl> {
   try {
+    console.log('[URL Processor] Starting URL processing for:', url);
+    
     // Normalize and clean the URL first
     const cleanUrl = url.trim().replace(/\/$/, '');
     if (!cleanUrl) {
+      console.error('[URL Processor] Empty URL provided');
       throw new Error('URL cannot be empty');
     }
 
     // Create URL object (will throw if invalid)
+    console.log('[URL Processor] Attempting to create URL object for:', cleanUrl);
     const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
     const hostname = urlObj.hostname.toLowerCase();
 
+    console.log('[URL Processor] Checking domain:', hostname);
     // Check for blocked domains
     if (BLOCKED_DOMAINS.some(domain => hostname.includes(domain))) {
       console.log('[URL Processor] Blocked domain detected:', hostname);
