@@ -22,7 +22,6 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
     }
     
     const reader = response.body?.getReader();
-    
     if (!reader) {
       console.error('[Analyzer] Could not get response body reader');
       throw new Error('Could not get response body reader');
@@ -30,7 +29,6 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
 
     console.log('[Analyzer] Processing content for:', cleanUrl);
     
-    // Process the content and detect chatbot and live elements presence
     const {
       hasDynamicChat,
       hasChatElements,
@@ -40,19 +38,18 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       liveElements
     } = await processContent(reader);
 
-    console.log('[Analyzer] Content processing complete:', {
-      hasDynamicChat,
-      hasChatElements,
-      hasMetaTags,
-      hasWebSockets,
-      solutionsCount: detectedSolutions.length,
-      liveElementsCount: liveElements.length
-    });
-
     const has_chatbot = hasDynamicChat || hasChatElements || hasMetaTags || hasWebSockets || detectedSolutions.length > 0;
     const has_live_elements = liveElements.length > 0;
 
-    const result = {
+    console.log('[Analyzer] Analysis complete:', {
+      url: cleanUrl,
+      has_chatbot,
+      has_live_elements,
+      detectedSolutions,
+      liveElements
+    });
+
+    return {
       status: 'success',
       has_chatbot,
       has_live_elements,
@@ -68,12 +65,8 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       lastChecked: new Date().toISOString()
     };
 
-    console.log('[Analyzer] Analysis complete:', result);
-    return result;
-
   } catch (error) {
     console.error('[Analyzer] Error analyzing website:', error);
-    
     return {
       status: 'error',
       error: error.message,

@@ -6,39 +6,43 @@ interface ProcessedUrl {
   urlObj: URL;
 }
 
+const BLOCKED_DOMAINS = [
+  'google.com',
+  'google.',
+  'gmail.com',
+  'youtube.com',
+  'docs.google.com',
+  'drive.google.com'
+];
+
 export async function processUrl(url: string): Promise<ProcessedUrl> {
   try {
-    // Skip problematic URLs
-    const lowerUrl = url.toLowerCase();
-    const urlObj = new URL(url);
+    // Normalize and clean the URL first
+    const cleanUrl = url.trim().replace(/\/$/, '');
+    if (!cleanUrl) {
+      throw new Error('URL cannot be empty');
+    }
+
+    // Create URL object (will throw if invalid)
+    const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
     const hostname = urlObj.hostname.toLowerCase();
-    
-    // Block all Google domains
-    if (hostname.includes('google.') || hostname === 'google.com') {
-      console.log('Google domain detected, skipping analysis:', url);
-      throw new Error('Google domains are not supported for analysis');
+
+    // Check for blocked domains
+    if (BLOCKED_DOMAINS.some(domain => hostname.includes(domain))) {
+      console.log('[URL Processor] Blocked domain detected:', hostname);
+      throw new Error('This domain cannot be analyzed');
     }
 
     // Clean up the URL
-    const cleanUrl = url.trim().replace(/\/$/, '');
-    
-    // Add www. if not present and no subdomain exists
-    if (!urlObj.hostname.includes('.') && !urlObj.hostname.startsWith('www.')) {
-      urlObj.hostname = 'www.' + urlObj.hostname;
-      console.log('Added www subdomain:', urlObj.toString());
-    }
-    
-    // Normalize the URL
     const normalizedUrl = normalizeUrl(urlObj.toString());
-    
-    console.log('Processed URL:', normalizedUrl);
+    console.log('[URL Processor] Normalized URL:', normalizedUrl);
     
     return {
       cleanUrl: normalizedUrl,
       urlObj: new URL(normalizedUrl)
     };
   } catch (error) {
-    console.error('Error processing URL:', error);
+    console.error('[URL Processor] Error processing URL:', error);
     throw error;
   }
 }

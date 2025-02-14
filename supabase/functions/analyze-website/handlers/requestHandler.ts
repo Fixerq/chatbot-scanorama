@@ -15,69 +15,68 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Reduce max concurrent requests to prevent resource exhaustion
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 const MAX_CONCURRENT_REQUESTS = 5;
+const REQUEST_TIMEOUT = 30000; // 30 seconds
 const activeRequests = new Set();
 
-// Add request queue
-const requestQueue: Array<() => Promise<void>> = [];
-let isProcessingQueue = false;
-
-async function processQueue() {
-  if (isProcessingQueue || requestQueue.length === 0) return;
+async function processAnalysisRequest(url: string, startTime: number): Promise<ChatDetectionResult> {
+  const requestId = crypto.randomUUID();
+  activeRequests.add(requestId);
   
-  isProcessingQueue = true;
-  while (requestQueue.length > 0 && activeRequests.size < MAX_CONCURRENT_REQUESTS) {
-    const nextRequest = requestQueue.shift();
-    if (nextRequest) {
-      await nextRequest();
-    }
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Analysis timeout')), REQUEST_TIMEOUT);
+  });
+
+  try {
+    const result = await Promise.race([
+      websiteAnalyzer(url),
+      timeoutPromise
+    ]);
+
+    await updateCache(url, result.has_chatbot, result.chatSolutions, result.details);
+    
+    await logAnalysis({
+      url,
+      success: true,
+      cached: false,
+      providersFound: result.chatSolutions,
+      responseTimeMs: Date.now() - startTime
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('[Handler] Error in processAnalysisRequest:', error);
+    throw error;
+  } finally {
+    activeRequests.delete(requestId);
   }
-  isProcessingQueue = false;
 }
 
 export async function handleRequest(req: Request) {
+  console.log('[Handler] Received request:', req.method);
+  
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   const startTime = Date.now();
-  let success = false;
-  let cached = false;
-  let providersFound: string[] = [];
-  let errorMessage: string | undefined;
-  let isRateLimited = false;
+  const clientIP = getRealIp(req);
 
   try {
-    console.log('[Handler] Request received:', req.method);
-    
-    const clientIP = getRealIp(req);
-    console.log('[Handler] Client IP:', clientIP);
-
-    // Check rate limiting
     const isAllowed = await checkRateLimit(supabase, clientIP);
-    console.log('[Handler] Rate limit check result:', isAllowed);
-    
     if (!isAllowed) {
       console.log('[Handler] Rate limit exceeded for IP:', clientIP);
-      isRateLimited = true;
-      errorMessage = 'Rate limit exceeded. Please try again later.';
-      
-      await logAnalysis({
-        url: 'unknown',
-        success: false,
-        cached: false,
-        errorMessage,
-        responseTimeMs: Date.now() - startTime,
-        isRateLimited: true,
-        metadata: { clientIP }
-      });
-
-      return createRateLimitResponse(errorMessage);
+      return createRateLimitResponse('Rate limit exceeded');
     }
 
-    // Parse and validate request body
     const body = await req.text();
-    console.log('[Handler] Request body:', body);
-    
     const requestData = JSON.parse(body);
-    console.log('[Handler] Parsed request data:', requestData);
+    console.log('[Handler] Processing request data:', requestData);
 
     // Handle batch analysis
     if (Array.isArray(requestData.urls)) {
@@ -86,111 +85,56 @@ export async function handleRequest(req: Request) {
       
       for (const url of requestData.urls) {
         try {
-          console.log('[Handler] Processing URL in batch:', url);
           const normalizedUrl = normalizeUrl(url);
-          console.log('[Handler] Normalized URL:', normalizedUrl);
+          console.log('[Handler] Processing URL:', normalizedUrl);
           
-          // Check cache first
           const cachedResult = await getCachedAnalysis(normalizedUrl);
           if (cachedResult) {
-            console.log('[Handler] Cache hit for URL:', normalizedUrl);
+            console.log('[Handler] Cache hit for:', normalizedUrl);
             results.push({
               ...cachedResult,
               fromCache: true
             });
             continue;
           }
+
+          const result = await processAnalysisRequest(normalizedUrl, startTime);
+          results.push(result);
           
-          // Analyze website
-          if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) {
-            console.log('[Handler] Max concurrent requests reached, queueing:', normalizedUrl);
-            const result = await new Promise<ChatDetectionResult>((resolve) => {
-              requestQueue.push(async () => {
-                const analysisResult = await websiteAnalyzer(normalizedUrl);
-                resolve(analysisResult);
-              });
-            });
-            results.push(result);
-          } else {
-            console.log('[Handler] Starting analysis for:', normalizedUrl);
-            const result = await websiteAnalyzer(normalizedUrl);
-            console.log('[Handler] Analysis complete for:', normalizedUrl, 'Result:', result);
-            results.push(result);
-          }
         } catch (error) {
           console.error('[Handler] Error processing URL:', url, error);
           results.push({
             status: 'error',
-            chatSolutions: [],
+            error: error.message,
             has_chatbot: false,
             has_live_elements: false,
-            error: error.message,
+            chatSolutions: [],
+            liveElements: [],
             lastChecked: new Date().toISOString()
           });
         }
       }
 
-      await processQueue();
-      console.log('[Handler] Batch processing complete. Total results:', results.length);
-      
       return new Response(JSON.stringify(results), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     // Handle single URL analysis
-    console.log('[Handler] Processing single URL analysis');
     const { url } = validateRequest(body);
-    return await processAnalysisRequest(url, startTime);
+    const result = await processAnalysisRequest(url, startTime);
+    return createSuccessResponse(result);
 
   } catch (error) {
     console.error('[Handler] Function error:', error);
-    errorMessage = error.message;
-    
     await logAnalysis({
-      url: error.requestData?.url || 'unknown',
+      url: 'unknown',
       success: false,
       cached: false,
-      errorMessage,
-      responseTimeMs: Date.now() - startTime,
-      metadata: { error: error.stack }
+      errorMessage: error.message,
+      responseTimeMs: Date.now() - startTime
     });
     
     return createErrorResponse(error.message);
-  }
-}
-
-async function processAnalysisRequest(normalizedUrl: string, startTime: number) {
-  const requestId = crypto.randomUUID();
-  activeRequests.add(requestId);
-  
-  try {
-    console.log('[Handler] Processing analysis request for:', normalizedUrl);
-    
-    const result = await websiteAnalyzer(normalizedUrl);
-    console.log('[Handler] Analysis result:', result);
-    
-    await updateCache(normalizedUrl, result.has_chatbot, result.chatSolutions, result.details);
-    console.log('[Handler] Cache updated for:', normalizedUrl);
-    
-    await logAnalysis({
-      url: normalizedUrl,
-      success: true,
-      cached: false,
-      providersFound: result.chatSolutions,
-      responseTimeMs: Date.now() - startTime,
-      metadata: {}
-    });
-    
-    return createSuccessResponse(result);
-  } catch (error) {
-    console.error('[Handler] Error in processAnalysisRequest:', error);
-    throw error;
-  } finally {
-    activeRequests.delete(requestId);
-    processQueue();
   }
 }
