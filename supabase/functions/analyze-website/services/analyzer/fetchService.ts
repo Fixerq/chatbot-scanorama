@@ -1,4 +1,3 @@
-
 import { FETCH_TIMEOUT } from '../constants.ts';
 
 // Expanded list of modern user agents including mobile browsers
@@ -36,8 +35,11 @@ const getRandomAccept = () => {
   return ACCEPT_VALUES[Math.floor(Math.random() * ACCEPT_VALUES.length)];
 };
 
-export async function tryFetch(url: string): Promise<Response> {
+export async function tryFetch(url: string, proxyUrl?: string): Promise<Response> {
   console.log('[Fetch Service] Starting fetch for URL:', url);
+  if (proxyUrl) {
+    console.log('[Fetch Service] Using proxy:', proxyUrl);
+  }
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -66,6 +68,27 @@ export async function tryFetch(url: string): Promise<Response> {
       'Pragma': 'no-cache'
     };
 
+    const fetchOptions: RequestInit = {
+      headers,
+      signal: controller.signal,
+      redirect: 'follow',
+      credentials: 'omit' // Don't send or receive cookies
+    };
+
+    // Add proxy configuration if provided
+    if (proxyUrl) {
+      try {
+        // Parse proxy URL
+        const proxyUrlObj = new URL(proxyUrl);
+        fetchOptions.mode = 'no-cors';
+        // Set proxy headers
+        // Note: The exact headers needed will depend on your proxy service
+        headers['Proxy-Authorization'] = `Basic ${btoa(`${proxyUrlObj.username}:${proxyUrlObj.password}`)}`;
+      } catch (error) {
+        console.error('[Fetch Service] Invalid proxy URL:', error);
+      }
+    }
+
     try {
       console.log(`[Fetch Service] Attempting fetch for ${fetchUrl} (attempt ${retryCount + 1})`);
       
@@ -73,12 +96,7 @@ export async function tryFetch(url: string): Promise<Response> {
       const randomDelay = Math.floor(Math.random() * 3000) + 2000;
       await new Promise(resolve => setTimeout(resolve, randomDelay));
 
-      const response = await fetch(fetchUrl, { 
-        headers,
-        signal: controller.signal,
-        redirect: 'follow',
-        credentials: 'omit' // Don't send or receive cookies
-      });
+      const response = await fetch(fetchUrl, fetchOptions);
       
       // Handle specific status codes
       if (response.status === 403) {

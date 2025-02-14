@@ -3,6 +3,47 @@ import { ChatDetectionResult } from '../types.ts';
 import { tryFetch } from './analyzer/fetchService.ts';
 import { processContent } from './analyzer/contentProcessor.ts';
 import { processUrl } from './urlProcessor.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
+async function logBlockedRequest(
+  url: string, 
+  error: Error, 
+  headers: Headers,
+  proxyId?: string,
+) {
+  try {
+    const blockReason = error.message.toLowerCase().includes('403') ? 'forbidden_403' :
+                       error.message.toLowerCase().includes('429') ? 'rate_limit_429' :
+                       error.message.toLowerCase().includes('timeout') ? 'timeout' :
+                       error.message.toLowerCase().includes('refused') ? 'connection_refused' :
+                       error.message.toLowerCase().includes('dns') ? 'dns_error' : 'other';
+
+    await supabase.from('blocked_requests').insert({
+      website_url: url,
+      block_reason: blockReason,
+      error_details: error.message,
+      headers: Object.fromEntries(headers.entries()),
+      user_agent: headers.get('User-Agent'),
+      proxy_used: proxyId,
+      retry_count: 0,
+      resolved: false
+    });
+
+    if (proxyId) {
+      await supabase.rpc('update_proxy_status', {
+        p_proxy_id: proxyId,
+        p_success: false
+      });
+    }
+  } catch (dbError) {
+    console.error('Error logging blocked request:', dbError);
+  }
+}
 
 export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult> {
   console.log('[Analyzer] Starting analysis for:', url);
@@ -12,13 +53,38 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
     const { cleanUrl, urlObj } = await processUrl(url);
     console.log('[Analyzer] Processed URL:', cleanUrl, 'Original URL:', url);
     
+    // Get a proxy from the pool
+    const { data: proxyData, error: proxyError } = await supabase
+      .rpc('get_next_available_proxy')
+      .single();
+
+    if (proxyError) {
+      console.error('[Analyzer] Error getting proxy:', proxyError);
+    }
+
     // Fetch and process the content
     console.log('[Analyzer] Attempting to fetch content from:', urlObj.toString());
-    const response = await tryFetch(urlObj.toString());
+    console.log('[Analyzer] Using proxy:', proxyData?.proxy_url);
+    
+    const response = await tryFetch(urlObj.toString(), proxyData?.proxy_url);
     
     if (!response.ok) {
       console.error('[Analyzer] Fetch failed:', response.status, response.statusText);
+      await logBlockedRequest(
+        cleanUrl,
+        new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`),
+        response.headers,
+        proxyData?.proxy_id
+      );
       throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+    }
+
+    // Update proxy success status
+    if (proxyData?.proxy_id) {
+      await supabase.rpc('update_proxy_status', {
+        p_proxy_id: proxyData.proxy_id,
+        p_success: true
+      });
     }
     
     console.log('[Analyzer] Successfully fetched content, getting reader');
@@ -77,6 +143,7 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
 
   } catch (error) {
     console.error('[Analyzer] Error analyzing website:', error);
-    throw error; // Let the error handler in the request handler deal with this
+    throw error;  // Let the error handler in the request handler deal with this
   }
 }
+
