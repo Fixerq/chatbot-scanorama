@@ -36,7 +36,8 @@ export const useSearchOperations = (setResults: (results: Result[]) => void) => 
       }
 
       if (data?.data?.results) {
-        setResults(data.data.results);
+        const typedResults = data.data.results as Result[];
+        setResults(typedResults);
         setNextPageToken(data.data.nextPageToken);
         return data.data;
       }
@@ -81,7 +82,8 @@ export const useSearchOperations = (setResults: (results: Result[]) => void) => 
       }
 
       if (data?.data?.results) {
-        setResults(prevResults => [...prevResults, ...data.data.results]);
+        const newResults = data.data.results as Result[];
+        setResults((prevResults: Result[]) => [...prevResults, ...newResults]);
         setNextPageToken(data.data.nextPageToken);
       }
     } catch (error) {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Result } from './ResultsTable';
 import { useSearchState } from '../hooks/useSearchState';
@@ -29,10 +30,10 @@ const SearchFormContainer = ({
   } = useSearchState();
 
   const {
-    results,
     isSearching,
     handleSearch,
-    handleLoadMore
+    handleLoadMore,
+    nextPageToken
   } = useSearchOperations(onResults);
 
   const onSubmit = () => {
@@ -51,7 +52,6 @@ const SearchFormContainer = ({
       setIsProcessing(false);
     });
 
-    // Update parent component with search parameters
     if (onSearchParamsChange) {
       onSearchParamsChange({
         query: searchState.query,
@@ -101,7 +101,7 @@ const SearchFormContainer = ({
         onSubmit={onSubmit}
       />
       
-      {results.hasMore && (
+      {nextPageToken && (
         <LoadMoreButton 
           onLoadMore={onLoadMore}
           isProcessing={isProcessing}
