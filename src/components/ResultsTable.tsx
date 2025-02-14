@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -7,8 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
 import ResultUrlCell from './results/ResultUrlCell';
 import ResultStatusCell from './results/ResultStatusCell';
 
@@ -33,8 +32,6 @@ export interface Result {
 interface ResultsTableProps {
   results: Result[];
   isLoading?: boolean;
-  onAnalyzeResult?: (url: string) => void;
-  isAnalyzing?: boolean;
 }
 
 const formatBusinessName = (name: string): string => {
@@ -110,8 +107,6 @@ const formatInstalledTechnologies = (result: Result) => {
 const ResultsTable: React.FC<ResultsTableProps> = ({ 
   results, 
   isLoading,
-  onAnalyzeResult,
-  isAnalyzing 
 }) => {
   return (
     <div className="rounded-md border">
@@ -121,7 +116,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
             <TableHead className="w-[300px]">Website</TableHead>
             <TableHead>Business Name</TableHead>
             <TableHead>Chatbot Provider</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -146,16 +140,6 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
                   chatSolutions={result.details?.chatSolutions}
                   isAnalyzing={isResultAnalyzing}
                 />
-                <TableCell>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onAnalyzeResult?.(websiteUrl)}
-                    disabled={isAnalyzing || isResultAnalyzing}
-                  >
-                    <Play className="h-4 w-4" />
-                  </Button>
-                </TableCell>
               </TableRow>
             );
           })}
