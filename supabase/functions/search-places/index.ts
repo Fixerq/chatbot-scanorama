@@ -26,13 +26,6 @@ serve(async (req) => {
       throw new Error('Method not allowed');
     }
 
-    const contentType = req.headers.get('content-type');
-    console.log('Content-Type:', contentType);
-    
-    if (!contentType?.includes('application/json')) {
-      throw new Error('Content-Type must be application/json');
-    }
-
     let requestBody;
     try {
       requestBody = await req.json();
