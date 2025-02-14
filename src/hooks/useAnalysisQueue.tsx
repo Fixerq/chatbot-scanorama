@@ -34,19 +34,31 @@ export const useAnalysisQueue = () => {
     }
 
     if (request.status === 'completed' && request.analysis_result) {
-      // Update local state with the completed result
-      setQueuedResults(prev => prev.map(result => 
-        result.url === url ? {
-          ...result,
-          status: 'success',
-          details: {
-            ...result.details,
-            chatSolutions: request.analysis_result.chatSolutions,
-            lastChecked: request.completed_at
-          }
-        } : result
-      ));
-      return true;
+      const result = request.analysis_result;
+      if (isChatDetectionResult(result)) {
+        // Update local state with the completed result
+        setQueuedResults(prev => prev.map(prevResult => 
+          prevResult.url === url ? {
+            ...prevResult,
+            status: 'success',
+            details: {
+              ...prevResult.details,
+              chatSolutions: result.chatSolutions,
+              lastChecked: request.completed_at
+            }
+          } : prevResult
+        ));
+        return true;
+      } else {
+        console.error('Invalid analysis result format:', result);
+        setQueuedResults(prev => prev.map(prevResult => 
+          prevResult.url === url ? {
+            ...prevResult,
+            status: 'Error: Invalid analysis result format'
+          } : prevResult
+        ));
+        return true;
+      }
     } else if (request.status === 'failed') {
       setQueuedResults(prev => prev.map(result => 
         result.url === url ? {
