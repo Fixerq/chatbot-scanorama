@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 export const useSearchOperations = (setResults: (results: Result[]) => void) => {
   const [isSearching, setIsSearching] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>();
+  const [currentResults, setCurrentResults] = useState<Result[]>([]);
 
   const handleSearch = useCallback(async (
     query: string,
@@ -37,6 +38,7 @@ export const useSearchOperations = (setResults: (results: Result[]) => void) => 
 
       if (data?.data?.results) {
         const typedResults = data.data.results as Result[];
+        setCurrentResults(typedResults);
         setResults(typedResults);
         setNextPageToken(data.data.nextPageToken);
         return data.data;
@@ -83,7 +85,9 @@ export const useSearchOperations = (setResults: (results: Result[]) => void) => 
 
       if (data?.data?.results) {
         const newResults = data.data.results as Result[];
-        setResults((prevResults: Result[]) => [...prevResults, ...newResults]);
+        const combinedResults = [...currentResults, ...newResults];
+        setCurrentResults(combinedResults);
+        setResults(combinedResults);
         setNextPageToken(data.data.nextPageToken);
       }
     } catch (error) {
@@ -92,7 +96,7 @@ export const useSearchOperations = (setResults: (results: Result[]) => void) => 
     } finally {
       setIsSearching(false);
     }
-  }, [nextPageToken, setResults]);
+  }, [nextPageToken, setResults, currentResults]);
 
   return {
     isSearching,
