@@ -10,6 +10,32 @@ interface WebsiteAnalysisResult {
   };
 }
 
+interface ChatbotPattern {
+  id: number;
+  pattern: string;
+  method: 'selector' | 'script' | 'iframe' | 'text' | 'mutation';
+  provider: string | null;
+  description: string | null;
+  is_active: boolean;
+  priority: number;
+  timeout_ms: number;
+}
+
+async function getActivePatterns(): Promise<ChatbotPattern[]> {
+  const { data: patterns, error } = await supabase
+    .from('chatbot_detection_patterns')
+    .select('*')
+    .eq('is_active', true)
+    .order('priority', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching chatbot detection patterns:', error);
+    throw new Error('Failed to fetch detection patterns');
+  }
+
+  return patterns || [];
+}
+
 function validateUrl(url: string): string {
   if (!url || typeof url !== 'string') {
     throw new Error('URL is required');
@@ -61,12 +87,24 @@ export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult
       };
     }
 
-    // If no cached result, queue for analysis
+    // Get active detection patterns
+    const patterns = await getActivePatterns();
+    console.log(`Loaded ${patterns.length} detection patterns`);
+
+    // If no cached result, queue for analysis with patterns
     const { data: queueItem, error: queueError } = await supabase
       .from('website_analysis_queue')
       .insert([{
         website_url: validatedUrl,
-        status: 'pending'
+        status: 'pending',
+        analysis_result: { 
+          patterns: patterns.map(p => ({
+            id: p.id,
+            pattern: p.pattern,
+            method: p.method,
+            provider: p.provider
+          }))
+        }
       }])
       .select()
       .single();
@@ -97,4 +135,3 @@ export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult
     };
   }
 };
-

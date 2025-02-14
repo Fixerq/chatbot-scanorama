@@ -381,6 +381,45 @@ export type Database = {
         }
         Relationships: []
       }
+      chatbot_detection_patterns: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: number
+          is_active: boolean | null
+          method: Database["public"]["Enums"]["detection_method"]
+          pattern: string
+          priority: number | null
+          provider: string | null
+          timeout_ms: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          is_active?: boolean | null
+          method: Database["public"]["Enums"]["detection_method"]
+          pattern: string
+          priority?: number | null
+          provider?: string | null
+          timeout_ms?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          is_active?: boolean | null
+          method?: Database["public"]["Enums"]["detection_method"]
+          pattern?: string
+          priority?: number | null
+          provider?: string | null
+          timeout_ms?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       chatbot_detections: {
         Row: {
           address: string | null
@@ -1130,6 +1169,7 @@ export type Database = {
     }
     Enums: {
       alert_severity: "error" | "warning" | "info"
+      detection_method: "selector" | "script" | "iframe" | "text" | "mutation"
       subscription_level: "starter" | "pro" | "premium" | "founders" | "admin"
       website_analysis_status: "success" | "error"
     }
