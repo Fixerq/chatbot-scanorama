@@ -1,7 +1,7 @@
 
 import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts';
 import { SearchParams, SearchResponse } from './types.ts';
-import { EXCLUDED_PLACE_TYPES } from '../../../src/utils/helpers/domainFilters.ts';
+import { EXCLUDED_PLACE_TYPES } from './domainFilters.ts';
 
 const getCachedPlaceDetails = async (
   supabaseClient: any,
