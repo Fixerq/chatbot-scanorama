@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
+import { Play } from "lucide-react";
 import EmailResults from './EmailResults';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { createAnalysisRequest, invokeAnalysisFunction } from '@/services/analysisService';
@@ -17,8 +18,16 @@ export const CrawlForm = () => {
   const [crawlResult, setCrawlResult] = useState<any | null>(null);
   const { subscriptionData, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const startAnalysis = async () => {
+    if (!url) {
+      toast({
+        title: "URL Required",
+        description: "Please enter a URL to analyze",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
 
     if (!isSubscriptionLoading && subscriptionData?.searchesRemaining === 0) {
       toast({
@@ -63,6 +72,11 @@ export const CrawlForm = () => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await startAnalysis();
+  };
+
   return (
     <div className="w-full max-w-md mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-all duration-300 hover:shadow-xl">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -70,15 +84,25 @@ export const CrawlForm = () => {
           <label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Website URL
           </label>
-          <Input
-            id="url"
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="w-full transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
-            placeholder="https://example.com"
-            required
-          />
+          <div className="flex gap-2">
+            <Input
+              id="url"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="flex-1 transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+              placeholder="https://example.com"
+              required
+            />
+            <Button
+              type="button"
+              onClick={startAnalysis}
+              disabled={isLoading || (!isSubscriptionLoading && subscriptionData?.searchesRemaining === 0)}
+              className="bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200"
+            >
+              <Play className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         {isLoading && (
           <Progress value={progress} className="w-full" />
