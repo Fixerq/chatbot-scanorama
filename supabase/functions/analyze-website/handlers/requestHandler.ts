@@ -45,14 +45,17 @@ export async function handleRequest(req: Request) {
   let isRateLimited = false;
 
   try {
-    console.log('Received request:', req.method);
+    console.log('[Handler] Request received:', req.method);
     
     const clientIP = getRealIp(req);
-    console.log('Client IP:', clientIP);
-    
+    console.log('[Handler] Client IP:', clientIP);
+
+    // Check rate limiting
     const isAllowed = await checkRateLimit(supabase, clientIP);
+    console.log('[Handler] Rate limit check result:', isAllowed);
+    
     if (!isAllowed) {
-      console.log('Rate limit exceeded for IP:', clientIP);
+      console.log('[Handler] Rate limit exceeded for IP:', clientIP);
       isRateLimited = true;
       errorMessage = 'Rate limit exceeded. Please try again later.';
       
@@ -69,24 +72,28 @@ export async function handleRequest(req: Request) {
       return createRateLimitResponse(errorMessage);
     }
 
+    // Parse and validate request body
     const body = await req.text();
+    console.log('[Handler] Request body:', body);
+    
     const requestData = JSON.parse(body);
-    console.log('Request body:', requestData);
+    console.log('[Handler] Parsed request data:', requestData);
 
     // Handle batch analysis
     if (Array.isArray(requestData.urls)) {
-      console.log('Processing batch of URLs:', requestData.urls.length);
+      console.log('[Handler] Processing batch of URLs:', requestData.urls.length);
       const results: ChatDetectionResult[] = [];
       
       for (const url of requestData.urls) {
         try {
+          console.log('[Handler] Processing URL in batch:', url);
           const normalizedUrl = normalizeUrl(url);
-          console.log('Processing URL:', normalizedUrl);
+          console.log('[Handler] Normalized URL:', normalizedUrl);
           
           // Check cache first
           const cachedResult = await getCachedAnalysis(normalizedUrl);
           if (cachedResult) {
-            console.log('Cache hit for URL:', normalizedUrl);
+            console.log('[Handler] Cache hit for URL:', normalizedUrl);
             results.push({
               ...cachedResult,
               fromCache: true
@@ -96,7 +103,7 @@ export async function handleRequest(req: Request) {
           
           // Analyze website
           if (activeRequests.size >= MAX_CONCURRENT_REQUESTS) {
-            console.log('Max concurrent requests reached, queueing:', normalizedUrl);
+            console.log('[Handler] Max concurrent requests reached, queueing:', normalizedUrl);
             const result = await new Promise<ChatDetectionResult>((resolve) => {
               requestQueue.push(async () => {
                 const analysisResult = await websiteAnalyzer(normalizedUrl);
@@ -105,11 +112,13 @@ export async function handleRequest(req: Request) {
             });
             results.push(result);
           } else {
+            console.log('[Handler] Starting analysis for:', normalizedUrl);
             const result = await websiteAnalyzer(normalizedUrl);
+            console.log('[Handler] Analysis complete for:', normalizedUrl, 'Result:', result);
             results.push(result);
           }
         } catch (error) {
-          console.error('Error processing URL:', url, error);
+          console.error('[Handler] Error processing URL:', url, error);
           results.push({
             status: 'error',
             chatSolutions: [],
@@ -122,6 +131,7 @@ export async function handleRequest(req: Request) {
       }
 
       await processQueue();
+      console.log('[Handler] Batch processing complete. Total results:', results.length);
       
       return new Response(JSON.stringify(results), {
         headers: {
@@ -131,12 +141,13 @@ export async function handleRequest(req: Request) {
       });
     }
 
-    // Handle single URL analysis (backward compatibility)
+    // Handle single URL analysis
+    console.log('[Handler] Processing single URL analysis');
     const { url } = validateRequest(body);
     return await processAnalysisRequest(url, startTime);
 
   } catch (error) {
-    console.error('Function error:', error);
+    console.error('[Handler] Function error:', error);
     errorMessage = error.message;
     
     await logAnalysis({
@@ -157,10 +168,13 @@ async function processAnalysisRequest(normalizedUrl: string, startTime: number) 
   activeRequests.add(requestId);
   
   try {
-    console.log('Processing analysis request for:', normalizedUrl);
+    console.log('[Handler] Processing analysis request for:', normalizedUrl);
     
     const result = await websiteAnalyzer(normalizedUrl);
+    console.log('[Handler] Analysis result:', result);
+    
     await updateCache(normalizedUrl, result.has_chatbot, result.chatSolutions, result.details);
+    console.log('[Handler] Cache updated for:', normalizedUrl);
     
     await logAnalysis({
       url: normalizedUrl,
@@ -172,6 +186,9 @@ async function processAnalysisRequest(normalizedUrl: string, startTime: number) 
     });
     
     return createSuccessResponse(result);
+  } catch (error) {
+    console.error('[Handler] Error in processAnalysisRequest:', error);
+    throw error;
   } finally {
     activeRequests.delete(requestId);
     processQueue();

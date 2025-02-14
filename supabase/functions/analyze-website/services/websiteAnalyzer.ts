@@ -5,27 +5,30 @@ import { processContent } from './analyzer/contentProcessor.ts';
 import { processUrl } from './urlProcessor.ts';
 
 export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult> {
-  console.log('Analyzing website:', url);
+  console.log('[Analyzer] Starting analysis for:', url);
   
   try {
     // Process and validate URL
     const { cleanUrl, urlObj } = await processUrl(url);
+    console.log('[Analyzer] Processed URL:', cleanUrl);
     
     // Fetch and process the content
-    console.log('Attempting to fetch:', urlObj.toString());
+    console.log('[Analyzer] Attempting to fetch:', urlObj.toString());
     const response = await tryFetch(urlObj.toString());
     
     if (!response.ok) {
+      console.error('[Analyzer] Fetch failed:', response.status, response.statusText);
       throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
     }
     
     const reader = response.body?.getReader();
     
     if (!reader) {
+      console.error('[Analyzer] Could not get response body reader');
       throw new Error('Could not get response body reader');
     }
 
-    console.log('Processing content for:', cleanUrl);
+    console.log('[Analyzer] Processing content for:', cleanUrl);
     
     // Process the content and detect chatbot and live elements presence
     const {
@@ -37,18 +40,19 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       liveElements
     } = await processContent(reader);
 
+    console.log('[Analyzer] Content processing complete:', {
+      hasDynamicChat,
+      hasChatElements,
+      hasMetaTags,
+      hasWebSockets,
+      solutionsCount: detectedSolutions.length,
+      liveElementsCount: liveElements.length
+    });
+
     const has_chatbot = hasDynamicChat || hasChatElements || hasMetaTags || hasWebSockets || detectedSolutions.length > 0;
     const has_live_elements = liveElements.length > 0;
 
-    console.log('Analysis complete:', {
-      url: cleanUrl,
-      has_chatbot,
-      has_live_elements,
-      solutions_count: detectedSolutions.length,
-      live_elements_count: liveElements.length
-    });
-
-    return {
+    const result = {
       status: 'success',
       has_chatbot,
       has_live_elements,
@@ -64,8 +68,11 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
       lastChecked: new Date().toISOString()
     };
 
+    console.log('[Analyzer] Analysis complete:', result);
+    return result;
+
   } catch (error) {
-    console.error('Error analyzing website:', error);
+    console.error('[Analyzer] Error analyzing website:', error);
     
     return {
       status: 'error',
