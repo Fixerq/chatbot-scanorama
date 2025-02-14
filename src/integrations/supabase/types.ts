@@ -952,6 +952,30 @@ export type Database = {
         }
         Relationships: []
       }
+      website_analysis_cache: {
+        Row: {
+          created_at: string
+          id: number
+          result: Json
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          result: Json
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          result?: Json
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       website_analysis_queue: {
         Row: {
           analysis_result: Json | null
