@@ -117,6 +117,48 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_requests: {
+        Row: {
+          analysis_result: Json | null
+          attempts: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          next_retry_at: string | null
+          started_at: string | null
+          status: string
+          updated_at: string | null
+          website_url: string
+        }
+        Insert: {
+          analysis_result?: Json | null
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          next_retry_at?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+          website_url: string
+        }
+        Update: {
+          analysis_result?: Json | null
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          next_retry_at?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
       analyzed_urls: {
         Row: {
           business_type: string | null
@@ -1266,6 +1308,10 @@ export type Database = {
           user_uid: string
         }
         Returns: Json
+      }
+      handle_stale_requests: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       is_admin: {
         Args: {
