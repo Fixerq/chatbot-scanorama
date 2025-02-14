@@ -30,6 +30,8 @@ const transformDatabaseResponse = (response: any): QueuedAnalysis => {
 };
 
 export const createAnalysisRequest = async (url: string): Promise<QueuedAnalysis> => {
+  console.log('Creating analysis request for URL:', url);
+  
   const { data: request, error: insertError } = await supabase
     .from('analysis_requests')
     .insert([{
@@ -40,6 +42,7 @@ export const createAnalysisRequest = async (url: string): Promise<QueuedAnalysis
     .single();
 
   if (insertError) {
+    console.error('Failed to create analysis request:', insertError);
     throw new Error(`Failed to create analysis request: ${insertError.message}`);
   }
 
@@ -47,6 +50,8 @@ export const createAnalysisRequest = async (url: string): Promise<QueuedAnalysis
 };
 
 export const checkAnalysisStatus = async (requestId: string): Promise<QueuedAnalysis> => {
+  console.log('Checking analysis status for request:', requestId);
+  
   const { data: request, error } = await supabase
     .from('analysis_requests')
     .select('*')
@@ -54,6 +59,7 @@ export const checkAnalysisStatus = async (requestId: string): Promise<QueuedAnal
     .single();
 
   if (error) {
+    console.error('Error checking analysis status:', error);
     throw new Error(`Error checking analysis status: ${error.message}`);
   }
 
@@ -61,24 +67,33 @@ export const checkAnalysisStatus = async (requestId: string): Promise<QueuedAnal
 };
 
 export const invokeAnalysisFunction = async (url: string, requestId: string): Promise<ChatDetectionResult> => {
-  const { data: analysisResult, error: analysisError } = await supabase.functions.invoke<ChatDetectionResult>(
-    'analyze-website',
-    {
-      body: { url, requestId },
-      headers: {
-        'Content-Type': 'application/json'
+  console.log('Invoking analysis function for URL:', url, 'requestId:', requestId);
+  
+  try {
+    const { data: analysisResult, error: analysisError } = await supabase.functions.invoke<ChatDetectionResult>(
+      'analyze-website',
+      {
+        body: { url, requestId },
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
+    );
+
+    if (analysisError) {
+      console.error('Analysis function error:', analysisError);
+      throw new Error(`Analysis error: ${analysisError.message}`);
     }
-  );
 
-  if (analysisError) {
-    throw new Error(`Analysis error: ${analysisError.message}`);
+    if (!analysisResult) {
+      console.error('No analysis result returned');
+      throw new Error('No analysis result returned');
+    }
+
+    console.log('Analysis completed successfully:', analysisResult);
+    return analysisResult;
+  } catch (error) {
+    console.error('Error invoking analysis function:', error);
+    throw error;
   }
-
-  if (!analysisResult) {
-    throw new Error('No analysis result returned');
-  }
-
-  return analysisResult;
 };
-

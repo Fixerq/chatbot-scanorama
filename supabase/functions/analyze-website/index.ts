@@ -5,6 +5,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
 serve(async (req) => {
+  // Always handle CORS preflight requests first
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -54,7 +55,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(result),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json'
+        },
         status: 200,
       },
     );
@@ -64,26 +68,36 @@ serve(async (req) => {
     console.error('Analysis error:', errorMessage);
 
     // Update analysis request with error if we have a requestId
-    const requestId = req.body ? (JSON.parse(await req.text())).requestId : null;
-    if (requestId) {
-      console.log('Updating request with error:', requestId);
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
+    try {
+      const requestId = req.body ? (JSON.parse(await req.text())).requestId : null;
+      if (requestId) {
+        console.log('Updating request with error:', requestId);
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
 
-      await supabaseClient
-        .from('analysis_requests')
-        .update({
-          status: 'failed',
-          completed_at: new Date().toISOString(),
-          error_message: errorMessage
-        })
-        .eq('id', requestId);
+        await supabaseClient
+          .from('analysis_requests')
+          .update({
+            status: 'failed',
+            completed_at: new Date().toISOString(),
+            error_message: errorMessage
+          })
+          .eq('id', requestId);
+      }
+    } catch (updateError) {
+      console.error('Error updating request status:', updateError);
     }
 
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        status: 'error',
+        has_chatbot: false,
+        chatSolutions: [],
+        lastChecked: new Date().toISOString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
