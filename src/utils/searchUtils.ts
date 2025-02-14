@@ -20,7 +20,11 @@ export const performSearch = async (
   resultsLimit: number
 ): Promise<{ results: Result[]; hasMore: boolean } | null> => {
   try {
-    const searchResult = await performGoogleSearch(query, country, region);
+    const searchResult = await performGoogleSearch(
+      query,
+      country,
+      region
+    );
 
     if (!searchResult || !searchResult.results) {
       toast.warning('No results found. Try adjusting your search terms.');
