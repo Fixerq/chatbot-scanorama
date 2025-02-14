@@ -1,13 +1,15 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from '../_shared/cors.ts';
+import { corsHeaders, getCorsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
 serve(async (req) => {
+  const headers = getCorsHeaders(req);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders, status: 204 });
+    return new Response('ok', { headers, status: 204 });
   }
 
   let executionId: string | null = null;
@@ -36,7 +38,7 @@ serve(async (req) => {
           status: 'error',
           details: executionError
         }),
-        { headers: corsHeaders, status: 500 }
+        { headers, status: 500 }
       );
     }
 
@@ -59,7 +61,7 @@ serve(async (req) => {
           status: 'error',
           details: 'Both "url" and "requestId" must be provided'
         }),
-        { headers: corsHeaders, status: 400 }
+        { headers, status: 400 }
       );
     }
 
@@ -74,7 +76,7 @@ serve(async (req) => {
           status: 'error',
           details: 'URL must start with http:// or https://'
         }),
-        { headers: corsHeaders, status: 400 }
+        { headers, status: 400 }
       );
     }
 
@@ -96,7 +98,7 @@ serve(async (req) => {
           status: 'error',
           details: updateError
         }),
-        { headers: corsHeaders, status: 500 }
+        { headers, status: 500 }
       );
     }
 
@@ -125,7 +127,7 @@ serve(async (req) => {
           status: 'error',
           details: resultError
         }),
-        { headers: corsHeaders, status: 500 }
+        { headers, status: 500 }
       );
     }
 
@@ -148,7 +150,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(result),
-      { headers: corsHeaders, status: 200 }
+      { headers, status: 200 }
     );
 
   } catch (error) {
@@ -191,8 +193,7 @@ serve(async (req) => {
         chatSolutions: [],
         lastChecked: new Date().toISOString()
       }),
-      { headers: corsHeaders, status: 500 }
+      { headers, status: 500 }
     );
   }
 });
-
