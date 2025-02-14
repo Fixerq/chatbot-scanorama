@@ -1,7 +1,9 @@
 
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
-import { Loader2 } from 'lucide-react';
+import { Loader2, Bot, XCircle } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ResultStatusCellProps {
   status?: string;
@@ -37,7 +39,10 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
     return (
       <TableCell>
         <div className="text-red-500 dark:text-red-400">
-          {status}
+          <div className="flex items-center space-x-2">
+            <XCircle className="w-4 h-4" />
+            <span>{status}</span>
+          </div>
           {lastChecked && (
             <div className="text-xs text-gray-500 mt-1">
               Last attempt: {new Date(lastChecked).toLocaleString()}
@@ -50,15 +55,40 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 
   return (
     <TableCell>
-      <div className="space-y-1">
-        <div className={`${hasChatbot ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
-          {technologies}
-          {chatSolutions && chatSolutions.length > 0 && (
-            <div className="text-xs text-green-500 dark:text-green-400 mt-0.5">
-              {chatSolutions.join(', ')}
-            </div>
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          {hasChatbot ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Badge variant="success" className="flex items-center gap-1">
+                    <Bot className="w-3 h-3" />
+                    <span>Chatbot Detected</span>
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>A chatbot was found on this website</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <XCircle className="w-3 h-3" />
+              <span>No Chatbot Found</span>
+            </Badge>
           )}
         </div>
+        
+        {chatSolutions && chatSolutions.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {chatSolutions.map((solution, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+                {solution}
+              </Badge>
+            ))}
+          </div>
+        )}
+        
         {lastChecked && (
           <div className="text-xs text-gray-500">
             Last checked: {new Date(lastChecked).toLocaleString()}
@@ -70,3 +100,4 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
+
