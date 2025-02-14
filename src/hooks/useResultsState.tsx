@@ -10,7 +10,17 @@ export const useResultsState = (initialResults: Result[] = []) => {
 
   useEffect(() => {
     // Update filtered results when initial results change
-    let updatedResults = [...initialResults];
+    let updatedResults = [...initialResults].map(result => ({
+      ...result,
+      // Ensure the URL is consistently available
+      url: result.details?.website_url || result.url || '',
+      // Map business name from either source
+      businessName: result.details?.business_name || result.businessName || '',
+      // Ensure chatbot status is consistently available
+      has_chatbot: result.has_chatbot || (result.details?.chatSolutions?.length > 0) || false,
+      // Map chatbot solutions consistently
+      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || []
+    }));
 
     // Less strict filtering to show more results
     updatedResults = updatedResults.filter(r => {
@@ -25,7 +35,13 @@ export const useResultsState = (initialResults: Result[] = []) => {
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
-    let filtered = [...initialResults];
+    let filtered = [...initialResults].map(result => ({
+      ...result,
+      url: result.details?.website_url || result.url || '',
+      businessName: result.details?.business_name || result.businessName || '',
+      has_chatbot: result.has_chatbot || (result.details?.chatSolutions?.length > 0) || false,
+      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || []
+    }));
     
     // Less strict filtering for valid results
     filtered = filtered.filter(r => {

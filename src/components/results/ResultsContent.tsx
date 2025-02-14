@@ -34,9 +34,9 @@ const ResultsContent = ({
   // Less strict filtering to show results even with partial failures
   const validResults = results.filter(r => {
     const hasValidStatus = r.status !== undefined;
-    const hasAnyDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
-    const hasAnalysisResult = hasValidStatus || hasAnyDetails || r.has_chatbot !== undefined;
-    return hasAnalysisResult;
+    const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
+    // Include results that have either valid status or details
+    return hasValidStatus || hasDetails;
   });
 
   // Show empty state only if there are truly no results
