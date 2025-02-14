@@ -123,6 +123,7 @@ export type Database = {
           attempts: number | null
           completed_at: string | null
           created_at: string | null
+          details: Json | null
           error_message: string | null
           id: string
           last_error: string | null
@@ -142,6 +143,7 @@ export type Database = {
           attempts?: number | null
           completed_at?: string | null
           created_at?: string | null
+          details?: Json | null
           error_message?: string | null
           id?: string
           last_error?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           attempts?: number | null
           completed_at?: string | null
           created_at?: string | null
+          details?: Json | null
           error_message?: string | null
           id?: string
           last_error?: string | null
@@ -1515,6 +1518,7 @@ export type Database = {
           attempts: number | null
           completed_at: string | null
           created_at: string | null
+          details: Json | null
           error_message: string | null
           id: string
           last_error: string | null
