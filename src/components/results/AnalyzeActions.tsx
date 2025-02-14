@@ -17,12 +17,16 @@ const AnalyzeActions = ({ results }: AnalyzeActionsProps) => {
   const analyzeAll = async () => {
     setIsAnalyzing(true);
     let errorCount = 0;
+    let processed = 0;
 
     try {
       await Promise.all(results.map(async (result) => {
+        if (result.isAnalyzing) return; // Skip if already analyzing
+        
         try {
           const request = await createAnalysisRequest(result.url);
           await invokeAnalysisFunction(result.url, request.id);
+          processed++;
         } catch (error) {
           console.error(`Error analyzing ${result.url}:`, error);
           errorCount++;
@@ -36,10 +40,16 @@ const AnalyzeActions = ({ results }: AnalyzeActionsProps) => {
           variant: "destructive",
           duration: 3000,
         });
-      } else {
+      } else if (processed > 0) {
         toast({
           title: "Success",
           description: "All websites queued for analysis",
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Info",
+          description: "No new websites to analyze",
           duration: 3000,
         });
       }

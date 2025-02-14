@@ -20,7 +20,9 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   chatSolutions,
   isAnalyzing
 }) => {
-  if (isAnalyzing) {
+  const showSpinner = isAnalyzing || status === 'processing';
+
+  if (showSpinner) {
     return (
       <TableCell>
         <div className="flex items-center space-x-2">
