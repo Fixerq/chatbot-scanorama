@@ -19,7 +19,13 @@ export const useAuthState = (): AuthState => {
       if (!mounted.current) return;
       
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw sessionError;
+        }
+
         if (session && mounted.current) {
           const isAdmin = await checkAdminStatus(session.user.id);
           if (isAdmin) {
@@ -27,12 +33,9 @@ export const useAuthState = (): AuthState => {
           } else {
             navigate('/dashboard');
           }
-        } else {
-          localStorage.removeItem('supabase.auth.token');
         }
       } catch (error) {
         console.error('Session check error:', error);
-        localStorage.removeItem('supabase.auth.token');
         if (mounted.current) {
           setError('Error checking session status');
         }
@@ -77,13 +80,9 @@ export const useAuthState = (): AuthState => {
         }
       }
       
-      if (event === 'PASSWORD_RECOVERY' && mounted.current) {
-        navigate('/reset-password');
-      }
-
       if (event === 'SIGNED_OUT' && mounted.current) {
-        localStorage.removeItem('supabase.auth.token');
         setError('');
+        navigate('/login');
       }
     });
 
