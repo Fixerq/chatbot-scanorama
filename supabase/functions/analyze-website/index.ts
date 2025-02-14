@@ -5,17 +5,23 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
 serve(async (req) => {
+  console.log('Received request:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Read request body only once
+    // Read request body
     const rawBody = await req.text();
     console.log('Raw request body:', rawBody);
 
-    // Parse JSON
+    // Parse JSON safely
     let { url, requestId } = JSON.parse(rawBody);
 
     // Validate required fields
@@ -71,9 +77,19 @@ serve(async (req) => {
       console.error('Error updating request status:', updateError);
     }
 
-    // Perform analysis
+    // Perform analysis with timeout
     console.log('Starting website analysis for:', url);
-    const result = await websiteAnalyzer(url);
+    const analysisPromise = websiteAnalyzer(url);
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Analysis timeout')), 25000); // 25 second timeout
+    });
+
+    const result = await Promise.race([analysisPromise, timeoutPromise])
+      .catch(error => {
+        console.error('Analysis error:', error);
+        throw error;
+      });
+
     console.log('Analysis completed successfully:', result);
 
     // Update analysis request with results
@@ -138,3 +154,4 @@ serve(async (req) => {
     );
   }
 });
+
