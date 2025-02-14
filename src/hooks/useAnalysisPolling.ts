@@ -15,25 +15,36 @@ export const useAnalysisPolling = (
   const checkStatus = useCallback(async (requestId: string, url: string): Promise<boolean> => {
     try {
       const request = await checkAnalysisStatus(requestId);
+      console.log('Analysis status response:', request);
       
       if (!request) {
+        console.error('Analysis request not found');
         updateResults(url, { status: 'Error: Analysis request not found' });
         return true;
       }
 
       if (request.status === 'completed' && request.analysis_result) {
         const result = request.analysis_result;
+        console.log('Processing completed analysis:', result);
+        
         if (isChatDetectionResult(result)) {
           loggingService.logAnalysisCompletion(result);
           updateResults(url, {
             status: 'success',
+            has_chatbot: result.has_chatbot,
+            chatbot_solutions: result.chatSolutions,
             details: {
               chatSolutions: result.chatSolutions || [],
-              lastChecked: new Date().toISOString()
+              lastChecked: new Date().toISOString(),
+              dynamic_loading: result.details?.dynamic_loading,
+              chat_elements: result.details?.chat_elements,
+              meta_tags: result.details?.meta_tags,
+              websockets: result.details?.websockets
             }
           });
           return true;
         } else {
+          console.error('Invalid analysis result format:', result);
           loggingService.logInvalidResult(result);
           updateResults(url, { status: 'Error: Invalid analysis result format' });
           return true;
