@@ -12,7 +12,9 @@ const BLOCKED_DOMAINS = [
   'gmail.com',
   'youtube.com',
   'docs.google.com',
-  'drive.google.com'
+  'drive.google.com',
+  'maps.google.com',
+  'google.com/maps'
 ];
 
 export async function processUrl(url: string): Promise<ProcessedUrl> {
@@ -30,12 +32,13 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
     console.log('[URL Processor] Attempting to create URL object for:', cleanUrl);
     const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
     const hostname = urlObj.hostname.toLowerCase();
+    const fullUrl = urlObj.toString().toLowerCase();
 
     console.log('[URL Processor] Checking domain:', hostname);
-    // Check for blocked domains
-    if (BLOCKED_DOMAINS.some(domain => hostname.includes(domain))) {
+    // Check for blocked domains including path
+    if (BLOCKED_DOMAINS.some(domain => hostname.includes(domain) || fullUrl.includes(domain))) {
       console.log('[URL Processor] Blocked domain detected:', hostname);
-      throw new Error('This domain cannot be analyzed');
+      throw new Error(`Domain ${hostname} cannot be analyzed`);
     }
 
     // Clean up the URL

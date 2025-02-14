@@ -5,7 +5,13 @@ import { ChatDetectionResult } from '../types.ts';
 export function createSuccessResponse(result: ChatDetectionResult): Response {
   return new Response(
     JSON.stringify(result),
-    { headers: corsHeaders }
+    { 
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      } 
+    }
   );
 }
 
@@ -16,11 +22,17 @@ export function createErrorResponse(error: string, status = 200): Response {
       error,
       has_chatbot: false,
       chatSolutions: [],
-      lastChecked: new Date().toISOString()
+      lastChecked: new Date().toISOString(),
+      details: {
+        error: error
+      }
     }),
     { 
-      status,
-      headers: corsHeaders
+      status: 200, // Always return 200 to handle in the frontend
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
     }
   );
 }
@@ -32,15 +44,18 @@ export function createRateLimitResponse(error: string): Response {
       error,
       has_chatbot: false,
       chatSolutions: [],
-      lastChecked: new Date().toISOString()
+      lastChecked: new Date().toISOString(),
+      details: {
+        error: 'Rate limit exceeded'
+      }
     }),
     { 
-      status: 429,
+      status: 200,
       headers: {
         ...corsHeaders,
+        'Content-Type': 'application/json',
         'Retry-After': '3600'
       }
     }
   );
 }
-

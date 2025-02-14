@@ -19,13 +19,16 @@ export const useResultsState = (initialResults: Result[] = []) => {
       // Ensure chatbot status is consistently available
       has_chatbot: result.has_chatbot || (result.details?.chatSolutions?.length > 0) || false,
       // Map chatbot solutions consistently
-      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || []
+      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || [],
+      // Map error details if present
+      status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
 
     // Less strict filtering to show more results
     updatedResults = updatedResults.filter(r => {
       const hasValidStatus = r.status !== undefined;
       const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
+      // Always include results, even if they have errors
       return hasValidStatus || hasDetails;
     });
 
@@ -40,7 +43,8 @@ export const useResultsState = (initialResults: Result[] = []) => {
       url: result.details?.website_url || result.url || '',
       businessName: result.details?.business_name || result.businessName || '',
       has_chatbot: result.has_chatbot || (result.details?.chatSolutions?.length > 0) || false,
-      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || []
+      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || [],
+      status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
     
     // Less strict filtering for valid results
