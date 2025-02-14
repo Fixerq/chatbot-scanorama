@@ -18,40 +18,46 @@ export interface LiveElement {
 
 export const LIVE_ELEMENT_PATTERNS = {
   [LIVE_ELEMENT_TYPES.CHAT]: [
-    /chat-widget/i,
-    /chat-container/i,
-    /chat-frame/i,
-    /chat-button/i,
-    /chat-trigger/i,
-    /chat-launcher/i,
-    /chat-messenger/i
+    /chat(-|\s)?widget/i,
+    /chat(-|\s)?container/i,
+    /chat(-|\s)?frame/i,
+    /chat(-|\s)?button/i,
+    /chat(-|\s)?trigger/i,
+    /chat(-|\s)?launcher/i,
+    /chat(-|\s)?messenger/i,
+    /chat(-|\s)?box/i
   ],
   [LIVE_ELEMENT_TYPES.MESSENGER]: [
-    /messenger-frame/i,
-    /messenger-widget/i,
-    /messenger-container/i,
-    /messenger-button/i,
-    /live-chat/i
+    /messenger(-|\s)?frame/i,
+    /messenger(-|\s)?widget/i,
+    /messenger(-|\s)?container/i,
+    /messenger(-|\s)?button/i,
+    /live(-|\s)?chat/i,
+    /fb(-|\s)?messenger/i,
+    /fb(-|\s)?chat/i
   ],
   [LIVE_ELEMENT_TYPES.SUPPORT]: [
-    /support-widget/i,
-    /help-widget/i,
-    /support-chat/i,
-    /help-chat/i,
-    /customer-support/i
+    /support(-|\s)?widget/i,
+    /help(-|\s)?widget/i,
+    /support(-|\s)?chat/i,
+    /help(-|\s)?chat/i,
+    /customer(-|\s)?support/i,
+    /helpdesk/i
   ],
   [LIVE_ELEMENT_TYPES.WIDGET]: [
-    /widget-container/i,
-    /widget-frame/i,
-    /widget-button/i,
-    /widget-trigger/i,
-    /widget-launcher/i
+    /widget(-|\s)?container/i,
+    /widget(-|\s)?frame/i,
+    /widget(-|\s)?button/i,
+    /widget(-|\s)?trigger/i,
+    /widget(-|\s)?launcher/i,
+    /chat(-|\s)?popup/i
   ],
   [LIVE_ELEMENT_TYPES.BOOKING]: [
-    /booking-widget/i,
-    /appointment-widget/i,
-    /schedule-widget/i,
-    /calendar-widget/i,
-    /book-now/i
+    /booking(-|\s)?widget/i,
+    /appointment(-|\s)?widget/i,
+    /schedule(-|\s)?widget/i,
+    /calendar(-|\s)?widget/i,
+    /book(-|\s)?now/i,
+    /schedule(-|\s)?now/i
   ]
 };

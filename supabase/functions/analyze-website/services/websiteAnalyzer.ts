@@ -14,12 +14,19 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
     // Fetch and process the content
     console.log('Attempting to fetch:', urlObj.toString());
     const response = await tryFetch(urlObj.toString());
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+    }
+    
     const reader = response.body?.getReader();
     
     if (!reader) {
       throw new Error('Could not get response body reader');
     }
 
+    console.log('Processing content for:', cleanUrl);
+    
     // Process the content and detect chatbot and live elements presence
     const {
       hasDynamicChat,
@@ -33,11 +40,12 @@ export async function websiteAnalyzer(url: string): Promise<ChatDetectionResult>
     const has_chatbot = hasDynamicChat || hasChatElements || hasMetaTags || hasWebSockets || detectedSolutions.length > 0;
     const has_live_elements = liveElements.length > 0;
 
-    console.log('Final analysis:', {
+    console.log('Analysis complete:', {
+      url: cleanUrl,
       has_chatbot,
       has_live_elements,
-      detectedSolutions,
-      liveElements
+      solutions_count: detectedSolutions.length,
+      live_elements_count: liveElements.length
     });
 
     return {

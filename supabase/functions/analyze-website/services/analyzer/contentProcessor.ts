@@ -25,53 +25,83 @@ export async function processContent(reader: ReadableStreamDefaultReader<Uint8Ar
     matched: string;
     confidence: number;
   }> = [];
+  const seenMatches = new Set<string>();
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    html += decoder.decode(value, { stream: true });
-    
-    // Check for chat solutions while processing
-    for (const [provider, patterns] of Object.entries(CHAT_PATTERNS)) {
-      if (!detectedSolutions.includes(provider) && patterns.some(pattern => html.includes(pattern))) {
-        detectedSolutions.push(provider);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+      
+      // Check for chat solutions
+      for (const [provider, patterns] of Object.entries(CHAT_PATTERNS)) {
+        if (!detectedSolutions.includes(provider)) {
+          for (const pattern of patterns) {
+            if (html.includes(pattern)) {
+              detectedSolutions.push(provider);
+              break;
+            }
+          }
+        }
+      }
+
+      // Check for live elements
+      for (const [elementType, patterns] of Object.entries(LIVE_ELEMENT_PATTERNS)) {
+        for (const pattern of patterns) {
+          const matches = html.match(pattern);
+          if (matches) {
+            matches.forEach(match => {
+              const matchKey = `${elementType}-${match}`;
+              if (!seenMatches.has(matchKey)) {
+                seenMatches.add(matchKey);
+                liveElements.push({
+                  type: elementType,
+                  pattern: pattern.toString(),
+                  matched: match,
+                  confidence: calculateConfidence(match, elementType)
+                });
+              }
+            });
+          }
+        }
+      }
+      
+      // Stop if we've found enough evidence or reached size limit
+      if (html.length > 500000 || 
+          (detectedSolutions.length > 0 && liveElements.length > 2)) {
+        break;
       }
     }
-
-    // Check for live elements
-    for (const [elementType, patterns] of Object.entries(LIVE_ELEMENT_PATTERNS)) {
-      patterns.forEach(pattern => {
-        const matches = html.match(pattern);
-        if (matches) {
-          matches.forEach(match => {
-            if (!liveElements.some(el => el.matched === match)) {
-              liveElements.push({
-                type: elementType,
-                pattern: pattern.toString(),
-                matched: match,
-                confidence: 0.8 // Basic confidence score, could be refined
-              });
-            }
-          });
-        }
-      });
-    }
-    
-    // Stop if we've found enough evidence or reached size limit
-    if (html.length > 500000 || // Limit to first 500KB
-        (detectedSolutions.length > 0 && liveElements.length > 0)) {
-      break;
-    }
+  } catch (error) {
+    console.error('Error processing content:', error);
+  } finally {
+    reader.releaseLock();
   }
-  
-  reader.releaseLock();
 
   return {
     hasDynamicChat: detectDynamicLoading(html),
     hasChatElements: detectChatElements(html),
     hasMetaTags: detectMetaTags(html),
     hasWebSockets: detectWebSockets(html),
-    detectedSolutions,
-    liveElements
+    detectedSolutions: Array.from(new Set(detectedSolutions)), // Deduplicate
+    liveElements: liveElements.slice(0, 10) // Limit to top 10 elements
   };
+}
+
+function calculateConfidence(match: string, type: string): number {
+  let confidence = 0.7; // Base confidence
+
+  // Increase confidence based on specific indicators
+  if (match.toLowerCase().includes('chat')) confidence += 0.1;
+  if (match.toLowerCase().includes('widget')) confidence += 0.1;
+  if (match.toLowerCase().includes('messenger')) confidence += 0.1;
+  if (match.toLowerCase().includes('support')) confidence += 0.1;
+  if (match.toLowerCase().includes('help')) confidence += 0.1;
+
+  // Adjust based on match length (penalize very short matches)
+  if (match.length < 5) confidence -= 0.2;
+  if (match.length > 20) confidence -= 0.1;
+
+  // Ensure confidence stays in valid range
+  return Math.min(Math.max(confidence, 0), 1);
 }
