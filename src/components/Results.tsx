@@ -202,8 +202,6 @@ const Results = ({
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
         <ResultsTable 
           results={displayedResults}
-          onAnalyzeResult={analyzeResult}
-          isAnalyzing={isAnalyzing}
         />
       </div>
       
