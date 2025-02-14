@@ -31,7 +31,14 @@ const ResultsContent = ({
   onLoadMore,
   isLoadingMore = false
 }: ResultsContentProps) => {
-  if (!results || results.length === 0) {
+  // Filter out results that haven't been analyzed yet
+  const analyzedResults = results.filter(r => {
+    const hasStatus = r.status && r.status.toLowerCase() === 'success';
+    const hasAnalysisResult = r.details?.chatSolutions || r.chatbot_solutions;
+    return hasStatus || hasAnalysisResult;
+  });
+
+  if (!analyzedResults || analyzedResults.length === 0) {
     return (
       <EmptyResults 
         onNewSearch={() => {}} 
@@ -47,10 +54,10 @@ const ResultsContent = ({
     }
   };
 
-  const totalPages = Math.ceil(results.length / 50);
+  const totalPages = Math.ceil(analyzedResults.length / 50);
   const startIndex = (localPage - 1) * 50;
   const endIndex = startIndex + 50;
-  const displayedResults = results.slice(startIndex, endIndex);
+  const displayedResults = analyzedResults.slice(startIndex, endIndex);
 
   return (
     <>
@@ -122,4 +129,3 @@ const ResultsContent = ({
 };
 
 export default ResultsContent;
-
