@@ -1,11 +1,14 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, getCorsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
 serve(async (req) => {
+  // Get CORS headers for the request
   const headers = await getCorsHeaders(req);
   
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers, status: 204 });
   }

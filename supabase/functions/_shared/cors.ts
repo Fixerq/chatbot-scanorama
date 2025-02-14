@@ -1,4 +1,6 @@
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*', // We'll dynamically set this based on the request origin
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -42,4 +44,3 @@ export async function getCorsHeaders(request: Request) {
     return corsHeaders;
   }
 }
-
