@@ -40,15 +40,24 @@ export async function searchBusinesses(params: {
     }
 
     const baseUrl = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
-    const encodedQuery = encodeURIComponent(params.query);
+    const locationQuery = params.region ? 
+      `${params.query} in ${params.region}, ${params.country}` : 
+      `${params.query} in ${params.country}`;
+    const encodedQuery = encodeURIComponent(locationQuery);
+    
     let url = `${baseUrl}?query=${encodedQuery}&key=${apiKey}&language=en`;
 
-    if (params.country) {
-      url += `&region=${params.country}`;
+    // Set the region code to 'us' for United States searches
+    if (params.country.toLowerCase().includes('united states')) {
+      url += '&region=us';
     }
+
+    // Add locationbias if we have a specific region
     if (params.region) {
-      url += `&region=${params.region}`;
+      const regionQuery = encodeURIComponent(`${params.region}, ${params.country}`);
+      url += `&locationbias=region:${regionQuery}`;
     }
+
     if (params.nextPageToken) {
       url += `&pagetoken=${params.nextPageToken}`;
     }
