@@ -1242,6 +1242,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      clear_search_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_user_data: {
         Args: {
           user_id_param: string
