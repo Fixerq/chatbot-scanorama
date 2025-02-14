@@ -36,17 +36,3 @@ export interface PlaceDetails {
     url?: string;
   };
 }
-
-export interface SearchState {
-  query: string;
-  country: string;
-  region: string;
-  apiKey: string;
-  resultsLimit: number;
-  currentPage: number;
-}
-
-export interface SearchResults {
-  currentResults: any[]; // This matches the Result type from ResultsTable
-  hasMore: boolean;
-}
