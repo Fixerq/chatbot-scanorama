@@ -96,6 +96,8 @@ export async function searchNearbyPlaces(locationQuery: string, location: { lat:
     location: `${location.lat},${location.lng}`,
     radius: '50000', // 50km radius
     type: 'establishment',
+    // Explicitly exclude schools and government offices
+    excludetype: 'school|university|local_government_office',
     key: GOOGLE_API_KEY
   });
 
@@ -126,3 +128,4 @@ export async function searchNearbyPlaces(locationQuery: string, location: { lat:
     throw error;
   }
 }
+

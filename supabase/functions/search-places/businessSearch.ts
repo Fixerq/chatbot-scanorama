@@ -1,6 +1,7 @@
 
 import { getLocationCoordinates, searchNearbyPlaces, getPlaceDetails } from './placesApi.ts';
 import { SearchParams, SearchResponse } from './types.ts';
+import { EXCLUDED_PLACE_TYPES } from '../../../src/utils/helpers/domainFilters.ts';
 
 const getCachedPlaceDetails = async (
   supabaseClient: any,
@@ -31,10 +32,16 @@ const processSearchResults = async (placesData: any, searchBatchId: string) => {
   const results = [];
   
   for (const place of placesData.results) {
+    // Check if the place should be excluded based on its types
+    const shouldExclude = place.types?.some((type: string) => 
+      EXCLUDED_PLACE_TYPES.includes(type) ||
+      type === 'locality' ||
+      type === 'political'
+    );
+
     if (
-      place.business_status === 'OPERATIONAL' &&
-      !place.types?.includes('locality') &&
-      !place.types?.includes('political')
+      !shouldExclude &&
+      place.business_status === 'OPERATIONAL'
     ) {
       console.log('Processing place:', place);
       

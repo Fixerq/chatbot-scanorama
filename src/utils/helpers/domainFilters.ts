@@ -6,6 +6,12 @@ export const EXCLUDED_DOMAINS = [
   
   // Educational institutions
   '.edu',
+  'university',
+  'college',
+  'school',
+  'academy',
+  'institute',
+  'campus',
   
   // Non-profits and organizations
   '.org',
@@ -36,6 +42,19 @@ export const EXCLUDED_DOMAINS = [
   'bbb.org',
   'angi.com',
   'thumbtack.com'
+];
+
+export const EXCLUDED_PLACE_TYPES = [
+  'university',
+  'school',
+  'secondary_school',
+  'primary_school',
+  'education',
+  'library',
+  'post_office',
+  'local_government_office',
+  'city_hall',
+  'courthouse'
 ];
 
 export const isExcludedDomain = (url: string): boolean => {
