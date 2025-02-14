@@ -645,6 +645,39 @@ export type Database = {
         }
         Relationships: []
       }
+      chatbot_reports: {
+        Row: {
+          business_name: string | null
+          chatbot_solutions: string[] | null
+          created_at: string | null
+          has_chatbot: boolean | null
+          id: string
+          last_checked: string | null
+          updated_at: string | null
+          website_url: string
+        }
+        Insert: {
+          business_name?: string | null
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          last_checked?: string | null
+          updated_at?: string | null
+          website_url: string
+        }
+        Update: {
+          business_name?: string | null
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          last_checked?: string | null
+          updated_at?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string | null
