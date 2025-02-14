@@ -74,7 +74,6 @@ export const useAnalysisQueue = () => {
                 ...result,
                 status: 'Success',
                 details: {
-                  ...result.details,
                   chatSolutions: queueItem.analysis_result.chatSolutions || [],
                   lastChecked: queueItem.analysis_result.lastChecked
                 }
@@ -155,3 +154,4 @@ export const useAnalysisQueue = () => {
     clearResults
   };
 };
+

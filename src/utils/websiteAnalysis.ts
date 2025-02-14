@@ -56,7 +56,7 @@ export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult
         status: 'Success',
         details: {
           lastChecked: cachedResult.last_checked,
-          chatSolutions: cachedResult.chatbot_providers || [],
+          chatSolutions: cachedResult.chatbot_platforms || [],
         }
       };
     }
@@ -97,3 +97,4 @@ export const analyzeWebsite = async (url: string): Promise<WebsiteAnalysisResult
     };
   }
 };
+

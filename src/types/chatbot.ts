@@ -30,3 +30,4 @@ export function isChatDetectionResult(obj: unknown): obj is ChatDetectionResult 
     typeof result.lastChecked === 'string'
   );
 }
+
