@@ -40,22 +40,33 @@ export async function searchBusinesses(params: {
     }
 
     const baseUrl = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
-    const locationQuery = params.region ? 
-      `${params.query} in ${params.region}, ${params.country}` : 
-      `${params.query} in ${params.country}`;
+    
+    // Format the search query to be more specific for US states
+    let locationQuery;
+    if (params.country.toLowerCase().includes('united states')) {
+      locationQuery = params.region ? 
+        `${params.query} in ${params.region}, USA` : 
+        `${params.query} in USA`;
+    } else {
+      locationQuery = params.region ? 
+        `${params.query} in ${params.region}, ${params.country}` : 
+        `${params.query} in ${params.country}`;
+    }
+    
     const encodedQuery = encodeURIComponent(locationQuery);
+    console.log('Encoded search query:', locationQuery);
     
     let url = `${baseUrl}?query=${encodedQuery}&key=${apiKey}&language=en`;
 
-    // Set the region code to 'us' for United States searches
+    // Always set region bias for US searches
     if (params.country.toLowerCase().includes('united states')) {
       url += '&region=us';
-    }
-
-    // Add locationbias if we have a specific region
-    if (params.region) {
-      const regionQuery = encodeURIComponent(`${params.region}, ${params.country}`);
-      url += `&locationbias=region:${regionQuery}`;
+      
+      // Add specific location bias for US state searches
+      if (params.region) {
+        // Construct a more specific location bias using the state
+        url += `&location=@${params.region},USA`;
+      }
     }
 
     if (params.nextPageToken) {
