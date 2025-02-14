@@ -24,6 +24,7 @@ export interface Result {
     chat_elements?: boolean;
     meta_tags?: boolean;
     websockets?: boolean;
+    error?: string;  // Added the error property here
   };
   status?: string;
   nextPageToken?: string;
@@ -82,3 +83,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
 };
 
 export default ResultsTable;
+
