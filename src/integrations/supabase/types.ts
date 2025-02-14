@@ -128,10 +128,12 @@ export type Database = {
           last_error: string | null
           max_retries: number | null
           next_retry_at: string | null
+          result: Json | null
+          retries: number | null
           retry_after: string | null
           retry_count: number | null
           started_at: string | null
-          status: string
+          status: Database["public"]["Enums"]["request_status"]
           updated_at: string | null
           website_url: string
         }
@@ -145,10 +147,12 @@ export type Database = {
           last_error?: string | null
           max_retries?: number | null
           next_retry_at?: string | null
+          result?: Json | null
+          retries?: number | null
           retry_after?: string | null
           retry_count?: number | null
           started_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string | null
           website_url: string
         }
@@ -162,10 +166,12 @@ export type Database = {
           last_error?: string | null
           max_retries?: number | null
           next_retry_at?: string | null
+          result?: Json | null
+          retries?: number | null
           retry_after?: string | null
           retry_count?: number | null
           started_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string | null
           website_url?: string
         }
