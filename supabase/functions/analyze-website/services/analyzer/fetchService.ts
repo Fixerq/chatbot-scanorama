@@ -14,97 +14,65 @@ export async function tryFetch(url: string): Promise<Response> {
     controller.abort();
   }, FETCH_TIMEOUT);
 
-  try {
-    // Try the original URL first
-    console.log('[Fetch Service] Attempting initial fetch for:', url);
-    const response = await fetch(url, { 
-      headers,
-      signal: controller.signal 
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (response.ok) {
-      console.log('[Fetch Service] Successful fetch for:', url);
-      return response;
-    }
-    
-    console.log(`[Fetch Service] Initial fetch failed for ${url} with status ${response.status}`);
-    
-    // If the response is a redirect, follow it
-    if (response.status === 301 || response.status === 302) {
-      const redirectUrl = response.headers.get('location');
-      if (redirectUrl) {
-        console.log(`[Fetch Service] Following redirect to ${redirectUrl}`);
-        const redirectResponse = await fetch(redirectUrl, { 
-          headers,
-          signal: controller.signal 
-        });
-        if (redirectResponse.ok) {
-          console.log('[Fetch Service] Successful redirect fetch');
-          return redirectResponse;
-        }
-      }
-    }
-  } catch (error) {
-    clearTimeout(timeoutId);
-    console.error(`[Fetch Service] Failed to fetch ${url}:`, error);
-    
-    if (error.name === 'AbortError') {
-      throw new Error(`Timeout after ${FETCH_TIMEOUT}ms fetching ${url}`);
-    }
-  }
-
-  // If http://, try https://
-  if (url.startsWith('http://')) {
+  const fetchWithConfig = async (fetchUrl: string, retryCount = 0) => {
     try {
-      const httpsUrl = url.replace('http://', 'https://');
-      console.log('[Fetch Service] Trying HTTPS version:', httpsUrl);
-      const response = await fetch(httpsUrl, { 
+      console.log(`[Fetch Service] Attempting fetch for ${fetchUrl} (attempt ${retryCount + 1})`);
+      const response = await fetch(fetchUrl, { 
         headers,
-        signal: controller.signal 
+        signal: controller.signal,
+        // Add these options for better SSL handling
+        mode: 'no-cors',
+        redirect: 'follow'
       });
-      clearTimeout(timeoutId);
       
       if (response.ok) {
-        console.log('[Fetch Service] Successful HTTPS fetch');
+        console.log(`[Fetch Service] Successful fetch for ${fetchUrl}`);
         return response;
       }
-      console.log(`[Fetch Service] HTTPS attempt failed with status ${response.status}`);
+      
+      console.log(`[Fetch Service] Fetch failed with status ${response.status} for ${fetchUrl}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     } catch (error) {
-      clearTimeout(timeoutId);
-      console.error('[Fetch Service] HTTPS attempt failed:', error);
+      console.error(`[Fetch Service] Error fetching ${fetchUrl}:`, error);
       
       if (error.name === 'AbortError') {
-        throw new Error(`Timeout after ${FETCH_TIMEOUT}ms fetching HTTPS version`);
+        throw new Error(`Timeout after ${FETCH_TIMEOUT}ms fetching ${fetchUrl}`);
+      }
+
+      // If we haven't retried yet and it's a network error, try one more time
+      if (retryCount < 1 && error.message.includes('network')) {
+        console.log(`[Fetch Service] Retrying fetch for ${fetchUrl}`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+        return fetchWithConfig(fetchUrl, retryCount + 1);
+      }
+      
+      throw error;
+    }
+  };
+
+  try {
+    // Try the original URL first with both http:// and https://
+    const urlWithProtocol = url.startsWith('http') ? url : `https://${url}`;
+    const protocols = ['https://', 'http://'];
+    let lastError;
+
+    for (const protocol of protocols) {
+      try {
+        const fetchUrl = url.replace(/^https?:\/\//, protocol);
+        console.log(`[Fetch Service] Trying ${protocol} protocol:`, fetchUrl);
+        const response = await fetchWithConfig(fetchUrl);
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        console.log(`[Fetch Service] Failed with ${protocol}:`, error.message);
+        lastError = error;
       }
     }
-  }
 
-  // If still not successful, try the other protocol
-  const alternateUrl = url.startsWith('https://') 
-    ? url.replace('https://', 'http://')
-    : url.replace('http://', 'https://');
-
-  console.log('[Fetch Service] Trying alternate protocol:', alternateUrl);
-  try {
-    const response = await fetch(alternateUrl, { 
-      headers,
-      signal: controller.signal 
-    });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch website (status: ${response.status}). Tried both HTTP and HTTPS.`);
-    }
-    
-    console.log('[Fetch Service] Successful alternate protocol fetch');
-    return response;
+    throw lastError || new Error('Failed to fetch with both HTTP and HTTPS');
   } catch (error) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error(`Timeout after ${FETCH_TIMEOUT}ms fetching alternate protocol`);
-    }
+    console.error('[Fetch Service] All fetch attempts failed:', error);
     throw error;
   }
 }
