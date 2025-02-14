@@ -11,9 +11,20 @@ serve(async (req) => {
     headers: Object.fromEntries(req.headers.entries())
   });
 
+  // Always add CORS headers to all responses
+  const responseHeaders = {
+    ...corsHeaders,
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  };
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { 
+      headers: responseHeaders,
+      status: 204 
+    });
   }
 
   const supabaseClient = createClient(
@@ -60,7 +71,7 @@ serve(async (req) => {
         }),
         { 
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: responseHeaders
         }
       );
     }
@@ -78,7 +89,7 @@ serve(async (req) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: responseHeaders
         }
       );
     }
@@ -147,7 +158,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(result),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: responseHeaders,
         status: 200,
       },
     );
@@ -165,6 +176,7 @@ serve(async (req) => {
           .update({
             status: 'failed',
             completed_at: endTime.toISOString(),
+            error_message: errorMessage
           })
           .eq('id', executionId);
       }
@@ -192,7 +204,7 @@ serve(async (req) => {
         lastChecked: new Date().toISOString()
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: responseHeaders,
         status: 500,
       },
     );
