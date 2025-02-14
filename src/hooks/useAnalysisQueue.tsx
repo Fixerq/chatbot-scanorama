@@ -9,7 +9,7 @@ interface QueuedAnalysis {
   id: string;
   website_url: string;
   status: string;
-  analysis_result: ChatDetectionResult;
+  analysis_result: ChatDetectionResult | null;
   error_message: string | null;
 }
 
@@ -68,14 +68,16 @@ export const useAnalysisQueue = () => {
         if (queueItem.status === 'completed' && queueItem.analysis_result) {
           clearInterval(pollInterval);
           
-          if (isChatDetectionResult(queueItem.analysis_result)) {
+          const analysisResult = queueItem.analysis_result as ChatDetectionResult;
+          
+          if (isChatDetectionResult(analysisResult)) {
             setQueuedResults(prev => prev.map(result => 
               result.url === url ? {
                 ...result,
                 status: 'Success',
                 details: {
-                  chatSolutions: queueItem.analysis_result.chatSolutions || [],
-                  lastChecked: queueItem.analysis_result.lastChecked
+                  chatSolutions: analysisResult.chatSolutions,
+                  lastChecked: analysisResult.lastChecked
                 }
               } : result
             ));
