@@ -10,7 +10,10 @@ serve(async (req) => {
   
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers, status: 204 });
+    return new Response('ok', { 
+      headers, 
+      status: 200 // Changed from 204 to 200 to allow body
+    });
   }
 
   let executionId: string | null = null;
@@ -39,7 +42,10 @@ serve(async (req) => {
           status: 'error',
           details: executionError
         }),
-        { headers, status: 500 }
+        { 
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          status: 500 
+        }
       );
     }
 
@@ -59,7 +65,10 @@ serve(async (req) => {
           status: 'error',
           details: 'Both "url" and "requestId" must be provided'
         }),
-        { headers, status: 400 }
+        { 
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          status: 400 
+        }
       );
     }
 
@@ -73,7 +82,10 @@ serve(async (req) => {
           status: 'error',
           details: 'URL must start with http:// or https://'
         }),
-        { headers, status: 400 }
+        { 
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          status: 400 
+        }
       );
     }
 
@@ -94,7 +106,10 @@ serve(async (req) => {
           status: 'error',
           details: updateError
         }),
-        { headers, status: 500 }
+        { 
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          status: 500 
+        }
       );
     }
 
@@ -121,7 +136,10 @@ serve(async (req) => {
           status: 'error',
           details: resultError
         }),
-        { headers, status: 500 }
+        { 
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          status: 500 
+        }
       );
     }
 
@@ -143,7 +161,10 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(result),
-      { headers, status: 200 }
+      { 
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        status: 200 
+      }
     );
 
   } catch (error) {
@@ -185,7 +206,10 @@ serve(async (req) => {
         chatSolutions: [],
         lastChecked: new Date().toISOString()
       }),
-      { headers, status: 500 }
+      { 
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        status: 500 
+      }
     );
   }
 });
