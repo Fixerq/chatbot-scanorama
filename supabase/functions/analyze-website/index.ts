@@ -1,6 +1,6 @@
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
@@ -110,16 +110,7 @@ serve(async (req) => {
 
     // Perform analysis with timeout
     console.log('Starting website analysis for:', url);
-    const analysisPromise = websiteAnalyzer(url);
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Analysis timeout')), 25000); // 25 second timeout
-    });
-
-    const result = await Promise.race([analysisPromise, timeoutPromise])
-      .catch(error => {
-        console.error('Analysis error:', error);
-        throw error;
-      });
+    const result = await websiteAnalyzer(url);
 
     console.log('Analysis completed successfully:', result);
 
@@ -205,7 +196,7 @@ serve(async (req) => {
       }),
       {
         headers: responseHeaders,
-        status: 500,
+        status: 200, // Always return 200 to handle errors in the frontend
       },
     );
   }
