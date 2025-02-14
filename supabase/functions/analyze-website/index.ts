@@ -11,6 +11,7 @@ serve(async (req) => {
 
   try {
     const { url, requestId } = await req.json();
+    console.log('Received analysis request:', { url, requestId });
     
     if (!url) {
       throw new Error('URL is required');
@@ -23,16 +24,23 @@ serve(async (req) => {
 
     // Update analysis request status to processing
     if (requestId) {
+      console.log('Updating request status to processing:', requestId);
       await supabaseClient
         .from('analysis_requests')
-        .update({ status: 'processing' })
+        .update({ 
+          status: 'processing',
+          started_at: new Date().toISOString()
+        })
         .eq('id', requestId);
     }
 
+    console.log('Starting website analysis for:', url);
     const result = await websiteAnalyzer(url);
+    console.log('Analysis completed successfully:', result);
 
     // Update analysis request with results
     if (requestId) {
+      console.log('Updating request with results:', requestId);
       await supabaseClient
         .from('analysis_requests')
         .update({
@@ -53,10 +61,12 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    console.error('Analysis error:', error);
+    console.error('Analysis error:', errorMessage);
 
     // Update analysis request with error if we have a requestId
-    if (req.body && typeof req.body === 'object' && 'requestId' in req.body) {
+    const requestId = req.body ? (JSON.parse(await req.text())).requestId : null;
+    if (requestId) {
+      console.log('Updating request with error:', requestId);
       const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -69,7 +79,7 @@ serve(async (req) => {
           completed_at: new Date().toISOString(),
           error_message: errorMessage
         })
-        .eq('id', req.body.requestId);
+        .eq('id', requestId);
     }
 
     return new Response(

@@ -22,6 +22,8 @@ export const useAnalysisQueue = () => {
   const [queuedResults, setQueuedResults] = useState<Result[]>([]);
 
   const checkAnalysisStatus = async (requestId: string, url: string) => {
+    console.log('Checking analysis status for:', { requestId, url });
+    
     const { data: request, error } = await supabase
       .from('analysis_requests')
       .select('*')
@@ -30,13 +32,21 @@ export const useAnalysisQueue = () => {
 
     if (error) {
       console.error('Error checking analysis status:', error);
-      return;
+      setQueuedResults(prev => prev.map(result => 
+        result.url === url ? {
+          ...result,
+          status: `Error: ${error.message}`
+        } : result
+      ));
+      return true;
     }
+
+    console.log('Analysis status:', request.status);
 
     if (request.status === 'completed' && request.analysis_result) {
       const result = request.analysis_result;
       if (isChatDetectionResult(result)) {
-        // Update local state with the completed result
+        console.log('Analysis completed successfully:', result);
         setQueuedResults(prev => prev.map(prevResult => 
           prevResult.url === url ? {
             ...prevResult,
@@ -60,6 +70,7 @@ export const useAnalysisQueue = () => {
         return true;
       }
     } else if (request.status === 'failed') {
+      console.error('Analysis failed:', request.error_message);
       setQueuedResults(prev => prev.map(result => 
         result.url === url ? {
           ...result,
@@ -78,6 +89,7 @@ export const useAnalysisQueue = () => {
 
     const poll = async () => {
       if (attempts >= maxPollingAttempts) {
+        console.error('Analysis timeout reached');
         setQueuedResults(prev => prev.map(result => 
           result.url === url ? {
             ...result,
@@ -119,6 +131,8 @@ export const useAnalysisQueue = () => {
         return;
       }
 
+      console.log('Analysis request created:', request);
+
       // Update local state to show processing
       setQueuedResults(prev => prev.map(result => 
         result.url === url ? { ...result, status: 'Processing...' } : result
@@ -149,7 +163,7 @@ export const useAnalysisQueue = () => {
         return;
       }
 
-      // Start polling for status updates
+      console.log('Starting polling for analysis status');
       pollAnalysisStatus(request.id, url);
 
     } catch (error) {
