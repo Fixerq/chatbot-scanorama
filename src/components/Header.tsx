@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Bot, Search, BarChart3, Crown, Cog } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
 const Header = () => {
   return <div className="relative mb-12">
       <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/30 via-blue-600/30 to-cyan-600/30 rounded-[2rem] blur-xl animate-gradient" />
@@ -12,7 +10,7 @@ const Header = () => {
         <CardContent className="pt-12 pb-14 px-8">
           <div className="absolute top-4 right-4">
             <Link to="/settings">
-              <Cog className="w-6 h-6 text-cyan-400 hover:text-cyan-300 transition-colors" />
+              
             </Link>
           </div>
           
@@ -82,5 +80,4 @@ const Header = () => {
       </Card>
     </div>;
 };
-
 export default Header;
