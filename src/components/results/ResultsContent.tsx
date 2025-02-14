@@ -31,18 +31,19 @@ const ResultsContent = ({
   onLoadMore,
   isLoadingMore = false
 }: ResultsContentProps) => {
-  // Filter out results that haven't been analyzed yet
-  const analyzedResults = results.filter(r => {
-    const hasStatus = r.status && r.status.toLowerCase() === 'success';
-    const hasAnalysisResult = r.details?.chatSolutions || r.chatbot_solutions;
-    return hasStatus || hasAnalysisResult;
+  // Less strict filtering to show more results
+  const validResults = results.filter(r => {
+    const hasStatus = r.status === 'success' || r.status === 'Success';
+    const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
+    const isAnalyzed = hasStatus || hasDetails || r.has_chatbot !== undefined;
+    return isAnalyzed;
   });
 
-  if (!analyzedResults || analyzedResults.length === 0) {
+  if (!validResults || validResults.length === 0) {
     return (
       <EmptyResults 
         onNewSearch={() => {}} 
-        message="No analyzed results found. Please wait while websites are being analyzed."
+        message="No results found. Please try searching for businesses to analyze."
       />
     );
   }
@@ -54,10 +55,10 @@ const ResultsContent = ({
     }
   };
 
-  const totalPages = Math.ceil(analyzedResults.length / 50);
+  const totalPages = Math.ceil(validResults.length / 50);
   const startIndex = (localPage - 1) * 50;
   const endIndex = startIndex + 50;
-  const displayedResults = analyzedResults.slice(startIndex, endIndex);
+  const displayedResults = validResults.slice(startIndex, endIndex);
 
   return (
     <>

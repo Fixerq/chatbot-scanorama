@@ -12,11 +12,11 @@ export const useResultsState = (initialResults: Result[] = []) => {
     // Update filtered results when initial results change
     let updatedResults = initialResults;
 
-    // Only show results that have completed analysis
+    // Filter to show results that have completed analysis or have details
     updatedResults = updatedResults.filter(r => {
-      const hasStatus = r.status && r.status.toLowerCase() === 'success';
-      const hasAnalysisResult = r.details?.chatSolutions || r.chatbot_solutions;
-      return hasStatus || hasAnalysisResult;
+      const hasCompletedAnalysis = r.status === 'success' || r.status === 'Success';
+      const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
+      return hasCompletedAnalysis || hasDetails;
     });
 
     setFilteredResults(updatedResults);
@@ -27,17 +27,25 @@ export const useResultsState = (initialResults: Result[] = []) => {
     setFilterValue(value);
     let filtered = [...initialResults];
     
-    // First filter out unanalyzed results
+    // First filter for valid results
     filtered = filtered.filter(r => {
-      const hasStatus = r.status && r.status.toLowerCase() === 'success';
-      const hasAnalysisResult = r.details?.chatSolutions || r.chatbot_solutions;
-      return hasStatus || hasAnalysisResult;
+      const hasCompletedAnalysis = r.status === 'success' || r.status === 'Success';
+      const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
+      return hasCompletedAnalysis || hasDetails;
     });
     
     if (value === 'chatbot') {
-      filtered = filtered.filter(r => r.has_chatbot || (r.details?.chatSolutions && r.details.chatSolutions.length > 0));
+      filtered = filtered.filter(r => {
+        const hasChatbotFlag = r.has_chatbot || r.details?.chatSolutions?.length > 0;
+        const hasSolutions = r.chatbot_solutions?.length > 0 || r.details?.chatSolutions?.length > 0;
+        return hasChatbotFlag || hasSolutions;
+      });
     } else if (value === 'no-chatbot') {
-      filtered = filtered.filter(r => !r.has_chatbot && (!r.details?.chatSolutions || r.details.chatSolutions.length === 0));
+      filtered = filtered.filter(r => {
+        const hasChatbotFlag = r.has_chatbot || r.details?.chatSolutions?.length > 0;
+        const hasSolutions = r.chatbot_solutions?.length > 0 || r.details?.chatSolutions?.length > 0;
+        return !hasChatbotFlag && !hasSolutions;
+      });
     }
     
     setFilteredResults(filtered);
