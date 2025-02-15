@@ -86,19 +86,26 @@ const TestResults = () => {
         },
         (payload: RealtimePostgresChangesPayload<AnalysisResultPayload>) => {
           console.log('Received analysis update:', payload);
-          const { url, has_chatbot, chatbot_solutions, status, details } = payload.new;
+          
+          // Type guard to ensure payload.new has the expected properties
+          if (!payload.new || typeof payload.new !== 'object') {
+            console.error('Invalid payload received:', payload);
+            return;
+          }
+
+          const newData = payload.new as AnalysisResultPayload;
           
           setResults(prevResults => 
             prevResults.map(result => {
-              if (result.url === url) {
+              if (result.url === newData.url) {
                 return {
                   ...result,
-                  status: status || result.status,
+                  status: newData.status || result.status,
                   analysis_result: {
-                    has_chatbot,
-                    chatSolutions: chatbot_solutions || [],
-                    status: status || 'completed',
-                    details: details || {},
+                    has_chatbot: newData.has_chatbot,
+                    chatSolutions: newData.chatbot_solutions || [],
+                    status: newData.status || 'completed',
+                    details: newData.details || {},
                     lastChecked: new Date().toISOString()
                   }
                 };
