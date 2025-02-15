@@ -6,30 +6,30 @@ import { ChatDetectionResult, isChatDetectionResult } from '@/types/chatbot';
 const transformDatabaseResponse = (response: any): QueuedAnalysis => {
   let analysisResult: ChatDetectionResult | null = null;
   
-  if (response.analysis_result) {
-    if (isChatDetectionResult(response.analysis_result)) {
-      analysisResult = response.analysis_result;
+  if (response.result) {
+    if (isChatDetectionResult(response.result)) {
+      analysisResult = response.result;
     } else {
-      console.warn('Invalid analysis result format:', response.analysis_result);
+      console.warn('Invalid analysis result format:', response.result);
     }
   }
 
   return {
     id: response.id,
-    website_url: response.website_url,
+    website_url: response.url,
     status: response.status,
     analysis_result: analysisResult,
     error_message: response.error_message,
-    retry_count: response.retry_count,
-    max_retries: response.max_retries,
-    last_error: response.last_error,
-    retry_after: response.retry_after,
-    started_at: response.started_at,
-    completed_at: response.completed_at,
+    retry_count: 0,
+    max_retries: 3,
+    last_error: response.error_message,
+    retry_after: null,
+    started_at: null,
+    completed_at: null,
     created_at: response.created_at,
     updated_at: response.updated_at,
-    next_retry_at: response.next_retry_at,
-    attempts: response.attempts
+    next_retry_at: null,
+    attempts: 0
   };
 };
 
@@ -39,10 +39,9 @@ export const createAnalysisRequest = async (url: string): Promise<QueuedAnalysis
   const { data: request, error: insertError } = await supabase
     .from('analysis_requests')
     .insert([{
-      website_url: url,
+      url: url,
       status: 'pending',
-      retry_count: 0,
-      max_retries: 3
+      result: null
     }])
     .select()
     .single();
@@ -72,19 +71,16 @@ export const checkAnalysisStatus = async (requestId: string): Promise<QueuedAnal
   return transformDatabaseResponse(request);
 };
 
-export const incrementRetries = async (requestId: string): Promise<QueuedAnalysis> => {
+export const incrementRetries = async (requestId: string): Promise<void> => {
   console.log('Incrementing retries for request:', requestId);
   
-  const { data: request, error } = await supabase
-    .rpc('increment_analysis_retries', { request_id: requestId })
-    .single();
+  const { error } = await supabase
+    .rpc('increment_retry_count', { request_id: requestId });
 
   if (error) {
     console.error('Error incrementing retries:', error);
     throw new Error(`Error incrementing retries: ${error.message}`);
   }
-
-  return transformDatabaseResponse(request);
 };
 
 export const invokeAnalysisFunction = async (url: string, requestId: string): Promise<ChatDetectionResult> => {
@@ -145,4 +141,3 @@ export const subscribeToAnalysisUpdates = (
     supabase.removeChannel(subscription);
   };
 };
-
