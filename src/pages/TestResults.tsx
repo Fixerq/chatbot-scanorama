@@ -8,6 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useUrlProcessor } from '@/hooks/useUrlProcessor';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+interface AnalysisResultPayload {
+  url: string;
+  has_chatbot: boolean;
+  chatbot_solutions: string[];
+  status: string;
+  details: Record<string, any>;
+}
 
 const TestResults = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -75,7 +84,7 @@ const TestResults = () => {
           schema: 'public',
           table: 'analysis_results'
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<AnalysisResultPayload>) => {
           console.log('Received analysis update:', payload);
           const { url, has_chatbot, chatbot_solutions, status, details } = payload.new;
           
