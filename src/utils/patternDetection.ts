@@ -6,27 +6,27 @@ const DYNAMIC_PATTERNS = [
   /(?:loadChat|initChat|startChat|chatInit|initializeChat)/i,
   /(?:chat|messenger|support|bot|widget|engage).*(?:load|init|start)/i,
   /(?:load|init|start).*(?:chat|messenger|support|bot|widget|engage)/i
-].map(pattern => ({ pattern, type: 'dynamic' }));
+].map(pattern => ({ pattern, type: 'dynamic' as const }));
 
 const ELEMENT_PATTERNS = [
   /<(?:div|iframe|button|script|link|img|span)[^>]*(?:chat|messenger|support|bot|widget|engage)[^>]*>/i,
   /class=["'][^"']*(?:chat|messenger|support|bot|widget)[^"']*["']/i,
   /id=["'][^"']*(?:chat|messenger|support|bot|widget)[^"']*["']/i,
   /data-(?:chat|messenger|support|widget|bot)[^=]*=["'][^"']*["']/i
-].map(pattern => ({ pattern, type: 'element' }));
+].map(pattern => ({ pattern, type: 'element' as const }));
 
 const META_PATTERNS = [
   /<meta[^>]*(?:chat|messenger|support|bot|widget)[^>]*>/i,
   /(?:chat|messenger|bot|widget|engage).*(?:config|settings)/i,
   /(?:config|settings).*(?:chat|messenger|bot|widget|engage)/i
-].map(pattern => ({ pattern, type: 'meta' }));
+].map(pattern => ({ pattern, type: 'meta' as const }));
 
 const WEBSOCKET_PATTERNS = [
   /(?:new WebSocket|WebSocket\.).*(?:chat|messenger|widget|engage)/i,
   /(?:ws|wss):\/\/[^"']*(?:chat|messenger|widget|engage)[^"']*/i,
   /(?:socket|websocket).*(?:chat|messenger|widget|engage)/i,
   /(?:chat|messenger|widget|engage).*(?:socket|websocket)/i
-].map(pattern => ({ pattern, type: 'websocket' }));
+].map(pattern => ({ pattern, type: 'websocket' as const }));
 
 interface PatternMatch {
   pattern: RegExp;
@@ -85,3 +85,4 @@ export function getDetailedMatches(html: string): PatternMatch[] {
 
   return allPatterns.filter(({ pattern }) => pattern.test(html));
 }
+
