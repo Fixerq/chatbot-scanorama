@@ -6,6 +6,8 @@ import { performGoogleSearch } from '@/utils/searchEngine';
 import ResultsTable from '@/components/ResultsTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { useUrlProcessor } from '@/hooks/useUrlProcessor';
 
 const TestResults = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -13,6 +15,7 @@ const TestResults = () => {
   const [query, setQuery] = useState('');
   const [country, setCountry] = useState('US');
   const [region, setRegion] = useState('CA');
+  const { processing, processSearchResults } = useUrlProcessor();
 
   const handleSearch = async () => {
     try {
@@ -37,11 +40,14 @@ const TestResults = () => {
           website_url: result.url,
           address: result.details?.address || '',
         },
-        status: 'pending'
+        status: 'analyzing'
       }));
 
       setResults(transformedResults);
       toast.success(`Found ${transformedResults.length} results`);
+
+      // Process URLs for chatbot detection
+      await processSearchResults(transformedResults);
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Search failed');
@@ -58,6 +64,48 @@ const TestResults = () => {
     );
   };
 
+  // Subscribe to real-time updates
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('analysis-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'analysis_results'
+        },
+        (payload) => {
+          console.log('Received analysis update:', payload);
+          const { url, has_chatbot, chatbot_solutions, status, details } = payload.new;
+          
+          setResults(prevResults => 
+            prevResults.map(result => {
+              if (result.url === url) {
+                return {
+                  ...result,
+                  status: status || result.status,
+                  analysis_result: {
+                    has_chatbot,
+                    chatSolutions: chatbot_solutions || [],
+                    status: status || 'completed',
+                    details: details || {},
+                    lastChecked: new Date().toISOString()
+                  }
+                };
+              }
+              return result;
+            })
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   return (
     <div className="container py-8 space-y-6">
       <div className="space-y-4">
@@ -72,7 +120,7 @@ const TestResults = () => {
           />
           <Button 
             onClick={handleSearch}
-            disabled={isLoading}
+            disabled={isLoading || processing}
           >
             Search
           </Button>
@@ -82,7 +130,7 @@ const TestResults = () => {
       {results.length > 0 && (
         <ResultsTable 
           results={results}
-          isLoading={isLoading}
+          isLoading={isLoading || processing}
           onResultUpdate={handleResultUpdate}
         />
       )}
@@ -91,3 +139,4 @@ const TestResults = () => {
 };
 
 export default TestResults;
+
