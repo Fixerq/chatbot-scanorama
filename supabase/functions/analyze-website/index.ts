@@ -16,7 +16,7 @@ serve(async (req) => {
 
   // Validate origin
   const origin = req.headers.get('origin');
-  if (origin !== 'https://detectifys.engageai.pro') {
+  if (origin !== 'https://detectify.engageai.pro') {
     return new Response(
       JSON.stringify({ error: 'Origin not allowed', status: 'error' }),
       { 
