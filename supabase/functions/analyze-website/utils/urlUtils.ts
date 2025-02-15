@@ -1,31 +1,37 @@
 
+/**
+ * Normalizes a URL by removing trailing slashes and converting to lowercase
+ */
 export function normalizeUrl(url: string): string {
   try {
-    // Remove any trailing colons and slashes
-    let cleanUrl = url.trim().replace(/[:\/]+$/, '');
+    // Create URL object to parse the URL properly
+    const urlObj = new URL(url);
     
-    // Add https:// if no protocol is specified
-    if (!cleanUrl.match(/^https?:\/\//i)) {
-      cleanUrl = `https://${cleanUrl}`;
+    // Construct base URL
+    let normalized = `${urlObj.protocol}//${urlObj.hostname.toLowerCase()}`;
+    
+    // Add port if it's non-standard
+    if (urlObj.port && 
+        !((urlObj.protocol === 'http:' && urlObj.port === '80') || 
+          (urlObj.protocol === 'https:' && urlObj.port === '443'))) {
+      normalized += `:${urlObj.port}`;
     }
     
-    // Parse URL to normalize it
-    const urlObj = new URL(cleanUrl);
+    // Add path, removing trailing slashes except for root path
+    if (urlObj.pathname === '/') {
+      normalized += '/';
+    } else {
+      normalized += urlObj.pathname.replace(/\/+$/, '');
+    }
     
-    // Remove any extra colons from hostname
-    urlObj.hostname = urlObj.hostname.replace(/:/g, '');
+    // Add search params if they exist
+    if (urlObj.search) {
+      normalized += urlObj.search;
+    }
     
-    // Remove www. prefix
-    urlObj.hostname = urlObj.hostname.replace(/^www\./, '');
-    
-    // Create new URL with just the hostname
-    const finalUrl = `https://${urlObj.hostname}`;
-    
-    console.log('[URL Utils] Original URL:', url);
-    console.log('[URL Utils] Normalized URL:', finalUrl);
-    return finalUrl;
+    return normalized;
   } catch (error) {
-    console.error('[URL Utils] URL normalization error:', error);
-    throw new Error('Invalid URL format');
+    console.error('[URL Utils] Error normalizing URL:', error);
+    throw new Error(`Invalid URL: ${error.message}`);
   }
 }
