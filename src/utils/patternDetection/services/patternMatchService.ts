@@ -2,6 +2,7 @@
 import { PatternMatch, PatternMatchResult } from '../types';
 import { logPatternMatch } from '../utils/logger';
 import { loadPatterns } from '../patterns/patternLoader';
+import { supabase } from '@/integrations/supabase/client';
 
 let patternsCache: PatternMatch[] | null = null;
 let lastPatternLoad = 0;
@@ -35,12 +36,30 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
               subcategory: patternObj.subcategory
             }
           );
+
+          // Update pattern metrics for successful match
+          supabase.rpc('update_pattern_metrics', { 
+            p_pattern: patternObj.pattern.toString(),
+            p_matched: true 
+          }).catch(err => {
+            console.error('[PatternDetection] Error updating pattern metrics:', err);
+          });
+
           return {
             ...patternObj,
             matched: match[0],
             pattern: patternObj.pattern.toString()
           };
         }
+
+        // Update pattern metrics for unsuccessful match
+        supabase.rpc('update_pattern_metrics', { 
+          p_pattern: patternObj.pattern.toString(),
+          p_matched: false
+        }).catch(err => {
+          console.error('[PatternDetection] Error updating pattern metrics:', err);
+        });
+
         return null;
       } catch (error) {
         console.error('[PatternDetection] Error testing pattern:', {
@@ -71,4 +90,3 @@ export async function detectChatElements(html: string): Promise<{
     matches: validMatches
   };
 }
-

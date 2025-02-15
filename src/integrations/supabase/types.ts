@@ -1568,6 +1568,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_pattern_metrics: {
+        Args: {
+          p_pattern: string
+          p_matched: boolean
+        }
+        Returns: undefined
+      }
       update_proxy_status: {
         Args: {
           p_proxy_id: string

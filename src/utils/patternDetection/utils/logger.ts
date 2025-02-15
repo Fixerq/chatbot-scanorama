@@ -11,4 +11,3 @@ export const logPatternMatch = (type: string, pattern: RegExp, matched?: string,
     ...details
   });
 };
-
