@@ -32,7 +32,7 @@ serve(async (req) => {
       .single();
 
     if (executionError) {
-      console.error('Error creating execution record:', executionError);
+      console.error('[Handler] Error creating execution record:', executionError);
       return new Response(
         JSON.stringify({
           error: 'Failed to create execution record',
@@ -47,15 +47,15 @@ serve(async (req) => {
     }
 
     executionId = executionData.id;
-    console.log('Created execution record:', executionId);
+    console.log('[Handler] Created execution record:', executionId);
 
     const rawBody = await req.text();
-    console.log('Raw request body:', rawBody);
+    console.log('[Handler] Raw request body:', rawBody);
 
     const { url, requestId } = JSON.parse(rawBody);
 
     if (!url || !requestId) {
-      console.error('Missing required fields:', { url, requestId });
+      console.error('[Handler] Missing required fields:', { url, requestId });
       return new Response(
         JSON.stringify({
           error: 'Missing required fields',
@@ -69,6 +69,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('[Handler] Processing URL:', url);
+
     // Update analysis request status to processing
     const { error: updateError } = await supabaseClient
       .from('analysis_requests')
@@ -79,7 +81,7 @@ serve(async (req) => {
       .eq('id', requestId);
 
     if (updateError) {
-      console.error('Error updating request status:', updateError);
+      console.error('[Handler] Error updating request status:', updateError);
       return new Response(
         JSON.stringify({
           error: 'Failed to update request status',
@@ -93,10 +95,10 @@ serve(async (req) => {
       );
     }
 
-    console.log('Starting website analysis for:', url);
+    console.log('[Handler] Starting website analysis for:', url);
     const result = await websiteAnalyzer(url);
 
-    console.log('Analysis completed successfully:', result);
+    console.log('[Handler] Analysis completed successfully:', result);
 
     // Update analysis request with results
     const { error: resultError } = await supabaseClient
@@ -109,7 +111,7 @@ serve(async (req) => {
       .eq('id', requestId);
 
     if (resultError) {
-      console.error('Error updating analysis results:', resultError);
+      console.error('[Handler] Error updating analysis results:', resultError);
       return new Response(
         JSON.stringify({
           error: 'Failed to update analysis results',
@@ -136,7 +138,7 @@ serve(async (req) => {
         .eq('id', executionId);
 
       if (completionError) {
-        console.error('Error updating execution record:', completionError);
+        console.error('[Handler] Error updating execution record:', completionError);
       }
     }
 
@@ -149,7 +151,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Analysis error:', error);
+    console.error('[Handler] Analysis error:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
 
     try {
@@ -175,7 +177,7 @@ serve(async (req) => {
         .eq('id', rawBody?.requestId);
 
     } catch (updateError) {
-      console.error('Error updating status:', updateError);
+      console.error('[Handler] Error updating status:', updateError);
     }
 
     return new Response(
