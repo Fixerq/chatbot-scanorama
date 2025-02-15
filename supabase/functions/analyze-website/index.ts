@@ -1,18 +1,15 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, getCorsHeaders } from '../_shared/cors.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 
 serve(async (req) => {
-  // Get CORS headers for the request
-  const headers = await getCorsHeaders(req);
-  
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { 
-      headers, 
-      status: 200 // Changed from 204 to 200 to allow body
+      headers: corsHeaders,
+      status: 200
     });
   }
 
@@ -43,7 +40,7 @@ serve(async (req) => {
           details: executionError
         }),
         { 
-          headers: { ...headers, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500 
         }
       );
@@ -66,30 +63,13 @@ serve(async (req) => {
           details: 'Both "url" and "requestId" must be provided'
         }),
         { 
-          headers: { ...headers, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
         }
       );
     }
 
-    try {
-      new URL(url);
-    } catch (error) {
-      console.error('Invalid URL format:', url);
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid URL format',
-          status: 'error',
-          details: 'URL must start with http:// or https://'
-        }),
-        { 
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-
-    console.log('Updating request status to processing:', requestId);
+    // Update analysis request status to processing
     const { error: updateError } = await supabaseClient
       .from('analysis_requests')
       .update({ 
@@ -107,7 +87,7 @@ serve(async (req) => {
           details: updateError
         }),
         { 
-          headers: { ...headers, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500 
         }
       );
@@ -118,7 +98,7 @@ serve(async (req) => {
 
     console.log('Analysis completed successfully:', result);
 
-    console.log('Updating request with results:', requestId);
+    // Update analysis request with results
     const { error: resultError } = await supabaseClient
       .from('analysis_requests')
       .update({
@@ -137,12 +117,13 @@ serve(async (req) => {
           details: resultError
         }),
         { 
-          headers: { ...headers, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500 
         }
       );
     }
 
+    // Update execution record
     if (executionId) {
       const endTime = new Date();
       const { error: completionError } = await supabaseClient
@@ -162,7 +143,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(result),
       { 
-        headers: { ...headers, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
     );
@@ -184,16 +165,15 @@ serve(async (req) => {
           .eq('id', executionId);
       }
 
-      if (req.body && 'requestId' in req.body) {
-        await supabaseClient
-          .from('analysis_requests')
-          .update({
-            status: 'failed',
-            completed_at: new Date().toISOString(),
-            error_message: errorMessage
-          })
-          .eq('id', req.body.requestId);
-      }
+      await supabaseClient
+        .from('analysis_requests')
+        .update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error_message: errorMessage
+        })
+        .eq('id', rawBody?.requestId);
+
     } catch (updateError) {
       console.error('Error updating status:', updateError);
     }
@@ -207,7 +187,7 @@ serve(async (req) => {
         lastChecked: new Date().toISOString()
       }),
       { 
-        headers: { ...headers, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
       }
     );
