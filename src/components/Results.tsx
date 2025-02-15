@@ -1,42 +1,51 @@
 
 import React from 'react';
-import { Result } from './ResultsTable';
+import ResultsHeader from './results/ResultsHeader';
+import ResultsFilters from './results/ResultsFilters';
+import ResultsContent from './results/ResultsContent';
 import ResultsContainer from './results/ResultsContainer';
+import ResultsTable, { Result } from './ResultsTable';
 import EmptyResults from './results/EmptyResults';
 
 interface ResultsProps {
-  results?: Result[];
+  results: Result[];
   onExport: () => void;
   onNewSearch: () => void;
-  hasMore?: boolean;
-  onLoadMore?: (currentPage: number) => void;
+  hasMore: boolean;
+  onLoadMore: (page: number) => void;
   isLoadingMore?: boolean;
-  currentPage?: number;
+  onResultUpdate?: (updatedResult: Result) => void;
 }
 
-const Results = ({ 
-  results = [], 
+const Results: React.FC<ResultsProps> = ({ 
+  results, 
   onExport, 
   onNewSearch, 
-  hasMore = false,
+  hasMore, 
   onLoadMore,
-  isLoadingMore = false,
-  currentPage = 1
-}: ResultsProps) => {
-  if (!results || results.length === 0) {
-    return <EmptyResults onNewSearch={onNewSearch} />;
-  }
+  isLoadingMore,
+  onResultUpdate
+}) => {
+  const hasResults = results.length > 0;
 
   return (
-    <ResultsContainer
-      results={results}
-      onExport={onExport}
-      onNewSearch={onNewSearch}
-      hasMore={hasMore}
-      onLoadMore={onLoadMore}
-      isLoadingMore={isLoadingMore}
-      currentPage={currentPage}
-    />
+    <ResultsContainer>
+      {hasResults ? (
+        <>
+          <ResultsHeader onExport={onExport} onNewSearch={onNewSearch} />
+          <ResultsFilters />
+          <ResultsContent>
+            <ResultsTable 
+              results={results} 
+              isLoading={isLoadingMore}
+              onResultUpdate={onResultUpdate}
+            />
+          </ResultsContent>
+        </>
+      ) : (
+        <EmptyResults onNewSearch={onNewSearch} />
+      )}
+    </ResultsContainer>
   );
 };
 

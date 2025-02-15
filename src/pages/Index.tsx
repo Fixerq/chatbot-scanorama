@@ -43,6 +43,16 @@ const Index = () => {
     }
   }, []);
 
+  const handleResultUpdate = useCallback((updatedResult: Result) => {
+    if (mounted.current) {
+      setResults(prevResults => 
+        prevResults.map(result => 
+          result.url === updatedResult.url ? updatedResult : result
+        )
+      );
+    }
+  }, []);
+
   const handlePageChange = useCallback((page: number) => {
     if (mounted.current) {
       handleLoadMore(
@@ -83,6 +93,7 @@ const Index = () => {
           hasMore={true}
           onLoadMore={handlePageChange}
           isLoadingMore={isSearching}
+          onResultUpdate={handleResultUpdate}
         />
       </div>
     </div>
