@@ -128,3 +128,4 @@ const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: Result
 };
 
 export default ResultsTable;
+
