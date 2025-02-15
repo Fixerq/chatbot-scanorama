@@ -1,6 +1,8 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { ChatDetectionResult, AnalysisResult } from '../types.ts';
 import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../utils/patternDetection.ts';
+import { tryFetch } from '../services/analyzer/fetchService.ts';
 
 // Create Supabase client for the edge function
 const supabase = createClient(
