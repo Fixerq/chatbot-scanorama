@@ -12,15 +12,16 @@ export const formatUrl = (url: string) => {
     // Create URL object to parse the URL properly
     const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
     
-    // Get the base URL (protocol + hostname)
-    const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
+    // Get the root domain by removing www. prefix
+    const rootDomain = urlObj.hostname.replace(/^www\./, '');
     
-    // Use just the hostname for display
-    const displayUrl = urlObj.hostname.replace(/^www\./, '');
+    // Use just the root domain for display and full URL
+    const displayUrl = rootDomain;
+    const fullUrl = `${urlObj.protocol}//${rootDomain}`;
 
     return {
       displayUrl,
-      fullUrl: baseUrl
+      fullUrl
     };
   } catch (error) {
     console.error('Error formatting URL:', error);

@@ -1,4 +1,3 @@
-
 const BLOCKED_DOMAINS = [
   'google.com',
   'gmail.com',
@@ -33,30 +32,19 @@ export async function processUrl(url: string): Promise<{ cleanUrl: string; urlOb
     
     console.log('[URL Processor] Valid URL object created:', urlObj.toString());
     
-    // Remove tracking parameters
-    const searchParams = new URLSearchParams(urlObj.search);
-    const cleanParams = new URLSearchParams();
-    
-    for (const [key, value] of searchParams.entries()) {
-      if (!key.toLowerCase().startsWith('utm_') && 
-          !key.toLowerCase().includes('fbclid') && 
-          !key.toLowerCase().includes('ref')) {
-        cleanParams.append(key, value);
-      }
-    }
-    
-    // Reconstruct the URL
-    const baseUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
-    const cleanSearch = cleanParams.toString();
-    const cleanUrl = cleanSearch ? `${baseUrl}?${cleanSearch}` : baseUrl;
-    
-    console.log('[URL Processor] Cleaned URL:', cleanUrl);
+    // Extract root domain by removing www. prefix and keeping only hostname
+    const rootDomain = urlObj.hostname.replace(/^www\./, '');
+    console.log('[URL Processor] Extracted root domain:', rootDomain);
+
+    // Reconstruct the URL with only the root domain
+    const cleanUrl = `${urlObj.protocol}//${rootDomain}`;
+    console.log('[URL Processor] Using root domain URL:', cleanUrl);
 
     // Check blocked domains
-    const rootDomain = urlObj.hostname.toLowerCase();
-    if (BLOCKED_DOMAINS.includes(rootDomain)) {
-      console.log('[URL Processor] Blocked domain detected:', rootDomain);
-      throw new Error(`Domain ${rootDomain} cannot be analyzed`);
+    const normalizedRootDomain = rootDomain.toLowerCase();
+    if (BLOCKED_DOMAINS.includes(normalizedRootDomain)) {
+      console.log('[URL Processor] Blocked domain detected:', normalizedRootDomain);
+      throw new Error(`Domain ${normalizedRootDomain} cannot be analyzed`);
     }
 
     return {

@@ -13,30 +13,15 @@ export function normalizeUrl(url: string): string {
     // Create URL object to parse the URL properly
     const urlObj = new URL(url);
     
-    // Construct base URL
-    let normalized = `${urlObj.protocol}//${urlObj.hostname.toLowerCase()}`;
+    // Get root domain by removing www. prefix
+    const rootDomain = urlObj.hostname.replace(/^www\./, '').toLowerCase();
     
-    // Add port if it's non-standard
-    if (urlObj.port && 
-        !((urlObj.protocol === 'http:' && urlObj.port === '80') || 
-          (urlObj.protocol === 'https:' && urlObj.port === '443'))) {
-      normalized += `:${urlObj.port}`;
-    }
-    
-    // Add path, removing trailing slashes except for root path
-    if (urlObj.pathname === '/') {
-      normalized += '/';
-    } else {
-      normalized += urlObj.pathname.replace(/\/+$/, '');
-    }
-    
-    // Add search params if they exist
-    if (urlObj.search) {
-      normalized += urlObj.search;
-    }
+    // Construct normalized URL with just protocol and root domain
+    const normalized = `${urlObj.protocol}//${rootDomain}`;
     
     console.log('[URL Utils] Normalized URL:', normalized);
     return normalized;
+
   } catch (error) {
     // If URL parsing fails, try prepending https:// and retry
     if (!url.match(/^https?:\/\//i)) {
