@@ -1,5 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import ResultsContent from './results/ResultsContent';
@@ -33,6 +35,49 @@ const Results: React.FC<ResultsProps> = ({
 
   // Calculate the number of results with chatbots
   const chatbotCount = results.filter(result => result.analysis_result?.has_chatbot).length;
+
+  useEffect(() => {
+    if (!hasResults) return;
+
+    // Subscribe to real-time updates for analysis results
+    const channel = supabase
+      .channel('analysis_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'analysis_results',
+          filter: `url=in.(${results.map(r => `'${r.url}'`).join(',')})`,
+        },
+        (payload) => {
+          console.log('Received real-time update:', payload);
+          if (onResultUpdate && payload.new) {
+            const updatedUrl = payload.new.url;
+            const resultToUpdate = results.find(r => r.url === updatedUrl);
+            if (resultToUpdate) {
+              const updatedResult = {
+                ...resultToUpdate,
+                analysis_result: payload.new,
+                status: 'completed'
+              };
+              onResultUpdate(updatedResult);
+              
+              if (payload.new.has_chatbot) {
+                toast.success(`Chatbot detected on ${updatedUrl}`);
+              }
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [results, onResultUpdate]);
 
   const handleFilterChange = (value: string) => {
     setFilterValue(value);
@@ -91,4 +136,3 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
-
