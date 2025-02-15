@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Loader2, Bot, XCircle } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResultStatusCellProps {
   status?: string;
@@ -19,13 +20,45 @@ interface ResultStatusCellProps {
     error?: string;
     lastChecked?: string;
   };
+  url?: string;
+  onAnalysisUpdate?: (result: any) => void;
 }
 
 const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   status,
   analysis_result,
-  isAnalyzing
+  isAnalyzing,
+  url,
+  onAnalysisUpdate
 }) => {
+  useEffect(() => {
+    if (!url) return;
+
+    // Subscribe to real-time updates for this URL's analysis results
+    const channel = supabase
+      .channel('analysis_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'analysis_results',
+          filter: `url=eq.${url}`
+        },
+        (payload) => {
+          console.log('Received real-time update:', payload);
+          if (onAnalysisUpdate) {
+            onAnalysisUpdate(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [url, onAnalysisUpdate]);
+
   if (isAnalyzing || status?.toLowerCase() === 'analyzing...') {
     return (
       <TableCell>

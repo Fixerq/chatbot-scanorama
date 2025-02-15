@@ -41,9 +41,23 @@ interface ResultsTableProps {
   results: Result[];
   processing?: boolean;
   isLoading?: boolean;
+  onResultUpdate?: (updatedResult: Result) => void;
 }
 
-const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => {
+const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: ResultsTableProps) => {
+  const handleAnalysisUpdate = (url: string, newAnalysis: AnalysisResult) => {
+    if (onResultUpdate) {
+      const resultToUpdate = results.find(r => r.url === url);
+      if (resultToUpdate) {
+        onResultUpdate({
+          ...resultToUpdate,
+          analysis_result: newAnalysis,
+          status: newAnalysis.status
+        });
+      }
+    }
+  };
+
   return (
     <div className="w-full overflow-x-auto">
       <Table>
@@ -94,6 +108,8 @@ const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => 
                   technologies=""
                   chatSolutions={result.analysis_result?.chatSolutions}
                   lastChecked={result.analysis_result?.lastChecked}
+                  url={result.url}
+                  onAnalysisUpdate={(newAnalysis) => handleAnalysisUpdate(result.url, newAnalysis)}
                 />
               </TableRow>
             );
