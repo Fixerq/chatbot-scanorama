@@ -29,9 +29,16 @@ export function normalizeUrl(url: string): string {
       normalized += urlObj.search;
     }
     
+    console.log('[URL Utils] Normalized URL:', normalized);
     return normalized;
   } catch (error) {
+    // If URL parsing fails, try prepending https:// and retry
+    if (!url.match(/^https?:\/\//i)) {
+      console.log('[URL Utils] Trying to add https:// prefix');
+      return normalizeUrl(`https://${url}`);
+    }
     console.error('[URL Utils] Error normalizing URL:', error);
     throw new Error(`Invalid URL: ${error.message}`);
   }
 }
+

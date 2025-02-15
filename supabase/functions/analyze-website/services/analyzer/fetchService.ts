@@ -11,7 +11,14 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       };
 
       const fetchOptions: RequestInit = {
@@ -43,7 +50,16 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
       }
 
       console.log(`[FetchService] Attempt ${i + 1}: Direct fetch for URL: ${url}`);
-      const response = await fetch(url, fetchOptions);
+      
+      // Try to fetch with https first
+      let response: Response;
+      try {
+        response = await fetch(url.replace(/^http:/, 'https:'), fetchOptions);
+      } catch (httpsError) {
+        console.log(`[FetchService] HTTPS fetch failed, trying HTTP: ${httpsError.message}`);
+        // If https fails, try http
+        response = await fetch(url.replace(/^https:/, 'http:'), fetchOptions);
+      }
       
       clearTimeout(timeoutId);
       
@@ -55,12 +71,15 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
       let redirectCount = 0;
       let currentResponse = response;
       
-      while (redirectCount < 5 && (currentResponse.status === 301 || currentResponse.status === 302)) {
+      while (redirectCount < 5 && (currentResponse.status === 301 || currentResponse.status === 302 || currentResponse.status === 307 || currentResponse.status === 308)) {
         const redirectUrl = currentResponse.headers.get('location');
         if (!redirectUrl) break;
         
         console.log(`[FetchService] Following redirect ${redirectCount + 1} to: ${redirectUrl}`);
-        currentResponse = await fetch(redirectUrl, fetchOptions);
+        
+        // Handle relative redirects
+        const nextUrl = redirectUrl.startsWith('http') ? redirectUrl : new URL(redirectUrl, url).toString();
+        currentResponse = await fetch(nextUrl, fetchOptions);
         redirectCount++;
       }
       
@@ -76,6 +95,8 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         console.log('[FetchService] Connection refused');
       } else if (error.cause?.code === 'ETIMEDOUT') {
         console.log('[FetchService] Connection timed out');
+      } else if (error.message.includes('ssl')) {
+        console.log('[FetchService] SSL/TLS error');
       }
       
       if (i === retries - 1) {
@@ -105,3 +126,4 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
     throw error;
   }
 }
+
