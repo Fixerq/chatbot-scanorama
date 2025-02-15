@@ -2,3 +2,4 @@
 project_id = "engage"
 [functions.analyze-website]
 verify_jwt = false
+import_map = "./import_map.json"
