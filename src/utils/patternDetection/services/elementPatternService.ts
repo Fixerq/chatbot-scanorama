@@ -1,23 +1,16 @@
 
-import { ELEMENT_PATTERNS } from '../patterns/elementPatterns';
-import { logPatternMatch } from '../utils/logger';
+import { PatternMatch, PatternMatchResult } from '../types';
+import { getDetailedMatches } from './patternMatchService';
 
-export function detectChatElements(html: string): boolean {
-  try {
-    console.log('[PatternDetection] Starting chat elements detection');
-    const matched = ELEMENT_PATTERNS.some(({ pattern }) => {
-      const result = pattern.test(html);
-      if (result) {
-        const match = html.match(pattern);
-        logPatternMatch('Element', pattern, match?.[0]);
-      }
-      return result;
-    });
-    console.log('[PatternDetection] Chat elements detection complete:', matched);
-    return matched;
-  } catch (error) {
-    console.error('[PatternDetection] Error in detectChatElements:', error);
-    return false;
-  }
+export async function detectChatElements(html: string): Promise<{
+  hasChat: boolean;
+  matches: PatternMatchResult[];
+}> {
+  const matches = await getDetailedMatches(html);
+  // Consider a match valid if it has a confidence score above 0.7
+  const validMatches = matches.filter(match => !match.confidence || match.confidence >= 0.7);
+  return {
+    hasChat: validMatches.length > 0,
+    matches: validMatches
+  };
 }
-
