@@ -24,6 +24,21 @@ export interface AnalysisResult {
   has_chatbot: boolean;
   chatSolutions: string[];
   status: string;
-  lastChecked: string;
   error?: string;
+  lastChecked: string;
+  details?: {
+    patterns?: Array<{
+      type: string;
+      pattern: string;
+      matched: string;
+    }>;
+    error?: string;
+    matchTypes?: {
+      dynamic: boolean;
+      elements: boolean;
+      meta: boolean;
+      websockets: boolean;
+    };
+  };
 }
+
