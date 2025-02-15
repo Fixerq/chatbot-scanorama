@@ -1,153 +1,108 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { validateRequest } from '../utils/requestValidator.ts';
-import { checkRateLimit } from '../utils/rateLimiter.ts';
-import { getRealIp } from '../utils/httpUtils.ts';
-import { getCachedAnalysis, updateCache } from '../services/cacheService.ts';
-import { logAnalysis } from '../services/loggingService.ts';
-import { createSuccessResponse, createErrorResponse, createRateLimitResponse } from '../utils/responseHandler.ts';
-import { websiteAnalyzer } from '../services/websiteAnalyzer.ts';
-import { normalizeUrl } from '../utils/urlUtils.ts';
-import { ChatDetectionResult } from '../types.ts';
+import { corsHeaders } from '../utils/httpUtils.ts';
+import { AnalysisRequest } from '../types.ts';
+import { supabase } from '../utils/supabaseClient.ts';
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
-
-const MAX_ACTIVE_REQUESTS = 3;
-const REQUEST_TIMEOUT = 50000; // 50 seconds
-const activeRequests = new Set();
-
-async function processAnalysisRequest(url: string, startTime: number): Promise<ChatDetectionResult> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, REQUEST_TIMEOUT);
-
+export async function handleRequest(req: Request): Promise<Response> {
   try {
-    console.log('[RequestHandler] Starting analysis for URL:', url);
-    const result = await websiteAnalyzer(url);
+    // Validate the request body
+    const body = await req.json().catch(() => null);
     
-    await updateCache(url, result.has_chatbot, result.chatSolutions, result.details);
-    
-    await logAnalysis({
-      url,
-      success: true,
-      cached: false,
-      providersFound: result.chatSolutions,
-      responseTimeMs: Date.now() - startTime
-    });
-    
-    return result;
-  } catch (error) {
-    console.error('[RequestHandler] Processing error:', error);
-    if (error.name === 'AbortError' || error.message.includes('timeout')) {
-      throw new Error(`Analysis timed out after ${REQUEST_TIMEOUT}ms`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-export async function handleRequest(req: Request) {
-  console.log('[Handler] Received request:', req.method, req.url);
-  
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  if (activeRequests.size >= MAX_ACTIVE_REQUESTS) {
-    return createErrorResponse('Too many concurrent requests. Please try again later.', 429);
-  }
-
-  const startTime = Date.now();
-  const requestId = crypto.randomUUID();
-  activeRequests.add(requestId);
-  
-  try {
-    const clientIP = getRealIp(req);
-    const isAllowed = await checkRateLimit(supabase, clientIP);
-    if (!isAllowed) {
-      console.log('[Handler] Rate limit exceeded for IP:', clientIP);
-      return createRateLimitResponse('Rate limit exceeded');
-    }
-
-    const body = await req.text();
-    const requestData = JSON.parse(body);
-    console.log('[Handler] Processing request data:', requestData);
-
-    // Handle batch analysis
-    if (Array.isArray(requestData.urls)) {
-      console.log('[Handler] Processing batch of URLs:', requestData.urls.length);
-      const results: ChatDetectionResult[] = [];
-      
-      for (const url of requestData.urls) {
-        try {
-          const normalizedUrl = normalizeUrl(url);
-          console.log('[Handler] Processing URL:', normalizedUrl);
-          
-          const cachedResult = await getCachedAnalysis(normalizedUrl);
-          if (cachedResult) {
-            console.log('[Handler] Cache hit for:', normalizedUrl);
-            results.push({
-              ...cachedResult,
-              fromCache: true
-            });
-            continue;
-          }
-
-          const result = await processAnalysisRequest(normalizedUrl, startTime);
-          results.push(result);
-          
-        } catch (error) {
-          console.error('[Handler] Error processing URL:', url, error);
-          results.push({
-            status: 'error',
-            error: error.message,
-            has_chatbot: false,
-            chatSolutions: [],
-            details: {
-              error: error.message,
-              stack: error.stack
-            },
-            lastChecked: new Date().toISOString()
-          });
+    if (!body || !body.url || !body.requestId) {
+      console.error('[AnalyzeWebsite] Invalid request body:', body);
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid request. URL and requestId are required.',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
         }
+      );
+    }
+
+    const { url, requestId } = body as AnalysisRequest;
+
+    console.log(`[AnalyzeWebsite] Processing request ${requestId} for URL: ${url}`);
+
+    // Update request status to processing
+    const { error: updateError } = await supabase
+      .from('analysis_requests')
+      .update({ status: 'processing' })
+      .eq('id', requestId);
+
+    if (updateError) {
+      console.error('[AnalyzeWebsite] Error updating request status:', updateError);
+      throw updateError;
+    }
+
+    // TODO: Implement actual website analysis logic here
+    // For now, just return a mock result
+    const mockAnalysisResult = {
+      has_chatbot: Math.random() > 0.5,
+      chatbot_solutions: ['Intercom', 'Drift', 'Custom'],
+      status: 'completed',
+      details: {
+        lastChecked: new Date().toISOString(),
+        source: 'mock-analysis'
       }
+    };
 
-      return new Response(JSON.stringify(results), {
-        headers: corsHeaders
+    // Store the analysis result
+    const { error: resultError } = await supabase
+      .from('analysis_results')
+      .insert({
+        request_id: requestId,
+        url: url,
+        has_chatbot: mockAnalysisResult.has_chatbot,
+        chatbot_solutions: mockAnalysisResult.chatbot_solutions,
+        status: mockAnalysisResult.status,
+        details: mockAnalysisResult.details
       });
+
+    if (resultError) {
+      console.error('[AnalyzeWebsite] Error storing analysis result:', resultError);
+      throw resultError;
     }
 
-    // Handle single URL analysis
-    const { url } = validateRequest(body);
-    console.log('[Handler] Processing single URL:', url);
-    const result = await processAnalysisRequest(url, startTime);
-    return createSuccessResponse(result);
+    // Update request status to completed
+    const { error: finalUpdateError } = await supabase
+      .from('analysis_requests')
+      .update({ status: 'completed' })
+      .eq('id', requestId);
 
+    if (finalUpdateError) {
+      console.error('[AnalyzeWebsite] Error updating final status:', finalUpdateError);
+      throw finalUpdateError;
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, result: mockAnalysisResult }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders,
+        },
+      }
+    );
   } catch (error) {
-    console.error('[Handler] Function error:', error);
-    await logAnalysis({
-      url: 'unknown',
-      success: false,
-      cached: false,
-      errorMessage: error.message,
-      responseTimeMs: Date.now() - startTime
-    });
-    
-    let statusCode = 500;
-    if (error.message.includes('timeout')) {
-      statusCode = 504; // Gateway Timeout
-    } else if (error.message.includes('rate limit')) {
-      statusCode = 429; // Too Many Requests
-    }
-    
-    return createErrorResponse(error.message, statusCode);
-  } finally {
-    activeRequests.delete(requestId);
+    console.error('[AnalyzeWebsite] Error processing request:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to process request',
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders,
+        },
+      }
+    );
   }
 }
-
