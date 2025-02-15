@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { ChatDetectionResult, AnalysisResult } from '../types.ts';
 import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../utils/patternDetection.ts';
 import { tryFetch } from '../services/analyzer/fetchService.ts';
+import { getCachedPatterns, setCachedPatterns } from './patternCache.ts';
 
 // Create Supabase client for the edge function
 const supabase = createClient(
@@ -11,24 +12,27 @@ const supabase = createClient(
 );
 
 async function updateAnalysisRequest(requestId: string, updates: Record<string, any>) {
-  const { error } = await supabase
-    .from('analysis_requests')
-    .update(updates)
-    .eq('id', requestId);
-  
-  if (error) {
-    console.error('[WebsiteAnalyzer] Error updating analysis request:', error);
+  try {
+    const { error } = await supabase
+      .from('analysis_requests')
+      .update(updates)
+      .eq('id', requestId);
+    
+    if (error) {
+      console.error('[WebsiteAnalyzer] Error updating analysis request:', error);
+    }
+  } catch (error) {
+    console.error('[WebsiteAnalyzer] Unexpected error updating request:', error);
   }
 }
 
 export async function websiteAnalyzer(url: string, requestId?: string): Promise<ChatDetectionResult> {
   const MAX_HTML_SIZE = 2 * 1024 * 1024; // 2MB limit
-  const TIMEOUT = 30000; // 30 seconds timeout
+  const TIMEOUT = 20000; // 20 seconds timeout
 
   try {
     console.log('[WebsiteAnalyzer] Starting analysis for URL:', url);
 
-    // Record analysis start
     if (requestId) {
       await updateAnalysisRequest(requestId, {
         started_at: new Date().toISOString(),
@@ -46,6 +50,7 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       const response = await tryFetch(url);
       clearTimeout(timeoutId);
 
+      // Check content length before downloading
       const contentLength = response.headers.get('content-length');
       if (contentLength && parseInt(contentLength) > MAX_HTML_SIZE) {
         throw new Error('Content too large to process');
@@ -85,25 +90,29 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       throw error;
     }
 
-    // Start pattern detection
-    console.log('[WebsiteAnalyzer] Starting pattern detection');
     if (requestId) {
       await updateAnalysisRequest(requestId, {
         analysis_step: 'pattern_detection'
       });
     }
     
-    // Run pattern detection in parallel for better performance
-    const [dynamic, elements, meta, websockets] = await Promise.all([
-      detectDynamicLoading(html),
-      detectChatElements(html),
-      detectMetaTags(html),
-      detectWebSockets(html)
-    ]);
+    // Get cached patterns or load new ones
+    let patterns = getCachedPatterns();
+    if (!patterns) {
+      // Run pattern detection in parallel
+      const results = await Promise.all([
+        detectDynamicLoading(html),
+        detectChatElements(html),
+        detectMetaTags(html),
+        detectWebSockets(html)
+      ]);
+      patterns = results;
+      setCachedPatterns(patterns);
+    }
 
+    const [dynamic, elements, meta, websockets] = patterns;
     const detailedMatches = getDetailedMatches(html);
 
-    // Update analysis step
     if (requestId) {
       await updateAnalysisRequest(requestId, {
         analysis_step: 'analyzing_results'
@@ -132,7 +141,6 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       lastChecked: new Date().toISOString()
     };
 
-    // Update request with success
     if (requestId) {
       await updateAnalysisRequest(requestId, {
         analysis_step: 'completed',
@@ -146,7 +154,6 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
   } catch (error) {
     console.error('[WebsiteAnalyzer] Analysis error:', error);
 
-    // Update request with error details
     if (requestId) {
       await updateAnalysisRequest(requestId, {
         status: 'failed',
