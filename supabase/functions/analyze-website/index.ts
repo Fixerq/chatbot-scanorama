@@ -16,7 +16,7 @@ serve(async (req) => {
 
   // Validate origin
   const origin = req.headers.get('origin');
-  if (origin !== 'https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com') {
+  if (origin !== 'https://detectify.engageai.pro') {
     return new Response(
       JSON.stringify({ error: 'Origin not allowed', status: 'error' }),
       { 
@@ -176,7 +176,7 @@ serve(async (req) => {
           completed_at: new Date().toISOString(),
           error_message: errorMessage
         })
-        .eq('id', rawBody?.requestId);
+        .eq('id', parsedBody?.requestId);
 
     } catch (updateError) {
       console.error('[Handler] Error updating status:', updateError);
