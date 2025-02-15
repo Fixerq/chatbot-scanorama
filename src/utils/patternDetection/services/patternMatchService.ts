@@ -37,7 +37,6 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
             }
           );
 
-          // Update pattern metrics for successful match
           void supabase.rpc('update_pattern_metrics', { 
             p_pattern: patternObj.pattern.toString(),
             p_matched: true 
@@ -53,7 +52,6 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
           } as PatternMatchResult;
         }
 
-        // Update pattern metrics for unsuccessful match
         void supabase.rpc('update_pattern_metrics', { 
           p_pattern: patternObj.pattern.toString(),
           p_matched: false

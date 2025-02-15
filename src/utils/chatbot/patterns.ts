@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { detectChatElements } from '../patternDetection';
+import { PatternMatchResult } from '../patternDetection/types';
 
 export interface ChatDetectionResult {
   hasChatbot: boolean;
@@ -36,17 +37,18 @@ export const analyzeChatbotPresence = async (html: string): Promise<ChatDetectio
 
   try {
     const result = await detectChatElements(html);
+    const matches = result.matches || [];
 
     // Group matches by type
     const matchTypes = {
-      dynamic: result.matches.some(m => m.type === 'dynamic'),
-      elements: result.matches.some(m => m.type === 'element'),
-      meta: result.matches.some(m => m.type === 'meta'),
-      websockets: result.matches.some(m => m.type === 'websocket')
+      dynamic: matches.some(m => m.type === 'dynamic'),
+      elements: matches.some(m => m.type === 'element'),
+      meta: matches.some(m => m.type === 'meta'),
+      websockets: matches.some(m => m.type === 'websocket')
     };
 
     // Update pattern metrics in the database
-    for (const match of result.matches) {
+    for (const match of matches) {
       if (!match.pattern) continue;
 
       void supabase
@@ -59,7 +61,7 @@ export const analyzeChatbotPresence = async (html: string): Promise<ChatDetectio
     return {
       hasChatbot: result.hasChat,
       matchTypes,
-      matches: result.matches
+      matches
     };
 
   } catch (error) {
