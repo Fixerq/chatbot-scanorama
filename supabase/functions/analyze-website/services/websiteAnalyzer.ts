@@ -9,23 +9,62 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult> {
+async function updateAnalysisRequest(requestId: string, updates: Record<string, any>) {
+  const { error } = await supabase
+    .from('analysis_requests')
+    .update(updates)
+    .eq('id', requestId);
+  
+  if (error) {
+    console.error('[WebsiteAnalyzer] Error updating analysis request:', error);
+  }
+}
+
+export async function websiteAnalyzer(html: string, requestId?: string): Promise<ChatDetectionResult> {
   try {
     console.log('[WebsiteAnalyzer] Starting analysis of HTML content');
-    console.log('[WebsiteAnalyzer] HTML content length:', html.length);
-    console.log('[WebsiteAnalyzer] First 500 characters:', html.substring(0, 500));
     
-    // Check if HTML content is valid
+    // Record HTML content details
+    if (requestId) {
+      await updateAnalysisRequest(requestId, {
+        html_content_length: html?.length || 0,
+        analysis_step: 'initializing'
+      });
+    }
+
+    // Validate HTML content
     if (!html || html.trim().length === 0) {
-      console.error('[WebsiteAnalyzer] Empty or invalid HTML content received');
-      throw new Error('Empty or invalid HTML content');
+      const error = new Error('Empty or invalid HTML content');
+      if (requestId) {
+        await updateAnalysisRequest(requestId, {
+          error_message: error.message,
+          html_fetch_status: 'invalid_content',
+          status: 'failed'
+        });
+      }
+      throw error;
     }
 
     // Check for basic HTML structure
     if (!html.includes('<html') && !html.includes('<!DOCTYPE')) {
       console.warn('[WebsiteAnalyzer] HTML content may be incomplete or malformed');
+      if (requestId) {
+        await updateAnalysisRequest(requestId, {
+          analysis_step: 'validation',
+          html_fetch_status: 'malformed'
+        });
+      }
+    }
+
+    // Log progress
+    console.log('[WebsiteAnalyzer] Starting pattern detection');
+    if (requestId) {
+      await updateAnalysisRequest(requestId, {
+        analysis_step: 'pattern_detection'
+      });
     }
     
+    // Detect patterns
     const dynamic = detectDynamicLoading(html);
     console.log('[WebsiteAnalyzer] Dynamic loading detected:', dynamic);
     
@@ -41,24 +80,15 @@ export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult
     const detailedMatches = getDetailedMatches(html);
     console.log('[WebsiteAnalyzer] Detailed matches:', JSON.stringify(detailedMatches, null, 2));
 
+    // Update analysis step
+    if (requestId) {
+      await updateAnalysisRequest(requestId, {
+        analysis_step: 'analyzing_results'
+      });
+    }
+
     const hasChatbot = dynamic || elements || meta || websockets || detailedMatches.length > 0;
     const chatSolutions = detailedMatches.map(match => match.type);
-
-    console.log('[WebsiteAnalyzer] Final analysis results:', {
-      hasChatbot,
-      chatSolutions,
-      matchTypes: {
-        dynamic,
-        elements,
-        meta,
-        websockets
-      },
-      detailedMatches: detailedMatches.map(m => ({
-        type: m.type,
-        pattern: m.pattern.toString(),
-        matched: m.matched
-      }))
-    });
 
     const result: ChatDetectionResult = {
       has_chatbot: hasChatbot,
@@ -78,10 +108,61 @@ export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult
       lastChecked: new Date().toISOString()
     };
 
+    // Log final results
+    console.log('[WebsiteAnalyzer] Analysis complete:', {
+      hasChatbot,
+      chatSolutions,
+      matchDetails: result.details
+    });
+
+    // Update request with success
+    if (requestId) {
+      await updateAnalysisRequest(requestId, {
+        analysis_step: 'completed',
+        status: 'completed',
+        analysis_result: result,
+        completed_at: new Date().toISOString()
+      });
+    }
+
     return result;
   } catch (error) {
     console.error('[WebsiteAnalyzer] Analysis error:', error);
     console.error('[WebsiteAnalyzer] Error stack:', error.stack);
+
+    // Update request with error details
+    if (requestId) {
+      await updateAnalysisRequest(requestId, {
+        status: 'failed',
+        error_message: error.message,
+        error_details: {
+          stack: error.stack,
+          name: error.name
+        },
+        completed_at: new Date().toISOString()
+      });
+
+      // Also log to analysis_failures table for monitoring
+      const { error: insertError } = await supabase
+        .from('analysis_failures')
+        .insert({
+          url: null, // Add URL if available in your context
+          status: 'failed',
+          error_message: error.message,
+          error_details: {
+            stack: error.stack,
+            name: error.name
+          },
+          analysis_step: 'pattern_detection',
+          html_content_length: html?.length || 0,
+          completed_at: new Date().toISOString()
+        });
+
+      if (insertError) {
+        console.error('[WebsiteAnalyzer] Error logging failure:', insertError);
+      }
+    }
+
     throw error;
   }
 }
