@@ -1,8 +1,14 @@
 
-export function logPatternMatch(type: string, pattern: RegExp, matchedContent: string | undefined): void {
-  console.log(`[PatternDetection] ${type} pattern matched:`, {
+export const logPatternMatch = (type: string, pattern: RegExp, matched?: string, details?: { 
+  confidence?: number;
+  category?: string;
+  subcategory?: string;
+}) => {
+  console.log('[PatternDetection] Pattern matched:', {
+    type,
     pattern: pattern.toString(),
-    matchedContent: matchedContent || 'No match content'
+    matched,
+    ...details
   });
-}
+};
 

@@ -1,14 +1,6 @@
 
-import { basicChatPatterns } from './basicPatterns';
-import { platformPatterns } from './platformPatterns';
-import { elementPatterns } from './elementPatterns';
-import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../patternDetection';
-
-export const chatbotPatterns = [
-  ...basicChatPatterns,
-  ...Object.values(platformPatterns).flat(),
-  ...Object.values(elementPatterns).flat(),
-];
+import { supabase } from '@/integrations/supabase/client';
+import { detectChatElements } from '../patternDetection';
 
 export interface ChatDetectionResult {
   hasChatbot: boolean;
@@ -18,10 +10,17 @@ export interface ChatDetectionResult {
     meta: boolean;
     websockets: boolean;
   };
-  matches: Array<{ type: string; pattern: string }>;
+  matches: Array<{ 
+    type: string; 
+    pattern: string;
+    matched?: string;
+    confidence?: number;
+    category?: string;
+    subcategory?: string;
+  }>;
 }
 
-export const analyzeChatbotPresence = (html: string): ChatDetectionResult => {
+export const analyzeChatbotPresence = async (html: string): Promise<ChatDetectionResult> => {
   if (!html) {
     return {
       hasChatbot: false,
@@ -35,31 +34,57 @@ export const analyzeChatbotPresence = (html: string): ChatDetectionResult => {
     };
   }
 
-  const dynamic = detectDynamicLoading(html);
-  const elements = detectChatElements(html);
-  const meta = detectMetaTags(html);
-  const websockets = detectWebSockets(html);
-  const detailedMatches = getDetailedMatches(html);
+  try {
+    const { hasChat, matches } = await detectChatElements(html);
 
-  return {
-    hasChatbot: dynamic || elements || meta || websockets,
-    matchTypes: {
-      dynamic,
-      elements,
-      meta,
-      websockets
-    },
-    matches: detailedMatches.map(match => ({
-      type: match.type,
-      pattern: match.pattern.toString()
-    }))
-  };
+    // Group matches by type
+    const matchTypes = {
+      dynamic: matches.some(m => m.type === 'dynamic'),
+      elements: matches.some(m => m.type === 'element'),
+      meta: matches.some(m => m.type === 'meta'),
+      websockets: matches.some(m => m.type === 'websocket')
+    };
+
+    // Update pattern metrics in the database
+    for (const match of matches) {
+      if (!match.pattern) continue;
+
+      const { error } = await supabase
+        .rpc('update_pattern_metrics', { 
+          p_pattern: match.pattern,
+          p_matched: Boolean(match.matched)
+        });
+
+      if (error) {
+        console.error('[ChatbotPatterns] Error updating pattern metrics:', error);
+      }
+    }
+
+    return {
+      hasChatbot: hasChat,
+      matchTypes,
+      matches
+    };
+
+  } catch (error) {
+    console.error('[ChatbotPatterns] Error analyzing chatbot presence:', error);
+    return {
+      hasChatbot: false,
+      matchTypes: {
+        dynamic: false,
+        elements: false,
+        meta: false,
+        websockets: false
+      },
+      matches: []
+    };
+  }
 };
 
-export const hasChatbotScript = (html: string): boolean => {
+export const hasChatbotScript = async (html: string): Promise<boolean> => {
   if (!html) return false;
   
-  const result = analyzeChatbotPresence(html);
+  const result = await analyzeChatbotPresence(html);
   return result.hasChatbot;
 };
 

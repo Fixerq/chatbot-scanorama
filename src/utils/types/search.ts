@@ -41,6 +41,9 @@ export interface AnalysisResult {
       type: string;
       pattern: string;
       matched: string;
+      confidence?: number;
+      category?: string;
+      subcategory?: string;
     }>;
     error?: string;
     matchTypes?: {
@@ -51,3 +54,4 @@ export interface AnalysisResult {
     };
   };
 }
+

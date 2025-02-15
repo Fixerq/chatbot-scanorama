@@ -1,42 +1,55 @@
 
-import { PatternMatch } from '../types';
-import { DYNAMIC_PATTERNS } from '../patterns/dynamicPatterns';
-import { ELEMENT_PATTERNS } from '../patterns/elementPatterns';
-import { META_PATTERNS } from '../patterns/metaPatterns';
-import { WEBSOCKET_PATTERNS } from '../patterns/websocketPatterns';
+import { PatternMatch, PatternMatchResult } from '../types';
 import { logPatternMatch } from '../utils/logger';
+import { loadPatterns } from '../patterns/patternLoader';
 
-export function getDetailedMatches(html: string): PatternMatch[] {
+let patternsCache: PatternMatch[] | null = null;
+let lastPatternLoad = 0;
+const PATTERN_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function ensurePatternsLoaded(): Promise<PatternMatch[]> {
+  const now = Date.now();
+  if (!patternsCache || now - lastPatternLoad > PATTERN_CACHE_TTL) {
+    patternsCache = await loadPatterns();
+    lastPatternLoad = now;
+  }
+  return patternsCache;
+}
+
+export async function getDetailedMatches(html: string): Promise<PatternMatchResult[]> {
   try {
     console.log('[PatternDetection] Starting detailed pattern matching');
-    const allPatterns = [
-      ...DYNAMIC_PATTERNS,
-      ...ELEMENT_PATTERNS,
-      ...META_PATTERNS,
-      ...WEBSOCKET_PATTERNS
-    ];
+    const patterns = await ensurePatternsLoaded();
 
-    const matches = allPatterns
-      .map(patternObj => {
-        try {
-          const match = html.match(patternObj.pattern);
-          if (match) {
-            logPatternMatch(patternObj.type, patternObj.pattern, match[0]);
-            return {
-              ...patternObj,
-              matched: match[0]
-            };
-          }
-          return null;
-        } catch (error) {
-          console.error('[PatternDetection] Error testing pattern:', {
-            pattern: patternObj.pattern.toString(),
-            error: error.message
-          });
-          return null;
+    const matches = patterns.map(patternObj => {
+      try {
+        const match = html.match(patternObj.pattern);
+        if (match) {
+          logPatternMatch(
+            patternObj.type,
+            patternObj.pattern,
+            match[0],
+            {
+              confidence: patternObj.confidence,
+              category: patternObj.category,
+              subcategory: patternObj.subcategory
+            }
+          );
+          return {
+            ...patternObj,
+            matched: match[0],
+            pattern: patternObj.pattern.toString()
+          };
         }
-      })
-      .filter((match): match is PatternMatch & { matched: string } => match !== null);
+        return null;
+      } catch (error) {
+        console.error('[PatternDetection] Error testing pattern:', {
+          pattern: patternObj.pattern.toString(),
+          error: error.message
+        });
+        return null;
+      }
+    }).filter((match): match is PatternMatchResult => match !== null);
 
     console.log('[PatternDetection] Detailed pattern matching complete. Found matches:', matches.length);
     return matches;
@@ -44,5 +57,18 @@ export function getDetailedMatches(html: string): PatternMatch[] {
     console.error('[PatternDetection] Error in getDetailedMatches:', error);
     return [];
   }
+}
+
+export async function detectChatElements(html: string): Promise<{
+  hasChat: boolean;
+  matches: PatternMatchResult[];
+}> {
+  const matches = await getDetailedMatches(html);
+  // Consider a match valid if it has a confidence score above 0.7
+  const validMatches = matches.filter(match => !match.confidence || match.confidence >= 0.7);
+  return {
+    hasChat: validMatches.length > 0,
+    matches: validMatches
+  };
 }
 
