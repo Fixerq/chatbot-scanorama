@@ -7,7 +7,7 @@ import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
 serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
+    return new Response(null, { 
       headers: corsHeaders,
       status: 200
     });
@@ -17,56 +17,59 @@ serve(async (req) => {
   let supabaseClient: ReturnType<typeof createClient>;
 
   try {
+    // Log detailed request information
+    console.log('[Handler] Request details:', {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
+      url: req.url
+    });
+
+    const rawBody = await req.text();
+    console.log('[Handler] Raw request body:', rawBody);
+
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(rawBody);
+      console.log('[Handler] Parsed request body:', parsedBody);
+    } catch (parseError) {
+      console.error('[Handler] JSON parsing error:', parseError);
+      throw new Error(`Invalid JSON in request body: ${parseError.message}`);
+    }
+
+    if (!parsedBody?.url) {
+      console.error('[Handler] Missing URL in request body:', parsedBody);
+      throw new Error('URL is required in request body');
+    }
+
     supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Create execution record
     const { data: executionData, error: executionError } = await supabaseClient
       .from('function_executions')
       .insert({
         function_name: 'analyze-website',
-        status: 'running'
+        status: 'running',
+        request_body: parsedBody // Log the request body in the execution record
       })
       .select()
       .single();
 
     if (executionError) {
       console.error('[Handler] Error creating execution record:', executionError);
-      return new Response(
-        JSON.stringify({
-          error: 'Failed to create execution record',
-          status: 'error',
-          details: executionError
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+      throw new Error('Failed to create execution record');
     }
 
     executionId = executionData.id;
     console.log('[Handler] Created execution record:', executionId);
 
-    const rawBody = await req.text();
-    console.log('[Handler] Raw request body:', rawBody);
-
-    const { url, requestId } = JSON.parse(rawBody);
+    const { url, requestId } = parsedBody;
 
     if (!url || !requestId) {
       console.error('[Handler] Missing required fields:', { url, requestId });
-      return new Response(
-        JSON.stringify({
-          error: 'Missing required fields',
-          status: 'error',
-          details: 'Both "url" and "requestId" must be provided'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
+      throw new Error('Both "url" and "requestId" must be provided');
     }
 
     console.log('[Handler] Processing URL:', url);
@@ -82,17 +85,7 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('[Handler] Error updating request status:', updateError);
-      return new Response(
-        JSON.stringify({
-          error: 'Failed to update request status',
-          status: 'error',
-          details: updateError
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+      throw new Error('Failed to update request status');
     }
 
     console.log('[Handler] Starting website analysis for:', url);
@@ -112,17 +105,7 @@ serve(async (req) => {
 
     if (resultError) {
       console.error('[Handler] Error updating analysis results:', resultError);
-      return new Response(
-        JSON.stringify({
-          error: 'Failed to update analysis results',
-          status: 'error',
-          details: resultError
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
-      );
+      throw new Error('Failed to update analysis results');
     }
 
     // Update execution record
@@ -133,7 +116,8 @@ serve(async (req) => {
         .update({
           status: 'completed',
           completed_at: endTime.toISOString(),
-          execution_time: `${(endTime.getTime() - new Date(executionData.started_at).getTime()) / 1000} seconds`
+          execution_time: `${(endTime.getTime() - new Date(executionData.started_at).getTime()) / 1000} seconds`,
+          response_body: result
         })
         .eq('id', executionId);
 
