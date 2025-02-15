@@ -1055,7 +1055,7 @@ export type Database = {
           query: string
           region?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string
         }
         Update: {
           country?: string | null
@@ -1085,7 +1085,7 @@ export type Database = {
           query: string
           region: string
           search_batch_id: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           country?: string
