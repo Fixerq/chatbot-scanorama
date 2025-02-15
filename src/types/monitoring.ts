@@ -19,6 +19,8 @@ export interface Provider {
 }
 
 export interface AlertThreshold {
+  id: number;
+  created_at: string;
   metric_name: string;
   current_value: number;
   threshold_value: number;
@@ -31,3 +33,4 @@ export interface Metrics {
   providers: Provider[];
   alerts: AlertThreshold[];
 }
+

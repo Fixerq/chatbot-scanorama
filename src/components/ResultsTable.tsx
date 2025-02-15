@@ -1,72 +1,75 @@
-
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getBusinessName } from '@/utils/analysisFormatter';
-import ResultUrlCell from './results/ResultUrlCell';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 
 export interface Result {
   url: string;
-  businessName?: string;
-  details?: {
-    business_name?: string;
-    website_url?: string;
-    address?: string;
-    placeId?: string;
-    businessType?: string;
-    title?: string;
-    description?: string;
-    error?: string;
-  };
-  status?: string;
-  nextPageToken?: string;
+  title?: string;
+  description?: string;
+  business_name?: string;
+  website_url?: string;
+  address?: string;
+  placeId?: string;
+  businessType?: string;
   error?: string;
+  details?: {
+    search_batch_id: string;
+    [key: string]: any;
+  };
 }
 
 interface ResultsTableProps {
   results: Result[];
-  isLoading?: boolean;
+  processing: boolean;
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({
-  results,
-  isLoading
-}) => {
-  const validResults = results.filter(result => {
-    return result && result.url && !result.error;
-  });
-
+const ResultsTable = ({ results, processing }: ResultsTableProps) => {
   return (
-    <div className="rounded-md border">
+    <div className="w-full overflow-x-auto">
       <Table>
+        <TableCaption>Recent search results.</TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[300px]">Website</TableHead>
-            <TableHead>Business Name</TableHead>
-            <TableHead>Address</TableHead>
+            <TableHead className="w-[100px]">Status</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead>URL</TableHead>
+            <TableHead>Description</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {validResults.map((result, index) => {
-            try {
-              const websiteUrl = result.details?.website_url || result.url;
-              const businessName = getBusinessName(websiteUrl, result.businessName || result.details?.business_name);
-              
-              return (
-                <TableRow key={`${websiteUrl}-${index}`} className={isLoading ? 'opacity-50' : ''}>
-                  <ResultUrlCell url={websiteUrl} />
-                  <TableCell className="font-medium">
-                    {businessName}
-                  </TableCell>
-                  <TableCell>
-                    {result.details?.address || 'N/A'}
-                  </TableCell>
-                </TableRow>
-              );
-            } catch (error) {
-              console.error('Error rendering result row:', error);
-              return null;
-            }
-          }).filter(Boolean)}
+          {results.map((result, i) => (
+            <TableRow key={i}>
+              <TableCell>
+                {result.error ? (
+                  <Badge variant="destructive">Error</Badge>
+                ) : (
+                  <Badge variant="secondary">OK</Badge>
+                )}
+              </TableCell>
+              <TableCell>{result.title}</TableCell>
+              <TableCell>
+                <a href={result.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  {result.url}
+                </a>
+              </TableCell>
+              <TableCell>{result.description}</TableCell>
+            </TableRow>
+          ))}
+          {processing && (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center">
+                Processing...
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

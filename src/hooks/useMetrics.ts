@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Metrics } from '@/types/monitoring';
+import { Metrics, AlertThreshold } from '@/types/monitoring';
 
 export function useMetrics() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
@@ -24,6 +24,12 @@ export function useMetrics() {
         .limit(5);
       if (alertsError) throw alertsError;
 
+      // Cast alerts to proper type
+      const typedAlerts: AlertThreshold[] = alerts?.map(alert => ({
+        ...alert,
+        alert_type: validateAlertType(alert.alert_type)
+      })) || [];
+
       // Get recent errors
       const { data: errors, error: errorsError } = await supabase
         .from('monitoring_errors')
@@ -42,7 +48,7 @@ export function useMetrics() {
 
       setMetrics({
         basic: basicMetrics,
-        alerts: alerts,
+        alerts: typedAlerts,
         errors: errors,
         providers: providers,
       });
@@ -50,6 +56,20 @@ export function useMetrics() {
       console.error('Error fetching metrics:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function to validate alert type
+  const validateAlertType = (type: string): 'error' | 'warning' | 'info' => {
+    switch (type) {
+      case 'error':
+        return 'error';
+      case 'warning':
+        return 'warning';
+      case 'info':
+        return 'info';
+      default:
+        return 'info'; // Default fallback
     }
   };
 
@@ -62,3 +82,4 @@ export function useMetrics() {
 
   return { metrics, loading };
 }
+
