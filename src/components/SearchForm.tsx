@@ -2,6 +2,7 @@
 import React from 'react';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import SearchInputs from './SearchInputs';
+import ProcessingIndicator from './ProcessingIndicator';
 import { Info } from 'lucide-react';
 
 interface SearchFormProps {
@@ -53,6 +54,8 @@ const SearchForm = ({
           </div>
         )}
       </div>
+
+      {isProcessing && <ProcessingIndicator />}
 
       <SearchInputs
         query={query}

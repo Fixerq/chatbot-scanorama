@@ -75,6 +75,78 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_cache: {
+        Row: {
+          cache_valid_until: string
+          chatbot_solutions: string[] | null
+          details: Json | null
+          has_chatbot: boolean
+          last_checked: string
+          url: string
+        }
+        Insert: {
+          cache_valid_until?: string
+          chatbot_solutions?: string[] | null
+          details?: Json | null
+          has_chatbot: boolean
+          last_checked?: string
+          url: string
+        }
+        Update: {
+          cache_valid_until?: string
+          chatbot_solutions?: string[] | null
+          details?: Json | null
+          has_chatbot?: boolean
+          last_checked?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      analysis_requests: {
+        Row: {
+          analysis_result: Json | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          retry_count: number
+          search_batch_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["analysis_status"]
+          updated_at: string
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_result?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          retry_count?: number
+          search_batch_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"]
+          updated_at?: string
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_result?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          retry_count?: number
+          search_batch_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"]
+          updated_at?: string
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       analyzed_urls: {
         Row: {
           business_type: string | null
@@ -270,6 +342,48 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_requests: {
+        Row: {
+          block_reason: string
+          created_at: string
+          error_details: string | null
+          headers: Json | null
+          id: string
+          proxy_used: string | null
+          resolved: boolean
+          retry_count: number
+          updated_at: string
+          user_agent: string | null
+          website_url: string
+        }
+        Insert: {
+          block_reason: string
+          created_at?: string
+          error_details?: string | null
+          headers?: Json | null
+          id?: string
+          proxy_used?: string | null
+          resolved?: boolean
+          retry_count?: number
+          updated_at?: string
+          user_agent?: string | null
+          website_url: string
+        }
+        Update: {
+          block_reason?: string
+          created_at?: string
+          error_details?: string | null
+          headers?: Json | null
+          id?: string
+          proxy_used?: string | null
+          resolved?: boolean
+          retry_count?: number
+          updated_at?: string
+          user_agent?: string | null
+          website_url?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -327,6 +441,36 @@ export type Database = {
           place_id?: string
           search_batch_id?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_detection_patterns: {
+        Row: {
+          confidence_score: number
+          created_at: string
+          enabled: boolean
+          id: string
+          pattern_type: string
+          pattern_value: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pattern_type: string
+          pattern_value: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pattern_type?: string
+          pattern_value?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -441,6 +585,39 @@ export type Database = {
           id?: string
           metadata?: Json | null
           url?: string
+        }
+        Relationships: []
+      }
+      function_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          execution_time: string | null
+          function_name: string
+          id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_time?: string | null
+          function_name: string
+          id?: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_time?: string | null
+          function_name?: string
+          id?: string
+          started_at?: string
+          status?: string
         }
         Relationships: []
       }
@@ -958,6 +1135,12 @@ export type Database = {
         }
         Returns: Json
       }
+      increment_retry_count: {
+        Args: {
+          request_id: string
+        }
+        Returns: undefined
+      }
       is_admin: {
         Args: {
           user_id: string
@@ -988,6 +1171,7 @@ export type Database = {
     }
     Enums: {
       alert_severity: "error" | "warning" | "info"
+      analysis_status: "pending" | "processing" | "completed" | "failed"
       block_reason_type:
         | "forbidden_403"
         | "rate_limit_429"

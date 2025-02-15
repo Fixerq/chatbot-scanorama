@@ -7,6 +7,7 @@ import Results from '@/components/Results';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
 import { useSearchOperations } from '@/hooks/useSearchOperations';
+import { useUrlProcessor } from '@/hooks/useUrlProcessor';
 
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -19,6 +20,7 @@ const Index = () => {
   });
   
   const { handleLoadMore, isSearching } = useSearchOperations(setResults);
+  const { processSearchResults } = useUrlProcessor();
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -56,8 +58,10 @@ const Index = () => {
   const handleResults = useCallback(async (newResults: Result[]) => {
     if (mounted.current) {
       setResults(newResults);
+      // Automatically trigger analysis for new results
+      await processSearchResults(newResults);
     }
-  }, []);
+  }, [processSearchResults]);
 
   return (
     <div className="min-h-screen bg-black">
