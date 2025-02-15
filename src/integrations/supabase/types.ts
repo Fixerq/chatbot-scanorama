@@ -75,6 +75,36 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_requests: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          result: Json | null
+          status: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       analysis_results: {
         Row: {
           business_name: string | null
@@ -1080,6 +1110,12 @@ export type Database = {
           user_uid: string
         }
         Returns: Json
+      }
+      increment_retry_count: {
+        Args: {
+          request_id: string
+        }
+        Returns: undefined
       }
       is_admin: {
         Args: {
