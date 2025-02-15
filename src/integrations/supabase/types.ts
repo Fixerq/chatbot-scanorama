@@ -1529,7 +1529,14 @@ export type Database = {
       website_analysis_status: "success" | "error"
     }
     CompositeTypes: {
-      [_ in never]: never
+      search_response_type: {
+        data: Json | null
+      }
+      search_result_type: {
+        title: string | null
+        description: string | null
+        url: string | null
+      }
     }
   }
 }
