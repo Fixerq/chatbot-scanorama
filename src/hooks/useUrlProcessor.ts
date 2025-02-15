@@ -55,16 +55,24 @@ export const useUrlProcessor = () => {
       await Promise.all(validRequests.map(async (request) => {
         if (!request) return;
 
-        const { error } = await supabase.functions.invoke('analyze-website', {
-          body: { 
-            url: request.url,
-            requestId: request.requestId
-          }
-        });
+        try {
+          const { error } = await supabase.functions.invoke('analyze-website', {
+            body: { 
+              url: request.url,
+              requestId: request.requestId
+            },
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
 
-        if (error) {
-          console.error('Error analyzing website:', error);
-          toast.error(`Failed to analyze ${request.url}`);
+          if (error) {
+            console.error('Error analyzing website:', error);
+            toast.error(`Failed to analyze ${request.url}`);
+          }
+        } catch (error) {
+          console.error(`Failed to analyze ${request.url}:`, error);
+          toast.error(`Error analyzing ${request.url}`);
         }
       }));
 
