@@ -846,6 +846,36 @@ export type Database = {
         }
         Relationships: []
       }
+      search_batches: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          id: string
+          query: string
+          region: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          query: string
+          region?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          query?: string
+          region?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       search_history: {
         Row: {
           country: string
