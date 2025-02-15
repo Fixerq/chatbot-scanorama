@@ -40,7 +40,7 @@ export async function websiteAnalyzer(html: string, userId: string, url: string)
       lastChecked: new Date().toISOString()
     };
 
-    // Save analysis result to the database with match details
+    // Save analysis result to the database with match details and status
     const { error: insertError } = await supabase
       .from('analysis_results')
       .insert({
@@ -62,7 +62,8 @@ export async function websiteAnalyzer(html: string, userId: string, url: string)
             matched: match.matched || null
           }))
         },
-        last_checked: result.lastChecked
+        last_checked: result.lastChecked,
+        status: 'completed'
       });
 
     if (insertError) {
