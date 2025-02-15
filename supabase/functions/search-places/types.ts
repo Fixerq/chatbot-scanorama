@@ -32,7 +32,3 @@ export interface SubscriptionData {
   total_searches: number;
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
