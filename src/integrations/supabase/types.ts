@@ -1259,42 +1259,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions_with_user: {
-        Row: {
-          created_at: string
-          current_period_end: string | null
-          id: string
-          level: Database["public"]["Enums"]["subscription_level"] | null
-          status: string
-          stripe_customer_id: string | null
-          total_searches: number | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          current_period_end?: string | null
-          id: string
-          level?: Database["public"]["Enums"]["subscription_level"] | null
-          status?: string
-          stripe_customer_id?: string | null
-          total_searches?: number | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          current_period_end?: string | null
-          id?: string
-          level?: Database["public"]["Enums"]["subscription_level"] | null
-          status?: string
-          stripe_customer_id?: string | null
-          total_searches?: number | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       Table1: {
         Row: {
           created_at: string
@@ -1424,6 +1388,42 @@ export type Database = {
           reset_time?: never
           status?: never
           window_start?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions_with_user: {
+        Row: {
+          created_at: string | null
+          current_period_end: string | null
+          id: string | null
+          level: Database["public"]["Enums"]["subscription_level"] | null
+          status: string | null
+          stripe_customer_id: string | null
+          total_searches: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_period_end?: string | null
+          id?: string | null
+          level?: Database["public"]["Enums"]["subscription_level"] | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          total_searches?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_period_end?: string | null
+          id?: string | null
+          level?: Database["public"]["Enums"]["subscription_level"] | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          total_searches?: number | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
