@@ -25,6 +25,13 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
     const matches = patterns.map(patternObj => {
       try {
         const match = html.match(patternObj.pattern);
+        const pattern = patternObj.pattern.toString();
+
+        void supabase.rpc('update_pattern_metrics', { 
+          p_pattern: pattern,
+          p_matched: Boolean(match)
+        });
+
         if (match) {
           logPatternMatch(
             patternObj.type,
@@ -37,25 +44,15 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
             }
           );
 
-          void supabase.rpc('update_pattern_metrics', { 
-            p_pattern: patternObj.pattern.toString(),
-            p_matched: true 
-          });
-
           return {
             type: patternObj.type,
-            pattern: patternObj.pattern.toString(),
+            pattern: pattern,
             matched: match[0],
             confidence: patternObj.confidence,
             category: patternObj.category,
             subcategory: patternObj.subcategory
           } as PatternMatchResult;
         }
-
-        void supabase.rpc('update_pattern_metrics', { 
-          p_pattern: patternObj.pattern.toString(),
-          p_matched: false
-        });
 
         return null;
       } catch (error) {
