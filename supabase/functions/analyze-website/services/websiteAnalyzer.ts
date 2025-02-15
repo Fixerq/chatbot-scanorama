@@ -40,7 +40,7 @@ export async function websiteAnalyzer(html: string, userId: string, url: string)
       lastChecked: new Date().toISOString()
     };
 
-    // Save analysis result to the database
+    // Save analysis result to the database with match details
     const { error: insertError } = await supabase
       .from('analysis_results')
       .insert({
@@ -49,6 +49,19 @@ export async function websiteAnalyzer(html: string, userId: string, url: string)
         has_chatbot: result.has_chatbot,
         chatbot_solutions: result.chatSolutions,
         details: result.details,
+        match_details: {
+          matchTypes: {
+            dynamic,
+            elements,
+            meta,
+            websockets
+          },
+          matches: detailedMatches.map(match => ({
+            type: match.type,
+            pattern: match.pattern.toString(),
+            matched: match.matched || null
+          }))
+        },
         last_checked: result.lastChecked
       });
 

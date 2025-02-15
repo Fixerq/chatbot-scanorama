@@ -155,6 +155,7 @@ export type Database = {
           has_chatbot: boolean
           id: string
           last_checked: string
+          match_details: Json | null
           status: Database["public"]["Enums"]["analysis_status"]
           updated_at: string
           url: string
@@ -167,6 +168,7 @@ export type Database = {
           has_chatbot: boolean
           id?: string
           last_checked?: string
+          match_details?: Json | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
           url: string
@@ -179,6 +181,7 @@ export type Database = {
           has_chatbot?: boolean
           id?: string
           last_checked?: string
+          match_details?: Json | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
           url?: string
