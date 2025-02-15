@@ -77,6 +77,7 @@ export type Database = {
       }
       analysis_cache: {
         Row: {
+          analysis_result: Json | null
           cache_valid_until: string
           chatbot_solutions: string[] | null
           details: Json | null
@@ -85,6 +86,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          analysis_result?: Json | null
           cache_valid_until?: string
           chatbot_solutions?: string[] | null
           details?: Json | null
@@ -93,6 +95,7 @@ export type Database = {
           url: string
         }
         Update: {
+          analysis_result?: Json | null
           cache_valid_until?: string
           chatbot_solutions?: string[] | null
           details?: Json | null
@@ -1366,6 +1369,55 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      citext:
+        | {
+            Args: {
+              "": boolean
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              "": string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              "": unknown
+            }
+            Returns: string
+          }
+      citext_hash: {
+        Args: {
+          "": string
+        }
+        Returns: number
+      }
+      citextin: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
+      }
+      citextout: {
+        Args: {
+          "": string
+        }
+        Returns: unknown
+      }
+      citextrecv: {
+        Args: {
+          "": unknown
+        }
+        Returns: string
+      }
+      citextsend: {
+        Args: {
+          "": string
+        }
+        Returns: string
       }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
