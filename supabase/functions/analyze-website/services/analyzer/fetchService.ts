@@ -1,5 +1,5 @@
 
-import { corsHeaders } from '../../utils/httpUtils';
+import { corsHeaders } from '../../utils/httpUtils.ts';
 
 async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Promise<Response> {
   let lastError;
