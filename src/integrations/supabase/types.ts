@@ -105,9 +105,13 @@ export type Database = {
       analysis_requests: {
         Row: {
           analysis_result: Json | null
+          analysis_step: string | null
           completed_at: string | null
           created_at: string
+          error_details: Json | null
           error_message: string | null
+          html_content_length: number | null
+          html_fetch_status: string | null
           id: string
           retry_count: number
           search_batch_id: string | null
@@ -119,9 +123,13 @@ export type Database = {
         }
         Insert: {
           analysis_result?: Json | null
+          analysis_step?: string | null
           completed_at?: string | null
           created_at?: string
+          error_details?: Json | null
           error_message?: string | null
+          html_content_length?: number | null
+          html_fetch_status?: string | null
           id?: string
           retry_count?: number
           search_batch_id?: string | null
@@ -133,9 +141,13 @@ export type Database = {
         }
         Update: {
           analysis_result?: Json | null
+          analysis_step?: string | null
           completed_at?: string | null
           created_at?: string
+          error_details?: Json | null
           error_message?: string | null
+          html_content_length?: number | null
+          html_fetch_status?: string | null
           id?: string
           retry_count?: number
           search_batch_id?: string | null
@@ -1235,6 +1247,45 @@ export type Database = {
         Row: {
           created_at: string | null
           user_id: string | null
+        }
+        Relationships: []
+      }
+      analysis_failures: {
+        Row: {
+          analysis_step: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_details: Json | null
+          error_message: string | null
+          html_content_length: number | null
+          html_fetch_status: string | null
+          id: string | null
+          status: Database["public"]["Enums"]["analysis_status"] | null
+          url: string | null
+        }
+        Insert: {
+          analysis_step?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          html_content_length?: number | null
+          html_fetch_status?: string | null
+          id?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"] | null
+          url?: string | null
+        }
+        Update: {
+          analysis_step?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          html_content_length?: number | null
+          html_fetch_status?: string | null
+          id?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"] | null
+          url?: string | null
         }
         Relationships: []
       }
