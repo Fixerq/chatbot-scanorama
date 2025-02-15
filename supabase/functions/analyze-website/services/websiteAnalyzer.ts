@@ -22,6 +22,9 @@ async function updateAnalysisRequest(requestId: string, updates: Record<string, 
 }
 
 export async function websiteAnalyzer(url: string, requestId?: string): Promise<ChatDetectionResult> {
+  const MAX_HTML_SIZE = 2 * 1024 * 1024; // 2MB limit
+  const TIMEOUT = 30000; // 30 seconds timeout
+
   try {
     console.log('[WebsiteAnalyzer] Starting analysis for URL:', url);
 
@@ -34,10 +37,20 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       });
     }
 
-    // Fetch HTML content
+    // Fetch HTML content with timeout
     let html = '';
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+
       const response = await tryFetch(url);
+      clearTimeout(timeoutId);
+
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength) > MAX_HTML_SIZE) {
+        throw new Error('Content too large to process');
+      }
+
       html = await response.text();
       
       if (requestId) {
@@ -59,13 +72,13 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       throw fetchError;
     }
 
-    // Validate HTML content
-    if (!html || html.trim().length === 0) {
-      const error = new Error('Empty or invalid HTML content');
+    // Validate HTML content size
+    if (html.length > MAX_HTML_SIZE) {
+      const error = new Error('HTML content exceeds size limit');
       if (requestId) {
         await updateAnalysisRequest(requestId, {
           error_message: error.message,
-          html_fetch_status: 'invalid_content',
+          html_fetch_status: 'content_too_large',
           status: 'failed'
         });
       }
@@ -80,21 +93,15 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       });
     }
     
-    // Detect patterns
-    const dynamic = detectDynamicLoading(html);
-    console.log('[WebsiteAnalyzer] Dynamic loading detected:', dynamic);
-    
-    const elements = detectChatElements(html);
-    console.log('[WebsiteAnalyzer] Chat elements detected:', elements);
-    
-    const meta = detectMetaTags(html);
-    console.log('[WebsiteAnalyzer] Meta tags detected:', meta);
-    
-    const websockets = detectWebSockets(html);
-    console.log('[WebsiteAnalyzer] WebSocket usage detected:', websockets);
-    
+    // Run pattern detection in parallel for better performance
+    const [dynamic, elements, meta, websockets] = await Promise.all([
+      detectDynamicLoading(html),
+      detectChatElements(html),
+      detectMetaTags(html),
+      detectWebSockets(html)
+    ]);
+
     const detailedMatches = getDetailedMatches(html);
-    console.log('[WebsiteAnalyzer] Detailed matches:', JSON.stringify(detailedMatches, null, 2));
 
     // Update analysis step
     if (requestId) {
@@ -124,13 +131,6 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       },
       lastChecked: new Date().toISOString()
     };
-
-    // Log final results
-    console.log('[WebsiteAnalyzer] Analysis complete:', {
-      hasChatbot,
-      chatSolutions,
-      matchDetails: result.details
-    });
 
     // Update request with success
     if (requestId) {
