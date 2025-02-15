@@ -9,26 +9,16 @@ export const useResultsState = (initialResults: Result[] = []) => {
   const [localPage, setLocalPage] = useState(1);
 
   useEffect(() => {
-    // Update filtered results when initial results change
     let updatedResults = [...initialResults].map(result => ({
       ...result,
-      // Ensure the URL is consistently available
       url: result.details?.website_url || result.url || '',
-      // Map business name from either source
       businessName: result.details?.business_name || result.businessName || '',
-      // Ensure chatbot status is consistently available
-      has_chatbot: result.has_chatbot || (result.details?.chatSolutions?.length > 0) || false,
-      // Map chatbot solutions consistently
-      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || [],
-      // Map error details if present
       status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
 
-    // Less strict filtering to show more results
     updatedResults = updatedResults.filter(r => {
       const hasValidStatus = r.status !== undefined;
-      const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
-      // Always include results, even if they have errors
+      const hasDetails = Boolean(r.details);
       return hasValidStatus || hasDetails;
     });
 
@@ -42,31 +32,14 @@ export const useResultsState = (initialResults: Result[] = []) => {
       ...result,
       url: result.details?.website_url || result.url || '',
       businessName: result.details?.business_name || result.businessName || '',
-      has_chatbot: result.has_chatbot || (result.details?.chatSolutions?.length > 0) || false,
-      chatbot_solutions: result.chatbot_solutions || result.details?.chatSolutions || [],
       status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
     
-    // Less strict filtering for valid results
     filtered = filtered.filter(r => {
       const hasValidStatus = r.status !== undefined;
-      const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
+      const hasDetails = Boolean(r.details);
       return hasValidStatus || hasDetails;
     });
-    
-    if (value === 'chatbot') {
-      filtered = filtered.filter(r => {
-        const hasChatbotFlag = r.has_chatbot || r.details?.chatSolutions?.length > 0;
-        const hasSolutions = r.chatbot_solutions?.length > 0 || r.details?.chatSolutions?.length > 0;
-        return hasChatbotFlag || hasSolutions;
-      });
-    } else if (value === 'no-chatbot') {
-      filtered = filtered.filter(r => {
-        const hasChatbotFlag = r.has_chatbot || r.details?.chatSolutions?.length > 0;
-        const hasSolutions = r.chatbot_solutions?.length > 0 || r.details?.chatSolutions?.length > 0;
-        return !hasChatbotFlag && !hasSolutions;
-      });
-    }
     
     setFilteredResults(filtered);
     setLocalPage(1);
@@ -89,13 +62,6 @@ export const useResultsState = (initialResults: Result[] = []) => {
           const urlA = a.details?.website_url || a.url || '';
           const urlB = b.details?.website_url || b.url || '';
           return urlA.localeCompare(urlB);
-        });
-        break;
-      case 'status':
-        sorted.sort((a, b) => {
-          const statusA = a.status || '';
-          const statusB = b.status || '';
-          return statusA.localeCompare(statusB);
         });
         break;
     }

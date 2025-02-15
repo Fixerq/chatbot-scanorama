@@ -75,84 +75,6 @@ export type Database = {
         }
         Relationships: []
       }
-      analysis_requests: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          id: string
-          result: Json | null
-          status: string
-          updated_at: string | null
-          url: string
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          result?: Json | null
-          status?: string
-          updated_at?: string | null
-          url: string
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          result?: Json | null
-          status?: string
-          updated_at?: string | null
-          url?: string
-        }
-        Relationships: []
-      }
-      analysis_results: {
-        Row: {
-          business_name: string | null
-          chatbot_solutions: string[] | null
-          created_at: string | null
-          details: Json | null
-          has_chatbot: boolean | null
-          has_live_elements: boolean | null
-          id: string
-          last_checked: string | null
-          live_elements: Json[] | null
-          status: string | null
-          updated_at: string | null
-          url: string
-          user_id: string | null
-        }
-        Insert: {
-          business_name?: string | null
-          chatbot_solutions?: string[] | null
-          created_at?: string | null
-          details?: Json | null
-          has_chatbot?: boolean | null
-          has_live_elements?: boolean | null
-          id?: string
-          last_checked?: string | null
-          live_elements?: Json[] | null
-          status?: string | null
-          updated_at?: string | null
-          url: string
-          user_id?: string | null
-        }
-        Update: {
-          business_name?: string | null
-          chatbot_solutions?: string[] | null
-          created_at?: string | null
-          details?: Json | null
-          has_chatbot?: boolean | null
-          has_live_elements?: boolean | null
-          id?: string
-          last_checked?: string | null
-          live_elements?: Json[] | null
-          status?: string | null
-          updated_at?: string | null
-          url?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       analyzed_urls: {
         Row: {
           business_type: string | null
@@ -345,51 +267,6 @@ export type Database = {
           response_time_ms?: number | null
           status_code?: number | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      blocked_requests: {
-        Row: {
-          block_reason: Database["public"]["Enums"]["block_reason_type"]
-          created_at: string | null
-          error_details: string | null
-          headers: Json | null
-          id: string
-          proxy_used: string | null
-          resolution_method: string | null
-          resolved: boolean | null
-          resolved_at: string | null
-          retry_count: number | null
-          user_agent: string | null
-          website_url: string
-        }
-        Insert: {
-          block_reason: Database["public"]["Enums"]["block_reason_type"]
-          created_at?: string | null
-          error_details?: string | null
-          headers?: Json | null
-          id?: string
-          proxy_used?: string | null
-          resolution_method?: string | null
-          resolved?: boolean | null
-          resolved_at?: string | null
-          retry_count?: number | null
-          user_agent?: string | null
-          website_url: string
-        }
-        Update: {
-          block_reason?: Database["public"]["Enums"]["block_reason_type"]
-          created_at?: string | null
-          error_details?: string | null
-          headers?: Json | null
-          id?: string
-          proxy_used?: string | null
-          resolution_method?: string | null
-          resolved?: boolean | null
-          resolved_at?: string | null
-          retry_count?: number | null
-          user_agent?: string | null
-          website_url?: string
         }
         Relationships: []
       }
@@ -962,36 +839,6 @@ export type Database = {
         }
         Relationships: []
       }
-      blocking_patterns: {
-        Row: {
-          avg_retries: number | null
-          block_count: number | null
-          block_reason: Database["public"]["Enums"]["block_reason_type"] | null
-          latest_block: string | null
-          resolved_count: number | null
-          unresolved_count: number | null
-          website_url: string | null
-        }
-        Relationships: []
-      }
-      error_monitoring: {
-        Row: {
-          affected_urls: string[] | null
-          error_count: number | null
-          time_bucket: string | null
-          unique_errors: string | null
-        }
-        Relationships: []
-      }
-      provider_analysis: {
-        Row: {
-          detection_count: number | null
-          detection_rate: number | null
-          provider_name: string | null
-          unique_sites: number | null
-        }
-        Relationships: []
-      }
       rate_limit_status: {
         Row: {
           client_ip: string | null
@@ -1110,12 +957,6 @@ export type Database = {
           user_uid: string
         }
         Returns: Json
-      }
-      increment_retry_count: {
-        Args: {
-          request_id: string
-        }
-        Returns: undefined
       }
       is_admin: {
         Args: {
