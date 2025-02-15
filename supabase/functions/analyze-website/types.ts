@@ -1,17 +1,42 @@
 
+export interface RequestData {
+  url: string;
+  requestId?: string;
+}
+
+export const RATE_LIMIT = {
+  WINDOW_MINUTES: 60,
+  MAX_REQUESTS: 3000
+} as const;
+
 export interface ChatDetectionResult {
-  status: string;
   has_chatbot: boolean;
-  has_live_elements?: boolean;
   chatSolutions: string[];
-  liveElements?: string[];
-  details?: {
-    dynamic_loading?: boolean;
-    chat_elements?: boolean;
-    meta_tags?: boolean;
-    websockets?: boolean;
-    url?: string;
+  details: {
+    matchTypes?: {
+      dynamic: boolean;
+      elements: boolean;
+      meta: boolean;
+      websockets: boolean;
+    };
+    matches?: Array<{
+      type: string;
+      pattern: string;
+    }>;
+    error?: string;
   };
-  error?: string;
   lastChecked: string;
+}
+
+export interface AnalysisResult {
+  id: string;
+  url: string;
+  status: 'completed' | 'failed' | 'processing';
+  has_chatbot: boolean;
+  chatbot_solutions: string[];
+  details: Record<string, any>;
+  last_checked: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
 }
