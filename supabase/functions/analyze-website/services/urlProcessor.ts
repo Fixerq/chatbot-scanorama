@@ -8,7 +8,6 @@ interface ProcessedUrl {
 
 const BLOCKED_DOMAINS = [
   'google.com',
-  'google.',
   'gmail.com',
   'youtube.com',
   'docs.google.com',
@@ -28,9 +27,9 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
     // Create URL object from normalized URL
     const urlObj = new URL(normalizedUrl);
     
-    // Check if the root domain is blocked
+    // Check if the root domain exactly matches any blocked domain
     const rootDomain = urlObj.hostname.toLowerCase();
-    if (BLOCKED_DOMAINS.some(domain => rootDomain === domain)) {
+    if (BLOCKED_DOMAINS.includes(rootDomain)) {
       console.log('[URL Processor] Blocked domain detected:', rootDomain);
       throw new Error(`Domain ${rootDomain} cannot be analyzed`);
     }
