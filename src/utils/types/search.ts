@@ -36,3 +36,17 @@ export interface PlaceDetails {
     url?: string;
   };
 }
+
+export interface AnalysisResult {
+  has_chatbot: boolean;
+  chatSolutions: string[];
+  status: string;
+  details?: {
+    dynamic_loading?: boolean;
+    chat_elements?: boolean;
+    meta_tags?: boolean;
+    websockets?: boolean;
+  };
+  error?: string;
+  lastChecked?: string;
+}

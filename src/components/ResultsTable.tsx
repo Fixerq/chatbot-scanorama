@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatUrl } from '@/utils/urlFormatting';
+import ResultStatusCell from './results/ResultStatusCell';
+import { AnalysisResult } from '@/utils/types/search';
 
 export interface Result {
   url: string;
@@ -32,18 +34,7 @@ export interface Result {
     website_url?: string;
     [key: string]: any;
   };
-  analysis_result?: {
-    has_chatbot: boolean;
-    chatSolutions: string[];
-    status: string;
-    error?: string;
-    details?: {
-      dynamic_loading?: boolean;
-      chat_elements?: boolean;
-      meta_tags?: boolean;
-      websockets?: boolean;
-    };
-  };
+  analysis_result?: AnalysisResult;
 }
 
 interface ResultsTableProps {
@@ -95,27 +86,15 @@ const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => 
                     {displayUrl}
                   </a>
                 </TableCell>
-                <TableCell>
-                  {result.analysis_result ? (
-                    <div className="space-y-1">
-                      <Badge 
-                        variant={result.analysis_result.has_chatbot ? "success" : "secondary"}
-                        className={result.analysis_result.has_chatbot ? 
-                          "bg-green-500/20 text-green-300" : 
-                          "bg-gray-500/20 text-gray-300"}
-                      >
-                        {result.analysis_result.has_chatbot ? "Chatbot Detected" : "No Chatbot"}
-                      </Badge>
-                      {result.analysis_result.chatSolutions.length > 0 && (
-                        <div className="text-sm text-gray-400">
-                          Solutions: {result.analysis_result.chatSolutions.join(", ")}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">Analyzing...</span>
-                  )}
-                </TableCell>
+                <ResultStatusCell
+                  status={result.status}
+                  analysis_result={result.analysis_result}
+                  isAnalyzing={result.status === 'analyzing'}
+                  hasChatbot={result.analysis_result?.has_chatbot}
+                  technologies=""
+                  chatSolutions={result.analysis_result?.chatSolutions}
+                  lastChecked={result.analysis_result?.lastChecked}
+                />
               </TableRow>
             );
           })}
@@ -133,4 +112,3 @@ const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => 
 };
 
 export default ResultsTable;
-

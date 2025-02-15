@@ -12,14 +12,18 @@ interface ResultStatusCellProps {
   lastChecked?: string;
   chatSolutions?: string[];
   isAnalyzing?: boolean;
+  analysis_result?: {
+    has_chatbot: boolean;
+    chatSolutions: string[];
+    status: string;
+    error?: string;
+    lastChecked?: string;
+  };
 }
 
 const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   status,
-  hasChatbot,
-  technologies,
-  lastChecked,
-  chatSolutions,
+  analysis_result,
   isAnalyzing
 }) => {
   if (isAnalyzing || status?.toLowerCase() === 'analyzing...') {
@@ -33,17 +37,17 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
     );
   }
 
-  if (status?.toLowerCase().includes('error')) {
+  if (status?.toLowerCase().includes('error') || analysis_result?.error) {
     return (
       <TableCell>
         <div className="text-red-500 dark:text-red-400">
           <div className="flex items-center space-x-2">
             <XCircle className="w-4 h-4" />
-            <span>{status}</span>
+            <span>{analysis_result?.error || status}</span>
           </div>
-          {lastChecked && (
+          {analysis_result?.lastChecked && (
             <div className="text-xs text-gray-500 mt-1">
-              Last attempt: {new Date(lastChecked).toLocaleString()}
+              Last attempt: {new Date(analysis_result.lastChecked).toLocaleString()}
             </div>
           )}
         </div>
@@ -55,7 +59,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
     <TableCell>
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
-          {hasChatbot ? (
+          {analysis_result?.has_chatbot ? (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
@@ -77,9 +81,9 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
           )}
         </div>
         
-        {chatSolutions && chatSolutions.length > 0 && (
+        {analysis_result?.chatSolutions && analysis_result.chatSolutions.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {chatSolutions.map((solution, index) => (
+            {analysis_result.chatSolutions.map((solution, index) => (
               <Badge key={index} variant="outline" className="text-xs">
                 {solution}
               </Badge>
@@ -87,9 +91,9 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
           </div>
         )}
         
-        {lastChecked && (
+        {analysis_result?.lastChecked && (
           <div className="text-xs text-gray-500">
-            Last checked: {new Date(lastChecked).toLocaleString()}
+            Last checked: {new Date(analysis_result.lastChecked).toLocaleString()}
           </div>
         )}
       </div>
