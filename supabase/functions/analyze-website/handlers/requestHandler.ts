@@ -15,13 +15,6 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Content-Type': 'application/json',
-  'Access-Control-Max-Age': '86400'
-};
-
 const MAX_ACTIVE_REQUESTS = 3;
 const REQUEST_TIMEOUT = 50000; // 50 seconds
 const activeRequests = new Set();
@@ -157,3 +150,4 @@ export async function handleRequest(req: Request) {
     activeRequests.delete(requestId);
   }
 }
+
