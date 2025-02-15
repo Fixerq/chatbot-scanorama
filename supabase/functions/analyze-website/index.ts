@@ -18,7 +18,6 @@ serve(async (req) => {
   let supabaseClient: ReturnType<typeof createClient>;
 
   try {
-    // Log detailed request information
     console.log('[Handler] Request details:', {
       method: req.method,
       headers: Object.fromEntries(req.headers.entries()),
@@ -97,14 +96,19 @@ serve(async (req) => {
     console.log('[Handler] Starting website analysis for:', cleanUrl);
     const result = await websiteAnalyzer(cleanUrl);
 
-    // First save to analysis_results
+    // Save to analysis_results with new schema
     const { error: analysisError } = await supabaseClient
       .from('analysis_results')
       .insert({
-        url: cleanUrl, // Using the cleaned URL
+        url: cleanUrl,
         has_chatbot: result.has_chatbot,
         chatbot_solutions: result.chatSolutions,
         details: result.details,
+        match_types: result.details.matchTypes,
+        match_patterns: result.details.matches.map(match => ({
+          type: match.type,
+          pattern: match.pattern
+        })),
         status: 'completed',
         last_checked: new Date().toISOString()
       });

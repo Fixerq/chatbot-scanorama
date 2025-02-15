@@ -156,9 +156,11 @@ export type Database = {
           id: string
           last_checked: string
           match_details: Json | null
+          match_patterns: Json[] | null
+          match_types: Json | null
           status: Database["public"]["Enums"]["analysis_status"]
           updated_at: string
-          url: string
+          url: string | null
           user_id: string | null
         }
         Insert: {
@@ -169,9 +171,11 @@ export type Database = {
           id?: string
           last_checked?: string
           match_details?: Json | null
+          match_patterns?: Json[] | null
+          match_types?: Json | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
-          url: string
+          url?: string | null
           user_id?: string | null
         }
         Update: {
@@ -182,9 +186,11 @@ export type Database = {
           id?: string
           last_checked?: string
           match_details?: Json | null
+          match_patterns?: Json[] | null
+          match_types?: Json | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
-          url?: string
+          url?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -1323,6 +1329,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_rate_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_stuck_analyses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
