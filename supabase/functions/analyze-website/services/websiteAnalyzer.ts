@@ -1,6 +1,13 @@
-import { supabase } from '../../../src/integrations/supabase/client';
+
+import { createClient } from '@supabase/supabase-js';
 import { ChatDetectionResult, AnalysisResult } from '../types';
 import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../utils/patternDetection';
+
+// Create Supabase client for the edge function
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
 export async function websiteAnalyzer(html: string, userId: string, url: string): Promise<ChatDetectionResult> {
   try {
