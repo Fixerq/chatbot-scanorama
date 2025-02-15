@@ -18,7 +18,11 @@ export const PLATFORM_PATTERNS = {
   'Birdeye': ['birdeye-chat-widget', 'birdeyechat'],
   'SmileSnap': ['smilesnap-widget', 'smilesnap.io'],
   'Swell': ['swellcx', 'swellai', 'swell.io'],
-  'Engage.ai': ['engageai', 'engage.ai', 'engagebot', 'engage-widget']
+  'Engage.ai': ['engageai', 'engage.ai', 'engagebot', 'engage-widget'],
+  'Practice Chat': ['practicechat', 'practice-chat', 'dental-chat'],
+  'iMatrix': ['imatrix-chat', 'imatrix.com'],
+  'Dental Intelligence': ['dentalintel', 'dental-intelligence'],
+  'DentistLink': ['dentistlink-chat', 'dentist-link']
 };
 
 export const MESSENGER_PATTERNS = {
@@ -36,7 +40,10 @@ export const MESSENGER_PATTERNS = {
     'messenger-frame',
     'messenger-widget',
     'message-us',
-    'live-chat'
+    'live-chat',
+    'botmanager',
+    'chat-bot',
+    'chatbot'
   ]
 };
 
@@ -50,7 +57,9 @@ export const SUPPORT_PATTERNS = {
     'live-support',
     'book-appointment',
     'appointment-widget',
-    'schedule-widget'
+    'schedule-widget',
+    'dental-support',
+    'dental-chat'
   ]
 };
 
@@ -65,7 +74,10 @@ export const CUSTOM_PATTERNS = {
     'chat-bubble',
     'chat-icon',
     'chat-greeting',
-    'widget-container'
+    'widget-container',
+    'botmanager.js',
+    'webchat.js',
+    'messageus.js'
   ]
 };
 

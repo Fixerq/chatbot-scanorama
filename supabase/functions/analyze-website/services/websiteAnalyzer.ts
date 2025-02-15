@@ -11,16 +11,36 @@ const supabase = createClient(
 
 export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult> {
   try {
-    console.log('[WebsiteAnalyzer] Analyzing HTML content');
+    console.log('[WebsiteAnalyzer] Starting analysis of HTML content');
     
     const dynamic = detectDynamicLoading(html);
+    console.log('[WebsiteAnalyzer] Dynamic loading detected:', dynamic);
+    
     const elements = detectChatElements(html);
+    console.log('[WebsiteAnalyzer] Chat elements detected:', elements);
+    
     const meta = detectMetaTags(html);
+    console.log('[WebsiteAnalyzer] Meta tags detected:', meta);
+    
     const websockets = detectWebSockets(html);
+    console.log('[WebsiteAnalyzer] WebSocket usage detected:', websockets);
+    
     const detailedMatches = getDetailedMatches(html);
+    console.log('[WebsiteAnalyzer] Detailed matches:', detailedMatches);
 
-    const hasChatbot = dynamic || elements || meta || websockets;
+    const hasChatbot = dynamic || elements || meta || websockets || detailedMatches.length > 0;
     const chatSolutions = detailedMatches.map(match => match.type);
+
+    console.log('[WebsiteAnalyzer] Analysis results:', {
+      hasChatbot,
+      chatSolutions,
+      matchTypes: {
+        dynamic,
+        elements,
+        meta,
+        websockets
+      }
+    });
 
     const result: ChatDetectionResult = {
       has_chatbot: hasChatbot,
@@ -40,8 +60,6 @@ export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult
       lastChecked: new Date().toISOString()
     };
 
-    // Note: We'll now store these results in analysis_results through the main handler
-    // since that's where we have access to the URL and user context
     return result;
   } catch (error) {
     console.error('[WebsiteAnalyzer] Analysis error:', error);
