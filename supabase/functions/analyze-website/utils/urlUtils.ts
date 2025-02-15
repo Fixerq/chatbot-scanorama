@@ -4,6 +4,12 @@
  */
 export function normalizeUrl(url: string): string {
   try {
+    if (!url?.trim()) {
+      throw new Error('URL cannot be empty');
+    }
+
+    console.log('[URL Utils] Normalizing URL:', url);
+    
     // Create URL object to parse the URL properly
     const urlObj = new URL(url);
     
@@ -41,4 +47,3 @@ export function normalizeUrl(url: string): string {
     throw new Error(`Invalid URL: ${error.message}`);
   }
 }
-

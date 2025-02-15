@@ -1,3 +1,4 @@
+
 import { normalizeUrl } from '../utils/urlUtils.ts';
 
 interface ProcessedUrl {
@@ -19,9 +20,25 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
   try {
     console.log('[URL Processor] Starting URL processing for:', url);
     
+    if (!url?.trim()) {
+      throw new Error('URL cannot be empty');
+    }
+
     // First, try to create a URL object to validate the URL
-    let urlObj = new URL(url);
-    console.log('[URL Processor] Valid URL object created');
+    let urlObj: URL;
+    try {
+      urlObj = new URL(url);
+    } catch {
+      // If URL parsing fails, try prepending https:// and retry
+      if (!url.match(/^https?:\/\//i)) {
+        console.log('[URL Processor] Adding https:// prefix to URL');
+        urlObj = new URL(`https://${url}`);
+      } else {
+        throw new Error('Invalid URL format');
+      }
+    }
+    
+    console.log('[URL Processor] Valid URL object created:', urlObj.toString());
     
     // Remove tracking parameters (utm_*, ref, fbclid, etc)
     const searchParams = new URLSearchParams(urlObj.search);
@@ -39,19 +56,19 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
     // Reconstruct the URL without tracking parameters
     const baseUrl = `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
     const cleanSearch = cleanParams.toString();
-    const cleanUrl = cleanSearch ? `${baseUrl}?${cleanSearch}` : baseUrl;
+    const initialCleanUrl = cleanSearch ? `${baseUrl}?${cleanSearch}` : baseUrl;
     
-    console.log('[URL Processor] Cleaned URL:', cleanUrl);
+    console.log('[URL Processor] Initial cleaned URL:', initialCleanUrl);
     
     // Get normalized URL to standardize it
-    const normalizedUrl = normalizeUrl(cleanUrl);
+    const normalizedUrl = normalizeUrl(initialCleanUrl);
     console.log('[URL Processor] Normalized URL:', normalizedUrl);
     
-    // Create final URL object
-    urlObj = new URL(normalizedUrl);
+    // Create final URL object from normalized URL
+    const finalUrlObj = new URL(normalizedUrl);
     
     // Check if the root domain exactly matches any blocked domain
-    const rootDomain = urlObj.hostname.toLowerCase();
+    const rootDomain = finalUrlObj.hostname.toLowerCase();
     if (BLOCKED_DOMAINS.includes(rootDomain)) {
       console.log('[URL Processor] Blocked domain detected:', rootDomain);
       throw new Error(`Domain ${rootDomain} cannot be analyzed`);
@@ -59,7 +76,7 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
 
     return {
       cleanUrl: normalizedUrl,
-      urlObj: urlObj
+      urlObj: finalUrlObj
     };
   } catch (error) {
     console.error('[URL Processor] Error processing URL:', error);
