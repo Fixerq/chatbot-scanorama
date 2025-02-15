@@ -21,11 +21,13 @@ export const useSubscriptionStatus = () => {
       }
 
       try {
-        // Get the user's subscription from the new table
+        // Get the user's subscription from the view, filtered by user_id and active status
         const { data: subscription, error: subscriptionError } = await supabase
           .from('subscriptions_with_user')
           .select('level, status, total_searches')
-          .single();
+          .eq('user_id', session.user.id)
+          .eq('status', 'active')
+          .maybeSingle(); // Using maybeSingle instead of single
 
         if (subscriptionError) {
           console.error('Subscription fetch error:', subscriptionError);
@@ -33,7 +35,7 @@ export const useSubscriptionStatus = () => {
         }
 
         if (!subscription) {
-          console.log('No subscription found for user');
+          console.log('No active subscription found for user');
           setSubscriptionData({
             level: 'starter',
             status: 'inactive',
@@ -51,6 +53,7 @@ export const useSubscriptionStatus = () => {
         const { count: searchCount, error: searchError } = await supabase
           .from('analyzed_urls')
           .select('*', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
           .gte('created_at', startOfMonth.toISOString());
 
         if (searchError) {
@@ -69,8 +72,8 @@ export const useSubscriptionStatus = () => {
         console.log('Searches remaining:', remaining);
 
         setSubscriptionData({
-          level: subscription.level,
-          status: subscription.status,
+          level: subscription.level || 'starter',
+          status: subscription.status || 'inactive',
           searchesRemaining: remaining
         });
       } catch (error) {
