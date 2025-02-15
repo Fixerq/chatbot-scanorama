@@ -1,6 +1,20 @@
 
 import { Result } from '@/components/ResultsTable';
 
+export interface SearchResult {
+  url: string;
+  title?: string;
+  description?: string;
+}
+
+export interface SearchResponse {
+  data: {
+    results: SearchResult[];
+    hasMore: boolean;
+    searchBatchId: string;
+  };
+}
+
 export interface SearchResults {
   currentResults: Result[];
   hasMore: boolean;
