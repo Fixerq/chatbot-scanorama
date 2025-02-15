@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { validateRequest } from '../utils/requestValidator.ts';
 import { checkRateLimit } from '../utils/rateLimiter.ts';
@@ -17,6 +18,8 @@ const supabase = createClient(
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json',
+  'Access-Control-Max-Age': '86400'
 };
 
 const MAX_ACTIVE_REQUESTS = 3;
@@ -30,13 +33,9 @@ async function processAnalysisRequest(url: string, startTime: number): Promise<C
   }, REQUEST_TIMEOUT);
 
   try {
-    const [result] = await Promise.all([
-      websiteAnalyzer(url),
-      new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Analysis timeout')), REQUEST_TIMEOUT);
-      })
-    ]);
-
+    console.log('[RequestHandler] Starting analysis for URL:', url);
+    const result = await websiteAnalyzer(url);
+    
     await updateCache(url, result.has_chatbot, result.chatSolutions, result.details);
     
     await logAnalysis({
@@ -49,6 +48,7 @@ async function processAnalysisRequest(url: string, startTime: number): Promise<C
     
     return result;
   } catch (error) {
+    console.error('[RequestHandler] Processing error:', error);
     if (error.name === 'AbortError' || error.message.includes('timeout')) {
       throw new Error(`Analysis timed out after ${REQUEST_TIMEOUT}ms`);
     }
@@ -59,7 +59,7 @@ async function processAnalysisRequest(url: string, startTime: number): Promise<C
 }
 
 export async function handleRequest(req: Request) {
-  console.log('[Handler] Received request:', req.method);
+  console.log('[Handler] Received request:', req.method, req.url);
   
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -114,21 +114,24 @@ export async function handleRequest(req: Request) {
             status: 'error',
             error: error.message,
             has_chatbot: false,
-            has_live_elements: false,
             chatSolutions: [],
-            liveElements: [],
+            details: {
+              error: error.message,
+              stack: error.stack
+            },
             lastChecked: new Date().toISOString()
           });
         }
       }
 
       return new Response(JSON.stringify(results), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: corsHeaders
       });
     }
 
     // Handle single URL analysis
     const { url } = validateRequest(body);
+    console.log('[Handler] Processing single URL:', url);
     const result = await processAnalysisRequest(url, startTime);
     return createSuccessResponse(result);
 
