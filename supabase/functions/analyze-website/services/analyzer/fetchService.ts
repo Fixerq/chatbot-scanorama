@@ -1,14 +1,55 @@
 
 import { corsHeaders } from '../../utils/httpUtils.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Promise<Response> {
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
+interface FetchConfig {
+  timeout_ms: number;
+  max_content_size_bytes: number;
+  max_redirects: number;
+  retry_delay_ms: number;
+  max_retries: number;
+}
+
+async function getFetchConfig(): Promise<FetchConfig> {
+  try {
+    const { data, error } = await supabase
+      .from('runtime_config')
+      .select('value')
+      .eq('key', 'fetch_config')
+      .single();
+
+    if (error) {
+      console.error('[FetchService] Error fetching config:', error);
+      throw error;
+    }
+
+    return data.value as FetchConfig;
+  } catch (error) {
+    console.error('[FetchService] Error loading config:', error);
+    // Return default values if config cannot be loaded
+    return {
+      timeout_ms: 15000,
+      max_content_size_bytes: 5242880,
+      max_redirects: 3,
+      retry_delay_ms: 1000,
+      max_retries: 2
+    };
+  }
+}
+
+async function fetchWithRetry(url: string, proxyUrl?: string): Promise<Response> {
+  const config = await getFetchConfig();
   let lastError;
   
-  for (let i = 0; i < retries; i++) {
+  for (let i = 0; i < config.max_retries; i++) {
     try {
-      const timeout = 20000; // Keep short timeout to prevent resource exhaustion
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const timeoutId = setTimeout(() => controller.abort(), config.timeout_ms);
 
       const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -50,6 +91,12 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
             throw new Error(`Proxy request failed: ${proxyResponse.status} ${proxyResponse.statusText}`);
           }
 
+          // Check content size
+          const contentLength = parseInt(proxyResponse.headers.get('content-length') || '0');
+          if (contentLength > config.max_content_size_bytes) {
+            throw new Error(`Content size exceeds limit: ${contentLength} bytes`);
+          }
+
           clearTimeout(timeoutId);
           return proxyResponse;
         } catch (proxyError) {
@@ -89,10 +136,13 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
+      // Handle redirects with limit
       let redirectCount = 0;
       let currentResponse = response;
       
-      while (redirectCount < 3 && (currentResponse.status === 301 || currentResponse.status === 302 || currentResponse.status === 307 || currentResponse.status === 308)) {
+      while (redirectCount < config.max_redirects && 
+             (currentResponse.status === 301 || currentResponse.status === 302 || 
+              currentResponse.status === 307 || currentResponse.status === 308)) {
         const redirectUrl = currentResponse.headers.get('location');
         if (!redirectUrl) break;
         
@@ -101,6 +151,12 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         const nextUrl = redirectUrl.startsWith('http') ? redirectUrl : new URL(redirectUrl, url).toString();
         currentResponse = await fetch(nextUrl, fetchOptions);
         redirectCount++;
+      }
+      
+      // Check content size
+      const contentLength = parseInt(currentResponse.headers.get('content-length') || '0');
+      if (contentLength > config.max_content_size_bytes) {
+        throw new Error(`Content size exceeds limit: ${contentLength} bytes`);
       }
       
       return currentResponse;
@@ -118,13 +174,13 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         console.log('[FetchService] SSL/TLS error');
       }
       
-      if (i === retries - 1) {
-        const errorMessage = `Failed to fetch after ${retries} attempts: ${error.message}`;
+      if (i === config.max_retries - 1) {
+        const errorMessage = `Failed to fetch after ${config.max_retries} attempts: ${error.message}`;
         console.error('[FetchService] All attempts failed:', errorMessage);
         throw new Error(errorMessage);
       }
       
-      const backoffDelay = Math.min(1000 * Math.pow(2, i), 5000);
+      const backoffDelay = Math.min(config.retry_delay_ms * Math.pow(2, i), 5000);
       console.log(`[FetchService] Waiting ${backoffDelay}ms before next attempt`);
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
@@ -144,3 +200,4 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
     throw error;
   }
 }
+
