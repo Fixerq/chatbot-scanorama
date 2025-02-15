@@ -2,7 +2,8 @@
 import { basicChatPatterns } from './basicPatterns';
 import { platformPatterns } from './platformPatterns';
 import { elementPatterns } from './elementPatterns';
-import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../../supabase/functions/analyze-website/utils/patternDetection';
+// Importing from the local module path instead of the Edge Function path
+import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../../utils/patternDetection';
 
 export const chatbotPatterns = [
   ...basicChatPatterns,
