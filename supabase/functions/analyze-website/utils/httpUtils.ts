@@ -26,3 +26,4 @@ export function handleCorsResponse(response: Response): Response {
   });
   return responseWithCors;
 }
+
