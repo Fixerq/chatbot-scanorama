@@ -12,6 +12,19 @@ const supabase = createClient(
 export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult> {
   try {
     console.log('[WebsiteAnalyzer] Starting analysis of HTML content');
+    console.log('[WebsiteAnalyzer] HTML content length:', html.length);
+    console.log('[WebsiteAnalyzer] First 500 characters:', html.substring(0, 500));
+    
+    // Check if HTML content is valid
+    if (!html || html.trim().length === 0) {
+      console.error('[WebsiteAnalyzer] Empty or invalid HTML content received');
+      throw new Error('Empty or invalid HTML content');
+    }
+
+    // Check for basic HTML structure
+    if (!html.includes('<html') && !html.includes('<!DOCTYPE')) {
+      console.warn('[WebsiteAnalyzer] HTML content may be incomplete or malformed');
+    }
     
     const dynamic = detectDynamicLoading(html);
     console.log('[WebsiteAnalyzer] Dynamic loading detected:', dynamic);
@@ -26,12 +39,12 @@ export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult
     console.log('[WebsiteAnalyzer] WebSocket usage detected:', websockets);
     
     const detailedMatches = getDetailedMatches(html);
-    console.log('[WebsiteAnalyzer] Detailed matches:', detailedMatches);
+    console.log('[WebsiteAnalyzer] Detailed matches:', JSON.stringify(detailedMatches, null, 2));
 
     const hasChatbot = dynamic || elements || meta || websockets || detailedMatches.length > 0;
     const chatSolutions = detailedMatches.map(match => match.type);
 
-    console.log('[WebsiteAnalyzer] Analysis results:', {
+    console.log('[WebsiteAnalyzer] Final analysis results:', {
       hasChatbot,
       chatSolutions,
       matchTypes: {
@@ -39,7 +52,12 @@ export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult
         elements,
         meta,
         websockets
-      }
+      },
+      detailedMatches: detailedMatches.map(m => ({
+        type: m.type,
+        pattern: m.pattern.toString(),
+        matched: m.matched
+      }))
     });
 
     const result: ChatDetectionResult = {
@@ -63,6 +81,7 @@ export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult
     return result;
   } catch (error) {
     console.error('[WebsiteAnalyzer] Analysis error:', error);
+    console.error('[WebsiteAnalyzer] Error stack:', error.stack);
     throw error;
   }
 }

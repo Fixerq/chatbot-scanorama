@@ -9,7 +9,11 @@ const DYNAMIC_PATTERNS = [
   /botmanager/i,
   /webchat/i,
   /messageus/i,
-  /chatbot/i
+  /chatbot/i,
+  /livechat/i,
+  /live-chat/i,
+  /dental-chat/i,
+  /support-widget/i
 ].map(pattern => ({ pattern, type: 'dynamic' }));
 
 const ELEMENT_PATTERNS = [
@@ -20,7 +24,17 @@ const ELEMENT_PATTERNS = [
   /botmanager/i,
   /webchat/i,
   /messageus/i,
-  /chatbot/i
+  /chatbot/i,
+  /live-?chat/i,
+  /dental-?chat/i,
+  /support-?widget/i,
+  /chat-?window/i,
+  /chat-?button/i,
+  /chat-?container/i,
+  /chat-?box/i,
+  /chat-?frame/i,
+  /messenger-?frame/i,
+  /messenger-?widget/i
 ].map(pattern => ({ pattern, type: 'element' }));
 
 const META_PATTERNS = [
@@ -30,7 +44,10 @@ const META_PATTERNS = [
   /botmanager/i,
   /webchat/i,
   /messageus/i,
-  /chatbot/i
+  /chatbot/i,
+  /livechat/i,
+  /dental-chat/i,
+  /support-widget/i
 ].map(pattern => ({ pattern, type: 'meta' }));
 
 const WEBSOCKET_PATTERNS = [
@@ -41,7 +58,10 @@ const WEBSOCKET_PATTERNS = [
   /botmanager/i,
   /webchat/i,
   /messageus/i,
-  /chatbot/i
+  /chatbot/i,
+  /livechat/i,
+  /dental-chat/i,
+  /support-widget/i
 ].map(pattern => ({ pattern, type: 'websocket' }));
 
 interface PatternMatch {
@@ -51,54 +71,74 @@ interface PatternMatch {
 }
 
 export function detectDynamicLoading(html: string): boolean {
+  console.log('[PatternDetection] Starting dynamic loading detection');
   const matched = DYNAMIC_PATTERNS.some(({ pattern }) => {
     const result = pattern.test(html);
     if (result) {
-      console.log('[PatternDetection] Dynamic pattern matched:', pattern);
+      console.log('[PatternDetection] Dynamic pattern matched:', pattern.toString());
     }
     return result;
   });
-  console.log('[PatternDetection] Dynamic loading detected:', matched);
+  console.log('[PatternDetection] Dynamic loading detection complete:', matched);
   return matched;
 }
 
 export function detectChatElements(html: string): boolean {
+  console.log('[PatternDetection] Starting chat elements detection');
   const matched = ELEMENT_PATTERNS.some(({ pattern }) => {
     const result = pattern.test(html);
     if (result) {
-      console.log('[PatternDetection] Element pattern matched:', pattern);
+      console.log('[PatternDetection] Element pattern matched:', pattern.toString());
+      // Log the matching content
+      const match = html.match(pattern);
+      if (match) {
+        console.log('[PatternDetection] Matched content:', match[0]);
+      }
     }
     return result;
   });
-  console.log('[PatternDetection] Chat elements detected:', matched);
+  console.log('[PatternDetection] Chat elements detection complete:', matched);
   return matched;
 }
 
 export function detectMetaTags(html: string): boolean {
+  console.log('[PatternDetection] Starting meta tags detection');
   const matched = META_PATTERNS.some(({ pattern }) => {
     const result = pattern.test(html);
     if (result) {
-      console.log('[PatternDetection] Meta pattern matched:', pattern);
+      console.log('[PatternDetection] Meta pattern matched:', pattern.toString());
+      // Log the matching content
+      const match = html.match(pattern);
+      if (match) {
+        console.log('[PatternDetection] Matched content:', match[0]);
+      }
     }
     return result;
   });
-  console.log('[PatternDetection] Meta tags detected:', matched);
+  console.log('[PatternDetection] Meta tags detection complete:', matched);
   return matched;
 }
 
 export function detectWebSockets(html: string): boolean {
+  console.log('[PatternDetection] Starting WebSocket detection');
   const matched = WEBSOCKET_PATTERNS.some(({ pattern }) => {
     const result = pattern.test(html);
     if (result) {
-      console.log('[PatternDetection] WebSocket pattern matched:', pattern);
+      console.log('[PatternDetection] WebSocket pattern matched:', pattern.toString());
+      // Log the matching content
+      const match = html.match(pattern);
+      if (match) {
+        console.log('[PatternDetection] Matched content:', match[0]);
+      }
     }
     return result;
   });
-  console.log('[PatternDetection] WebSocket usage detected:', matched);
+  console.log('[PatternDetection] WebSocket detection complete:', matched);
   return matched;
 }
 
 export function getDetailedMatches(html: string): PatternMatch[] {
+  console.log('[PatternDetection] Starting detailed pattern matching');
   const allPatterns = [
     ...DYNAMIC_PATTERNS,
     ...ELEMENT_PATTERNS,
@@ -109,11 +149,15 @@ export function getDetailedMatches(html: string): PatternMatch[] {
   const matches = allPatterns.filter(({ pattern }) => {
     const result = pattern.test(html);
     if (result) {
-      console.log('[PatternDetection] Pattern matched:', pattern);
+      const match = html.match(pattern);
+      console.log('[PatternDetection] Pattern matched:', {
+        pattern: pattern.toString(),
+        matchedContent: match ? match[0] : 'No match content available'
+      });
     }
     return result;
   });
 
-  console.log('[PatternDetection] Total matches found:', matches.length);
+  console.log('[PatternDetection] Detailed pattern matching complete. Found matches:', matches.length);
   return matches;
 }
