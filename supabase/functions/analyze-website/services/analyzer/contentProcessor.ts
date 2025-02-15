@@ -1,6 +1,6 @@
 
 import { CHAT_PATTERNS } from '../../patterns.ts';
-import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets } from '../../utils/patternDetection.ts';
+import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../../utils/patternDetection.ts';
 
 export async function processContent(reader: ReadableStreamDefaultReader): Promise<{
   hasDynamicChat: boolean;
@@ -45,6 +45,10 @@ export async function processContent(reader: ReadableStreamDefaultReader): Promi
     const hasChatElements = detectChatElements(htmlContent);
     const hasMetaTags = detectMetaTags(htmlContent);
     const hasWebSockets = detectWebSockets(htmlContent);
+
+    // Get detailed pattern matches for debugging
+    const detailedMatches = getDetailedMatches(htmlContent);
+    console.log('[ContentProcessor] Detailed pattern matches:', detailedMatches);
 
     return {
       hasDynamicChat,

@@ -1,6 +1,8 @@
+
 import { basicChatPatterns } from './basicPatterns';
 import { platformPatterns } from './platformPatterns';
 import { elementPatterns } from './elementPatterns';
+import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../../supabase/functions/analyze-website/utils/patternDetection';
 
 export const chatbotPatterns = [
   ...basicChatPatterns,
@@ -8,44 +10,55 @@ export const chatbotPatterns = [
   ...Object.values(elementPatterns).flat(),
 ];
 
+export interface ChatDetectionResult {
+  hasChatbot: boolean;
+  matchTypes: {
+    dynamic: boolean;
+    elements: boolean;
+    meta: boolean;
+    websockets: boolean;
+  };
+  matches: Array<{ type: string; pattern: string }>;
+}
+
+export const analyzeChatbotPresence = (html: string): ChatDetectionResult => {
+  if (!html) {
+    return {
+      hasChatbot: false,
+      matchTypes: {
+        dynamic: false,
+        elements: false,
+        meta: false,
+        websockets: false
+      },
+      matches: []
+    };
+  }
+
+  const dynamic = detectDynamicLoading(html);
+  const elements = detectChatElements(html);
+  const meta = detectMetaTags(html);
+  const websockets = detectWebSockets(html);
+  const detailedMatches = getDetailedMatches(html);
+
+  return {
+    hasChatbot: dynamic || elements || meta || websockets,
+    matchTypes: {
+      dynamic,
+      elements,
+      meta,
+      websockets
+    },
+    matches: detailedMatches.map(match => ({
+      type: match.type,
+      pattern: match.pattern.toString()
+    }))
+  };
+};
+
 export const hasChatbotScript = (html: string): boolean => {
   if (!html) return false;
-
-  // First check for common chat elements in the HTML structure
-  const hasCommonChatElements = /<div[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
-    /<iframe[^>]*(?:chat|messenger|support)[^>]*>/.test(html) ||
-    /<button[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
-
-  // Check for chat-related scripts and links
-  const hasScriptOrLink = /<(?:script|link)[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
-
-  // Check for specific chat platform patterns
-  const hasChatPlatform = Object.entries(platformPatterns).some(([_, patterns]) => 
-    patterns.some(pattern => pattern.test(html))
-  );
-
-  // Check for dynamic loading patterns
-  const hasDynamicLoading = elementPatterns.scripts.some(pattern => pattern.test(html));
-
-  // Check for common chat-related meta tags
-  const hasMetaTags = /<meta[^>]*(?:chat|messenger|support)[^>]*>/.test(html);
-
-  // Check for chat-related data attributes
-  const hasDataAttributes = /data-(?:chat|messenger|support|widget)/i.test(html);
-
-  // Check for chat-related comments
-  const hasComments = /<!--.*(?:chat|messenger|support).*-->/i.test(html);
-
-  // Check for chat-related JSON configuration
-  const hasJsonConfig = /{[^}]*(?:chat|messenger|support)[^}]*}/i.test(html);
-
-  // Return true if any of the checks pass
-  return hasCommonChatElements || 
-         hasScriptOrLink || 
-         hasChatPlatform || 
-         hasDynamicLoading || 
-         hasMetaTags ||
-         hasDataAttributes ||
-         hasComments ||
-         hasJsonConfig;
+  
+  const result = analyzeChatbotPresence(html);
+  return result.hasChatbot;
 };
