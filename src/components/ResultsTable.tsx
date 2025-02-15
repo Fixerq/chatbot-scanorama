@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -20,18 +21,25 @@ export interface Result {
   placeId?: string;
   businessType?: string;
   error?: string;
+  status?: string;
   details?: {
     search_batch_id: string;
+    business_name?: string;
+    title?: string;
+    description?: string;
+    address?: string;
+    website_url?: string;
     [key: string]: any;
   };
 }
 
 interface ResultsTableProps {
   results: Result[];
-  processing: boolean;
+  processing?: boolean;
+  isLoading?: boolean;
 }
 
-const ResultsTable = ({ results, processing }: ResultsTableProps) => {
+const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => {
   return (
     <div className="w-full overflow-x-auto">
       <Table>
@@ -63,7 +71,7 @@ const ResultsTable = ({ results, processing }: ResultsTableProps) => {
               <TableCell>{result.description}</TableCell>
             </TableRow>
           ))}
-          {processing && (
+          {(processing || isLoading) && (
             <TableRow>
               <TableCell colSpan={4} className="text-center">
                 Processing...

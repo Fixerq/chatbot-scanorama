@@ -42,9 +42,10 @@ export const executeSearch = async (
         details: {
           title: result.title,
           description: result.description,
-          lastChecked: new Date().toISOString()
+          lastChecked: new Date().toISOString(),
+          search_batch_id: searchResult.searchBatchId
         },
-        searchBatchId: searchResult.searchBatchId,
+        status: 'pending',
         resultPosition: index + 1
       }));
 
@@ -94,9 +95,10 @@ export const loadMore = async (
         details: {
           title: result.title,
           description: result.description,
-          lastChecked: new Date().toISOString()
+          lastChecked: new Date().toISOString(),
+          search_batch_id: searchResult.searchBatchId
         },
-        searchBatchId: searchResult.searchBatchId,
+        status: 'pending',
         resultPosition: currentResultsCount + index + 1
       }));
 

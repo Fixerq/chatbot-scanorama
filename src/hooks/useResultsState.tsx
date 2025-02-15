@@ -12,7 +12,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
     let updatedResults = [...initialResults].map(result => ({
       ...result,
       url: result.details?.website_url || result.url || '',
-      businessName: result.details?.business_name || result.businessName || '',
+      business_name: result.details?.business_name || result.business_name || '',
       status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
 
@@ -31,7 +31,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
     let filtered = [...initialResults].map(result => ({
       ...result,
       url: result.details?.website_url || result.url || '',
-      businessName: result.details?.business_name || result.businessName || '',
+      business_name: result.details?.business_name || result.business_name || '',
       status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
     
@@ -52,8 +52,8 @@ export const useResultsState = (initialResults: Result[] = []) => {
     switch (value) {
       case 'name':
         sorted.sort((a, b) => {
-          const nameA = a.details?.business_name || a.businessName || '';
-          const nameB = b.details?.business_name || b.businessName || '';
+          const nameA = a.details?.business_name || a.business_name || '';
+          const nameB = b.details?.business_name || b.business_name || '';
           return nameA.localeCompare(nameB);
         });
         break;
