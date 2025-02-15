@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from '../_shared/cors.ts';
 import { websiteAnalyzer } from './services/websiteAnalyzer.ts';
+import { processUrl } from './services/urlProcessor.ts';
 
 serve(async (req) => {
   // Handle CORS preflight request
@@ -66,6 +67,7 @@ serve(async (req) => {
     console.log('[Handler] Created execution record:', executionId);
 
     const { url, requestId } = parsedBody;
+    console.log('[Handler] Parsed URL and requestId:', { url, requestId });
 
     if (!url || !requestId) {
       console.error('[Handler] Missing required fields:', { url, requestId });
@@ -73,6 +75,10 @@ serve(async (req) => {
     }
 
     console.log('[Handler] Processing URL:', url);
+
+    // Process URL and log the results
+    const { cleanUrl, urlObj } = await processUrl(url);
+    console.log('[Handler] Processed URLs:', { cleanUrl, originalUrl: url });
 
     // Update analysis request status to processing
     const { error: updateError } = await supabaseClient
