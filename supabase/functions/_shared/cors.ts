@@ -1,6 +1,6 @@
 
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://detectify.engageai.pro',
+  'Access-Control-Allow-Origin': 'https://detectifys.engageai.pro',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
   'Content-Type': 'application/json'
