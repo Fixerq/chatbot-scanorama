@@ -6,7 +6,7 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
   
   for (let i = 0; i < retries; i++) {
     try {
-      const timeout = 30000; // 30 second timeout
+      const timeout = 20000; // Reduce timeout to 20 seconds to prevent resource exhaustion
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -14,11 +14,12 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Encoding': 'gzip',  // Simplified encoding support
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Pragma': 'no-cache',
+        'DNT': '1'  // Do Not Track header to potentially bypass some restrictions
       };
 
       const fetchOptions: RequestInit = {
@@ -26,6 +27,9 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         headers,
         redirect: 'follow',
         signal: controller.signal,
+        // Set reasonable limits
+        keepalive: false,
+        referrerPolicy: 'no-referrer'
       };
 
       if (proxyUrl) {
@@ -34,7 +38,14 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
           const proxyResponse = await fetch(proxyUrl, {
             method: 'POST',
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url, options: fetchOptions })
+            body: JSON.stringify({ 
+              url, 
+              options: {
+                ...fetchOptions,
+                // Don't pass signal through proxy
+                signal: undefined
+              }
+            })
           });
 
           if (!proxyResponse.ok) {
@@ -51,14 +62,28 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
 
       console.log(`[FetchService] Attempt ${i + 1}: Direct fetch for URL: ${url}`);
       
-      // Try to fetch with https first
-      let response: Response;
-      try {
-        response = await fetch(url.replace(/^http:/, 'https:'), fetchOptions);
-      } catch (httpsError) {
-        console.log(`[FetchService] HTTPS fetch failed, trying HTTP: ${httpsError.message}`);
-        // If https fails, try http
-        response = await fetch(url.replace(/^https:/, 'http:'), fetchOptions);
+      // Try different protocols and variations
+      const attempts = [
+        () => fetch(url.replace(/^http:/, 'https:'), fetchOptions),
+        () => fetch(url.replace(/^https:/, 'http:'), fetchOptions),
+        () => fetch(url.toLowerCase(), fetchOptions),
+        () => fetch(url.replace(/\/$/, ''), fetchOptions) // Try without trailing slash
+      ];
+
+      let response: Response | null = null;
+      
+      for (const attempt of attempts) {
+        try {
+          response = await attempt();
+          if (response.ok) break;
+        } catch (err) {
+          console.log('[FetchService] Attempt failed, trying next variation');
+          continue;
+        }
+      }
+
+      if (!response) {
+        throw new Error('All fetch attempts failed');
       }
       
       clearTimeout(timeoutId);
@@ -67,11 +92,11 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // Follow up to 5 redirects manually if needed
+      // Follow up to 3 redirects manually if needed (reduced from 5)
       let redirectCount = 0;
       let currentResponse = response;
       
-      while (redirectCount < 5 && (currentResponse.status === 301 || currentResponse.status === 302 || currentResponse.status === 307 || currentResponse.status === 308)) {
+      while (redirectCount < 3 && (currentResponse.status === 301 || currentResponse.status === 302 || currentResponse.status === 307 || currentResponse.status === 308)) {
         const redirectUrl = currentResponse.headers.get('location');
         if (!redirectUrl) break;
         
@@ -105,8 +130,8 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         throw new Error(errorMessage);
       }
       
-      // Exponential backoff between retries
-      const backoffDelay = Math.min(1000 * Math.pow(2, i), 10000);
+      // Exponential backoff between retries with a shorter maximum delay
+      const backoffDelay = Math.min(1000 * Math.pow(2, i), 5000);
       console.log(`[FetchService] Waiting ${backoffDelay}ms before next attempt`);
       await new Promise(resolve => setTimeout(resolve, backoffDelay));
     }
@@ -126,4 +151,3 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
     throw error;
   }
 }
-
