@@ -22,7 +22,7 @@ export function AlertsList({ alerts }: AlertsListProps) {
             {alert.metric_name} Alert
           </AlertTitle>
           <AlertDescription className="ml-2">
-            Current value: {alert.current_value}% (Threshold: {alert.threshold_value}%)
+            Current value: {alert.current_value} (Threshold: {alert.threshold_value})
           </AlertDescription>
         </Alert>
       ))}

@@ -654,6 +654,87 @@ export type Database = {
         }
         Relationships: []
       }
+      monitoring_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          current_value: number
+          id: number
+          metric_name: string
+          threshold_value: number
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          current_value: number
+          id?: number
+          metric_name: string
+          threshold_value: number
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          current_value?: number
+          id?: number
+          metric_name?: string
+          threshold_value?: number
+        }
+        Relationships: []
+      }
+      monitoring_errors: {
+        Row: {
+          affected_urls: string[] | null
+          created_at: string | null
+          error_count: number
+          id: number
+          time_bucket: string
+          unique_errors: string
+        }
+        Insert: {
+          affected_urls?: string[] | null
+          created_at?: string | null
+          error_count?: number
+          id?: number
+          time_bucket: string
+          unique_errors: string
+        }
+        Update: {
+          affected_urls?: string[] | null
+          created_at?: string | null
+          error_count?: number
+          id?: number
+          time_bucket?: string
+          unique_errors?: string
+        }
+        Relationships: []
+      }
+      monitoring_providers: {
+        Row: {
+          created_at: string | null
+          detection_count: number
+          detection_rate: number
+          id: number
+          provider_name: string
+          unique_sites: number
+        }
+        Insert: {
+          created_at?: string | null
+          detection_count?: number
+          detection_rate?: number
+          id?: number
+          provider_name: string
+          unique_sites?: number
+        }
+        Update: {
+          created_at?: string | null
+          detection_count?: number
+          detection_rate?: number
+          id?: number
+          provider_name?: string
+          unique_sites?: number
+        }
+        Relationships: []
+      }
       place_details: {
         Row: {
           address: string | null
@@ -1120,15 +1201,23 @@ export type Database = {
         }
         Returns: undefined
       }
-      get_performance_metrics: {
-        Args: {
-          time_window?: unknown
-        }
-        Returns: {
-          metric_name: string
-          metric_value: number
-        }[]
-      }
+      get_performance_metrics:
+        | {
+            Args: Record<PropertyKey, never>
+            Returns: {
+              metric_name: string
+              metric_value: number
+            }[]
+          }
+        | {
+            Args: {
+              time_window?: unknown
+            }
+            Returns: {
+              metric_name: string
+              metric_value: number
+            }[]
+          }
       get_user_status: {
         Args: {
           user_uid: string
