@@ -14,18 +14,6 @@ serve(async (req) => {
     });
   }
 
-  // Validate origin
-  const origin = req.headers.get('origin');
-  if (origin !== 'https://detectify.engageai.pro') {
-    return new Response(
-      JSON.stringify({ error: 'Origin not allowed', status: 'error' }),
-      { 
-        headers: corsHeaders,
-        status: 403
-      }
-    );
-  }
-
   let executionId: string | null = null;
   let supabaseClient: ReturnType<typeof createClient>;
 
