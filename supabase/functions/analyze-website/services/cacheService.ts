@@ -14,10 +14,10 @@ export async function getCachedAnalysis(url: string): Promise<ChatDetectionResul
     console.log('[CacheService] Checking cache for URL:', url);
     
     const { data, error } = await supabase
-      .from('analysis_cache')
+      .from('url_analysis_cache')
       .select('*')
       .eq('url', url)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('[CacheService] Error fetching from cache:', error);
@@ -60,15 +60,14 @@ export async function updateCache(
     console.log('[CacheService] Updating cache for URL:', url);
     
     const { error } = await supabase
-      .from('analysis_cache')
+      .from('url_analysis_cache')
       .upsert({
         url,
         has_chatbot,
         chatbot_solutions: chatSolutions,
         details,
-        last_checked: new Date().toISOString()
-      }, {
-        onConflict: 'url'
+        last_checked: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
 
     if (error) {

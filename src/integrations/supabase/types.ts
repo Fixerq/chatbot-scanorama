@@ -1274,6 +1274,36 @@ export type Database = {
         }
         Relationships: []
       }
+      url_analysis_cache: {
+        Row: {
+          chatbot_solutions: string[] | null
+          created_at: string | null
+          details: Json | null
+          has_chatbot: boolean | null
+          last_checked: string | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          details?: Json | null
+          has_chatbot?: boolean | null
+          last_checked?: string | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          details?: Json | null
+          has_chatbot?: boolean | null
+          last_checked?: string | null
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       admin_users_mv: {
@@ -1544,6 +1574,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_stuck_analyses: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_url_analysis_cache: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
