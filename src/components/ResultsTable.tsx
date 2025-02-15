@@ -44,29 +44,41 @@ const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => 
   return (
     <div className="w-full overflow-x-auto">
       <Table>
-        <TableCaption>Recent search results.</TableCaption>
+        <TableCaption className="text-muted-foreground">Recent search results.</TableCaption>
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">Status</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>URL</TableHead>
+          <TableRow className="border-white/10">
+            <TableHead className="w-[100px] text-white/70">Status</TableHead>
+            <TableHead className="text-white/70">Title</TableHead>
+            <TableHead className="text-white/70">URL</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {results.map((result, i) => {
             const { displayUrl } = formatUrl(result.url);
             return (
-              <TableRow key={i}>
+              <TableRow 
+                key={i} 
+                className="border-white/10 hover:bg-white/5 transition-colors"
+              >
                 <TableCell>
                   {result.error ? (
-                    <Badge variant="destructive">Error</Badge>
+                    <Badge variant="destructive" className="bg-red-500/20 text-red-300">
+                      Error
+                    </Badge>
                   ) : (
-                    <Badge variant="secondary">OK</Badge>
+                    <Badge variant="secondary" className="bg-green-500/20 text-green-300">
+                      OK
+                    </Badge>
                   )}
                 </TableCell>
-                <TableCell>{result.title}</TableCell>
+                <TableCell className="font-medium text-white/90">{result.title}</TableCell>
                 <TableCell>
-                  <a href={result.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  <a 
+                    href={result.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
+                  >
                     {displayUrl}
                   </a>
                 </TableCell>
@@ -75,7 +87,7 @@ const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => 
           })}
           {(processing || isLoading) && (
             <TableRow>
-              <TableCell colSpan={3} className="text-center">
+              <TableCell colSpan={3} className="text-center text-muted-foreground">
                 Processing...
               </TableCell>
             </TableRow>
@@ -87,3 +99,4 @@ const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => 
 };
 
 export default ResultsTable;
+
