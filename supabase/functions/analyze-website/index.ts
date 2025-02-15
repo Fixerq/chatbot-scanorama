@@ -77,7 +77,7 @@ serve(async (req) => {
     console.log('[Handler] Processing URL:', url);
 
     // Process URL and log the results
-    const { cleanUrl, urlObj } = await processUrl(url);
+    const { cleanUrl } = await processUrl(url);
     console.log('[Handler] Processed URLs:', { cleanUrl, originalUrl: url });
 
     // Update analysis request status to processing
@@ -96,6 +96,23 @@ serve(async (req) => {
 
     console.log('[Handler] Starting website analysis for:', cleanUrl);
     const result = await websiteAnalyzer(cleanUrl);
+
+    // First save to analysis_results
+    const { error: analysisError } = await supabaseClient
+      .from('analysis_results')
+      .insert({
+        url: cleanUrl, // Using the cleaned URL
+        has_chatbot: result.has_chatbot,
+        chatbot_solutions: result.chatSolutions,
+        details: result.details,
+        status: 'completed',
+        last_checked: new Date().toISOString()
+      });
+
+    if (analysisError) {
+      console.error('[Handler] Error saving analysis result:', analysisError);
+      throw new Error(`Failed to save analysis result: ${analysisError.message}`);
+    }
 
     console.log('[Handler] Analysis completed successfully:', result);
 

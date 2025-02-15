@@ -9,9 +9,9 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-export async function websiteAnalyzer(html: string, userId: string, url: string): Promise<ChatDetectionResult> {
+export async function websiteAnalyzer(html: string): Promise<ChatDetectionResult> {
   try {
-    console.log('[WebsiteAnalyzer] Analyzing HTML content for URL:', url);
+    console.log('[WebsiteAnalyzer] Analyzing HTML content');
     
     const dynamic = detectDynamicLoading(html);
     const elements = detectChatElements(html);
@@ -40,37 +40,8 @@ export async function websiteAnalyzer(html: string, userId: string, url: string)
       lastChecked: new Date().toISOString()
     };
 
-    // Save analysis result to the database with match details and status
-    const { error: insertError } = await supabase
-      .from('analysis_results')
-      .insert({
-        url,
-        user_id: userId,
-        has_chatbot: result.has_chatbot,
-        chatbot_solutions: result.chatSolutions,
-        details: result.details,
-        match_details: {
-          matchTypes: {
-            dynamic,
-            elements,
-            meta,
-            websockets
-          },
-          matches: detailedMatches.map(match => ({
-            type: match.type,
-            pattern: match.pattern.toString(),
-            matched: match.matched || null
-          }))
-        },
-        last_checked: result.lastChecked,
-        status: 'completed'
-      });
-
-    if (insertError) {
-      console.error('[WebsiteAnalyzer] Error saving analysis result:', insertError);
-      throw new Error(`Failed to save analysis result: ${insertError.message}`);
-    }
-
+    // Note: We'll now store these results in analysis_results through the main handler
+    // since that's where we have access to the URL and user context
     return result;
   } catch (error) {
     console.error('[WebsiteAnalyzer] Analysis error:', error);
