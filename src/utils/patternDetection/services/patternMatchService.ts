@@ -41,10 +41,6 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
           void supabase.rpc('update_pattern_metrics', { 
             p_pattern: patternObj.pattern.toString(),
             p_matched: true 
-          }).then(() => {
-            // Successful update
-          }).catch(err => {
-            console.error('[PatternDetection] Error updating pattern metrics:', err);
           });
 
           return {
@@ -54,17 +50,13 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
             confidence: patternObj.confidence,
             category: patternObj.category,
             subcategory: patternObj.subcategory
-          } satisfies PatternMatchResult;
+          } as PatternMatchResult;
         }
 
         // Update pattern metrics for unsuccessful match
         void supabase.rpc('update_pattern_metrics', { 
           p_pattern: patternObj.pattern.toString(),
           p_matched: false
-        }).then(() => {
-          // Successful update
-        }).catch(err => {
-          console.error('[PatternDetection] Error updating pattern metrics:', err);
         });
 
         return null;

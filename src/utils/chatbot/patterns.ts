@@ -53,12 +53,6 @@ export const analyzeChatbotPresence = async (html: string): Promise<ChatDetectio
         .rpc('update_pattern_metrics', { 
           p_pattern: match.pattern,
           p_matched: Boolean(match.matched)
-        })
-        .then(() => {
-          // Successful update
-        })
-        .catch(err => {
-          console.error('[ChatbotPatterns] Error updating pattern metrics:', err);
         });
     }
 

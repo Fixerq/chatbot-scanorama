@@ -16,7 +16,7 @@ export interface MatchType {
 }
 
 export interface PatternMatchResult {
-  type: string;
+  type: 'dynamic' | 'element' | 'meta' | 'websocket';
   pattern: string;
   matched?: string;
   confidence?: number;
