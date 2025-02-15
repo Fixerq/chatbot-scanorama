@@ -38,24 +38,31 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
           );
 
           // Update pattern metrics for successful match
-          supabase.rpc('update_pattern_metrics', { 
+          void supabase.rpc('update_pattern_metrics', { 
             p_pattern: patternObj.pattern.toString(),
             p_matched: true 
+          }).then(() => {
+            // Successful update
           }).catch(err => {
             console.error('[PatternDetection] Error updating pattern metrics:', err);
           });
 
           return {
-            ...patternObj,
+            type: patternObj.type,
+            pattern: patternObj.pattern.toString(),
             matched: match[0],
-            pattern: patternObj.pattern.toString()
-          };
+            confidence: patternObj.confidence,
+            category: patternObj.category,
+            subcategory: patternObj.subcategory
+          } satisfies PatternMatchResult;
         }
 
         // Update pattern metrics for unsuccessful match
-        supabase.rpc('update_pattern_metrics', { 
+        void supabase.rpc('update_pattern_metrics', { 
           p_pattern: patternObj.pattern.toString(),
           p_matched: false
+        }).then(() => {
+          // Successful update
         }).catch(err => {
           console.error('[PatternDetection] Error updating pattern metrics:', err);
         });
@@ -64,7 +71,7 @@ export async function getDetailedMatches(html: string): Promise<PatternMatchResu
       } catch (error) {
         console.error('[PatternDetection] Error testing pattern:', {
           pattern: patternObj.pattern.toString(),
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
         return null;
       }

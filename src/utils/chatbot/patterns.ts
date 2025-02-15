@@ -35,35 +35,37 @@ export const analyzeChatbotPresence = async (html: string): Promise<ChatDetectio
   }
 
   try {
-    const { hasChat, matches } = await detectChatElements(html);
+    const result = await detectChatElements(html);
 
     // Group matches by type
     const matchTypes = {
-      dynamic: matches.some(m => m.type === 'dynamic'),
-      elements: matches.some(m => m.type === 'element'),
-      meta: matches.some(m => m.type === 'meta'),
-      websockets: matches.some(m => m.type === 'websocket')
+      dynamic: result.matches.some(m => m.type === 'dynamic'),
+      elements: result.matches.some(m => m.type === 'element'),
+      meta: result.matches.some(m => m.type === 'meta'),
+      websockets: result.matches.some(m => m.type === 'websocket')
     };
 
     // Update pattern metrics in the database
-    for (const match of matches) {
+    for (const match of result.matches) {
       if (!match.pattern) continue;
 
-      const { error } = await supabase
+      void supabase
         .rpc('update_pattern_metrics', { 
           p_pattern: match.pattern,
           p_matched: Boolean(match.matched)
+        })
+        .then(() => {
+          // Successful update
+        })
+        .catch(err => {
+          console.error('[ChatbotPatterns] Error updating pattern metrics:', err);
         });
-
-      if (error) {
-        console.error('[ChatbotPatterns] Error updating pattern metrics:', error);
-      }
     }
 
     return {
-      hasChatbot: hasChat,
+      hasChatbot: result.hasChat,
       matchTypes,
-      matches
+      matches: result.matches
     };
 
   } catch (error) {
@@ -87,4 +89,3 @@ export const hasChatbotScript = async (html: string): Promise<boolean> => {
   const result = await analyzeChatbotPresence(html);
   return result.hasChatbot;
 };
-
