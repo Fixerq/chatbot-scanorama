@@ -8,6 +8,9 @@ import ResultsContent from './results/ResultsContent';
 import ResultsContainer from './results/ResultsContainer';
 import ResultsTable, { Result } from './ResultsTable';
 import EmptyResults from './results/EmptyResults';
+import { Database } from '@/integrations/supabase/types';
+
+type AnalysisRecord = Database['public']['Tables']['analysis_results']['Row'];
 
 interface ResultsProps {
   results: Result[];
@@ -53,18 +56,24 @@ const Results: React.FC<ResultsProps> = ({
         (payload) => {
           console.log('Received real-time update:', payload);
           if (onResultUpdate && payload.new) {
-            const updatedUrl = payload.new.url;
-            const resultToUpdate = results.find(r => r.url === updatedUrl);
+            const newAnalysis = payload.new as AnalysisRecord;
+            const resultToUpdate = results.find(r => r.url === newAnalysis.url);
             if (resultToUpdate) {
-              const updatedResult = {
+              const updatedResult: Result = {
                 ...resultToUpdate,
-                analysis_result: payload.new,
+                analysis_result: {
+                  has_chatbot: newAnalysis.has_chatbot,
+                  chatSolutions: newAnalysis.chatbot_solutions || [],
+                  status: newAnalysis.status,
+                  lastChecked: newAnalysis.last_checked,
+                  error: undefined
+                },
                 status: 'completed'
               };
               onResultUpdate(updatedResult);
               
-              if (payload.new.has_chatbot) {
-                toast.success(`Chatbot detected on ${updatedUrl}`);
+              if (newAnalysis.has_chatbot) {
+                toast.success(`Chatbot detected on ${newAnalysis.url}`);
               }
             }
           }
@@ -136,3 +145,4 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
+
