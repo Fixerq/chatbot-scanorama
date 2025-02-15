@@ -36,12 +36,7 @@ export async function checkRateLimit(supabaseClient: any, ip: string): Promise<b
       retryAfter: data.retry_after
     });
 
-    if (!allowed) {
-      console.log(`Rate limit exceeded for IP ${ip}. Reset at ${data.reset_at}`);
-      return false;
-    }
-
-    return true;
+    return allowed;
   } catch (error) {
     console.error('Failed to check rate limit:', error);
     // On unexpected error, allow the request to proceed

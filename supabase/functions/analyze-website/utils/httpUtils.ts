@@ -1,8 +1,10 @@
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Content-Type': 'application/json'
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-forwarded-for, x-real-ip',
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Max-Age': '86400'
 };
 
 export function getRealIp(req: Request): string {
@@ -26,4 +28,3 @@ export function handleCorsResponse(response: Response): Response {
   });
   return responseWithCors;
 }
-

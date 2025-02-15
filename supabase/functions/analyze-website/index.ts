@@ -19,7 +19,15 @@ serve(async (req) => {
   }
 
   try {
-    return await handleRequest(req);
+    const response = await handleRequest(req);
+    // Ensure CORS headers are applied to the response
+    return new Response(response.body, {
+      ...response,
+      headers: {
+        ...response.headers,
+        ...corsHeaders,
+      },
+    });
   } catch (error) {
     console.error('[AnalyzeWebsite] Unhandled error:', error);
     
