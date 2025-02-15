@@ -638,6 +638,8 @@ export type Database = {
           execution_time: string | null
           function_name: string
           id: string
+          request_body: Json | null
+          response_body: Json | null
           started_at: string
           status: string
         }
@@ -648,6 +650,8 @@ export type Database = {
           execution_time?: string | null
           function_name: string
           id?: string
+          request_body?: Json | null
+          response_body?: Json | null
           started_at?: string
           status: string
         }
@@ -658,6 +662,8 @@ export type Database = {
           execution_time?: string | null
           function_name?: string
           id?: string
+          request_body?: Json | null
+          response_body?: Json | null
           started_at?: string
           status?: string
         }

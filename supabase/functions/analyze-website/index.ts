@@ -47,13 +47,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Create execution record
+    // Create execution record with request body
     const { data: executionData, error: executionError } = await supabaseClient
       .from('function_executions')
       .insert({
         function_name: 'analyze-website',
         status: 'running',
-        request_body: parsedBody // Log the request body in the execution record
+        request_body: parsedBody
       })
       .select()
       .single();
@@ -67,7 +67,7 @@ serve(async (req) => {
     console.log('[Handler] Created execution record:', executionId);
 
     const { url, requestId } = parsedBody;
-    console.log('[Handler] Parsed URL and requestId:', { url, requestId });
+    console.log('[Handler] Parsing URL and requestId:', { url, requestId });
 
     if (!url || !requestId) {
       console.error('[Handler] Missing required fields:', { url, requestId });
@@ -94,8 +94,8 @@ serve(async (req) => {
       throw new Error('Failed to update request status');
     }
 
-    console.log('[Handler] Starting website analysis for:', url);
-    const result = await websiteAnalyzer(url);
+    console.log('[Handler] Starting website analysis for:', cleanUrl);
+    const result = await websiteAnalyzer(cleanUrl);
 
     console.log('[Handler] Analysis completed successfully:', result);
 
@@ -114,7 +114,7 @@ serve(async (req) => {
       throw new Error('Failed to update analysis results');
     }
 
-    // Update execution record
+    // Update execution record with response data
     if (executionId) {
       const endTime = new Date();
       const { error: completionError } = await supabaseClient
@@ -152,7 +152,8 @@ serve(async (req) => {
           .update({
             status: 'failed',
             completed_at: endTime.toISOString(),
-            error_message: errorMessage
+            error_message: errorMessage,
+            response_body: { error: errorMessage, status: 'error' }
           })
           .eq('id', executionId);
       }
