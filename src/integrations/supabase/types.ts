@@ -509,31 +509,52 @@ export type Database = {
       }
       chatbot_detection_patterns: {
         Row: {
+          category: string
           confidence_score: number
           created_at: string
           enabled: boolean
+          examples: Json | null
+          false_positive_count: number | null
           id: string
+          last_match_date: string | null
+          match_count: number | null
           pattern_type: string
           pattern_value: string
+          subcategory: string | null
           updated_at: string
+          validation_rules: Json | null
         }
         Insert: {
+          category?: string
           confidence_score?: number
           created_at?: string
           enabled?: boolean
+          examples?: Json | null
+          false_positive_count?: number | null
           id?: string
+          last_match_date?: string | null
+          match_count?: number | null
           pattern_type: string
           pattern_value: string
+          subcategory?: string | null
           updated_at?: string
+          validation_rules?: Json | null
         }
         Update: {
+          category?: string
           confidence_score?: number
           created_at?: string
           enabled?: boolean
+          examples?: Json | null
+          false_positive_count?: number | null
           id?: string
+          last_match_date?: string | null
+          match_count?: number | null
           pattern_type?: string
           pattern_value?: string
+          subcategory?: string | null
           updated_at?: string
+          validation_rules?: Json | null
         }
         Relationships: []
       }
@@ -1289,6 +1310,48 @@ export type Database = {
           id?: string | null
           status?: Database["public"]["Enums"]["analysis_status"] | null
           url?: string | null
+        }
+        Relationships: []
+      }
+      pattern_performance_metrics: {
+        Row: {
+          accuracy_score: number | null
+          category: string | null
+          confidence_score: number | null
+          enabled: boolean | null
+          false_positive_count: number | null
+          id: string | null
+          last_match_date: string | null
+          match_count: number | null
+          pattern_type: string | null
+          pattern_value: string | null
+          subcategory: string | null
+        }
+        Insert: {
+          accuracy_score?: never
+          category?: string | null
+          confidence_score?: number | null
+          enabled?: boolean | null
+          false_positive_count?: number | null
+          id?: string | null
+          last_match_date?: string | null
+          match_count?: number | null
+          pattern_type?: string | null
+          pattern_value?: string | null
+          subcategory?: string | null
+        }
+        Update: {
+          accuracy_score?: never
+          category?: string | null
+          confidence_score?: number | null
+          enabled?: boolean | null
+          false_positive_count?: number | null
+          id?: string | null
+          last_match_date?: string | null
+          match_count?: number | null
+          pattern_type?: string | null
+          pattern_value?: string | null
+          subcategory?: string | null
         }
         Relationships: []
       }
