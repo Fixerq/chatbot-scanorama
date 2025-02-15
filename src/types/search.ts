@@ -27,7 +27,10 @@ export interface SearchResult {
     address?: string;
     businessType?: string;
     phoneNumber?: string;
-    search_batch_id?: string;
+    search_batch_id: string; // Changed from optional to required
+    business_name?: string;
+    website_url?: string;
+    [key: string]: any; // Added to match Result interface
   };
 }
 
@@ -38,3 +41,4 @@ export interface SearchResponse {
     searchBatchId: string;
   };
 }
+

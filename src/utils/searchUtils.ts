@@ -59,13 +59,21 @@ export const performSearch = async (
     console.log('Raw search results:', searchResult.results.length);
     
     // Filter out blocked URLs and excluded domains
-    const filteredResults = searchResult.results.filter(result => {
-      const blocked = isUrlBlocked(result.url);
-      if (blocked) {
-        console.log('Filtered out URL:', result.url);
-      }
-      return !blocked;
-    });
+    const filteredResults = searchResult.results
+      .filter(result => {
+        const blocked = isUrlBlocked(result.url);
+        if (blocked) {
+          console.log('Filtered out URL:', result.url);
+        }
+        return !blocked;
+      })
+      .map(result => ({
+        ...result,
+        details: {
+          ...result.details,
+          search_batch_id: searchResult.searchBatchId // Ensure search_batch_id is always set
+        }
+      }));
 
     console.log('Filtered results:', filteredResults.length);
 
@@ -80,7 +88,7 @@ export const performSearch = async (
     toast.success(`Found ${limitedResults.length} results to analyze`);
 
     return { 
-      results: limitedResults,
+      results: limitedResults as Result[],
       hasMore: hasMore
     };
   } catch (error) {
@@ -108,13 +116,20 @@ export const loadMoreResults = async (
       return null;
     }
 
-    // Filter out blocked URLs and excluded domains
+    // Filter out blocked URLs and excluded domains and ensure search_batch_id is set
     const newResults = searchResult.results
       .filter(result => !isUrlBlocked(result.url))
-      .filter(newResult => !currentResults.some(existing => existing.url === newResult.url));
+      .filter(newResult => !currentResults.some(existing => existing.url === newResult.url))
+      .map(result => ({
+        ...result,
+        details: {
+          ...result.details,
+          search_batch_id: searchResult.searchBatchId // Ensure search_batch_id is always set
+        }
+      }));
 
     return { 
-      newResults,
+      newResults: newResults as Result[],
       hasMore: searchResult.hasMore
     };
   } catch (error) {
@@ -123,3 +138,4 @@ export const loadMoreResults = async (
     return null;
   }
 };
+
