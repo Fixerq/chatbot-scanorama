@@ -6,7 +6,7 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
   
   for (let i = 0; i < retries; i++) {
     try {
-      const timeout = 20000; // Reduce timeout to 20 seconds to prevent resource exhaustion
+      const timeout = 20000; // Keep short timeout to prevent resource exhaustion
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -14,12 +14,12 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip',  // Simplified encoding support
+        'Accept-Encoding': 'gzip',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
-        'DNT': '1'  // Do Not Track header to potentially bypass some restrictions
+        'DNT': '1'
       };
 
       const fetchOptions: RequestInit = {
@@ -27,7 +27,6 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         headers,
         redirect: 'follow',
         signal: controller.signal,
-        // Set reasonable limits
         keepalive: false,
         referrerPolicy: 'no-referrer'
       };
@@ -42,7 +41,6 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
               url, 
               options: {
                 ...fetchOptions,
-                // Don't pass signal through proxy
                 signal: undefined
               }
             })
@@ -62,12 +60,11 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
 
       console.log(`[FetchService] Attempt ${i + 1}: Direct fetch for URL: ${url}`);
       
-      // Try different protocols and variations
       const attempts = [
         () => fetch(url.replace(/^http:/, 'https:'), fetchOptions),
         () => fetch(url.replace(/^https:/, 'http:'), fetchOptions),
         () => fetch(url.toLowerCase(), fetchOptions),
-        () => fetch(url.replace(/\/$/, ''), fetchOptions) // Try without trailing slash
+        () => fetch(url.replace(/\/$/, ''), fetchOptions)
       ];
 
       let response: Response | null = null;
@@ -92,7 +89,6 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // Follow up to 3 redirects manually if needed (reduced from 5)
       let redirectCount = 0;
       let currentResponse = response;
       
@@ -102,7 +98,6 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         
         console.log(`[FetchService] Following redirect ${redirectCount + 1} to: ${redirectUrl}`);
         
-        // Handle relative redirects
         const nextUrl = redirectUrl.startsWith('http') ? redirectUrl : new URL(redirectUrl, url).toString();
         currentResponse = await fetch(nextUrl, fetchOptions);
         redirectCount++;
@@ -113,7 +108,6 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
       console.error(`[FetchService] Attempt ${i + 1} failed:`, error);
       lastError = error;
       
-      // Log specific error types for better debugging
       if (error.name === 'AbortError') {
         console.log('[FetchService] Request timed out');
       } else if (error.cause?.code === 'ECONNREFUSED') {
@@ -130,7 +124,6 @@ async function fetchWithRetry(url: string, proxyUrl?: string, retries = 3): Prom
         throw new Error(errorMessage);
       }
       
-      // Exponential backoff between retries with a shorter maximum delay
       const backoffDelay = Math.min(1000 * Math.pow(2, i), 5000);
       console.log(`[FetchService] Waiting ${backoffDelay}ms before next attempt`);
       await new Promise(resolve => setTimeout(resolve, backoffDelay));

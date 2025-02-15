@@ -801,6 +801,36 @@ export type Database = {
         }
         Relationships: []
       }
+      proxy_pool: {
+        Row: {
+          created_at: string | null
+          failure_count: number | null
+          id: string
+          is_active: boolean | null
+          proxy_url: string
+          success_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          proxy_url: string
+          success_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          proxy_url?: string
+          success_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           id: number
@@ -1230,6 +1260,13 @@ export type Database = {
           user_id_param: string
         }
         Returns: undefined
+      }
+      get_next_available_proxy: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          proxy_id: string
+          proxy_url: string
+        }[]
       }
       get_performance_metrics:
         | {
