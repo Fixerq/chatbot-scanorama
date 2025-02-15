@@ -1,3 +1,4 @@
+
 import { normalizeUrl } from '../utils/urlUtils.ts';
 
 interface ProcessedUrl {
@@ -20,30 +21,23 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
   try {
     console.log('[URL Processor] Starting URL processing for:', url);
     
-    // Normalize and clean the URL first
-    const cleanUrl = url.trim().replace(/\/$/, '');
-    if (!cleanUrl) {
-      console.error('[URL Processor] Empty URL provided');
-      throw new Error('URL cannot be empty');
-    }
-
-    // Create URL object (will throw if invalid)
-    console.log('[URL Processor] Attempting to create URL object for:', cleanUrl);
-    const urlObj = new URL(cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`);
-    
-    // Important: We keep the original hostname and don't modify it
-    const normalizedUrl = normalizeUrl(urlObj.toString());
+    // Get normalized URL first to clean it up
+    const normalizedUrl = normalizeUrl(url);
     console.log('[URL Processor] Normalized URL:', normalizedUrl);
     
+    // Create URL object from normalized URL
+    const urlObj = new URL(normalizedUrl);
+    
     // Don't block the actual business URLs, only block if they are direct Google domain URLs
-    if (BLOCKED_DOMAINS.some(domain => urlObj.hostname === domain)) {
-      console.log('[URL Processor] Blocked domain detected:', urlObj.hostname);
-      throw new Error(`Domain ${urlObj.hostname} cannot be analyzed`);
+    const rootDomain = urlObj.hostname.toLowerCase();
+    if (BLOCKED_DOMAINS.some(domain => rootDomain === domain)) {
+      console.log('[URL Processor] Blocked domain detected:', rootDomain);
+      throw new Error(`Domain ${rootDomain} cannot be analyzed`);
     }
 
     return {
       cleanUrl: normalizedUrl,
-      urlObj: new URL(normalizedUrl)
+      urlObj: urlObj
     };
   } catch (error) {
     console.error('[URL Processor] Error processing URL:', error);

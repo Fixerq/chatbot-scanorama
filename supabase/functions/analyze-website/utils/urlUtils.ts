@@ -15,6 +15,9 @@ export function normalizeUrl(url: string): string {
     // Remove any extra colons from hostname
     urlObj.hostname = urlObj.hostname.replace(/:/g, '');
     
+    // Remove www. prefix
+    urlObj.hostname = urlObj.hostname.replace(/^www\./, '');
+    
     // Remove query parameters and hash
     urlObj.search = '';
     urlObj.hash = '';
@@ -25,11 +28,11 @@ export function normalizeUrl(url: string): string {
     // Clean up double slashes (except after protocol)
     let finalUrl = urlObj.toString().replace(/([^:]\/)\/+/g, '$1');
     
-    console.log('Normalized URL:', finalUrl);
+    console.log('[URL Utils] Original URL:', url);
+    console.log('[URL Utils] Normalized URL:', finalUrl);
     return finalUrl;
   } catch (error) {
-    console.error('URL normalization error:', error);
+    console.error('[URL Utils] URL normalization error:', error);
     throw new Error('Invalid URL format');
   }
 }
-
