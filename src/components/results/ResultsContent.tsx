@@ -31,15 +31,12 @@ const ResultsContent = ({
   onLoadMore,
   isLoadingMore = false
 }: ResultsContentProps) => {
-  // Less strict filtering to show results even with partial failures
   const validResults = results.filter(r => {
     const hasValidStatus = r.status !== undefined;
-    const hasDetails = Boolean(r.details) || Boolean(r.chatbot_solutions);
-    // Include results that have either valid status or details
+    const hasDetails = Boolean(r.details);
     return hasValidStatus || hasDetails;
   });
 
-  // Show empty state only if there are truly no results
   if (!results || results.length === 0) {
     return (
       <EmptyResults 

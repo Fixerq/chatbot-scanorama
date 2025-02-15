@@ -35,8 +35,6 @@ const ResultsContainer = ({
     handleSort
   } = useResultsState(results);
 
-  const chatbotCount = results.filter(r => r.details?.chatSolutions?.length > 0).length;
-
   return (
     <div className="mt-12 space-y-6">
       <div className="flex items-center justify-between mb-8">
@@ -49,7 +47,7 @@ const ResultsContainer = ({
         <ResultsHeader
           results={results}
           totalCount={results.length}
-          chatbotCount={chatbotCount}
+          chatbotCount={0}
           onNewSearch={onNewSearch}
           onExport={onExport}
         />

@@ -31,8 +31,8 @@ const BookmarkButton = ({ results }: BookmarkButtonProps) => {
       details: {
         business_name: result.details?.business_name,
         description: result.details?.description,
-        lastChecked: result.details?.lastChecked,
-        chatSolutions: result.details?.chatSolutions
+        address: result.details?.address,
+        website_url: result.details?.website_url
       }
     }));
 

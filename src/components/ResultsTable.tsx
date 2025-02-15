@@ -1,9 +1,8 @@
 
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatChatbotProviders, getBusinessName } from '@/utils/analysisFormatter';
+import { getBusinessName } from '@/utils/analysisFormatter';
 import ResultUrlCell from './results/ResultUrlCell';
-import ResultStatusCell from './results/ResultStatusCell';
 
 export interface Result {
   url: string;
@@ -20,7 +19,6 @@ export interface Result {
   };
   status?: string;
   nextPageToken?: string;
-  lastChecked?: string;
   error?: string;
 }
 

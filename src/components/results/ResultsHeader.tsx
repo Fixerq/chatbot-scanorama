@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { RefreshCw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import BookmarkButton from '../BookmarkButton';
 import { Result } from '../ResultsTable';
 import Papa from 'papaparse';
 import { toast } from 'sonner';
+
 interface ResultsHeaderProps {
   results: Result[];
   totalCount: number;
@@ -12,10 +14,10 @@ interface ResultsHeaderProps {
   onNewSearch: () => void;
   onExport: () => void;
 }
+
 const ResultsHeader = ({
   results,
   totalCount,
-  chatbotCount,
   onNewSearch,
   onExport
 }: ResultsHeaderProps) => {
@@ -24,10 +26,10 @@ const ResultsHeader = ({
       const csvData = results.map(result => ({
         URL: result.url,
         'Business Name': result.details?.business_name || 'N/A',
-        'Technologies': result.details?.chatSolutions?.join(', ') || 'No chatbot detected',
-        'Last Checked': result.details?.lastChecked ? new Date(result.details.lastChecked).toLocaleString() : 'N/A',
-        Status: result.status || 'N/A'
+        'Status': result.status || 'N/A',
+        'Address': result.details?.address || 'N/A'
       }));
+
       const csv = Papa.unparse(csvData);
       const blob = new Blob([csv], {
         type: 'text/csv;charset=utf-8;'
@@ -35,7 +37,7 @@ const ResultsHeader = ({
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `detectify-results-${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `business-results-${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -46,13 +48,12 @@ const ResultsHeader = ({
       toast.error('Failed to export results');
     }
   };
-  return <div className="flex items-center justify-between">
+
+  return (
+    <div className="flex items-center justify-between">
       <div className="space-y-2 py-0 px-[10px]">
         <p className="text-sm text-cyan-200/70">
-          Found {totalCount} website{totalCount !== 1 ? 's' : ''}
-        </p>
-        <p className="text-xs text-cyan-300/60">
-          {chatbotCount} sites with chatbots detected
+          Found {totalCount} business{totalCount !== 1 ? 'es' : ''}
         </p>
       </div>
       <div className="space-x-3">
@@ -66,6 +67,8 @@ const ResultsHeader = ({
           Export Results
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default ResultsHeader;
