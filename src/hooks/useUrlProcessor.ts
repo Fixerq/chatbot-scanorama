@@ -49,7 +49,7 @@ export const useUrlProcessor = () => {
       }));
 
       // Filter out any failed requests
-      const validRequests = requests.filter(Boolean);
+      const validRequests = requests.filter((request): request is { url: string; requestId: string } => request !== null);
 
       // Call the analyze-website function for each valid request
       await Promise.all(validRequests.map(async (request) => {
