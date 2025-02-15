@@ -2,8 +2,7 @@
 import { basicChatPatterns } from './basicPatterns';
 import { platformPatterns } from './platformPatterns';
 import { elementPatterns } from './elementPatterns';
-// Importing from the local module path instead of the Edge Function path
-import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../../utils/patternDetection';
+import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets, getDetailedMatches } from '../patternDetection';
 
 export const chatbotPatterns = [
   ...basicChatPatterns,
@@ -63,3 +62,4 @@ export const hasChatbotScript = (html: string): boolean => {
   const result = analyzeChatbotPresence(html);
   return result.hasChatbot;
 };
+
