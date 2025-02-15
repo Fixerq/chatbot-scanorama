@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Result } from '../ResultsTable';
 import ResultsTable from '../ResultsTable';
 import EmptyResults from './EmptyResults';
@@ -21,6 +21,7 @@ interface ResultsContentProps {
   hasMore?: boolean;
   onLoadMore?: (currentPage: number) => void;
   isLoadingMore?: boolean;
+  children: ReactNode;
 }
 
 const ResultsContent = ({
@@ -29,7 +30,8 @@ const ResultsContent = ({
   setLocalPage,
   hasMore = false,
   onLoadMore,
-  isLoadingMore = false
+  isLoadingMore = false,
+  children
 }: ResultsContentProps) => {
   const validResults = results.filter(r => {
     const hasValidStatus = r.status !== undefined;
@@ -61,10 +63,7 @@ const ResultsContent = ({
   return (
     <>
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
-        <ResultsTable 
-          results={displayedResults}
-          isLoading={isLoadingMore}
-        />
+        {children}
       </div>
       
       {hasMore && (

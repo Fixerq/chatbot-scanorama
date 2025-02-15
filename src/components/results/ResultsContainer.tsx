@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Result } from '../ResultsTable';
 import ResultsHeader from './ResultsHeader';
 import ResultsFilters from './ResultsFilters';
@@ -14,6 +14,7 @@ interface ResultsContainerProps {
   onLoadMore?: (currentPage: number) => void;
   isLoadingMore?: boolean;
   currentPage?: number;
+  children: ReactNode;
 }
 
 const ResultsContainer = ({
@@ -23,7 +24,8 @@ const ResultsContainer = ({
   hasMore = false,
   onLoadMore,
   isLoadingMore = false,
-  currentPage = 1
+  currentPage = 1,
+  children
 }: ResultsContainerProps) => {
   const {
     filteredResults,
@@ -52,14 +54,7 @@ const ResultsContainer = ({
           onExport={onExport}
         />
       </div>
-      <ResultsContent
-        results={filteredResults}
-        localPage={localPage}
-        setLocalPage={setLocalPage}
-        hasMore={hasMore}
-        onLoadMore={onLoadMore}
-        isLoadingMore={isLoadingMore}
-      />
+      {children}
     </div>
   );
 };
