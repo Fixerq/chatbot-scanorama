@@ -1,6 +1,6 @@
 
 /**
- * Normalizes a URL by removing trailing slashes and converting to lowercase
+ * Normalizes a URL by removing all query parameters and converting to lowercase
  */
 export function normalizeUrl(url: string): string {
   try {
@@ -13,11 +13,11 @@ export function normalizeUrl(url: string): string {
     // Create URL object to parse the URL properly
     const urlObj = new URL(url);
     
-    // Get root domain by removing www. prefix
+    // Get root domain by removing www. prefix and any query parameters
     const rootDomain = urlObj.hostname.replace(/^www\./, '').toLowerCase();
     
-    // Construct normalized URL with just protocol and root domain
-    const normalized = `${urlObj.protocol}//${rootDomain}`;
+    // Always use https as the protocol for consistency
+    const normalized = `https://${rootDomain}`;
     
     console.log('[URL Utils] Normalized URL:', normalized);
     return normalized;

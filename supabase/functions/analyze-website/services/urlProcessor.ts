@@ -1,3 +1,6 @@
+
+import { normalizeUrl } from '../utils/urlUtils.ts';
+
 const BLOCKED_DOMAINS = [
   'google.com',
   'gmail.com',
@@ -16,40 +19,24 @@ export async function processUrl(url: string): Promise<{ cleanUrl: string; urlOb
       throw new Error('URL cannot be empty');
     }
 
-    // First, try to create a URL object to validate the URL
-    let urlObj: URL;
-    try {
-      urlObj = new URL(url);
-    } catch {
-      // If URL parsing fails, try prepending https:// and retry
-      if (!url.match(/^https?:\/\//i)) {
-        console.log('[URL Processor] Adding https:// prefix to URL');
-        urlObj = new URL(`https://${url}`);
-      } else {
-        throw new Error('Invalid URL format');
-      }
-    }
+    // First normalize the URL to remove query parameters and ensure consistent format
+    const cleanUrl = normalizeUrl(url);
+    console.log('[URL Processor] Normalized URL:', cleanUrl);
     
-    console.log('[URL Processor] Valid URL object created:', urlObj.toString());
+    // Create URL object from the cleaned URL
+    const urlObj = new URL(cleanUrl);
     
-    // Extract root domain by removing www. prefix and keeping only hostname
-    const rootDomain = urlObj.hostname.replace(/^www\./, '');
-    console.log('[URL Processor] Extracted root domain:', rootDomain);
-
-    // Reconstruct the URL with only the root domain
-    const cleanUrl = `${urlObj.protocol}//${rootDomain}`;
-    console.log('[URL Processor] Using root domain URL:', cleanUrl);
-
-    // Check blocked domains
-    const normalizedRootDomain = rootDomain.toLowerCase();
-    if (BLOCKED_DOMAINS.includes(normalizedRootDomain)) {
-      console.log('[URL Processor] Blocked domain detected:', normalizedRootDomain);
-      throw new Error(`Domain ${normalizedRootDomain} cannot be analyzed`);
+    // Extract root domain for blocked domain check
+    const rootDomain = urlObj.hostname.toLowerCase();
+    
+    if (BLOCKED_DOMAINS.includes(rootDomain)) {
+      console.log('[URL Processor] Blocked domain detected:', rootDomain);
+      throw new Error(`Domain ${rootDomain} cannot be analyzed`);
     }
 
     return {
       cleanUrl,
-      urlObj: new URL(cleanUrl)
+      urlObj
     };
   } catch (error) {
     console.error('[URL Processor] Error processing URL:', error);
