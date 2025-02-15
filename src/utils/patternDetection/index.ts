@@ -103,20 +103,23 @@ export function getDetailedMatches(html: string): PatternMatch[] {
       ...WEBSOCKET_PATTERNS
     ];
 
-    const matches = allPatterns.filter(({ pattern }) => {
+    const matches = allPatterns.filter(patternObj => {
       try {
-        const result = pattern.test(html);
-        if (result) {
-          const match = html.match(pattern);
+        const match = html.match(patternObj.pattern);
+        if (match) {
           console.log('[PatternDetection] Pattern matched:', {
-            pattern: pattern.toString(),
-            matchedContent: match ? match[0] : 'No match content'
+            pattern: patternObj.pattern.toString(),
+            matchedContent: match[0]
           });
+          return {
+            ...patternObj,
+            matched: match[0]
+          };
         }
-        return result;
+        return false;
       } catch (error) {
         console.error('[PatternDetection] Error testing pattern:', {
-          pattern: pattern.toString(),
+          pattern: patternObj.pattern.toString(),
           error: error.message
         });
         return false;

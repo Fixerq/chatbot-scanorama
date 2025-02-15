@@ -19,6 +19,14 @@ interface ResultStatusCellProps {
     status: string;
     error?: string;
     lastChecked?: string;
+    details?: {
+      patterns?: Array<{
+        type: string;
+        pattern: string;
+        matched: string;
+      }>;
+      error?: string;
+    };
   };
   url?: string;
   onAnalysisUpdate?: (result: any) => void;
@@ -103,6 +111,18 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>A chatbot was found on this website</p>
+                  {analysis_result.details?.patterns && analysis_result.details.patterns.length > 0 && (
+                    <div className="mt-2">
+                      <p className="font-semibold">Matched Patterns:</p>
+                      <ul className="text-xs">
+                        {analysis_result.details.patterns.map((pattern, i) => (
+                          <li key={i} className="mt-1">
+                            <span className="font-medium">{pattern.type}:</span> {pattern.matched}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -135,3 +155,4 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
+

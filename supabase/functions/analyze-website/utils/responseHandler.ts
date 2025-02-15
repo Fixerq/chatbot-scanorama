@@ -4,7 +4,23 @@ import { ChatDetectionResult } from '../types.ts';
 
 export function createSuccessResponse(result: ChatDetectionResult): Response {
   return new Response(
-    JSON.stringify(result),
+    JSON.stringify({
+      ...result,
+      analysis_result: {
+        has_chatbot: result.has_chatbot,
+        chatSolutions: result.chatSolutions,
+        status: 'completed',
+        lastChecked: result.lastChecked,
+        details: {
+          ...result.details,
+          patterns: result.details?.matches?.map(match => ({
+            type: match.type,
+            pattern: match.pattern.toString(),
+            matched: match.matched
+          }))
+        }
+      }
+    }),
     { 
       status: 200,
       headers: {
@@ -23,8 +39,15 @@ export function createErrorResponse(error: string, status = 200): Response {
       has_chatbot: false,
       chatSolutions: [],
       lastChecked: new Date().toISOString(),
-      details: {
-        error: error
+      analysis_result: {
+        has_chatbot: false,
+        chatSolutions: [],
+        status: 'error',
+        error: error,
+        lastChecked: new Date().toISOString(),
+        details: {
+          error: error
+        }
       }
     }),
     { 
@@ -45,8 +68,15 @@ export function createRateLimitResponse(error: string): Response {
       has_chatbot: false,
       chatSolutions: [],
       lastChecked: new Date().toISOString(),
-      details: {
-        error: 'Rate limit exceeded'
+      analysis_result: {
+        has_chatbot: false,
+        chatSolutions: [],
+        status: 'error',
+        error: 'Rate limit exceeded',
+        lastChecked: new Date().toISOString(),
+        details: {
+          error: 'Rate limit exceeded'
+        }
       }
     }),
     { 
@@ -59,3 +89,4 @@ export function createRateLimitResponse(error: string): Response {
     }
   );
 }
+
