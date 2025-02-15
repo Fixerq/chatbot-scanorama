@@ -969,6 +969,7 @@ export type Database = {
           ip: string
           last_request: string
           requests_count: number
+          updated_at: string
           window_start: string
         }
         Insert: {
@@ -976,6 +977,7 @@ export type Database = {
           ip: string
           last_request?: string
           requests_count?: number
+          updated_at?: string
           window_start?: string
         }
         Update: {
@@ -983,6 +985,7 @@ export type Database = {
           ip?: string
           last_request?: string
           requests_count?: number
+          updated_at?: string
           window_start?: string
         }
         Relationships: []
