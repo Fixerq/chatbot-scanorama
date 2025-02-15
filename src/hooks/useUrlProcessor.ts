@@ -16,8 +16,8 @@ export const useUrlProcessor = () => {
       const { data: batchData, error: batchError } = await supabase
         .from('search_batches')
         .insert({
-          total_urls: results.length,
-          status: 'processing'
+          query: 'batch-analysis',
+          user_id: (await supabase.auth.getUser()).data.user?.id
         })
         .select()
         .single();
@@ -58,7 +58,7 @@ export const useUrlProcessor = () => {
         const { error } = await supabase.functions.invoke('analyze-website', {
           body: { 
             url: request.url,
-            requestId: request.id
+            requestId: request.requestId
           }
         });
 
