@@ -173,6 +173,9 @@ export type Database = {
           match_details: Json | null
           match_patterns: Json[] | null
           match_types: Json | null
+          pattern_details: Json | null
+          processing_end_time: string | null
+          processing_start_time: string | null
           status: Database["public"]["Enums"]["analysis_status"]
           updated_at: string
           url: string | null
@@ -188,6 +191,9 @@ export type Database = {
           match_details?: Json | null
           match_patterns?: Json[] | null
           match_types?: Json | null
+          pattern_details?: Json | null
+          processing_end_time?: string | null
+          processing_start_time?: string | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
           url?: string | null
@@ -203,6 +209,9 @@ export type Database = {
           match_details?: Json | null
           match_patterns?: Json[] | null
           match_types?: Json | null
+          pattern_details?: Json | null
+          processing_end_time?: string | null
+          processing_start_time?: string | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
           url?: string | null
@@ -822,6 +831,39 @@ export type Database = {
           id?: number
           provider_name?: string
           unique_sites?: number
+        }
+        Relationships: []
+      }
+      pattern_metrics: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_matched: string | null
+          match_rate: number | null
+          pattern: string
+          total_attempts: number | null
+          total_matches: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_matched?: string | null
+          match_rate?: number | null
+          pattern: string
+          total_attempts?: number | null
+          total_matches?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_matched?: string | null
+          match_rate?: number | null
+          pattern?: string
+          total_attempts?: number | null
+          total_matches?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
