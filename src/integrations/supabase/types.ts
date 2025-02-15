@@ -1615,6 +1615,10 @@ export type Database = {
               metric_value: number
             }[]
           }
+      get_test_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_status: {
         Args: {
           user_uid: string
