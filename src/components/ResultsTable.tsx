@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { formatUrl } from '@/utils/urlFormatting';
 
 export interface Result {
   url: string;
@@ -49,31 +50,32 @@ const ResultsTable = ({ results, processing, isLoading }: ResultsTableProps) => 
             <TableHead className="w-[100px]">Status</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>URL</TableHead>
-            <TableHead>Description</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results.map((result, i) => (
-            <TableRow key={i}>
-              <TableCell>
-                {result.error ? (
-                  <Badge variant="destructive">Error</Badge>
-                ) : (
-                  <Badge variant="secondary">OK</Badge>
-                )}
-              </TableCell>
-              <TableCell>{result.title}</TableCell>
-              <TableCell>
-                <a href={result.url} target="_blank" rel="noopener noreferrer" className="underline">
-                  {result.url}
-                </a>
-              </TableCell>
-              <TableCell>{result.description}</TableCell>
-            </TableRow>
-          ))}
+          {results.map((result, i) => {
+            const { displayUrl } = formatUrl(result.url);
+            return (
+              <TableRow key={i}>
+                <TableCell>
+                  {result.error ? (
+                    <Badge variant="destructive">Error</Badge>
+                  ) : (
+                    <Badge variant="secondary">OK</Badge>
+                  )}
+                </TableCell>
+                <TableCell>{result.title}</TableCell>
+                <TableCell>
+                  <a href={result.url} target="_blank" rel="noopener noreferrer" className="underline">
+                    {displayUrl}
+                  </a>
+                </TableCell>
+              </TableRow>
+            );
+          })}
           {(processing || isLoading) && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center">
+              <TableCell colSpan={3} className="text-center">
                 Processing...
               </TableCell>
             </TableRow>
