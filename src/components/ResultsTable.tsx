@@ -63,33 +63,26 @@ const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: Result
       <Table>
         <TableCaption className="text-muted-foreground">Recent search results.</TableCaption>
         <TableHeader>
-          <TableRow className="border-white/10">
-            <TableHead className="w-[100px] text-white/70">Status</TableHead>
-            <TableHead className="text-white/70">Title</TableHead>
-            <TableHead className="text-white/70">URL</TableHead>
-            <TableHead className="text-white/70">Analysis</TableHead>
+          <TableRow>
+            <TableHead className="w-[100px]">Status</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead>URL</TableHead>
+            <TableHead>Analysis</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {results.map((result, i) => {
             const { displayUrl } = formatUrl(result.url);
             return (
-              <TableRow 
-                key={i} 
-                className="border-white/10 hover:bg-white/5 transition-colors"
-              >
+              <TableRow key={i}>
                 <TableCell>
                   {result.error ? (
-                    <Badge variant="destructive" className="bg-red-500/20 text-red-300">
-                      Error
-                    </Badge>
+                    <Badge variant="destructive">Error</Badge>
                   ) : (
-                    <Badge variant="secondary" className="bg-green-500/20 text-green-300">
-                      OK
-                    </Badge>
+                    <Badge variant="secondary">OK</Badge>
                   )}
                 </TableCell>
-                <TableCell className="font-medium text-white/90">{result.title}</TableCell>
+                <TableCell className="font-medium">{result.title}</TableCell>
                 <TableCell>
                   <a 
                     href={result.url} 
