@@ -1,6 +1,6 @@
 
-import { CHAT_PATTERNS } from '../../patterns';
-import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets } from '../../utils/patternDetection';
+import { CHAT_PATTERNS } from '../../patterns.ts';
+import { detectChatElements, detectDynamicLoading, detectMetaTags, detectWebSockets } from '../../utils/patternDetection.ts';
 
 export async function processContent(reader: ReadableStreamDefaultReader): Promise<{
   hasDynamicChat: boolean;
