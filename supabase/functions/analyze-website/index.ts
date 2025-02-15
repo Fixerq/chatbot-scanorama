@@ -10,8 +10,20 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
       headers: corsHeaders,
-      status: 200
+      status: 204
     });
+  }
+
+  // Validate origin
+  const origin = req.headers.get('origin');
+  if (origin !== 'https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com') {
+    return new Response(
+      JSON.stringify({ error: 'Origin not allowed', status: 'error' }),
+      { 
+        headers: corsHeaders,
+        status: 403
+      }
+    );
   }
 
   let executionId: string | null = null;
@@ -185,4 +197,3 @@ serve(async (req) => {
     );
   }
 });
-
