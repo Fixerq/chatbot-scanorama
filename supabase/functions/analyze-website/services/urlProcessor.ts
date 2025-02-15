@@ -28,7 +28,7 @@ export async function processUrl(url: string): Promise<ProcessedUrl> {
     // Create URL object from normalized URL
     const urlObj = new URL(normalizedUrl);
     
-    // Don't block the actual business URLs, only block if they are direct Google domain URLs
+    // Check if the root domain is blocked
     const rootDomain = urlObj.hostname.toLowerCase();
     if (BLOCKED_DOMAINS.some(domain => rootDomain === domain)) {
       console.log('[URL Processor] Blocked domain detected:', rootDomain);

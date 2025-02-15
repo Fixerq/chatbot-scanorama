@@ -18,15 +18,8 @@ export function normalizeUrl(url: string): string {
     // Remove www. prefix
     urlObj.hostname = urlObj.hostname.replace(/^www\./, '');
     
-    // Remove query parameters and hash
-    urlObj.search = '';
-    urlObj.hash = '';
-    
-    // Remove path
-    urlObj.pathname = '/';
-    
-    // Clean up double slashes (except after protocol)
-    let finalUrl = urlObj.toString().replace(/([^:]\/)\/+/g, '$1');
+    // Create new URL with just the hostname
+    const finalUrl = `https://${urlObj.hostname}`;
     
     console.log('[URL Utils] Original URL:', url);
     console.log('[URL Utils] Normalized URL:', finalUrl);
