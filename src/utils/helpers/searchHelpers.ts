@@ -1,5 +1,5 @@
 
-import { SearchResult } from '../types/search';
+import { SearchResult } from '@/types/search';
 import { isExcludedDomain } from './domainFilters';
 import { 
   hasBusinessIndicators, 

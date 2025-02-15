@@ -15,3 +15,26 @@ export interface SearchState {
   resultsLimit: number;
   currentPage: number;
 }
+
+export interface SearchResult {
+  url: string;
+  title?: string;
+  description?: string;
+  details: {
+    title?: string;
+    description?: string;
+    lastChecked?: string;
+    address?: string;
+    businessType?: string;
+    phoneNumber?: string;
+    search_batch_id?: string;
+  };
+}
+
+export interface SearchResponse {
+  data: {
+    results: SearchResult[];
+    hasMore: boolean;
+    searchBatchId: string;
+  };
+}

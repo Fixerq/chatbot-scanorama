@@ -1,5 +1,5 @@
 
-import { SearchResult, SearchResponse } from './types/search';
+import { SearchResult, SearchResponse } from '@/types/search';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 

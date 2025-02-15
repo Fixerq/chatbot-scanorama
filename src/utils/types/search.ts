@@ -14,4 +14,3 @@ export interface AnalysisResult {
     error?: string;
   };
 }
-
