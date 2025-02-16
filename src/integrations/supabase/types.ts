@@ -1626,6 +1626,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_admin_direct_v2: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       check_admin_mv: {
         Args: {
           uid: string
