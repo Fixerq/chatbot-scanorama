@@ -39,6 +39,18 @@ interface CrawlRecord {
   analyzed?: boolean;
 }
 
+interface SupabaseCrawlRecord {
+  id: string;
+  url: string;
+  status: string;
+  result: any;
+  error?: string;
+  user_id?: string;
+  started_at: string;
+  completed_at?: string;
+  analyzed?: boolean;
+}
+
 export const CrawlForm = () => {
   const { toast } = useToast();
   const [url, setUrl] = useState('');
@@ -62,9 +74,17 @@ export const CrawlForm = () => {
 
       if (data) {
         // Transform the data to match CrawlRecord type
-        const transformedData: CrawlRecord[] = data.map(record => ({
+        const transformedData: CrawlRecord[] = data.map((record: SupabaseCrawlRecord) => ({
           ...record,
-          result: record.result as CrawlResult | null // Type assertion since we know the structure
+          result: record.result ? {
+            success: Boolean(record.result.success),
+            status: record.result.status || undefined,
+            completed: record.result.completed || undefined,
+            total: record.result.total || undefined,
+            creditsUsed: record.result.creditsUsed || undefined,
+            expiresAt: record.result.expiresAt || undefined,
+            data: record.result.data || undefined,
+          } : null
         }));
         setCrawlRecords(transformedData);
       }
@@ -82,14 +102,22 @@ export const CrawlForm = () => {
           schema: 'public',
           table: 'crawl_results'
         },
-        (payload) => {
+        (payload: { new: SupabaseCrawlRecord }) => {
           console.log('Crawl results update:', payload);
           if (payload.new) {
             setCrawlRecords(prevRecords => {
-              const newRecord = {
+              const newRecord: CrawlRecord = {
                 ...payload.new,
-                result: payload.new.result as CrawlResult | null
-              } as CrawlRecord;
+                result: payload.new.result ? {
+                  success: Boolean(payload.new.result.success),
+                  status: payload.new.result.status || undefined,
+                  completed: payload.new.result.completed || undefined,
+                  total: payload.new.result.total || undefined,
+                  creditsUsed: payload.new.result.creditsUsed || undefined,
+                  expiresAt: payload.new.result.expiresAt || undefined,
+                  data: payload.new.result.data || undefined,
+                } : null
+              };
               
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
               
@@ -144,7 +172,16 @@ export const CrawlForm = () => {
         });
 
         if (data.result) {
-          setCrawlResult(data.result as CrawlResult);
+          const result: CrawlResult = {
+            success: Boolean(data.result.success),
+            status: data.result.status || undefined,
+            completed: data.result.completed || undefined,
+            total: data.result.total || undefined,
+            creditsUsed: data.result.creditsUsed || undefined,
+            expiresAt: data.result.expiresAt || undefined,
+            data: data.result.data || undefined,
+          };
+          setCrawlResult(result);
         }
       } else {
         toast({
