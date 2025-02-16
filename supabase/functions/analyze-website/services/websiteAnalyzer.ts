@@ -41,21 +41,11 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       });
     }
 
-    // Fetch HTML content with timeout
+    // Fetch HTML content
     let html = '';
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
-
       const response = await tryFetch(url);
-      clearTimeout(timeoutId);
-
-      // Check content length before downloading
-      const contentLength = response.headers.get('content-length');
-      if (contentLength && parseInt(contentLength) > MAX_HTML_SIZE) {
-        throw new Error('Content too large to process');
-      }
-
+      
       html = await response.text();
       
       if (requestId) {
@@ -67,27 +57,49 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       }
     } catch (fetchError) {
       console.error('[WebsiteAnalyzer] Error fetching HTML:', fetchError);
+      
+      const errorMessage = fetchError.message || 'Failed to fetch website content';
+      
       if (requestId) {
         await updateAnalysisRequest(requestId, {
-          error_message: fetchError.message,
+          error_message: errorMessage,
           html_fetch_status: 'failed',
           status: 'failed'
         });
       }
-      throw fetchError;
+      
+      return {
+        has_chatbot: false,
+        chatSolutions: [],
+        error: errorMessage,
+        details: {
+          error: errorMessage,
+          errorType: fetchError.name || 'FetchError'
+        },
+        lastChecked: new Date().toISOString()
+      };
     }
 
     // Validate HTML content size
     if (html.length > MAX_HTML_SIZE) {
-      const error = new Error('HTML content exceeds size limit');
+      const error = 'HTML content exceeds size limit';
       if (requestId) {
         await updateAnalysisRequest(requestId, {
-          error_message: error.message,
+          error_message: error,
           html_fetch_status: 'content_too_large',
           status: 'failed'
         });
       }
-      throw error;
+      return {
+        has_chatbot: false,
+        chatSolutions: [],
+        error,
+        details: {
+          error,
+          contentSize: html.length
+        },
+        lastChecked: new Date().toISOString()
+      };
     }
 
     if (requestId) {
@@ -154,10 +166,12 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
   } catch (error) {
     console.error('[WebsiteAnalyzer] Analysis error:', error);
 
+    const errorMessage = error.message || 'Unknown error during analysis';
+
     if (requestId) {
       await updateAnalysisRequest(requestId, {
         status: 'failed',
-        error_message: error.message,
+        error_message: errorMessage,
         error_details: {
           stack: error.stack,
           name: error.name
@@ -166,6 +180,16 @@ export async function websiteAnalyzer(url: string, requestId?: string): Promise<
       });
     }
 
-    throw error;
+    return {
+      has_chatbot: false,
+      chatSolutions: [],
+      error: errorMessage,
+      details: {
+        error: errorMessage,
+        errorType: error.name || 'AnalysisError'
+      },
+      lastChecked: new Date().toISOString()
+    };
   }
 }
+
