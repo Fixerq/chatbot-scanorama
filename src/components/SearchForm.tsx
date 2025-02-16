@@ -10,12 +10,14 @@ import { useBatchProgress } from '../hooks/useBatchProgress';
 
 interface SearchFormProps {
   query: string;
-  location: string;
+  country: string;
+  region: string;
   apiKey?: string;
   isProcessing: boolean;
   isSearching: boolean;
   onQueryChange: (value: string) => void;
-  onLocationChange: (value: string) => void;
+  onCountryChange: (value: string) => void;
+  onRegionChange: (value: string) => void;
   onApiKeyChange?: (value: string) => void;
   onResults?: (results: Array<{ website?: string }>) => void;
   onSubmit: () => void;
@@ -23,12 +25,14 @@ interface SearchFormProps {
 
 const SearchForm: React.FC<SearchFormProps> = ({ 
   query,
-  location,
+  country,
+  region,
   apiKey,
   isProcessing,
   isSearching,
   onQueryChange,
-  onLocationChange,
+  onCountryChange,
+  onRegionChange,
   onApiKeyChange,
   onResults,
   onSubmit 
@@ -51,7 +55,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
             action: 'search',
             params: {
               query,
-              location,
+              location: `${region}, ${country}`,
               maxResults: 20
             }
           }
@@ -108,24 +112,21 @@ const SearchForm: React.FC<SearchFormProps> = ({
             required
           />
           
-          <Select value={location} onValueChange={onLocationChange} required>
+          <Select value={country} onValueChange={onCountryChange} required>
             <SelectTrigger>
-              <SelectValue placeholder="Select location" />
+              <SelectValue placeholder="Select country" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="AL">Alabama</SelectItem>
-              <SelectItem value="AK">Alaska</SelectItem>
-              <SelectItem value="AZ">Arizona</SelectItem>
-              <SelectItem value="AR">Arkansas</SelectItem>
-              <SelectItem value="CA">California</SelectItem>
-              <SelectItem value="CO">Colorado</SelectItem>
-              {/* Add more states as needed */}
+              <SelectItem value="US">United States</SelectItem>
+              <SelectItem value="CA">Canada</SelectItem>
+              <SelectItem value="GB">United Kingdom</SelectItem>
+              <SelectItem value="AU">Australia</SelectItem>
             </SelectContent>
           </Select>
 
           <Button 
             type="submit" 
-            disabled={isSearching || !query || !location}
+            disabled={isSearching || !query || !country}
             className="w-full md:w-auto"
           >
             {isSearching ? 'Searching...' : 'Search'}

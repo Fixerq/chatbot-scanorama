@@ -44,7 +44,7 @@ export const useBatchProgress = (batchId: string | null): BatchProgress | null =
         totalUrls: data.total_urls,
         processedUrls: data.processed_urls,
         status: data.status,
-        error: data.error_message || null
+        error: data.error_message
       });
     };
 
@@ -72,7 +72,7 @@ export const useBatchProgress = (batchId: string | null): BatchProgress | null =
             totalUrls: batch.total_urls,
             processedUrls: batch.processed_urls,
             status: batch.status,
-            error: batch.error_message || null
+            error: batch.error_message
           });
         }
       )
