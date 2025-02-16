@@ -17,83 +17,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const session = useSession();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
   const mounted = useRef(true);
   const refreshTimeout = useRef<NodeJS.Timeout>();
-  const authStateSubscription = useRef<{ data: { subscription: { unsubscribe: () => void } } }>();
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const authTokenKey = `sb-${supabaseUrl?.split('//')[1]}-auth-token`;
 
   const refreshSession = async () => {
-    if (!isInitialized || !mounted.current) {
-      console.log('Session not yet initialized, skipping refresh');
-      return;
-    }
+    if (!mounted.current) return;
 
     try {
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (sessionError) {
-        // Handle refresh token errors specifically
-        if (sessionError.message?.includes('refresh_token_not_found') || 
-            sessionError.message?.includes('Invalid Refresh Token')) {
-          console.log('Invalid refresh token, clearing session data');
-          localStorage.removeItem(authTokenKey);
-          await supabase.auth.signOut();
-          if (window.location.pathname !== '/login') {
-            navigate('/login', { replace: true });
-            toast.error('Your session has expired. Please sign in again.');
-          }
-          return;
-        }
-        throw sessionError;
-      }
-
-      if (!currentSession) {
-        console.log('No active session found');
-        localStorage.removeItem(authTokenKey);
-        if (window.location.pathname !== '/login') {
-          navigate('/login', { replace: true });
-        }
-        return;
-      }
-
-      const tokenExpiryTime = new Date((currentSession.expires_at || 0) * 1000);
-      const timeUntilExpiry = tokenExpiryTime.getTime() - Date.now();
-      
-      if (timeUntilExpiry > 5 * 60 * 1000) {
-        console.log('Session still valid, no need to refresh');
-        return;
-      }
-
-      console.log('Attempting to refresh session');
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-
-      if (refreshError) {
-        console.error('Session refresh failed:', refreshError);
-        localStorage.removeItem(authTokenKey);
-        await supabase.auth.signOut();
-        if (window.location.pathname !== '/login') {
-          navigate('/login', { replace: true });
+      if (error) {
+        console.error('Session refresh error:', error);
+        if (mounted.current && window.location.pathname !== '/login') {
+          navigate('/login');
           toast.error('Your session has expired. Please sign in again.');
         }
         return;
       }
 
-      if (refreshData.session) {
-        console.log('Session refreshed successfully');
+      if (!session) {
+        console.log('No active session');
+        if (mounted.current && window.location.pathname !== '/login') {
+          navigate('/login');
+        }
+        return;
       }
 
+      console.log('Session refreshed successfully');
     } catch (error) {
       console.error('Unexpected error during session refresh:', error);
-      if (mounted.current) {
-        localStorage.removeItem(authTokenKey);
-        await supabase.auth.signOut();
-        if (window.location.pathname !== '/login') {
-          navigate('/login', { replace: true });
-          toast.error('An error occurred with your session. Please sign in again.');
-        }
+      if (mounted.current && window.location.pathname !== '/login') {
+        navigate('/login');
+        toast.error('An error occurred with your session. Please sign in again.');
       }
     }
   };
@@ -101,44 +56,31 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const setupSession = async () => {
       if (!mounted.current) return;
-      
+
       try {
-        const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
-        
-        if (initialError) {
-          // Handle refresh token errors specifically
-          if (initialError.message?.includes('refresh_token_not_found') || 
-              initialError.message?.includes('Invalid Refresh Token')) {
-            console.log('Invalid refresh token during setup, clearing session');
-            localStorage.removeItem(authTokenKey);
-            await supabase.auth.signOut();
-            if (window.location.pathname !== '/login') {
-              navigate('/login', { replace: true });
-            }
-          } else {
-            console.error('Error getting initial session:', initialError);
-            throw initialError;
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('Error getting initial session:', error);
+          if (mounted.current && window.location.pathname !== '/login') {
+            navigate('/login');
           }
+          return;
         }
 
-        if (!initialSession) {
+        if (!session) {
           console.log('No initial session found');
-          localStorage.removeItem(authTokenKey);
-          if (window.location.pathname !== '/login') {
-            navigate('/login', { replace: true });
+          if (mounted.current && window.location.pathname !== '/login') {
+            navigate('/login');
           }
-        } else {
-          console.log('Initial session found:', initialSession.user.id);
         }
       } catch (error) {
         console.error('Error during session setup:', error);
-        localStorage.removeItem(authTokenKey);
         if (mounted.current && window.location.pathname !== '/login') {
-          navigate('/login', { replace: true });
+          navigate('/login');
         }
       } finally {
         if (mounted.current) {
-          setIsInitialized(true);
           setIsLoading(false);
         }
       }
@@ -146,11 +88,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     setupSession();
 
+    // Set up periodic session refresh
     refreshTimeout.current = setInterval(() => {
-      if (isInitialized && session?.user && mounted.current) {
+      if (session?.user && mounted.current) {
         refreshSession();
       }
-    }, 4 * 60 * 1000);
+    }, 4 * 60 * 1000); // Refresh every 4 minutes
 
     return () => {
       mounted.current = false;
@@ -158,41 +101,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         clearInterval(refreshTimeout.current);
       }
     };
-  }, [session?.user?.id, isInitialized]);
-
-  useEffect(() => {
-    if (!mounted.current) return;
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted.current) return;
-      
-      console.log('Auth state changed:', event);
-      
-      if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        localStorage.removeItem(authTokenKey);
-        navigate('/login', { replace: true });
-      } else if (event === 'SIGNED_IN' && session) {
-        console.log('User signed in');
-        setIsInitialized(true);
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully');
-      }
-    });
-
-    authStateSubscription.current = { data: { subscription } };
-
-    return () => {
-      if (authStateSubscription.current?.data.subscription) {
-        authStateSubscription.current.data.subscription.unsubscribe();
-      }
-    };
-  }, [isInitialized]);
+  }, [session?.user?.id]);
 
   return (
     <SessionContext.Provider value={{
       isLoading,
-      isAuthenticated: !!session?.user && isInitialized,
+      isAuthenticated: !!session?.user,
       refreshSession
     }}>
       {children}
@@ -207,4 +121,3 @@ export const useSessionContext = () => {
   }
   return context;
 };
-

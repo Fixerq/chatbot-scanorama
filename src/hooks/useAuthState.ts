@@ -22,38 +22,32 @@ export const useAuthState = (): AuthState => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
-          // If there's a refresh token error, clear the session
-          if (sessionError.message?.includes('refresh_token_not_found') || 
-              sessionError.message?.includes('Invalid Refresh Token')) {
-            console.log('Invalid refresh token, clearing session');
-            await supabase.auth.signOut();
-            if (window.location.pathname !== '/login') {
-              navigate('/login');
-            }
-            setIsLoading(false);
-            return;
-          }
-          throw sessionError;
-        }
-
-        if (session?.user && mounted.current) {
-          console.log('Valid session found, checking admin status');
-          const isAdmin = await checkAdminStatus(session.user.id);
-          if (isAdmin) {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
-        } else {
-          console.log('No valid session found');
-          if (window.location.pathname !== '/login') {
+          console.error('Session check error:', sessionError);
+          if (mounted.current) {
+            setError('Error checking session status');
             navigate('/login');
           }
+          return;
+        }
+
+        if (!session) {
+          console.log('No session found, redirecting to login');
+          if (mounted.current && window.location.pathname !== '/login') {
+            navigate('/login');
+          }
+          return;
+        }
+
+        if (mounted.current) {
+          console.log('Valid session found, checking admin status');
+          const isAdmin = await checkAdminStatus(session.user.id);
+          navigate(isAdmin ? '/admin' : '/dashboard');
         }
       } catch (error) {
         console.error('Session check error:', error);
         if (mounted.current) {
           setError('Error checking session status');
+          navigate('/login');
         }
       } finally {
         if (mounted.current) {
@@ -70,40 +64,45 @@ export const useAuthState = (): AuthState => {
   }, [navigate]);
 
   useEffect(() => {
-    if (!mounted.current) return;
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
       
       console.log('Auth event:', event);
       
-      if (event === 'SIGNED_IN' && session) {
-        try {
-          const isAdmin = await checkAdminStatus(session.user.id);
-          if (mounted.current) {
-            if (isAdmin) {
-              navigate('/admin');
-            } else {
-              navigate('/dashboard');
+      switch (event) {
+        case 'SIGNED_IN':
+          if (session) {
+            try {
+              const isAdmin = await checkAdminStatus(session.user.id);
+              if (mounted.current) {
+                navigate(isAdmin ? '/admin' : '/dashboard');
+                toast.success('Successfully signed in!');
+              }
+            } catch (error) {
+              console.error('Auth state change error:', error);
+              if (mounted.current) {
+                setError('Error processing your authentication');
+                navigate('/login');
+              }
             }
-            toast.success('Successfully signed in!');
           }
-        } catch (error) {
-          console.error('Auth state change error:', error);
-          if (mounted.current) {
-            setError('Error processing your authentication. Please try again.');
-          }
-        }
-      }
-      
-      if (event === 'SIGNED_OUT' && mounted.current) {
-        setError('');
-        navigate('/login');
-      }
+          break;
 
-      // Handle token refresh errors
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully');
+        case 'SIGNED_OUT':
+          if (mounted.current) {
+            setError('');
+            navigate('/login');
+          }
+          break;
+
+        case 'TOKEN_REFRESHED':
+          console.log('Token refreshed successfully');
+          break;
+
+        case 'USER_DELETED':
+        case 'USER_UPDATED':
+          // Handle these events if needed
+          break;
       }
     });
 
@@ -118,4 +117,3 @@ export const useAuthState = (): AuthState => {
 
   return { error, setError, isLoading };
 };
-

@@ -14,30 +14,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    storage: localStorage,
+    storageKey: `sb-${supabaseUrl.split('//')[1]}-auth-token`,
     flowType: 'pkce',
-    storage: {
-      getItem: (key) => {
-        try {
-          return window.localStorage.getItem(key);
-        } catch (error) {
-          console.error('Error accessing localStorage:', error);
-          return null;
-        }
-      },
-      setItem: (key, value) => {
-        try {
-          window.localStorage.setItem(key, value);
-        } catch (error) {
-          console.error('Error setting localStorage:', error);
-        }
-      },
-      removeItem: (key) => {
-        try {
-          window.localStorage.removeItem(key);
-        } catch (error) {
-          console.error('Error removing from localStorage:', error);
-        }
-      },
-    },
   },
 });
+
