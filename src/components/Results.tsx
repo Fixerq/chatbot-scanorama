@@ -6,6 +6,7 @@ import ResultsContent from './results/ResultsContent';
 import ResultsContainer from './results/ResultsContainer';
 import ResultsTable, { Result } from './ResultsTable';
 import EmptyResults from './results/EmptyResults';
+import { QueuedAnalysis, AnalysisQueuePayload } from '@/types/database';
 import { Database } from '@/integrations/supabase/types';
 import { Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -66,7 +67,7 @@ const Results: React.FC<ResultsProps> = ({
           table: 'analysis_job_queue',
           filter: `url=in.(${results.map(r => `'${r.url}'`).join(',')})`,
         },
-        (payload) => {
+        (payload: { new: QueuedAnalysis }) => {
           console.log('Job update:', payload);
           if (payload.new && onResultUpdate) {
             const result = results.find(r => r.url === payload.new.url);
@@ -94,7 +95,7 @@ const Results: React.FC<ResultsProps> = ({
           table: 'analysis_results',
           filter: `url=in.(${results.map(r => `'${r.url}'`).join(',')})`,
         },
-        (payload) => {
+        (payload: { new: AnalysisRecord }) => {
           console.log('Analysis result update:', payload);
           if (onResultUpdate && payload.new) {
             const newAnalysis = payload.new as AnalysisRecord;
@@ -178,4 +179,3 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
-

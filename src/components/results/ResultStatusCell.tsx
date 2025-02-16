@@ -5,6 +5,7 @@ import { Loader2, Bot, XCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
+import { QueuedAnalysis } from '@/types/database';
 
 interface ResultStatusCellProps {
   status?: string;
@@ -53,7 +54,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
           table: 'analysis_job_queue',
           filter: `url=eq.${url}`
         },
-        (payload) => {
+        (payload: { new: QueuedAnalysis }) => {
           console.log('Job status update:', payload);
           if (onAnalysisUpdate && payload.new) {
             onAnalysisUpdate({
@@ -162,4 +163,3 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
-
