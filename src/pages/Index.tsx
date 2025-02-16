@@ -21,7 +21,7 @@ const Index = () => {
   });
   
   const { handleLoadMore, isSearching } = useSearchOperations(setResults);
-  const { processSearchResults } = useUrlProcessor();
+  const { processSearchResults, processing, progress, batchStatus } = useUrlProcessor();
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -100,6 +100,7 @@ const Index = () => {
           isLoadingMore={isSearching}
           isAnalyzing={isAnalyzing}
           onResultUpdate={handleResultUpdate}
+          batchStatus={batchStatus}
         />
       </div>
     </div>

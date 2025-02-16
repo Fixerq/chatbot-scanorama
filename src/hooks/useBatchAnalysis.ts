@@ -12,18 +12,34 @@ interface AnalysisBatch {
   error_message?: string | null;
 }
 
+export interface BatchStatus {
+  processedUrls: number;
+  totalUrls: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error?: string | null;
+}
+
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [batchStatus, setBatchStatus] = useState<BatchStatus>({
+    processedUrls: 0,
+    totalUrls: 0,
+    status: 'pending'
+  });
 
   const analyzeBatch = async (urls: string[]) => {
     setIsProcessing(true);
     setProgress(0);
+    setBatchStatus({
+      processedUrls: 0,
+      totalUrls: urls.length,
+      status: 'pending'
+    });
     
     try {
       const requestId = crypto.randomUUID();
       
-      // Call analyze-website function with batch of URLs
       const { data, error } = await supabase.functions.invoke('analyze-website', {
         body: { 
           urls, 
@@ -35,6 +51,11 @@ export function useBatchAnalysis() {
       if (error) {
         console.error('Error initiating batch analysis:', error);
         toast.error('Failed to start analysis');
+        setBatchStatus(prev => ({
+          ...prev,
+          status: 'failed',
+          error: error.message
+        }));
         throw error;
       }
 
@@ -45,7 +66,6 @@ export function useBatchAnalysis() {
       const batchId = data.batchId;
       console.log('Batch analysis started with ID:', batchId);
       
-      // Subscribe to realtime updates for this batch
       const channel = supabase
         .channel(`batch-${batchId}`)
         .on(
@@ -58,14 +78,18 @@ export function useBatchAnalysis() {
           },
           (payload: RealtimePostgresChangesPayload<AnalysisBatch>) => {
             console.log('Batch update:', payload);
-            const newData = payload.new;
-            if (!newData) return;
-
-            // Calculate and update progress
+            const newData = payload.new as AnalysisBatch;
+            
             const progressValue = Math.round((newData.processed_urls / newData.total_urls) * 100);
             setProgress(progressValue);
             
-            // Handle completion or failure
+            setBatchStatus({
+              processedUrls: newData.processed_urls,
+              totalUrls: newData.total_urls,
+              status: newData.status,
+              error: newData.error_message
+            });
+            
             if (newData.status === 'completed') {
               console.log('Batch analysis completed');
               toast.success('Analysis complete!');
@@ -79,13 +103,11 @@ export function useBatchAnalysis() {
         )
         .subscribe();
 
-      // Cleanup subscription when finished or on error
       const cleanup = () => {
         console.log('Cleaning up batch analysis subscription');
         supabase.removeChannel(channel);
       };
 
-      // Return cleanup function for component unmount
       return { 
         batchId,
         cleanup,
@@ -103,6 +125,7 @@ export function useBatchAnalysis() {
   return {
     analyzeBatch,
     isProcessing,
-    progress
+    progress,
+    batchStatus
   };
 }

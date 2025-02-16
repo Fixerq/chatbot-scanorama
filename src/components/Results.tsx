@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,6 +22,12 @@ interface ResultsProps {
   isLoadingMore?: boolean;
   isAnalyzing?: boolean;
   onResultUpdate?: (updatedResult: Result) => void;
+  batchStatus?: {
+    processedUrls: number;
+    totalUrls: number;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    error?: string | null;
+  };
 }
 
 const Results: React.FC<ResultsProps> = ({ 
@@ -33,7 +38,8 @@ const Results: React.FC<ResultsProps> = ({
   onLoadMore,
   isLoadingMore,
   isAnalyzing,
-  onResultUpdate
+  onResultUpdate,
+  batchStatus
 }) => {
   const hasResults = results.length > 0;
 
@@ -161,6 +167,16 @@ const Results: React.FC<ResultsProps> = ({
       onLoadMore={onLoadMore}
       isLoadingMore={isLoadingMore}
     >
+      {isAnalyzing && batchStatus && (
+        <div className="mb-6">
+          <BatchProgress
+            totalUrls={batchStatus.totalUrls}
+            processedUrls={batchStatus.processedUrls}
+            status={batchStatus.status}
+            error={batchStatus.error}
+          />
+        </div>
+      )}
       <ResultsContent
         results={results}
         hasMore={hasMore}
@@ -180,4 +196,3 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
-
