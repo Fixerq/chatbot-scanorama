@@ -10,6 +10,7 @@ interface AnalysisBatch {
   total_urls: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   error_message?: string | null;
+  request_id: string;
 }
 
 export function useBatchAnalysis() {
@@ -21,13 +22,17 @@ export function useBatchAnalysis() {
     setProgress(0);
     
     try {
+      // Generate a request ID for the batch
+      const request_id = crypto.randomUUID();
+
       // Create a new batch record
       const { data: batchData, error: batchError } = await supabase
         .from('analysis_batches')
         .insert({
           total_urls: urls.length,
           processed_urls: 0,
-          status: 'pending'
+          status: 'pending' as const,
+          request_id
         })
         .select()
         .single();
@@ -45,7 +50,7 @@ export function useBatchAnalysis() {
       const requests = urls.map(url => ({
         batch_id: batchId,
         url,
-        status: 'pending'
+        status: 'pending' as const
       }));
 
       const { error: requestsError } = await supabase
