@@ -105,6 +105,53 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_job_queue: {
+        Row: {
+          batch_id: string
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          priority: number | null
+          request_ids: string[]
+          started_at: string | null
+          status: Database["public"]["Enums"]["worker_status"] | null
+          updated_at: string | null
+          worker_id: string | null
+        }
+        Insert: {
+          batch_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          priority?: number | null
+          request_ids: string[]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["worker_status"] | null
+          updated_at?: string | null
+          worker_id?: string | null
+        }
+        Update: {
+          batch_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          priority?: number | null
+          request_ids?: string[]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["worker_status"] | null
+          updated_at?: string | null
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_job_queue_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "worker_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_queue: {
         Row: {
           batch_id: string | null
@@ -1406,6 +1453,33 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_instances: {
+        Row: {
+          created_at: string | null
+          current_job_id: string | null
+          id: string
+          last_heartbeat: string | null
+          status: Database["public"]["Enums"]["worker_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_job_id?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          status?: Database["public"]["Enums"]["worker_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_job_id?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          status?: Database["public"]["Enums"]["worker_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       admin_users_mv: {
@@ -1640,6 +1714,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_stale_workers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_stuck_analyses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1747,6 +1825,7 @@ export type Database = {
       request_status: "pending" | "processing" | "completed" | "failed"
       subscription_level: "starter" | "pro" | "premium" | "founders" | "admin"
       website_analysis_status: "success" | "error"
+      worker_status: "idle" | "processing" | "completed" | "failed"
     }
     CompositeTypes: {
       search_response_type: {
