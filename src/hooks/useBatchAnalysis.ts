@@ -21,13 +21,48 @@ export function useBatchAnalysis() {
     setProgress(0);
     
     try {
-      const requestId = crypto.randomUUID();
-      
-      // Call analyze-website function with batch of URLs
+      // Create a new batch record
+      const { data: batchData, error: batchError } = await supabase
+        .from('analysis_batches')
+        .insert({
+          total_urls: urls.length,
+          processed_urls: 0,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (batchError) {
+        console.error('Error creating batch:', batchError);
+        toast.error('Failed to start analysis');
+        throw batchError;
+      }
+
+      const batchId = batchData.id;
+      console.log('Batch analysis started with ID:', batchId);
+
+      // Create analysis requests for each URL
+      const requests = urls.map(url => ({
+        batch_id: batchId,
+        url,
+        status: 'pending'
+      }));
+
+      const { error: requestsError } = await supabase
+        .from('analysis_requests')
+        .insert(requests);
+
+      if (requestsError) {
+        console.error('Error creating analysis requests:', requestsError);
+        toast.error('Failed to start analysis');
+        throw requestsError;
+      }
+
+      // Call analyze-website function to start processing
       const { data, error } = await supabase.functions.invoke('analyze-website', {
         body: { 
-          urls, 
-          requestId,
+          urls,
+          batchId,
           isBatch: true
         }
       });
@@ -37,13 +72,6 @@ export function useBatchAnalysis() {
         toast.error('Failed to start analysis');
         throw error;
       }
-
-      if (!data?.batchId) {
-        throw new Error('No batch ID returned from analysis');
-      }
-
-      const batchId = data.batchId;
-      console.log('Batch analysis started with ID:', batchId);
       
       // Subscribe to realtime updates for this batch
       const channel = supabase
@@ -90,7 +118,7 @@ export function useBatchAnalysis() {
       return { 
         batchId,
         cleanup,
-        results: data.results
+        results: data?.results
       };
       
     } catch (error) {
