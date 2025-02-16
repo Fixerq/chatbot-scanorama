@@ -33,8 +33,8 @@ async function getFetchConfig(): Promise<FetchConfig> {
     console.error('[FetchService] Error loading config:', error);
     // Return default values if config cannot be loaded
     return {
-      timeout_ms: 30000,
-      max_content_size_bytes: 2 * 1024 * 1024, // 2MB limit
+      timeout_ms: 15000, // Reduced timeout to 15 seconds
+      max_content_size_bytes: 1 * 1024 * 1024, // Reduced to 1MB limit
       max_redirects: 3,
       retry_delay_ms: 1000,
       max_retries: 2
@@ -48,25 +48,19 @@ async function fetchWithExponentialBackoff(url: string, retryCount = 0, maxRetri
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), config.timeout_ms);
 
+    console.log(`[FetchService] Attempting to fetch ${url} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
-        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1'
       },
       redirect: 'follow',
       signal: controller.signal,
-      // Adding credentials option
       credentials: 'omit'
     });
 
@@ -99,23 +93,20 @@ async function fetchWithExponentialBackoff(url: string, retryCount = 0, maxRetri
     console.error(`[FetchService] Error fetching ${url}:`, error);
 
     // Check if we should retry
-    if (retryCount < maxRetries) {
+    if (retryCount < maxRetries && 
+        !error.message.includes('forbidden') && 
+        !error.message.includes('blocking')) {
       const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
       console.log(`[FetchService] Retry ${retryCount + 1} after ${delay}ms for URL: ${url}`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithExponentialBackoff(url, retryCount + 1, maxRetries);
     }
 
-    // Format error message for blocked websites
-    if (error.message.includes('forbidden') || error.message.includes('blocking')) {
-      throw new Error('Website is blocking automated access');
-    }
-
     throw error;
   }
 }
 
-export async function tryFetch(url: string, proxyUrl?: string): Promise<Response> {
+export async function tryFetch(url: string): Promise<Response> {
   console.log('[FetchService] Starting fetch for:', url);
   try {
     // Validate URL format
@@ -141,4 +132,3 @@ export async function tryFetch(url: string, proxyUrl?: string): Promise<Response
     throw enhancedError;
   }
 }
-
