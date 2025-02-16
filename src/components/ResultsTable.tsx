@@ -123,10 +123,6 @@ const ResultsTable = ({
                   status={result.status}
                   analysis_result={result.analysis_result}
                   isAnalyzing={result.status === 'analyzing'}
-                  hasChatbot={result.analysis_result?.has_chatbot}
-                  technologies=""
-                  chatSolutions={result.analysis_result?.chatSolutions}
-                  lastChecked={result.analysis_result?.lastChecked}
                   url={result.url}
                   onAnalysisUpdate={(newAnalysis) => handleAnalysisUpdate(result.url, newAnalysis)}
                 />
@@ -160,4 +156,3 @@ const ResultsTable = ({
 };
 
 export default ResultsTable;
-
