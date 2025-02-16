@@ -122,6 +122,8 @@ export type Database = {
           details: Json | null
           has_chatbot: boolean
           last_checked: string
+          processed_at: string | null
+          status: string | null
           url: string
         }
         Insert: {
@@ -131,6 +133,8 @@ export type Database = {
           details?: Json | null
           has_chatbot: boolean
           last_checked?: string
+          processed_at?: string | null
+          status?: string | null
           url: string
         }
         Update: {
@@ -140,6 +144,8 @@ export type Database = {
           details?: Json | null
           has_chatbot?: boolean
           last_checked?: string
+          processed_at?: string | null
+          status?: string | null
           url?: string
         }
         Relationships: []
