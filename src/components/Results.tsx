@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import ResultsHeader from './results/ResultsHeader';
-import ResultsFilters from './results/ResultsFilters';
 import ResultsContent from './results/ResultsContent';
 import ResultsContainer from './results/ResultsContainer';
 import ResultsTable, { Result } from './ResultsTable';
@@ -34,8 +32,6 @@ const Results: React.FC<ResultsProps> = ({
   onResultUpdate
 }) => {
   const hasResults = results.length > 0;
-  const [filterValue, setFilterValue] = useState('all');
-  const [sortValue, setSortValue] = useState('name');
   const [localPage, setLocalPage] = useState(1);
 
   // Calculate the number of results with chatbots
@@ -88,16 +84,6 @@ const Results: React.FC<ResultsProps> = ({
     };
   }, [results, onResultUpdate]);
 
-  const handleFilterChange = (value: string) => {
-    setFilterValue(value);
-    setLocalPage(1);
-  };
-
-  const handleSortChange = (value: string) => {
-    setSortValue(value);
-    setLocalPage(1);
-  };
-
   return (
     <ResultsContainer
       results={results}
@@ -108,36 +94,21 @@ const Results: React.FC<ResultsProps> = ({
       isLoadingMore={isLoadingMore}
     >
       {hasResults ? (
-        <>
-          <ResultsHeader
-            results={results}
-            totalCount={results.length}
-            chatbotCount={chatbotCount}
-            onNewSearch={onNewSearch}
-            onExport={onExport}
+        <ResultsContent
+          results={results}
+          localPage={localPage}
+          setLocalPage={setLocalPage}
+          hasMore={hasMore}
+          onLoadMore={onLoadMore}
+          isLoadingMore={isLoadingMore}
+          isAnalyzing={isAnalyzing}
+        >
+          <ResultsTable 
+            results={results} 
+            isLoading={isLoadingMore}
+            onResultUpdate={onResultUpdate}
           />
-          <ResultsFilters
-            filterValue={filterValue}
-            sortValue={sortValue}
-            onFilterChange={handleFilterChange}
-            onSortChange={handleSortChange}
-          />
-          <ResultsContent
-            results={results}
-            localPage={localPage}
-            setLocalPage={setLocalPage}
-            hasMore={hasMore}
-            onLoadMore={onLoadMore}
-            isLoadingMore={isLoadingMore}
-            isAnalyzing={isAnalyzing}
-          >
-            <ResultsTable 
-              results={results} 
-              isLoading={isLoadingMore}
-              onResultUpdate={onResultUpdate}
-            />
-          </ResultsContent>
-        </>
+        </ResultsContent>
       ) : (
         <EmptyResults onNewSearch={onNewSearch} />
       )}
