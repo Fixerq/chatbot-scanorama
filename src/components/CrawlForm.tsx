@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 interface CrawlResult {
   success: boolean;
@@ -50,36 +51,52 @@ export const CrawlForm = () => {
       if (data.success) {
         toast({
           title: "Success",
-          description: "Website crawled successfully",
+          description: "Website crawl initiated",
           duration: 3000,
         });
-        setCrawlResult(data.data);
 
         // Subscribe to real-time updates
-        const crawlId = data.crawlId;
         const channel = supabase
-          .channel(`crawl-${crawlId}`)
+          .channel(`crawl-${data.crawlId}`)
           .on(
             'postgres_changes',
             {
               event: '*',
               schema: 'public',
               table: 'crawl_results',
-              filter: `id=eq.${crawlId}`
+              filter: `id=eq.${data.crawlId}`
             },
             (payload) => {
               console.log('Crawl update:', payload);
               if (payload.new) {
-                const result = payload.new.result;
+                const result = payload.new.result as CrawlResult;
                 if (result) {
                   setCrawlResult(result);
+                  if (result.status === 'completed') {
+                    toast({
+                      title: "Crawl Completed",
+                      description: "Website analysis is complete",
+                      duration: 3000,
+                    });
+                  } else if (result.status === 'failed') {
+                    toast({
+                      title: "Crawl Failed",
+                      description: "Failed to analyze website",
+                      variant: "destructive",
+                      duration: 3000,
+                    });
+                  }
                 }
               }
             }
           )
           .subscribe();
 
-        // Cleanup subscription on component unmount
+        // Set initial result if available
+        if (data.result) {
+          setCrawlResult(data.result);
+        }
+
         return () => {
           supabase.removeChannel(channel);
         };
@@ -130,7 +147,14 @@ export const CrawlForm = () => {
           disabled={isLoading}
           className="w-full bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200"
         >
-          {isLoading ? "Crawling..." : "Start Crawl"}
+          {isLoading ? (
+            <div className="flex items-center space-x-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Crawling...</span>
+            </div>
+          ) : (
+            "Start Crawl"
+          )}
         </Button>
       </form>
 
@@ -139,10 +163,18 @@ export const CrawlForm = () => {
           <h3 className="text-lg font-semibold mb-2">Crawl Results</h3>
           <div className="space-y-2 text-sm">
             <p>Status: {crawlResult.status}</p>
-            <p>Completed Pages: {crawlResult.completed}</p>
-            <p>Total Pages: {crawlResult.total}</p>
-            <p>Credits Used: {crawlResult.creditsUsed}</p>
-            <p>Expires At: {new Date(crawlResult.expiresAt || '').toLocaleString()}</p>
+            {crawlResult.completed !== undefined && (
+              <p>Completed Pages: {crawlResult.completed}</p>
+            )}
+            {crawlResult.total !== undefined && (
+              <p>Total Pages: {crawlResult.total}</p>
+            )}
+            {crawlResult.creditsUsed !== undefined && (
+              <p>Credits Used: {crawlResult.creditsUsed}</p>
+            )}
+            {crawlResult.expiresAt && (
+              <p>Expires At: {new Date(crawlResult.expiresAt).toLocaleString()}</p>
+            )}
             {crawlResult.data && (
               <div className="mt-4">
                 <p className="font-semibold mb-2">Crawled Data:</p>
