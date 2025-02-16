@@ -13,6 +13,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Loader2 } from 'lucide-react';
 
 interface ResultsContentProps {
   results: Result[];
@@ -21,6 +22,7 @@ interface ResultsContentProps {
   hasMore?: boolean;
   onLoadMore?: (currentPage: number) => void;
   isLoadingMore?: boolean;
+  isAnalyzing?: boolean;
   children: ReactNode;
 }
 
@@ -31,6 +33,7 @@ const ResultsContent = ({
   hasMore = false,
   onLoadMore,
   isLoadingMore = false,
+  isAnalyzing = false,
   children
 }: ResultsContentProps) => {
   const validResults = results.filter(r => {
@@ -38,6 +41,16 @@ const ResultsContent = ({
     const hasDetails = Boolean(r.details);
     return hasValidStatus || hasDetails;
   });
+
+  if (isAnalyzing) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-lg text-muted-foreground">Analyzing websites...</p>
+        <p className="text-sm text-muted-foreground">This may take a few moments</p>
+      </div>
+    );
+  }
 
   if (!results || results.length === 0) {
     return (

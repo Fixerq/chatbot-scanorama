@@ -19,6 +19,7 @@ interface ResultsProps {
   hasMore: boolean;
   onLoadMore: (page: number) => void;
   isLoadingMore?: boolean;
+  isAnalyzing?: boolean;
   onResultUpdate?: (updatedResult: Result) => void;
 }
 
@@ -29,6 +30,7 @@ const Results: React.FC<ResultsProps> = ({
   hasMore, 
   onLoadMore,
   isLoadingMore,
+  isAnalyzing,
   onResultUpdate
 }) => {
   const hasResults = results.length > 0;
@@ -79,9 +81,7 @@ const Results: React.FC<ResultsProps> = ({
           }
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+      .subscribe()   
 
     return () => {
       supabase.removeChannel(channel);
@@ -129,6 +129,7 @@ const Results: React.FC<ResultsProps> = ({
             hasMore={hasMore}
             onLoadMore={onLoadMore}
             isLoadingMore={isLoadingMore}
+            isAnalyzing={isAnalyzing}
           >
             <ResultsTable 
               results={results} 
@@ -145,4 +146,3 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
-

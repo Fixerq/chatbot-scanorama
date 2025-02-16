@@ -10,6 +10,7 @@ export const useSearchResults = (onResults: (results: Result[]) => void) => {
     nextPageToken: undefined
   });
   const [isSearching, setIsSearching] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const updateResults = (newResults: Result[], hasMore: boolean, nextPageToken?: string) => {
     const updatedResults = {
@@ -24,7 +25,9 @@ export const useSearchResults = (onResults: (results: Result[]) => void) => {
   return {
     results,
     isSearching,
+    isAnalyzing,
     setIsSearching,
+    setIsAnalyzing,
     updateResults
   };
 };
