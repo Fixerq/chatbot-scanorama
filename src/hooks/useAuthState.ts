@@ -20,11 +20,16 @@ export const useAuthState = (): AuthState => {
       
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError) {
-          console.error('Session error:', sessionError);
-          if (sessionError.message?.includes('refresh_token_not_found')) {
-            // This is an expected error when there's no session, so we handle it silently
+          // If there's a refresh token error, clear the session
+          if (sessionError.message?.includes('refresh_token_not_found') || 
+              sessionError.message?.includes('Invalid Refresh Token')) {
+            console.log('Invalid refresh token, clearing session');
+            await supabase.auth.signOut();
+            if (window.location.pathname !== '/login') {
+              navigate('/login');
+            }
             setIsLoading(false);
             return;
           }
@@ -41,6 +46,9 @@ export const useAuthState = (): AuthState => {
           }
         } else {
           console.log('No valid session found');
+          if (window.location.pathname !== '/login') {
+            navigate('/login');
+          }
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -92,6 +100,11 @@ export const useAuthState = (): AuthState => {
         setError('');
         navigate('/login');
       }
+
+      // Handle token refresh errors
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      }
     });
 
     authStateSubscription.current = { data: { subscription } };
@@ -105,3 +118,4 @@ export const useAuthState = (): AuthState => {
 
   return { error, setError, isLoading };
 };
+

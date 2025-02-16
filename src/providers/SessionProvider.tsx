@@ -35,7 +35,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        console.error('Error getting session:', sessionError);
+        // Handle refresh token errors specifically
+        if (sessionError.message?.includes('refresh_token_not_found') || 
+            sessionError.message?.includes('Invalid Refresh Token')) {
+          console.log('Invalid refresh token, clearing session data');
+          localStorage.removeItem(authTokenKey);
+          await supabase.auth.signOut();
+          if (window.location.pathname !== '/login') {
+            navigate('/login', { replace: true });
+            toast.error('Your session has expired. Please sign in again.');
+          }
+          return;
+        }
         throw sessionError;
       }
 
@@ -95,8 +106,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         const { data: { session: initialSession }, error: initialError } = await supabase.auth.getSession();
         
         if (initialError) {
-          console.error('Error getting initial session:', initialError);
-          throw initialError;
+          // Handle refresh token errors specifically
+          if (initialError.message?.includes('refresh_token_not_found') || 
+              initialError.message?.includes('Invalid Refresh Token')) {
+            console.log('Invalid refresh token during setup, clearing session');
+            localStorage.removeItem(authTokenKey);
+            await supabase.auth.signOut();
+            if (window.location.pathname !== '/login') {
+              navigate('/login', { replace: true });
+            }
+          } else {
+            console.error('Error getting initial session:', initialError);
+            throw initialError;
+          }
         }
 
         if (!initialSession) {
@@ -185,3 +207,4 @@ export const useSessionContext = () => {
   }
   return context;
 };
+
