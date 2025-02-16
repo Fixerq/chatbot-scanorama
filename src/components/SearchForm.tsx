@@ -55,7 +55,8 @@ const SearchForm: React.FC<SearchFormProps> = ({
             action: 'search',
             params: {
               query,
-              location: `${region}, ${country}`,
+              country,
+              region,
               maxResults: 20
             }
           }
