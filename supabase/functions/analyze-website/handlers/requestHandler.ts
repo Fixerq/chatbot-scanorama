@@ -2,6 +2,7 @@
 import { corsHeaders } from '../utils/httpUtils.ts';
 import { AnalysisRequest } from '../types.ts';
 import { supabase } from '../utils/supabaseClient.ts';
+import { processUrl } from '../services/urlProcessor.ts';
 import { websiteAnalyzer } from '../services/websiteAnalyzer.ts';
 
 export async function handleRequest(req: Request): Promise<Response> {
@@ -63,6 +64,31 @@ export async function handleRequest(req: Request): Promise<Response> {
 
     console.log(`[AnalyzeWebsite] Processing request ${requestId} for URL: ${url}`);
 
+    // First validate and clean the URL
+    const { cleanUrl } = await processUrl(url);
+
+    // Add the URL to the analysis queue
+    const { data: queueData, error: queueError } = await supabase
+      .from('analysis_queue')
+      .insert({
+        url: cleanUrl,
+        status: 'pending',
+        max_retries: 3,
+        retry_count: 0,
+        priority: 1,
+        metadata: {
+          original_url: url,
+          request_id: requestId
+        }
+      })
+      .select()
+      .single();
+
+    if (queueError) {
+      console.error('[AnalyzeWebsite] Error adding to queue:', queueError);
+      throw queueError;
+    }
+
     // Update request status to processing
     const { error: updateError } = await supabase
       .from('analysis_requests')
@@ -77,53 +103,114 @@ export async function handleRequest(req: Request): Promise<Response> {
       throw updateError;
     }
 
-    // TODO: Implement actual website analysis logic here
-    // For now, just return a mock result
-    const mockAnalysisResult = {
-      has_chatbot: Math.random() > 0.5,
-      chatbot_solutions: ['Intercom', 'Drift', 'Custom'],
-      status: 'completed',
-      details: {
-        lastChecked: new Date().toISOString(),
-        source: 'mock-analysis'
+    // Run analysis in the background using Edge Runtime
+    EdgeRuntime.waitUntil((async () => {
+      try {
+        // Update queue item to processing
+        await supabase
+          .from('analysis_queue')
+          .update({ 
+            status: 'processing',
+            started_at: new Date().toISOString()
+          })
+          .eq('id', queueData.id);
+
+        // Perform actual website analysis
+        const analysisResult = await websiteAnalyzer(cleanUrl, requestId);
+
+        // Store the analysis result and pattern matches
+        const { error: resultError } = await supabase
+          .from('analysis_results')
+          .insert({
+            request_id: requestId,
+            url: cleanUrl,
+            has_chatbot: analysisResult.has_chatbot,
+            chatbot_solutions: analysisResult.chatSolutions || [],
+            status: 'completed',
+            details: {
+              patterns: analysisResult.details?.matches || [],
+              lastChecked: new Date().toISOString()
+            }
+          });
+
+        if (resultError) {
+          console.error('[AnalyzeWebsite] Error storing analysis result:', resultError);
+          throw resultError;
+        }
+
+        // Store pattern matches if any were found
+        if (analysisResult.details?.matches?.length > 0) {
+          const patternMatches = analysisResult.details.matches.map(match => ({
+            queue_id: queueData.id,
+            pattern_type: match.type,
+            pattern_value: match.pattern,
+            matched_content: match.matched,
+            confidence_score: 1.0 // Default confidence for now
+          }));
+
+          const { error: matchError } = await supabase
+            .from('pattern_matches')
+            .insert(patternMatches);
+
+          if (matchError) {
+            console.error('[AnalyzeWebsite] Error storing pattern matches:', matchError);
+            // Don't throw here as we still want to complete the queue item
+          }
+        }
+
+        // Update queue item to completed
+        await supabase
+          .from('analysis_queue')
+          .update({ 
+            status: 'completed',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', queueData.id);
+
+        // Update request status to completed
+        await supabase
+          .from('analysis_requests')
+          .update({ 
+            status: 'completed',
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', requestId);
+
+      } catch (error) {
+        console.error('[AnalyzeWebsite] Background processing error:', error);
+        
+        // Update queue item to failed
+        await supabase
+          .from('analysis_queue')
+          .update({ 
+            status: 'failed',
+            error_message: error.message,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', queueData.id);
+
+        // Update request status to failed
+        await supabase
+          .from('analysis_requests')
+          .update({ 
+            status: 'failed',
+            error_message: error.message,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', requestId);
       }
-    };
+    })());
 
-    // Store the analysis result with the request_id
-    const { error: resultError } = await supabase
-      .from('analysis_results')
-      .insert({
-        request_id: requestId,
-        url: url,
-        has_chatbot: mockAnalysisResult.has_chatbot,
-        chatbot_solutions: mockAnalysisResult.chatbot_solutions,
-        status: mockAnalysisResult.status,
-        details: mockAnalysisResult.details
-      });
-
-    if (resultError) {
-      console.error('[AnalyzeWebsite] Error storing analysis result:', resultError);
-      throw resultError;
-    }
-
-    // Update request status to completed
-    const { error: finalUpdateError } = await supabase
-      .from('analysis_requests')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', requestId);
-
-    if (finalUpdateError) {
-      console.error('[AnalyzeWebsite] Error updating final status:', finalUpdateError);
-      throw finalUpdateError;
-    }
-
+    // Return immediate response with queue status
     return new Response(
-      JSON.stringify({ success: true, result: mockAnalysisResult }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Analysis queued successfully',
+        queue_id: queueData.id,
+        status: 'processing'
+      }),
       {
-        status: 200,
+        status: 202,
         headers: {
           'Content-Type': 'application/json',
           ...corsHeaders,
