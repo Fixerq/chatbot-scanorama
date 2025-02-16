@@ -1,0 +1,6 @@
+
+project_id = "cfelpyucqllkshmlkwxz"
+
+[api.tokens]
+supabase = "{{SUPABASE_SERVICE_ROLE_KEY}}"
+firecrawl = "{{FIRECRAWL_API_KEY}}"
