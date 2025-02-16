@@ -732,6 +732,7 @@ export type Database = {
       }
       crawl_results: {
         Row: {
+          analyzed: boolean | null
           completed_at: string | null
           created_at: string | null
           error: string | null
@@ -744,6 +745,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          analyzed?: boolean | null
           completed_at?: string | null
           created_at?: string | null
           error?: string | null
@@ -756,6 +758,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          analyzed?: boolean | null
           completed_at?: string | null
           created_at?: string | null
           error?: string | null
