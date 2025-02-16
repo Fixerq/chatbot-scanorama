@@ -1,47 +1,42 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { handleRequest } from './handlers/requestHandler.ts';
-import { corsHeaders } from './utils/httpUtils.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { handleRequest } from "./handlers/requestHandler.ts"
 
-console.log("[AnalyzeWebsite] Function initialized");
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Max-Age': '86400',
-      },
-      status: 204
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const response = await handleRequest(req);
-    // Ensure CORS headers are applied to all responses
-    const headers = new Headers(response.headers);
-    Object.entries(corsHeaders).forEach(([key, value]) => {
-      headers.set(key, value);
-    });
-
-    // Return response with merged headers
-    return new Response(response.body, {
-      status: response.status,
-      headers
-    });
+    return new Response(
+      JSON.stringify(response),
+      { 
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
   } catch (error) {
-    console.error('[AnalyzeWebsite] Unhandled error:', error);
-    
+    console.error('Request handler error:', error);
     return new Response(
       JSON.stringify({
-        error: error.message,
-        details: error.stack,
+        error: 'Failed to process request',
+        details: error.message
       }),
       {
         status: 500,
-        headers: corsHeaders,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
       }
     );
   }
