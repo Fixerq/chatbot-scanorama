@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Loader2, Bot, XCircle, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
@@ -41,36 +41,56 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   url,
   onAnalysisUpdate
 }) => {
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   useEffect(() => {
-    if (!url) return;
+    if (!url || !onAnalysisUpdate) return;
 
-    // Subscribe to worker status updates for this URL
-    const workerChannel = supabase
-      .channel(`worker_status_${url}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'analysis_job_queue',
-          filter: `url=eq.${url}`
-        },
-        (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
-          console.log('Job status update:', payload);
-          if (onAnalysisUpdate && payload.eventType !== 'DELETE' && payload.new) {
-            onAnalysisUpdate({
-              status: payload.new.status,
-              error: payload.new.error_message,
-              retryCount: payload.new.retry_count,
-              maxRetries: payload.new.max_retries
-            });
+    const setupChannel = async () => {
+      // Clean up any existing channel
+      if (channelRef.current) {
+        await supabase.removeChannel(channelRef.current);
+      }
+
+      // Create new channel
+      const channel = supabase
+        .channel(`worker_status_${url.replace(/[^a-zA-Z0-9]/g, '_')}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'analysis_job_queue',
+            filter: `url=eq.${url}`
+          },
+          (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
+            console.log('Job status update:', payload);
+            if (payload.eventType !== 'DELETE' && payload.new) {
+              onAnalysisUpdate({
+                status: payload.new.status,
+                error: payload.new.error_message,
+                retryCount: payload.new.retry_count,
+                maxRetries: payload.new.max_retries
+              });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
+      channelRef.current = channel;
+    };
+
+    setupChannel();
+
+    // Cleanup function
     return () => {
-      supabase.removeChannel(workerChannel);
+      const cleanup = async () => {
+        if (channelRef.current) {
+          await supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+      };
+      cleanup();
     };
   }, [url, onAnalysisUpdate]);
 

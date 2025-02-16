@@ -1,11 +1,12 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const useUrlProcessor = () => {
   const [processing, setProcessing] = useState<boolean>(false);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const processSearchResults = useCallback(async (
     results: Result[], 
@@ -86,6 +87,11 @@ export const useUrlProcessor = () => {
         }
       }
 
+      // Clean up any existing channel
+      if (channelRef.current) {
+        await supabase.removeChannel(channelRef.current);
+      }
+
       // Set up subscription to monitor analysis completion
       const channel = supabase
         .channel('analysis_updates')
@@ -113,10 +119,7 @@ export const useUrlProcessor = () => {
         )
         .subscribe();
 
-      // Cleanup subscription after 5 minutes to prevent memory leaks
-      setTimeout(() => {
-        supabase.removeChannel(channel);
-      }, 5 * 60 * 1000);
+      channelRef.current = channel;
 
     } catch (error) {
       console.error('Failed to process search results:', error);
@@ -126,8 +129,17 @@ export const useUrlProcessor = () => {
     }
   }, []);
 
+  // Cleanup function for component unmount
+  const cleanup = useCallback(async () => {
+    if (channelRef.current) {
+      await supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+  }, []);
+
   return {
     processing,
-    processSearchResults
+    processSearchResults,
+    cleanup
   };
 };
