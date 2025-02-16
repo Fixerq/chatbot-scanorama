@@ -21,11 +21,13 @@ export const useSubscriptionStatus = () => {
       }
 
       try {
-        // Get subscription from the new view
+        // Get subscription from the view for the current user and active status
         const { data: subscription, error: subscriptionError } = await supabase
           .from('subscriptions_with_user')
           .select('level, status, total_searches')
-          .single();
+          .eq('user_id', session.user.id)
+          .eq('status', 'active')
+          .maybeSingle();
 
         if (subscriptionError) {
           console.error('Subscription fetch error:', subscriptionError);
