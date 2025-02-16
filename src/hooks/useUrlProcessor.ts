@@ -3,11 +3,11 @@ import { useState, useCallback } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useBatchAnalysis, BatchStatus } from './useBatchAnalysis';
+import { useBatchAnalysis } from './useBatchAnalysis';
 
 export const useUrlProcessor = () => {
   const [processing, setProcessing] = useState<boolean>(false);
-  const { analyzeBatch, progress, batchStatus } = useBatchAnalysis();
+  const { analyzeBatch, progress } = useBatchAnalysis();
 
   const processSearchResults = useCallback(async (
     results: Result[], 
@@ -23,8 +23,10 @@ export const useUrlProcessor = () => {
       const urls = results.map(result => result.url);
       console.log(`Processing ${urls.length} URLs in batch`);
 
+      // Start batch analysis
       const { cleanup } = await analyzeBatch(urls);
 
+      // Set up cleanup on component unmount
       return () => {
         cleanup();
         setProcessing(false);
@@ -39,7 +41,6 @@ export const useUrlProcessor = () => {
   return {
     processing,
     progress,
-    batchStatus,
     processSearchResults
   };
 };

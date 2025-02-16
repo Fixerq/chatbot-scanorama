@@ -1,12 +1,3 @@
-
-const COUNTRY_CODE_TO_NAME: { [key: string]: string } = {
-  "US": "United States",
-  "CA": "Canada",
-  "GB": "United Kingdom",
-  "AU": "Australia",
-  "DE": "Germany"
-};
-
 export const REGIONS_BY_COUNTRY: { [key: string]: string[] } = {
   "United States": [
     "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
@@ -33,7 +24,6 @@ export const REGIONS_BY_COUNTRY: { [key: string]: string[] } = {
   ]
 };
 
-export const getRegionsForCountry = (countryCode: string): string[] => {
-  const countryName = COUNTRY_CODE_TO_NAME[countryCode];
-  return REGIONS_BY_COUNTRY[countryName] || [];
+export const getRegionsForCountry = (country: string): string[] => {
+  return REGIONS_BY_COUNTRY[country] || [];
 };
