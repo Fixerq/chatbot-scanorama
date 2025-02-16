@@ -20,6 +20,16 @@ interface BatchProgress {
   error: string | null;
 }
 
+// Type guard to check if an object is a valid AnalysisBatch
+function isAnalysisBatch(obj: any): obj is AnalysisBatch {
+  return (
+    obj &&
+    typeof obj.total_urls === 'number' &&
+    typeof obj.processed_urls === 'number' &&
+    typeof obj.status === 'string'
+  );
+}
+
 export const useBatchProgress = (batchId: string | null): BatchProgress | null => {
   const [progress, setProgress] = useState<BatchProgress | null>(null);
 
@@ -63,8 +73,10 @@ export const useBatchProgress = (batchId: string | null): BatchProgress | null =
         },
         (payload: RealtimePostgresChangesPayload<AnalysisBatch>) => {
           const batch = payload.new;
-          if (!batch) {
-            setProgress(null);
+          
+          // Check if batch is valid before using it
+          if (!batch || !isAnalysisBatch(batch)) {
+            console.error('Invalid batch data received:', batch);
             return;
           }
           
@@ -72,7 +84,7 @@ export const useBatchProgress = (batchId: string | null): BatchProgress | null =
             totalUrls: batch.total_urls,
             processedUrls: batch.processed_urls,
             status: batch.status,
-            error: batch.error_message
+            error: batch.error_message || null
           });
         }
       )
