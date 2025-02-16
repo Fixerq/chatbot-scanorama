@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAdminCheck } from './useAdminCheck';
 import { AuthState } from '@/types/auth';
+import { AuthChangeEvent } from '@supabase/supabase-js';
 
 export const useAuthState = (): AuthState => {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export const useAuthState = (): AuthState => {
   }, [navigate]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
       if (!mounted.current) return;
       
       console.log('Auth event:', event);
@@ -100,9 +101,18 @@ export const useAuthState = (): AuthState => {
           break;
 
         case 'USER_DELETED':
-        case 'USER_UPDATED':
-          // Handle these events if needed
+          if (mounted.current) {
+            setError('User account has been deleted');
+            navigate('/login');
+          }
           break;
+
+        case 'USER_UPDATED':
+          console.log('User profile updated');
+          break;
+
+        default:
+          console.log('Unhandled auth event:', event);
       }
     });
 
@@ -117,3 +127,4 @@ export const useAuthState = (): AuthState => {
 
   return { error, setError, isLoading };
 };
+
