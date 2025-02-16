@@ -61,7 +61,12 @@ export const CrawlForm = () => {
       }
 
       if (data) {
-        setCrawlRecords(data);
+        // Transform the data to match CrawlRecord type
+        const transformedData: CrawlRecord[] = data.map(record => ({
+          ...record,
+          result: record.result as CrawlResult | null // Type assertion since we know the structure
+        }));
+        setCrawlRecords(transformedData);
       }
     };
 
@@ -81,7 +86,11 @@ export const CrawlForm = () => {
           console.log('Crawl results update:', payload);
           if (payload.new) {
             setCrawlRecords(prevRecords => {
-              const newRecord = payload.new as CrawlRecord;
+              const newRecord = {
+                ...payload.new,
+                result: payload.new.result as CrawlResult | null
+              } as CrawlRecord;
+              
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
               
               if (existingIndex >= 0) {
@@ -135,7 +144,7 @@ export const CrawlForm = () => {
         });
 
         if (data.result) {
-          setCrawlResult(data.result);
+          setCrawlResult(data.result as CrawlResult);
         }
       } else {
         toast({
@@ -250,3 +259,4 @@ export const CrawlForm = () => {
     </div>
   );
 };
+
