@@ -18,6 +18,18 @@ interface CrawlResult {
   data?: any[];
 }
 
+// Define the type for the database record
+interface CrawlRecord {
+  id: string;
+  url: string;
+  status: string;
+  result: CrawlResult | null;
+  error?: string;
+  user_id?: string;
+  started_at: string;
+  completed_at?: string;
+}
+
 export const CrawlForm = () => {
   const { toast } = useToast();
   const [url, setUrl] = useState('');
@@ -68,17 +80,17 @@ export const CrawlForm = () => {
             },
             (payload) => {
               console.log('Crawl update:', payload);
-              if (payload.new) {
-                const result = payload.new.result as CrawlResult;
-                if (result) {
-                  setCrawlResult(result);
-                  if (result.status === 'completed') {
+              if (payload.new && (payload.new as CrawlRecord).result) {
+                const record = payload.new as CrawlRecord;
+                if (record.result) {
+                  setCrawlResult(record.result);
+                  if (record.result.status === 'completed') {
                     toast({
                       title: "Crawl Completed",
                       description: "Website analysis is complete",
                       duration: 3000,
                     });
-                  } else if (result.status === 'failed') {
+                  } else if (record.result.status === 'failed') {
                     toast({
                       title: "Crawl Failed",
                       description: "Failed to analyze website",
