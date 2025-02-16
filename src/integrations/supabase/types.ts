@@ -1776,6 +1776,18 @@ export type Database = {
           retry_count: number
         }[]
       }
+      get_or_create_analysis: {
+        Args: {
+          url_param: string
+        }
+        Returns: {
+          url: string
+          has_chatbot: boolean
+          chatbot_solutions: string[]
+          status: Database["public"]["Enums"]["analysis_status"]
+          last_checked: string
+        }[]
+      }
       get_performance_metrics:
         | {
             Args: Record<PropertyKey, never>
