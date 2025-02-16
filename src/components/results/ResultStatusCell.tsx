@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { TableCell } from "@/components/ui/table";
-import { Loader2, Bot, XCircle, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Loader2, Bot, XCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
@@ -46,51 +46,33 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   useEffect(() => {
     if (!url || !onAnalysisUpdate) return;
 
-    const setupChannel = async () => {
-      // Clean up any existing channel
-      if (channelRef.current) {
-        await supabase.removeChannel(channelRef.current);
-      }
-
-      // Create new channel
-      const channel = supabase
-        .channel(`worker_status_${url.replace(/[^a-zA-Z0-9]/g, '_')}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'analysis_job_queue',
-            filter: `url=eq.${url}`
-          },
-          (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
-            console.log('Job status update:', payload);
-            if (payload.eventType !== 'DELETE' && payload.new) {
-              onAnalysisUpdate({
-                status: payload.new.status,
-                error: payload.new.error_message,
-                retryCount: payload.new.retry_count,
-                maxRetries: payload.new.max_retries
-              });
-            }
+    // Subscribe to real-time updates for this URL's analysis results
+    const channel = supabase
+      .channel(`analysis-${url.replace(/[^a-zA-Z0-9]/g, '_')}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'analysis_results',
+          filter: `url=eq.${url}`
+        },
+        (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
+          console.log('Analysis result update:', payload);
+          if (payload.eventType !== 'DELETE' && payload.new) {
+            onAnalysisUpdate(payload.new);
           }
-        )
-        .subscribe();
-
-      channelRef.current = channel;
-    };
-
-    setupChannel();
-
-    // Cleanup function
-    return () => {
-      const cleanup = async () => {
-        if (channelRef.current) {
-          await supabase.removeChannel(channelRef.current);
-          channelRef.current = null;
         }
-      };
-      cleanup();
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [url, onAnalysisUpdate]);
 
@@ -119,20 +101,15 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   if (status === 'failed' || analysis_result?.error) {
     return (
       <TableCell>
-        <div className="flex items-center space-x-2 text-red-500">
-          <XCircle className="w-4 h-4" />
-          <span>{analysis_result?.error || 'Analysis failed'}</span>
-          {analysis_result?.details?.error && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <RefreshCcw className="w-4 h-4 ml-2 cursor-pointer" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Retrying analysis...</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        <div className="text-red-500 dark:text-red-400">
+          <div className="flex items-center space-x-2">
+            <XCircle className="w-4 h-4" />
+            <span>{analysis_result?.error || status}</span>
+          </div>
+          {analysis_result?.lastChecked && (
+            <div className="text-xs text-gray-500 mt-1">
+              Last attempt: {new Date(analysis_result.lastChecked).toLocaleString()}
+            </div>
           )}
         </div>
       </TableCell>

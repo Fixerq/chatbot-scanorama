@@ -13,6 +13,22 @@ interface AnalysisBatch {
   request_id: string;
 }
 
+interface AnalysisResult {
+  has_chatbot: boolean;
+  chatSolutions: string[];
+  status: string;
+  error?: string;
+  lastChecked?: string;
+  details?: {
+    patterns?: Array<{
+      type: string;
+      pattern: string;
+      matched: string;
+    }>;
+    error?: string;
+  };
+}
+
 // Type guard to check if payload is a valid AnalysisBatch
 function isValidBatchPayload(payload: any): payload is AnalysisBatch {
   return (
@@ -60,7 +76,8 @@ export function useBatchAnalysis() {
       const requests = urls.map(url => ({
         batch_id: batchId,
         url,
-        status: 'pending' as const
+        status: 'pending' as const,
+        processed: false
       }));
 
       const { error: requestsError } = await supabase
@@ -126,10 +143,34 @@ export function useBatchAnalysis() {
         )
         .subscribe();
 
+      // Subscribe to realtime updates for individual analysis results
+      const resultsChannel = supabase
+        .channel(`results-${batchId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'analysis_results',
+            filter: `batch_id=eq.${batchId}`
+          },
+          (payload) => {
+            console.log('Analysis result update:', payload);
+            if (payload.new) {
+              const result = payload.new as AnalysisResult;
+              if (result.has_chatbot) {
+                toast.success(`Chatbot detected on one of the websites!`);
+              }
+            }
+          }
+        )
+        .subscribe();
+
       // Cleanup subscription when finished or on error
       const cleanup = () => {
         console.log('Cleaning up batch analysis subscription');
         supabase.removeChannel(channel);
+        supabase.removeChannel(resultsChannel);
       };
 
       // Return cleanup function for component unmount
