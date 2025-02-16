@@ -9,20 +9,36 @@ import BatchProgress from './BatchProgress';
 import { useBatchProgress } from '../hooks/useBatchProgress';
 
 interface SearchFormProps {
+  query: string;
+  location: string;
+  apiKey?: string;
+  isProcessing: boolean;
+  isSearching: boolean;
+  onQueryChange: (value: string) => void;
+  onLocationChange: (value: string) => void;
+  onApiKeyChange?: (value: string) => void;
   onResults?: (results: Array<{ website?: string }>) => void;
+  onSubmit: () => void;
 }
 
-const SearchForm: React.FC<SearchFormProps> = ({ onResults }) => {
-  const [query, setQuery] = React.useState('');
-  const [location, setLocation] = React.useState('');
-  const [isSearching, setIsSearching] = React.useState(false);
+const SearchForm: React.FC<SearchFormProps> = ({ 
+  query,
+  location,
+  apiKey,
+  isProcessing,
+  isSearching,
+  onQueryChange,
+  onLocationChange,
+  onApiKeyChange,
+  onResults,
+  onSubmit 
+}) => {
   const [batchId, setBatchId] = React.useState<string | null>(null);
   const batchProgress = useBatchProgress(batchId);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSearching(true);
-
+    
     try {
       // First, search for businesses
       const { data: searchResult, error: searchError } = await supabase
@@ -72,11 +88,11 @@ const SearchForm: React.FC<SearchFormProps> = ({ onResults }) => {
         onResults(searchResult.data.results);
       }
 
+      onSubmit();
+
     } catch (error) {
       console.error('Search operation failed:', error);
       toast.error('Search operation failed. Please try again.');
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -87,12 +103,12 @@ const SearchForm: React.FC<SearchFormProps> = ({ onResults }) => {
           <Input
             placeholder="Business type (e.g. plumber)"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => onQueryChange(e.target.value)}
             className="w-full"
             required
           />
           
-          <Select value={location} onValueChange={setLocation} required>
+          <Select value={location} onValueChange={onLocationChange} required>
             <SelectTrigger>
               <SelectValue placeholder="Select location" />
             </SelectTrigger>
