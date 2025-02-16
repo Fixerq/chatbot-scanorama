@@ -2,6 +2,7 @@
 import { corsHeaders } from '../utils/httpUtils.ts';
 import { AnalysisRequest } from '../types.ts';
 import { supabase } from '../utils/supabaseClient.ts';
+import { websiteAnalyzer } from '../services/websiteAnalyzer.ts';
 
 export async function handleRequest(req: Request): Promise<Response> {
   try {
@@ -88,7 +89,7 @@ export async function handleRequest(req: Request): Promise<Response> {
       }
     };
 
-    // Store the analysis result
+    // Store the analysis result with the request_id
     const { error: resultError } = await supabase
       .from('analysis_results')
       .insert({

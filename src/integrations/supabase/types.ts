@@ -176,6 +176,7 @@ export type Database = {
           pattern_details: Json | null
           processing_end_time: string | null
           processing_start_time: string | null
+          request_id: string | null
           status: Database["public"]["Enums"]["analysis_status"]
           updated_at: string
           url: string | null
@@ -194,6 +195,7 @@ export type Database = {
           pattern_details?: Json | null
           processing_end_time?: string | null
           processing_start_time?: string | null
+          request_id?: string | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
           url?: string | null
@@ -212,12 +214,28 @@ export type Database = {
           pattern_details?: Json | null
           processing_end_time?: string | null
           processing_start_time?: string | null
+          request_id?: string | null
           status?: Database["public"]["Enums"]["analysis_status"]
           updated_at?: string
           url?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "analysis_results_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_failures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_results_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       analyzed_urls: {
         Row: {
