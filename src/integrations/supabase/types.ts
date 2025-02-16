@@ -1647,12 +1647,6 @@ export type Database = {
           alert_type: string
         }[]
       }
-      check_if_admin: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
-      }
       check_rate_limit: {
         Args: {
           p_client_id: string
@@ -1666,12 +1660,6 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
-      }
-      check_user_is_admin: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
       }
       citext:
         | {
@@ -1825,12 +1813,6 @@ export type Database = {
         Returns: undefined
       }
       is_admin_direct_v2: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
-      }
-      is_admin_simple: {
         Args: {
           user_id: string
         }
