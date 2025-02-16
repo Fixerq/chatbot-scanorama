@@ -75,6 +75,45 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_batches: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          last_processed_at: string | null
+          processed_urls: number | null
+          request_id: string
+          status: Database["public"]["Enums"]["batch_status"] | null
+          total_urls: number
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_processed_at?: string | null
+          processed_urls?: number | null
+          request_id: string
+          status?: Database["public"]["Enums"]["batch_status"] | null
+          total_urls: number
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          last_processed_at?: string | null
+          processed_urls?: number | null
+          request_id?: string
+          status?: Database["public"]["Enums"]["batch_status"] | null
+          total_urls?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       analysis_cache: {
         Row: {
           analysis_result: Json | null
@@ -1820,6 +1859,7 @@ export type Database = {
     Enums: {
       alert_severity: "error" | "warning" | "info"
       analysis_status: "pending" | "processing" | "completed" | "failed"
+      batch_status: "pending" | "processing" | "completed" | "failed"
       block_reason_type:
         | "forbidden_403"
         | "rate_limit_429"
