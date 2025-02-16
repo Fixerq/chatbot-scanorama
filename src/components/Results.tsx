@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,6 +10,7 @@ import { QueuedAnalysis } from '@/types/database';
 import { Database } from '@/integrations/supabase/types';
 import { Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type AnalysisRecord = Database['public']['Tables']['analysis_results']['Row'];
 
@@ -66,7 +68,7 @@ const Results: React.FC<ResultsProps> = ({
           table: 'analysis_job_queue',
           filter: `url=in.(${results.map(r => `'${r.url}'`).join(',')})`,
         },
-        (payload: { new: QueuedAnalysis; old: QueuedAnalysis }) => {
+        (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
           console.log('Job update:', payload);
           if (payload.new && onResultUpdate) {
             const result = results.find(r => r.url === payload.new.url);
@@ -94,7 +96,7 @@ const Results: React.FC<ResultsProps> = ({
           table: 'analysis_results',
           filter: `url=in.(${results.map(r => `'${r.url}'`).join(',')})`,
         },
-        (payload: { new: AnalysisRecord; old: AnalysisRecord }) => {
+        (payload: RealtimePostgresChangesPayload<AnalysisRecord>) => {
           console.log('Analysis result update:', payload);
           if (onResultUpdate && payload.new) {
             const newAnalysis = payload.new as AnalysisRecord;
