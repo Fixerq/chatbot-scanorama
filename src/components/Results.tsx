@@ -10,6 +10,7 @@ import { Database } from '@/integrations/supabase/types';
 import { Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import BatchProgress from '@/components/BatchProgress';
 
 type AnalysisRecord = Database['public']['Tables']['analysis_results']['Row'];
 
