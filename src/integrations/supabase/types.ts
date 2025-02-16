@@ -105,6 +105,62 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_queue: {
+        Row: {
+          batch_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          max_retries: number | null
+          metadata: Json | null
+          priority: number | null
+          retry_count: number | null
+          started_at: string | null
+          status: string
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_queue_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "search_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_requests: {
         Row: {
           analysis_result: Json | null
@@ -842,6 +898,44 @@ export type Database = {
         }
         Relationships: []
       }
+      pattern_matches: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          matched_content: string | null
+          pattern_type: string
+          pattern_value: string
+          queue_id: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          matched_content?: string | null
+          pattern_type: string
+          pattern_value: string
+          queue_id?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          matched_content?: string | null
+          pattern_type?: string
+          pattern_value?: string
+          queue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pattern_matches_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pattern_metrics: {
         Row: {
           created_at: string | null
@@ -1527,6 +1621,10 @@ export type Database = {
         Returns: string
       }
       cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_analyses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
