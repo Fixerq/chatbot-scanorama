@@ -6,6 +6,7 @@ export interface QueuedAnalysis {
   started_at?: string;
   completed_at?: string;
   id: string;
+  worker_id?: string;
 }
 
 export interface AnalysisQueuePayload {
@@ -13,3 +14,10 @@ export interface AnalysisQueuePayload {
   old: QueuedAnalysis;
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
 }
+
+export type PostgresChangesPayload<T> = {
+  new: T;
+  old: T;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+};
+

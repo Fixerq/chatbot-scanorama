@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Loader2, Bot, XCircle, AlertTriangle } from 'lucide-react';
@@ -54,7 +53,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
           table: 'analysis_job_queue',
           filter: `url=eq.${url}`
         },
-        (payload: { new: QueuedAnalysis }) => {
+        (payload: { new: QueuedAnalysis; old: QueuedAnalysis }) => {
           console.log('Job status update:', payload);
           if (onAnalysisUpdate && payload.new) {
             onAnalysisUpdate({
