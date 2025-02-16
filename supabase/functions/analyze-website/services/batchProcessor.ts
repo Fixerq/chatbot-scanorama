@@ -1,7 +1,7 @@
 
 import { ChatDetectionResult } from '../types.ts';
 
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 3; // Reduced from previous value to prevent resource exhaustion
 const BATCH_DELAY = 1000; // 1 second delay between batches
 
 export async function processBatch<T>(
