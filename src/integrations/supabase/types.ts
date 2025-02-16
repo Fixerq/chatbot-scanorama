@@ -1638,12 +1638,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      check_admin_status: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
-      }
       check_alert_thresholds: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1830,12 +1824,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      is_admin_check: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
-      }
       is_admin_direct_v2: {
         Args: {
           user_id: string
@@ -1846,10 +1834,6 @@ export type Database = {
         Args: {
           user_id: string
         }
-        Returns: boolean
-      }
-      is_admin_simplified: {
-        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       refresh_admin_users_mv: {
