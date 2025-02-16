@@ -7,6 +7,8 @@ import ResultsContainer from './results/ResultsContainer';
 import ResultsTable, { Result } from './ResultsTable';
 import EmptyResults from './results/EmptyResults';
 import { Database } from '@/integrations/supabase/types';
+import { Loader2 } from 'lucide-react';
+import { Button } from './ui/button';
 
 type AnalysisRecord = Database['public']['Tables']['analysis_results']['Row'];
 
@@ -36,12 +38,54 @@ const Results: React.FC<ResultsProps> = ({
   useEffect(() => {
     if (!hasResults) return;
 
-    // Create a unique channel name for each set of results
-    const channelName = `analysis_updates_${Date.now()}`;
-    
-    // Subscribe to real-time updates for analysis results
-    const channel = supabase
-      .channel(channelName)
+    // Subscribe to worker status updates
+    const workerChannel = supabase
+      .channel('worker_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'worker_instances',
+          filter: `status=in.(active,processing)`
+        },
+        (payload) => {
+          console.log('Worker status update:', payload);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to job updates
+    const jobChannel = supabase
+      .channel('job_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'analysis_job_queue',
+          filter: `url=in.(${results.map(r => `'${r.url}'`).join(',')})`,
+        },
+        (payload) => {
+          console.log('Job update:', payload);
+          if (payload.new && onResultUpdate) {
+            const result = results.find(r => r.url === payload.new.url);
+            if (result) {
+              const updatedResult: Result = {
+                ...result,
+                status: payload.new.status,
+                error: payload.new.error_message,
+              };
+              onResultUpdate(updatedResult);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe to analysis results
+    const analysisChannel = supabase
+      .channel('analysis_updates')
       .on(
         'postgres_changes',
         {
@@ -51,7 +95,7 @@ const Results: React.FC<ResultsProps> = ({
           filter: `url=in.(${results.map(r => `'${r.url}'`).join(',')})`,
         },
         (payload) => {
-          console.log('Received real-time update:', payload);
+          console.log('Analysis result update:', payload);
           if (onResultUpdate && payload.new) {
             const newAnalysis = payload.new as AnalysisRecord;
             const resultToUpdate = results.find(r => r.url === newAnalysis.url);
@@ -79,13 +123,32 @@ const Results: React.FC<ResultsProps> = ({
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(workerChannel);
+      supabase.removeChannel(jobChannel);
+      supabase.removeChannel(analysisChannel);
     };
   }, [results, onResultUpdate, hasResults]);
 
   if (!hasResults && !isAnalyzing) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
+
+  const handleRetryAnalysis = async (url: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('analyze-website', {
+        body: { url, retry: true }
+      });
+
+      if (error) {
+        toast.error(`Failed to retry analysis for ${url}`);
+      } else {
+        toast.success(`Analysis retried for ${url}`);
+      }
+    } catch (error) {
+      console.error('Error retrying analysis:', error);
+      toast.error('Failed to retry analysis');
+    }
+  };
 
   return (
     <ResultsContainer
@@ -107,6 +170,7 @@ const Results: React.FC<ResultsProps> = ({
           results={results} 
           isLoading={isLoadingMore}
           onResultUpdate={onResultUpdate}
+          onRetry={handleRetryAnalysis}
         />
       </ResultsContent>
     </ResultsContainer>
@@ -114,3 +178,4 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
+

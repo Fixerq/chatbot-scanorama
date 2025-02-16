@@ -18,6 +18,17 @@ export const useUrlProcessor = () => {
     onAnalysisStart();
 
     try {
+      // Start a new worker instance
+      const { error: workerError } = await supabase.functions.invoke('start-worker', {
+        body: { action: 'start' }
+      });
+
+      if (workerError) {
+        console.error('Error starting worker:', workerError);
+        toast.error('Failed to start analysis worker');
+        return;
+      }
+
       // Create a search batch first
       const { data: batchData, error: batchError } = await supabase
         .from('search_batches')
@@ -37,7 +48,7 @@ export const useUrlProcessor = () => {
       // Create analysis requests for each URL
       for (const result of results) {
         try {
-          // First create the analysis request
+          // Create the analysis request
           const { data: requestData, error: requestError } = await supabase
             .from('analysis_requests')
             .insert({
@@ -55,7 +66,7 @@ export const useUrlProcessor = () => {
 
           console.log('Created analysis request:', requestData);
 
-          // Then invoke the analyze-website function
+          // Queue the analysis job
           const { error } = await supabase.functions.invoke('analyze-website', {
             body: { 
               url: result.url,
@@ -64,8 +75,8 @@ export const useUrlProcessor = () => {
           });
 
           if (error) {
-            console.error('Error analyzing website:', error);
-            toast.error(`Failed to analyze ${result.url}`);
+            console.error('Error queuing analysis:', error);
+            toast.error(`Failed to queue analysis for ${result.url}`);
           }
         } catch (error) {
           console.error(`Failed to process ${result.url}:`, error);
@@ -117,3 +128,4 @@ export const useUrlProcessor = () => {
     processSearchResults
   };
 };
+

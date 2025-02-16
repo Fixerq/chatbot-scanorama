@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { formatUrl } from '@/utils/urlFormatting';
 import ResultStatusCell from './results/ResultStatusCell';
 import { AnalysisResult } from '@/utils/types/search';
+import { Button } from './ui/button';
+import { RefreshCw } from 'lucide-react';
 
 export interface Result {
   url: string;
@@ -42,9 +44,16 @@ interface ResultsTableProps {
   processing?: boolean;
   isLoading?: boolean;
   onResultUpdate?: (updatedResult: Result) => void;
+  onRetry?: (url: string) => void;
 }
 
-const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: ResultsTableProps) => {
+const ResultsTable = ({ 
+  results, 
+  processing, 
+  isLoading, 
+  onResultUpdate,
+  onRetry 
+}: ResultsTableProps) => {
   // Filter out failed results
   const validResults = results.filter(result => {
     const hasError = result.error || 
@@ -66,6 +75,12 @@ const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: Result
     }
   };
 
+  const handleRetry = (url: string) => {
+    if (onRetry) {
+      onRetry(url);
+    }
+  };
+
   return (
     <div className="w-full overflow-x-auto">
       <Table>
@@ -76,15 +91,22 @@ const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: Result
             <TableHead>Title</TableHead>
             <TableHead>URL</TableHead>
             <TableHead>Analysis</TableHead>
+            <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {validResults.map((result, i) => {
             const { displayUrl } = formatUrl(result.url);
+            const showRetry = result.status === 'failed' || 
+                            result.analysis_result?.error ||
+                            result.error;
+
             return (
               <TableRow key={i}>
                 <TableCell>
-                  <Badge variant="secondary">OK</Badge>
+                  <Badge variant="secondary">
+                    {result.status === 'failed' ? 'Failed' : 'OK'}
+                  </Badge>
                 </TableCell>
                 <TableCell className="font-medium">{result.title}</TableCell>
                 <TableCell>
@@ -108,12 +130,25 @@ const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: Result
                   url={result.url}
                   onAnalysisUpdate={(newAnalysis) => handleAnalysisUpdate(result.url, newAnalysis)}
                 />
+                <TableCell>
+                  {showRetry && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRetry(result.url)}
+                      className="flex items-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Retry
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
             );
           })}
           {(processing || isLoading) && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground">
+              <TableCell colSpan={5} className="text-center text-muted-foreground">
                 Processing...
               </TableCell>
             </TableRow>

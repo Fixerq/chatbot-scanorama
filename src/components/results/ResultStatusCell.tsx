@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { TableCell } from "@/components/ui/table";
-import { Loader2, Bot, XCircle } from 'lucide-react';
+import { Loader2, Bot, XCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
@@ -42,28 +42,31 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   useEffect(() => {
     if (!url) return;
 
-    // Subscribe to real-time updates for this URL's analysis results
-    const channel = supabase
-      .channel('analysis_updates')
+    // Subscribe to worker status updates for this URL
+    const workerChannel = supabase
+      .channel(`worker_status_${url}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'analysis_results',
+          table: 'analysis_job_queue',
           filter: `url=eq.${url}`
         },
         (payload) => {
-          console.log('Received real-time update:', payload);
-          if (onAnalysisUpdate) {
-            onAnalysisUpdate(payload.new);
+          console.log('Job status update:', payload);
+          if (onAnalysisUpdate && payload.new) {
+            onAnalysisUpdate({
+              status: payload.new.status,
+              error: payload.new.error_message
+            });
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(workerChannel);
     };
   }, [url, onAnalysisUpdate]);
 
@@ -73,6 +76,28 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
         <div className="flex items-center space-x-2">
           <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
           <span className="text-blue-600 dark:text-blue-400">Analyzing...</span>
+        </div>
+      </TableCell>
+    );
+  }
+
+  if (status === 'queued') {
+    return (
+      <TableCell>
+        <div className="flex items-center space-x-2">
+          <AlertTriangle className="w-4 h-4 text-yellow-500" />
+          <span className="text-yellow-600 dark:text-yellow-400">Queued for analysis</span>
+        </div>
+      </TableCell>
+    );
+  }
+
+  if (status === 'failed' || analysis_result?.error) {
+    return (
+      <TableCell>
+        <div className="flex items-center space-x-2 text-red-500">
+          <XCircle className="w-4 h-4" />
+          <span>{analysis_result?.error || 'Analysis failed'}</span>
         </div>
       </TableCell>
     );
