@@ -46,6 +46,8 @@ const SearchForm: React.FC<SearchFormProps> = ({
     e.preventDefault();
     
     try {
+      console.log('Starting search with params:', { query, country, region });
+
       // First, search for businesses
       const { data: searchResult, error: searchError } = await supabase
         .functions.invoke<{
@@ -64,11 +66,30 @@ const SearchForm: React.FC<SearchFormProps> = ({
           }
         });
 
+      console.log('Search results:', searchResult);
+      console.log('Search error:', searchError);
+
       if (searchError) throw searchError;
 
-      const urls = searchResult?.data.results
+      if (!searchResult?.data?.results) {
+        console.log('No results found in search response');
+        toast.error('No results found');
+        return;
+      }
+
+      console.log('Found results:', searchResult.data.results.length);
+
+      const urls = searchResult.data.results
         .map(business => business.website)
-        .filter((url): url is string => !!url); // Filter out null/undefined websites
+        .filter((url): url is string => {
+          const valid = !!url && url.startsWith('http');
+          if (!valid && url) {
+            console.log('Filtered out invalid URL:', url);
+          }
+          return valid;
+        });
+
+      console.log('Filtered website URLs:', urls);
 
       if (!urls?.length) {
         toast.error('No websites found to analyze');
@@ -83,6 +104,9 @@ const SearchForm: React.FC<SearchFormProps> = ({
             requestId: crypto.randomUUID()
           }
         });
+
+      console.log('Analysis result:', analysisResult);
+      console.log('Analysis error:', analysisError);
 
       if (analysisError) throw analysisError;
 
@@ -164,4 +188,3 @@ const SearchForm: React.FC<SearchFormProps> = ({
 };
 
 export default SearchForm;
-
