@@ -70,8 +70,8 @@ const Results: React.FC<ResultsProps> = ({
         },
         (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
           console.log('Job update:', payload);
-          if (payload.new && onResultUpdate) {
-            const result = results.find(r => r.url === payload.new.url);
+          if (payload.eventType !== 'DELETE' && payload.new && onResultUpdate) {
+            const result = results.find(r => r.url === payload.new?.url);
             if (result) {
               const updatedResult: Result = {
                 ...result,
@@ -98,8 +98,8 @@ const Results: React.FC<ResultsProps> = ({
         },
         (payload: RealtimePostgresChangesPayload<AnalysisRecord>) => {
           console.log('Analysis result update:', payload);
-          if (onResultUpdate && payload.new) {
-            const newAnalysis = payload.new as AnalysisRecord;
+          if (onResultUpdate && payload.eventType !== 'DELETE' && payload.new) {
+            const newAnalysis = payload.new;
             const resultToUpdate = results.find(r => r.url === newAnalysis.url);
             if (resultToUpdate) {
               const updatedResult: Result = {
@@ -180,3 +180,4 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
+

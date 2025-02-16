@@ -57,7 +57,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
         },
         (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
           console.log('Job status update:', payload);
-          if (onAnalysisUpdate && payload.new) {
+          if (onAnalysisUpdate && payload.eventType !== 'DELETE' && payload.new) {
             onAnalysisUpdate({
               status: payload.new.status,
               error: payload.new.error_message
@@ -164,3 +164,4 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
+
