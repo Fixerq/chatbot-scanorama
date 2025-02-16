@@ -5,14 +5,48 @@ import { supabase } from '../utils/supabaseClient.ts';
 
 export async function handleRequest(req: Request): Promise<Response> {
   try {
-    // Validate the request body
+    // Parse and validate the request body
     const body = await req.json().catch(() => null);
     
-    if (!body || !body.url || !body.requestId) {
-      console.error('[AnalyzeWebsite] Invalid request body:', body);
+    console.log('[AnalyzeWebsite] Received request body:', body);
+    
+    if (!body) {
+      console.error('[AnalyzeWebsite] Missing request body');
       return new Response(
         JSON.stringify({
-          error: 'Invalid request. URL and requestId are required.',
+          error: 'Request body is required',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    if (!body.url) {
+      console.error('[AnalyzeWebsite] Missing URL in request:', body);
+      return new Response(
+        JSON.stringify({
+          error: 'URL is required in request',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    if (!body.requestId) {
+      console.error('[AnalyzeWebsite] Missing requestId in request:', body);
+      return new Response(
+        JSON.stringify({
+          error: 'requestId is required in request',
         }),
         {
           status: 400,
@@ -31,7 +65,10 @@ export async function handleRequest(req: Request): Promise<Response> {
     // Update request status to processing
     const { error: updateError } = await supabase
       .from('analysis_requests')
-      .update({ status: 'processing' })
+      .update({ 
+        status: 'processing',
+        started_at: new Date().toISOString()
+      })
       .eq('id', requestId);
 
     if (updateError) {
@@ -71,7 +108,10 @@ export async function handleRequest(req: Request): Promise<Response> {
     // Update request status to completed
     const { error: finalUpdateError } = await supabase
       .from('analysis_requests')
-      .update({ status: 'completed' })
+      .update({ 
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      })
       .eq('id', requestId);
 
     if (finalUpdateError) {

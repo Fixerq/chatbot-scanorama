@@ -29,52 +29,42 @@ export const useUrlProcessor = () => {
       }
 
       // Create analysis requests for each URL
-      const requests = await Promise.all(results.map(async (result) => {
-        const { data: requestData, error: requestError } = await supabase
-          .from('analysis_requests')
-          .insert({
-            url: result.url,
-            status: 'pending',
-            search_batch_id: batchData.id
-          })
-          .select()
-          .single();
-
-        if (requestError) {
-          console.error('Error creating analysis request:', requestError);
-          return null;
-        }
-
-        return { url: result.url, requestId: requestData.id };
-      }));
-
-      // Filter out any failed requests
-      const validRequests = requests.filter((request): request is { url: string; requestId: string } => request !== null);
-
-      // Call the analyze-website function for each valid request
-      await Promise.all(validRequests.map(async (request) => {
-        if (!request) return;
-
+      for (const result of results) {
         try {
+          // First create the analysis request
+          const { data: requestData, error: requestError } = await supabase
+            .from('analysis_requests')
+            .insert({
+              url: result.url,
+              status: 'pending',
+              search_batch_id: batchData.id
+            })
+            .select()
+            .single();
+
+          if (requestError) {
+            console.error('Error creating analysis request:', requestError);
+            continue;
+          }
+
+          console.log('Created analysis request:', requestData);
+
+          // Then invoke the analyze-website function
           const { error } = await supabase.functions.invoke('analyze-website', {
             body: { 
-              url: request.url,
-              requestId: request.requestId
-            },
-            headers: {
-              'Content-Type': 'application/json',
+              url: result.url,
+              requestId: requestData.id
             }
           });
 
           if (error) {
             console.error('Error analyzing website:', error);
-            toast.error(`Failed to analyze ${request.url}`);
+            toast.error(`Failed to analyze ${result.url}`);
           }
         } catch (error) {
-          console.error(`Failed to analyze ${request.url}:`, error);
-          toast.error(`Error analyzing ${request.url}`);
+          console.error(`Failed to process ${result.url}:`, error);
         }
-      }));
+      }
 
     } catch (error) {
       console.error('Failed to process search results:', error);
