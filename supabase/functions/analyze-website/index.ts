@@ -15,15 +15,7 @@ serve(async (req) => {
 
   try {
     const response = await handleRequest(req);
-    return new Response(
-      JSON.stringify(response),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    return response;
   } catch (error) {
     console.error('Request handler error:', error);
     return new Response(
