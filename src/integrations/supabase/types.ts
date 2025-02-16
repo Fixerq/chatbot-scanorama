@@ -730,6 +730,53 @@ export type Database = {
         }
         Relationships: []
       }
+      crawl_results: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error: string | null
+          id: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["crawl_status"] | null
+          updated_at: string | null
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["crawl_status"] | null
+          updated_at?: string | null
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["crawl_status"] | null
+          updated_at?: string | null
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crawl_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string | null
@@ -1716,6 +1763,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_old_crawl_results: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_old_executions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1852,6 +1903,7 @@ export type Database = {
         | "connection_refused"
         | "dns_error"
         | "other"
+      crawl_status: "pending" | "processing" | "completed" | "failed"
       detection_method: "selector" | "script" | "iframe" | "text" | "mutation"
       job_status: "pending" | "processing" | "completed" | "failed"
       request_status: "pending" | "processing" | "completed" | "failed"
