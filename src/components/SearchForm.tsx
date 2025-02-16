@@ -1,73 +1,123 @@
 
-import React from 'react';
-import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
-import SearchInputs from './SearchInputs';
-import ProcessingIndicator from './ProcessingIndicator';
-import { Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import BatchProgress from './BatchProgress';
+import { useBatchProgress } from '../hooks/useBatchProgress';
 
-interface SearchFormProps {
-  query: string;
-  country: string;
-  region: string;
-  apiKey: string;
-  isProcessing: boolean;
-  isSearching: boolean;
-  onQueryChange: (value: string) => void;
-  onCountryChange: (value: string) => void;
-  onRegionChange: (value: string) => void;
-  onApiKeyChange: (value: string) => void;
-  onSubmit: () => void;
-}
+const SearchForm = () => {
+  const [query, setQuery] = useState('');
+  const [location, setLocation] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [batchId, setBatchId] = useState<string | undefined>();
+  const batchProgress = useBatchProgress(batchId);
 
-const SearchForm = ({
-  query,
-  country,
-  region,
-  apiKey,
-  isProcessing,
-  isSearching,
-  onQueryChange,
-  onCountryChange,
-  onRegionChange,
-  onApiKeyChange,
-  onSubmit
-}: SearchFormProps) => {
-  const { subscriptionData, isLoading } = useSubscriptionStatus();
-  
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit();
+    setIsSearching(true);
+
+    try {
+      // First, search for businesses
+      const { data: searchResult, error: searchError } = await supabase
+        .functions.invoke<{
+          data: {
+            results: Array<{ website?: string }>;
+          };
+        }>('search-places', {
+          body: { 
+            action: 'search',
+            params: {
+              query,
+              location,
+              maxResults: 20
+            }
+          }
+        });
+
+      if (searchError) throw searchError;
+
+      const urls = searchResult?.data.results
+        .map(business => business.website)
+        .filter((url): url is string => !!url); // Filter out null/undefined websites
+
+      if (!urls?.length) {
+        toast.error('No websites found to analyze');
+        return;
+      }
+
+      // Start batch analysis
+      const { data: analysisResult, error: analysisError } = await supabase
+        .functions.invoke<{ batchId: string }>('analyze-website', {
+          body: {
+            urls,
+            requestId: crypto.randomUUID()
+          }
+        });
+
+      if (analysisError) throw analysisError;
+
+      if (analysisResult?.batchId) {
+        setBatchId(analysisResult.batchId);
+        toast.success('Analysis started');
+      }
+
+    } catch (error) {
+      console.error('Search operation failed:', error);
+      toast.error('Search operation failed. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold text-cyan-100">Search Businesses</h2>
-        {!isLoading && subscriptionData && (
-          <div className="flex items-center gap-2 text-sm text-cyan-200/70">
-            <Info className="w-4 h-4" />
-            {subscriptionData.searchesRemaining === -1 ? (
-              <span>Unlimited searches available</span>
-            ) : (
-              <span>{subscriptionData.searchesRemaining} searches remaining</span>
-            )}
-          </div>
-        )}
-      </div>
+    <div className="space-y-6">
+      <form onSubmit={handleSearch} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Input
+            placeholder="Business type (e.g. plumber)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full"
+            required
+          />
+          
+          <Select value={location} onValueChange={setLocation} required>
+            <SelectTrigger>
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AL">Alabama</SelectItem>
+              <SelectItem value="AK">Alaska</SelectItem>
+              <SelectItem value="AZ">Arizona</SelectItem>
+              <SelectItem value="AR">Arkansas</SelectItem>
+              <SelectItem value="CA">California</SelectItem>
+              <SelectItem value="CO">Colorado</SelectItem>
+              {/* Add more states as needed */}
+            </SelectContent>
+          </Select>
 
-      {isProcessing && <ProcessingIndicator />}
+          <Button 
+            type="submit" 
+            disabled={isSearching || !query || !location}
+            className="w-full md:w-auto"
+          >
+            {isSearching ? 'Searching...' : 'Search'}
+          </Button>
+        </div>
+      </form>
 
-      <SearchInputs
-        query={query}
-        country={country}
-        region={region}
-        isProcessing={isProcessing}
-        isSearching={isSearching}
-        onQueryChange={onQueryChange}
-        onCountryChange={onCountryChange}
-        onRegionChange={onRegionChange}
-      />
-    </form>
+      {batchId && batchProgress && (
+        <BatchProgress
+          totalUrls={batchProgress.totalUrls}
+          processedUrls={batchProgress.processedUrls}
+          status={batchProgress.status}
+          error={batchProgress.error}
+        />
+      )}
+    </div>
   );
 };
 

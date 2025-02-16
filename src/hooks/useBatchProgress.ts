@@ -43,12 +43,13 @@ export const useBatchProgress = (batchId?: string) => {
         return;
       }
 
-      if (data) {
+      if (data as AnalysisBatch) {
+        const batchData = data as AnalysisBatch;
         setProgress({
-          totalUrls: data.total_urls,
-          processedUrls: data.processed_urls,
-          status: data.status,
-          error: data.error_message
+          totalUrls: batchData.total_urls,
+          processedUrls: batchData.processed_urls,
+          status: batchData.status,
+          error: batchData.error_message || null
         });
       }
     };
@@ -68,12 +69,14 @@ export const useBatchProgress = (batchId?: string) => {
         },
         (payload: RealtimePostgresChangesPayload<AnalysisBatch>) => {
           const newData = payload.new;
-          setProgress({
-            totalUrls: newData.total_urls,
-            processedUrls: newData.processed_urls,
-            status: newData.status,
-            error: newData.error_message || null
-          });
+          if (newData) {
+            setProgress({
+              totalUrls: newData.total_urls,
+              processedUrls: newData.processed_urls,
+              status: newData.status,
+              error: newData.error_message || null
+            });
+          }
         }
       )
       .subscribe();
