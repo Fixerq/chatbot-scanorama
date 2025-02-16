@@ -9,16 +9,18 @@ interface AnalysisBatch {
   processed_urls: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   error_message?: string | null;
+  created_at: string;
+  completed_at?: string;
 }
 
 interface BatchProgress {
   totalUrls: number;
   processedUrls: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: AnalysisBatch['status'];
   error: string | null;
 }
 
-export const useBatchProgress = (batchId?: string) => {
+export const useBatchProgress = (batchId?: string): BatchProgress => {
   const [progress, setProgress] = useState<BatchProgress>({
     totalUrls: 0,
     processedUrls: 0,
@@ -43,15 +45,13 @@ export const useBatchProgress = (batchId?: string) => {
         return;
       }
 
-      if (data as AnalysisBatch) {
-        const batchData = data as AnalysisBatch;
-        setProgress({
-          totalUrls: batchData.total_urls,
-          processedUrls: batchData.processed_urls,
-          status: batchData.status,
-          error: batchData.error_message || null
-        });
-      }
+      const batch = data as AnalysisBatch;
+      setProgress({
+        totalUrls: batch.total_urls,
+        processedUrls: batch.processed_urls,
+        status: batch.status,
+        error: batch.error_message || null
+      });
     };
 
     fetchBatch();
@@ -68,13 +68,13 @@ export const useBatchProgress = (batchId?: string) => {
           filter: `id=eq.${batchId}`
         },
         (payload: RealtimePostgresChangesPayload<AnalysisBatch>) => {
-          const newData = payload.new;
-          if (newData) {
+          const batch = payload.new;
+          if (batch) {
             setProgress({
-              totalUrls: newData.total_urls,
-              processedUrls: newData.processed_urls,
-              status: newData.status,
-              error: newData.error_message || null
+              totalUrls: batch.total_urls,
+              processedUrls: batch.processed_urls,
+              status: batch.status,
+              error: batch.error_message || null
             });
           }
         }
