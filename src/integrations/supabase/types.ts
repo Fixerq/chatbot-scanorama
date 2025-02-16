@@ -1836,6 +1836,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_direct_v2: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       is_admin_simple: {
         Args: {
           user_id: string

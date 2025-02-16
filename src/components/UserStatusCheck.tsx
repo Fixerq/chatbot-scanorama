@@ -21,10 +21,7 @@ export const UserStatusCheck = () => {
 
       try {
         const { data, error } = await supabase
-          .from('admin_users_mv')
-          .select('user_id')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+          .rpc('is_admin_direct_v2', { user_id: session.user.id });
 
         if (error) {
           console.error('Error checking admin status:', error);

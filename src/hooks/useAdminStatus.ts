@@ -21,12 +21,8 @@ export const useAdminStatus = () => {
         return false;
       }
 
-      // Use the materialized view for admin check
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users_mv')
-        .select('user_id')
-        .eq('user_id', session.session.user.id)
-        .maybeSingle();
+      const { data: isAdminData, error: adminError } = await supabase
+        .rpc('is_admin_direct_v2', { user_id: session.session.user.id });
 
       if (adminError) {
         console.error('Admin check error:', adminError);
@@ -34,7 +30,7 @@ export const useAdminStatus = () => {
         return false;
       }
 
-      const hasAdminAccess = !!adminData;
+      const hasAdminAccess = !!isAdminData;
       console.log('Admin status:', hasAdminAccess);
       setIsAdmin(hasAdminAccess);
       

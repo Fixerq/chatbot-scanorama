@@ -5,18 +5,17 @@ import { AdminCheck } from '@/types/auth';
 export const useAdminCheck = (): AdminCheck => {
   const checkAdminStatus = async (userId: string): Promise<boolean> => {
     try {
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users_mv')
-        .select('user_id')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const { data, error } = await supabase
+        .rpc('is_admin_direct_v2', { user_id: userId });
 
-      if (!adminError && adminData) {
-        return true;
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return false;
       }
-      return false;
+
+      return !!data;
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('Error in checkAdminStatus:', error);
       return false;
     }
   };
