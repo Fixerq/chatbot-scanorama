@@ -13,6 +13,16 @@ interface AnalysisBatch {
   request_id: string;
 }
 
+// Type guard to check if payload is a valid AnalysisBatch
+function isValidBatchPayload(payload: any): payload is AnalysisBatch {
+  return (
+    payload &&
+    typeof payload.processed_urls === 'number' &&
+    typeof payload.total_urls === 'number' &&
+    typeof payload.status === 'string'
+  );
+}
+
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -91,7 +101,10 @@ export function useBatchAnalysis() {
           },
           (payload: RealtimePostgresChangesPayload<AnalysisBatch>) => {
             console.log('Batch update:', payload);
-            if (!payload.new) return;
+            if (!payload.new || !isValidBatchPayload(payload.new)) {
+              console.warn('Invalid batch payload received:', payload);
+              return;
+            }
 
             const { processed_urls, total_urls, status, error_message } = payload.new;
             
