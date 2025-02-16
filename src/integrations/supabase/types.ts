@@ -144,53 +144,6 @@ export type Database = {
         }
         Relationships: []
       }
-      analysis_job_queue: {
-        Row: {
-          batch_id: string
-          completed_at: string | null
-          created_at: string | null
-          id: string
-          priority: number | null
-          request_ids: string[]
-          started_at: string | null
-          status: Database["public"]["Enums"]["worker_status"] | null
-          updated_at: string | null
-          worker_id: string | null
-        }
-        Insert: {
-          batch_id: string
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          priority?: number | null
-          request_ids: string[]
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["worker_status"] | null
-          updated_at?: string | null
-          worker_id?: string | null
-        }
-        Update: {
-          batch_id?: string
-          completed_at?: string | null
-          created_at?: string | null
-          id?: string
-          priority?: number | null
-          request_ids?: string[]
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["worker_status"] | null
-          updated_at?: string | null
-          worker_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "analysis_job_queue_worker_id_fkey"
-            columns: ["worker_id"]
-            isOneToOne: false
-            referencedRelation: "worker_instances"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       analysis_queue: {
         Row: {
           batch_id: string | null
@@ -259,6 +212,7 @@ export type Database = {
           html_content_length: number | null
           html_fetch_status: string | null
           id: string
+          processed: boolean | null
           retry_count: number | null
           search_batch_id: string | null
           started_at: string | null
@@ -278,6 +232,7 @@ export type Database = {
           html_content_length?: number | null
           html_fetch_status?: string | null
           id?: string
+          processed?: boolean | null
           retry_count?: number | null
           search_batch_id?: string | null
           started_at?: string | null
@@ -297,6 +252,7 @@ export type Database = {
           html_content_length?: number | null
           html_fetch_status?: string | null
           id?: string
+          processed?: boolean | null
           retry_count?: number | null
           search_batch_id?: string | null
           started_at?: string | null
@@ -1495,33 +1451,6 @@ export type Database = {
           last_checked?: string | null
           updated_at?: string | null
           url?: string
-        }
-        Relationships: []
-      }
-      worker_instances: {
-        Row: {
-          created_at: string | null
-          current_job_id: string | null
-          id: string
-          last_heartbeat: string | null
-          status: Database["public"]["Enums"]["worker_status"] | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          current_job_id?: string | null
-          id?: string
-          last_heartbeat?: string | null
-          status?: Database["public"]["Enums"]["worker_status"] | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          current_job_id?: string | null
-          id?: string
-          last_heartbeat?: string | null
-          status?: Database["public"]["Enums"]["worker_status"] | null
-          updated_at?: string | null
         }
         Relationships: []
       }
