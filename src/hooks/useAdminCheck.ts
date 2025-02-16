@@ -6,7 +6,7 @@ export const useAdminCheck = (): AdminCheck => {
   const checkAdminStatus = async (userId: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase
-        .rpc('is_admin_direct_v2', { user_id: userId });
+        .rpc('is_admin', { user_id: userId });
 
       if (error) {
         console.error('Error checking admin status:', error);

@@ -1626,12 +1626,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      check_admin_direct_v2: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
-      }
       check_admin_mv: {
         Args: {
           uid: string
@@ -1811,6 +1805,12 @@ export type Database = {
           request_id: string
         }
         Returns: undefined
+      }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
       }
       is_admin_direct_v2: {
         Args: {

@@ -22,7 +22,7 @@ export const useAdminStatus = () => {
       }
 
       const { data: isAdminData, error: adminError } = await supabase
-        .rpc('is_admin_direct_v2', { user_id: session.session.user.id });
+        .rpc('is_admin', { user_id: session.session.user.id });
 
       if (adminError) {
         console.error('Admin check error:', adminError);
