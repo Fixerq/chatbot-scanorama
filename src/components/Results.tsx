@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ResultsContent from './results/ResultsContent';
@@ -32,10 +32,6 @@ const Results: React.FC<ResultsProps> = ({
   onResultUpdate
 }) => {
   const hasResults = results.length > 0;
-  const [localPage, setLocalPage] = useState(1);
-
-  // Calculate the number of results with chatbots
-  const chatbotCount = results.filter(result => result.analysis_result?.has_chatbot).length;
 
   useEffect(() => {
     if (!hasResults) return;
@@ -82,7 +78,7 @@ const Results: React.FC<ResultsProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [results, onResultUpdate]);
+  }, [results, onResultUpdate, hasResults]);
 
   return (
     <ResultsContainer
@@ -96,8 +92,6 @@ const Results: React.FC<ResultsProps> = ({
       {hasResults ? (
         <ResultsContent
           results={results}
-          localPage={localPage}
-          setLocalPage={setLocalPage}
           hasMore={hasMore}
           onLoadMore={onLoadMore}
           isLoadingMore={isLoadingMore}

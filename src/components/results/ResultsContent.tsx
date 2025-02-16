@@ -1,8 +1,6 @@
 
 import React, { ReactNode } from 'react';
 import { Result } from '../ResultsTable';
-import ResultsTable from '../ResultsTable';
-import EmptyResults from './EmptyResults';
 import LoadMoreButton from '../LoadMoreButton';
 import {
   Pagination,
@@ -17,8 +15,6 @@ import { Loader2 } from 'lucide-react';
 
 interface ResultsContentProps {
   results: Result[];
-  localPage: number;
-  setLocalPage: (page: number) => void;
   hasMore?: boolean;
   onLoadMore?: (currentPage: number) => void;
   isLoadingMore?: boolean;
@@ -28,8 +24,6 @@ interface ResultsContentProps {
 
 const ResultsContent = ({
   results,
-  localPage,
-  setLocalPage,
   hasMore = false,
   onLoadMore,
   isLoadingMore = false,
@@ -53,25 +47,11 @@ const ResultsContent = ({
   }
 
   if (!results || results.length === 0) {
-    return (
-      <EmptyResults 
-        onNewSearch={() => {}} 
-        message="No results found. Please try searching for businesses to analyze."
-      />
-    );
+    return null;
   }
 
-  const handlePageChange = (page: number) => {
-    setLocalPage(page);
-    if (onLoadMore) {
-      onLoadMore(page);
-    }
-  };
-
   const totalPages = Math.ceil(validResults.length / 50);
-  const startIndex = (localPage - 1) * 50;
-  const endIndex = startIndex + 50;
-  const displayedResults = validResults.slice(startIndex, endIndex);
+  const currentPage = Math.ceil(validResults.length / 50);
 
   return (
     <>
@@ -81,7 +61,7 @@ const ResultsContent = ({
       
       {hasMore && (
         <LoadMoreButton 
-          onLoadMore={() => onLoadMore?.(localPage + 1)}
+          onLoadMore={() => onLoadMore?.(currentPage + 1)}
           isProcessing={isLoadingMore}
         />
       )}
@@ -90,32 +70,25 @@ const ResultsContent = ({
         <div className="flex justify-center mt-6">
           <Pagination>
             <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => handlePageChange(localPage - 1)}
-                  className={localPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                />
-              </PaginationItem>
-              
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                 if (
                   page === 1 ||
                   page === totalPages ||
-                  (page >= localPage - 1 && page <= localPage + 1)
+                  (page >= currentPage - 1 && page <= currentPage + 1)
                 ) {
                   return (
                     <PaginationItem key={page}>
                       <PaginationLink
-                        onClick={() => handlePageChange(page)}
-                        isActive={localPage === page}
+                        onClick={() => onLoadMore?.(page)}
+                        isActive={currentPage === page}
                       >
                         {page}
                       </PaginationLink>
                     </PaginationItem>
                   );
                 } else if (
-                  page === localPage - 2 ||
-                  page === localPage + 2
+                  page === currentPage - 2 ||
+                  page === currentPage + 2
                 ) {
                   return (
                     <PaginationItem key={page}>
@@ -125,13 +98,6 @@ const ResultsContent = ({
                 }
                 return null;
               })}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => handlePageChange(localPage + 1)}
-                  className={localPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                />
-              </PaginationItem>
             </PaginationContent>
           </Pagination>
         </div>
