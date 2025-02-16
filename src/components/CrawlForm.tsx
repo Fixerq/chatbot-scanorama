@@ -7,6 +7,15 @@ import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface CrawlResult {
   success: boolean;
@@ -36,6 +45,64 @@ export const CrawlForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [crawlResult, setCrawlResult] = useState<CrawlResult | null>(null);
+  const [crawlRecords, setCrawlRecords] = useState<CrawlRecord[]>([]);
+
+  useEffect(() => {
+    // Fetch existing crawl records when component mounts
+    const fetchCrawlRecords = async () => {
+      const { data, error } = await supabase
+        .from('crawl_results')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching crawl records:', error);
+        return;
+      }
+
+      if (data) {
+        setCrawlRecords(data);
+      }
+    };
+
+    fetchCrawlRecords();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('crawl_results_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'crawl_results'
+        },
+        (payload) => {
+          console.log('Crawl results update:', payload);
+          if (payload.new) {
+            setCrawlRecords(prevRecords => {
+              const newRecord = payload.new as CrawlRecord;
+              const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
+              
+              if (existingIndex >= 0) {
+                // Update existing record
+                const updatedRecords = [...prevRecords];
+                updatedRecords[existingIndex] = newRecord;
+                return updatedRecords;
+              } else {
+                // Add new record
+                return [newRecord, ...prevRecords];
+              }
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,51 +134,9 @@ export const CrawlForm = () => {
           duration: 3000,
         });
 
-        // Subscribe to real-time updates
-        const channel = supabase
-          .channel(`crawl-${data.crawlId}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'crawl_results',
-              filter: `id=eq.${data.crawlId}`
-            },
-            (payload) => {
-              console.log('Crawl update:', payload);
-              if (payload.new && (payload.new as CrawlRecord).result) {
-                const record = payload.new as CrawlRecord;
-                if (record.result) {
-                  setCrawlResult(record.result);
-                  if (record.result.status === 'completed') {
-                    toast({
-                      title: "Crawl Completed",
-                      description: "Website analysis is complete",
-                      duration: 3000,
-                    });
-                  } else if (record.result.status === 'failed') {
-                    toast({
-                      title: "Crawl Failed",
-                      description: "Failed to analyze website",
-                      variant: "destructive",
-                      duration: 3000,
-                    });
-                  }
-                }
-              }
-            }
-          )
-          .subscribe();
-
-        // Set initial result if available
         if (data.result) {
           setCrawlResult(data.result);
         }
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
       } else {
         toast({
           title: "Error",
@@ -135,44 +160,46 @@ export const CrawlForm = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-all duration-300 hover:shadow-xl">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Website URL
-          </label>
-          <Input
-            id="url"
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="w-full transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
-            placeholder="https://example.com"
-            required
-          />
-        </div>
-        {isLoading && (
-          <Progress value={progress} className="w-full" />
-        )}
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="w-full bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200"
-        >
-          {isLoading ? (
-            <div className="flex items-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Crawling...</span>
-            </div>
-          ) : (
-            "Start Crawl"
+    <div className="w-full max-w-6xl mx-auto p-6 space-y-8">
+      <div className="backdrop-blur-sm bg-white/30 dark:bg-black/30 rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 transition-all duration-300 hover:shadow-xl p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label htmlFor="url" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Website URL
+            </label>
+            <Input
+              id="url"
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="w-full transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+              placeholder="https://example.com"
+              required
+            />
+          </div>
+          {isLoading && (
+            <Progress value={progress} className="w-full" />
           )}
-        </Button>
-      </form>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white transition-all duration-200"
+          >
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Crawling...</span>
+              </div>
+            ) : (
+              "Start Crawl"
+            )}
+          </Button>
+        </form>
+      </div>
 
       {crawlResult && (
-        <Card className="mt-6 p-4">
-          <h3 className="text-lg font-semibold mb-2">Crawl Results</h3>
+        <Card className="p-4">
+          <h3 className="text-lg font-semibold mb-2">Current Crawl Status</h3>
           <div className="space-y-2 text-sm">
             <p>Status: {crawlResult.status}</p>
             {crawlResult.completed !== undefined && (
@@ -184,18 +211,40 @@ export const CrawlForm = () => {
             {crawlResult.creditsUsed !== undefined && (
               <p>Credits Used: {crawlResult.creditsUsed}</p>
             )}
-            {crawlResult.expiresAt && (
-              <p>Expires At: {new Date(crawlResult.expiresAt).toLocaleString()}</p>
-            )}
-            {crawlResult.data && (
-              <div className="mt-4">
-                <p className="font-semibold mb-2">Crawled Data:</p>
-                <pre className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-auto max-h-60">
-                  {JSON.stringify(crawlResult.data, null, 2)}
-                </pre>
-              </div>
-            )}
           </div>
+        </Card>
+      )}
+
+      {crawlRecords.length > 0 && (
+        <Card className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Crawl Results</h3>
+          <Table>
+            <TableCaption>A list of your recent website crawls</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>URL</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Started At</TableHead>
+                <TableHead>Completed At</TableHead>
+                <TableHead>Analysis Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {crawlRecords.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-medium">{record.url}</TableCell>
+                  <TableCell>{record.status}</TableCell>
+                  <TableCell>{new Date(record.started_at).toLocaleString()}</TableCell>
+                  <TableCell>
+                    {record.completed_at ? new Date(record.completed_at).toLocaleString() : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {record.analyzed ? 'Analyzed' : 'Pending Analysis'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
       )}
     </div>
