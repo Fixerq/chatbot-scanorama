@@ -3,7 +3,7 @@ import { corsHeaders } from '../utils/httpUtils.ts';
 import { AnalysisRequest } from '../types.ts';
 import { supabase } from '../utils/supabaseClient.ts';
 import { processUrl } from '../services/urlProcessor.ts';
-import { websiteAnalyzer } from '../services/websiteAnalyzer.ts';
+import { processNextJob } from '../services/jobProcessor.ts';
 
 export async function handleRequest(req: Request): Promise<Response> {
   try {
@@ -29,73 +29,48 @@ export async function handleRequest(req: Request): Promise<Response> {
 
     // Handle batch processing
     if (body.isBatch) {
-      console.log(`[AnalyzeWebsite] Processing batch ${body.batchId} with ${body.urls.length} URLs`);
+      console.log(`[AnalyzeWebsite] Processing batch with ${body.urls.length} URLs`);
+      
+      const jobs = [];
       
       for (const url of body.urls) {
         try {
           // Process URL
           const { cleanUrl } = await processUrl(url);
           
-          // Update request status to processing
-          await supabase
-            .from('analysis_requests')
-            .update({ 
-              status: 'processing',
-              started_at: new Date().toISOString()
-            })
-            .eq('batch_id', body.batchId)
-            .eq('url', url);
-
-          // Analyze website
-          const analysisResult = await websiteAnalyzer(cleanUrl, body.batchId);
-
-          // Store the analysis result
-          await supabase
-            .from('analysis_results')
+          // Create a job for each URL
+          const { data: job, error: jobError } = await supabase
+            .from('analysis_jobs')
             .insert({
-              batch_id: body.batchId,
               url: cleanUrl,
-              has_chatbot: analysisResult.has_chatbot,
-              chatbot_solutions: analysisResult.chatSolutions || [],
-              status: 'completed',
-              details: {
-                patterns: analysisResult.details?.matches || [],
-                lastChecked: new Date().toISOString()
+              priority: 1,
+              metadata: {
+                original_url: url,
+                batch: true
               }
-            });
-
-          // Update request as processed
-          await supabase
-            .from('analysis_requests')
-            .update({ 
-              status: 'completed',
-              processed: true,
-              completed_at: new Date().toISOString()
             })
-            .eq('batch_id', body.batchId)
-            .eq('url', url);
+            .select()
+            .single();
 
+          if (jobError) {
+            console.error(`[AnalyzeWebsite] Error creating job for URL ${url}:`, jobError);
+            continue;
+          }
+
+          jobs.push(job);
         } catch (error) {
           console.error(`[AnalyzeWebsite] Error processing URL ${url}:`, error);
-          
-          // Update request as failed
-          await supabase
-            .from('analysis_requests')
-            .update({ 
-              status: 'failed',
-              processed: true,
-              completed_at: new Date().toISOString(),
-              error_message: error.message
-            })
-            .eq('batch_id', body.batchId)
-            .eq('url', url);
         }
       }
+
+      // Start processing one job
+      await processNextJob();
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Batch processing completed' 
+          message: 'Jobs queued successfully',
+          jobs: jobs.map(job => ({ id: job.id, url: job.url }))
         }),
         {
           status: 200,
@@ -124,58 +99,41 @@ export async function handleRequest(req: Request): Promise<Response> {
       );
     }
 
-    const { url, requestId } = body as AnalysisRequest;
-    console.log(`[AnalyzeWebsite] Processing single request ${requestId} for URL: ${url}`);
+    const { url } = body as AnalysisRequest;
+    console.log(`[AnalyzeWebsite] Processing single URL: ${url}`);
 
     // Process URL
     const { cleanUrl } = await processUrl(url);
     
-    // Update request status to processing
-    await supabase
-      .from('analysis_requests')
-      .update({ 
-        status: 'processing',
-        started_at: new Date().toISOString()
-      })
-      .eq('id', requestId);
-
-    // Run analysis
-    const analysisResult = await websiteAnalyzer(cleanUrl, requestId);
-
-    // Store the analysis result
-    const { error: resultError } = await supabase
-      .from('analysis_results')
+    // Create a job for the single URL
+    const { data: job, error: jobError } = await supabase
+      .from('analysis_jobs')
       .insert({
-        request_id: requestId,
         url: cleanUrl,
-        has_chatbot: analysisResult.has_chatbot,
-        chatbot_solutions: analysisResult.chatSolutions || [],
-        status: 'completed',
-        details: {
-          patterns: analysisResult.details?.matches || [],
-          lastChecked: new Date().toISOString()
+        priority: 2, // Higher priority for single URL requests
+        metadata: {
+          original_url: url,
+          batch: false
         }
-      });
+      })
+      .select()
+      .single();
 
-    if (resultError) {
-      throw resultError;
+    if (jobError) {
+      throw jobError;
     }
 
-    // Update request status to completed
-    await supabase
-      .from('analysis_requests')
-      .update({ 
-        status: 'completed',
-        processed: true,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', requestId);
+    // Start processing the job
+    await processNextJob();
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Analysis completed successfully',
-        result: analysisResult
+        message: 'Job queued successfully',
+        job: {
+          id: job.id,
+          url: job.url
+        }
       }),
       {
         status: 200,

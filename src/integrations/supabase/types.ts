@@ -150,6 +150,51 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error: string | null
+          id: string
+          metadata: Json | null
+          priority: number | null
+          result: Json | null
+          retry_count: number | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: number | null
+          result?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: number | null
+          result?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       analysis_queue: {
         Row: {
           batch_id: string | null
@@ -1723,6 +1768,14 @@ export type Database = {
           proxy_url: string
         }[]
       }
+      get_next_job: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          url: string
+          retry_count: number
+        }[]
+      }
       get_performance_metrics:
         | {
             Args: Record<PropertyKey, never>
@@ -1803,6 +1856,7 @@ export type Database = {
         | "dns_error"
         | "other"
       detection_method: "selector" | "script" | "iframe" | "text" | "mutation"
+      job_status: "pending" | "processing" | "completed" | "failed"
       request_status: "pending" | "processing" | "completed" | "failed"
       subscription_level: "starter" | "pro" | "premium" | "founders" | "admin"
       website_analysis_status: "success" | "error"
