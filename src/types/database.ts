@@ -7,6 +7,9 @@ export interface QueuedAnalysis {
   completed_at?: string;
   id: string;
   worker_id?: string;
+  batch_id?: string;
+  retry_count?: number;
+  max_retries?: number;
 }
 
 export interface AnalysisQueuePayload {

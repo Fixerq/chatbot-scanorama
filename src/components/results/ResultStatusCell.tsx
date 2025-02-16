@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { TableCell } from "@/components/ui/table";
-import { Loader2, Bot, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, Bot, XCircle, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
@@ -60,7 +60,9 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
           if (onAnalysisUpdate && payload.eventType !== 'DELETE' && payload.new) {
             onAnalysisUpdate({
               status: payload.new.status,
-              error: payload.new.error_message
+              error: payload.new.error_message,
+              retryCount: payload.new.retry_count,
+              maxRetries: payload.new.max_retries
             });
           }
         }
@@ -100,6 +102,18 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
         <div className="flex items-center space-x-2 text-red-500">
           <XCircle className="w-4 h-4" />
           <span>{analysis_result?.error || 'Analysis failed'}</span>
+          {analysis_result?.details?.error && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <RefreshCcw className="w-4 h-4 ml-2 cursor-pointer" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Retrying analysis...</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </TableCell>
     );
@@ -164,4 +178,3 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
-

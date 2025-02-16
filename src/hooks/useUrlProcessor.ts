@@ -48,13 +48,15 @@ export const useUrlProcessor = () => {
       // Create analysis requests for each URL
       for (const result of results) {
         try {
-          // Create the analysis request
+          // Create the analysis request with the batch ID
           const { data: requestData, error: requestError } = await supabase
             .from('analysis_requests')
             .insert({
               url: result.url,
               status: 'pending',
-              search_batch_id: batchData.id
+              search_batch_id: batchData.id,
+              batch_id: batchData.id,
+              retry_count: 0
             })
             .select()
             .single();
@@ -70,7 +72,8 @@ export const useUrlProcessor = () => {
           const { error } = await supabase.functions.invoke('analyze-website', {
             body: { 
               url: result.url,
-              requestId: requestData.id
+              requestId: requestData.id,
+              batchId: batchData.id
             }
           });
 
@@ -128,4 +131,3 @@ export const useUrlProcessor = () => {
     processSearchResults
   };
 };
-

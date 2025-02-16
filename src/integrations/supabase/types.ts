@@ -212,6 +212,7 @@ export type Database = {
         Row: {
           analysis_result: Json | null
           analysis_step: string | null
+          batch_id: string | null
           completed_at: string | null
           created_at: string | null
           error_details: Json | null
@@ -230,6 +231,7 @@ export type Database = {
         Insert: {
           analysis_result?: Json | null
           analysis_step?: string | null
+          batch_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           error_details?: Json | null
@@ -248,6 +250,7 @@ export type Database = {
         Update: {
           analysis_result?: Json | null
           analysis_step?: string | null
+          batch_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           error_details?: Json | null
@@ -267,6 +270,7 @@ export type Database = {
       }
       analysis_results: {
         Row: {
+          batch_id: string | null
           chatbot_solutions: string[] | null
           created_at: string | null
           details: Json | null
@@ -285,6 +289,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          batch_id?: string | null
           chatbot_solutions?: string[] | null
           created_at?: string | null
           details?: Json | null
@@ -303,6 +308,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          batch_id?: string | null
           chatbot_solutions?: string[] | null
           created_at?: string | null
           details?: Json | null
