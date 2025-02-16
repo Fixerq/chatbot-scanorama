@@ -36,9 +36,12 @@ const Results: React.FC<ResultsProps> = ({
   useEffect(() => {
     if (!hasResults) return;
 
+    // Create a unique channel name for each set of results
+    const channelName = `analysis_updates_${Date.now()}`;
+    
     // Subscribe to real-time updates for analysis results
     const channel = supabase
-      .channel('analysis_updates')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -58,7 +61,7 @@ const Results: React.FC<ResultsProps> = ({
                 analysis_result: {
                   has_chatbot: newAnalysis.has_chatbot,
                   chatSolutions: newAnalysis.chatbot_solutions || [],
-                  status: newAnalysis.status,
+                  status: newAnalysis.status || 'completed',
                   lastChecked: newAnalysis.last_checked,
                   error: undefined
                 },
@@ -73,12 +76,16 @@ const Results: React.FC<ResultsProps> = ({
           }
         }
       )
-      .subscribe()   
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [results, onResultUpdate, hasResults]);
+
+  if (!hasResults && !isAnalyzing) {
+    return <EmptyResults onNewSearch={onNewSearch} />;
+  }
 
   return (
     <ResultsContainer
@@ -89,23 +96,19 @@ const Results: React.FC<ResultsProps> = ({
       onLoadMore={onLoadMore}
       isLoadingMore={isLoadingMore}
     >
-      {hasResults ? (
-        <ResultsContent
-          results={results}
-          hasMore={hasMore}
-          onLoadMore={onLoadMore}
-          isLoadingMore={isLoadingMore}
-          isAnalyzing={isAnalyzing}
-        >
-          <ResultsTable 
-            results={results} 
-            isLoading={isLoadingMore}
-            onResultUpdate={onResultUpdate}
-          />
-        </ResultsContent>
-      ) : (
-        <EmptyResults onNewSearch={onNewSearch} />
-      )}
+      <ResultsContent
+        results={results}
+        hasMore={hasMore}
+        onLoadMore={onLoadMore}
+        isLoadingMore={isLoadingMore}
+        isAnalyzing={isAnalyzing}
+      >
+        <ResultsTable 
+          results={results} 
+          isLoading={isLoadingMore}
+          onResultUpdate={onResultUpdate}
+        />
+      </ResultsContent>
     </ResultsContainer>
   );
 };
