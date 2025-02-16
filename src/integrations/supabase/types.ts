@@ -1509,7 +1509,6 @@ export type Database = {
     Views: {
       admin_users_mv: {
         Row: {
-          created_at: string | null
           user_id: string | null
         }
         Relationships: []
