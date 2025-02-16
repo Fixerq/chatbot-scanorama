@@ -1822,6 +1822,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_simplified: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       refresh_admin_users_mv: {
         Args: Record<PropertyKey, never>
         Returns: undefined
