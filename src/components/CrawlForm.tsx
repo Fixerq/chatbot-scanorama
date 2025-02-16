@@ -18,7 +18,6 @@ interface CrawlResult {
   data?: any[];
 }
 
-// Define the type for the database record
 interface CrawlRecord {
   id: string;
   url: string;
@@ -28,6 +27,7 @@ interface CrawlRecord {
   user_id?: string;
   started_at: string;
   completed_at?: string;
+  analyzed?: boolean;
 }
 
 export const CrawlForm = () => {
