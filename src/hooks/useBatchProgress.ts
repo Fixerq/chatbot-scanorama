@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { PostgrestSingleResponse, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface AnalysisBatch {
   id: string;
@@ -20,7 +20,7 @@ interface BatchProgress {
   error: string | null;
 }
 
-export const useBatchProgress = (batchId?: string): BatchProgress => {
+export const useBatchProgress = (batchId: string | null): BatchProgress => {
   const [progress, setProgress] = useState<BatchProgress>({
     totalUrls: 0,
     processedUrls: 0,
@@ -33,24 +33,23 @@ export const useBatchProgress = (batchId?: string): BatchProgress => {
 
     // Initial fetch
     const fetchBatch = async () => {
-      const { data, error } = await supabase
+      const { data, error }: PostgrestSingleResponse<AnalysisBatch> = await supabase
         .from('analysis_batches')
         .select('*')
         .eq('id', batchId)
         .single();
 
-      if (error) {
+      if (error || !data) {
         console.error('Error fetching batch:', error);
-        setProgress(prev => ({ ...prev, error: error.message }));
+        setProgress(prev => ({ ...prev, error: error?.message || 'Failed to fetch batch data' }));
         return;
       }
 
-      const batch = data as AnalysisBatch;
       setProgress({
-        totalUrls: batch.total_urls,
-        processedUrls: batch.processed_urls,
-        status: batch.status,
-        error: batch.error_message || null
+        totalUrls: data.total_urls,
+        processedUrls: data.processed_urls,
+        status: data.status,
+        error: data.error_message || null
       });
     };
 
