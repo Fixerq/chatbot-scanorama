@@ -1,3 +1,4 @@
+
 import { createBrowserRouter } from "react-router-dom";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
@@ -9,7 +10,6 @@ import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
 import { Navigate } from "react-router-dom";
 import Monitoring from "@/pages/Monitoring";
-import TestResults from "@/pages/TestResults";
 
 interface AppRoute {
   path: string;
@@ -31,14 +31,6 @@ const routes: AppRoute[] = [
     element: (
       <ProtectedRoute>
         <Index />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/test-results",
-    element: (
-      <ProtectedRoute>
-        <TestResults />
       </ProtectedRoute>
     ),
   },
