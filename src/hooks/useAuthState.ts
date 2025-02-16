@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAdminCheck } from './useAdminCheck';
 import { AuthState } from '@/types/auth';
-import { AuthChangeEvent } from '@supabase/supabase-js';
+import { AuthError, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export const useAuthState = (): AuthState => {
   const navigate = useNavigate();
@@ -65,7 +65,7 @@ export const useAuthState = (): AuthState => {
   }, [navigate]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (!mounted.current) return;
       
       console.log('Auth event:', event);
