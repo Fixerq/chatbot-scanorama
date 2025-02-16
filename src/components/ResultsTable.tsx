@@ -45,6 +45,14 @@ interface ResultsTableProps {
 }
 
 const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: ResultsTableProps) => {
+  // Filter out failed results
+  const validResults = results.filter(result => {
+    const hasError = result.error || 
+                    result.status?.toLowerCase().includes('error') || 
+                    result.analysis_result?.error;
+    return !hasError;
+  });
+
   const handleAnalysisUpdate = (url: string, newAnalysis: AnalysisResult) => {
     if (onResultUpdate) {
       const resultToUpdate = results.find(r => r.url === url);
@@ -71,16 +79,12 @@ const ResultsTable = ({ results, processing, isLoading, onResultUpdate }: Result
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results.map((result, i) => {
+          {validResults.map((result, i) => {
             const { displayUrl } = formatUrl(result.url);
             return (
               <TableRow key={i}>
                 <TableCell>
-                  {result.error ? (
-                    <Badge variant="destructive">Error</Badge>
-                  ) : (
-                    <Badge variant="secondary">OK</Badge>
-                  )}
+                  <Badge variant="secondary">OK</Badge>
                 </TableCell>
                 <TableCell className="font-medium">{result.title}</TableCell>
                 <TableCell>

@@ -78,24 +78,6 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
     );
   }
 
-  if (status?.toLowerCase().includes('error') || analysis_result?.error) {
-    return (
-      <TableCell>
-        <div className="text-red-500 dark:text-red-400">
-          <div className="flex items-center space-x-2">
-            <XCircle className="w-4 h-4" />
-            <span>{analysis_result?.error || status}</span>
-          </div>
-          {analysis_result?.lastChecked && (
-            <div className="text-xs text-gray-500 mt-1">
-              Last attempt: {new Date(analysis_result.lastChecked).toLocaleString()}
-            </div>
-          )}
-        </div>
-      </TableCell>
-    );
-  }
-
   return (
     <TableCell>
       <div className="space-y-2">
