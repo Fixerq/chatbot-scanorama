@@ -21,14 +21,14 @@ export const useAdminStatus = () => {
         return false;
       }
 
-      // Simple admin check using the admin_users table
+      // Use the materialized view for admin check
       const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
+        .from('admin_users_mv')
         .select('user_id')
-        .single();
+        .eq('user_id', session.session.user.id)
+        .maybeSingle();
 
-      if (adminError && adminError.code !== 'PGRST116') {
-        // PGRST116 means no rows returned, which is expected for non-admins
+      if (adminError) {
         console.error('Admin check error:', adminError);
         toast.error('Error checking admin status');
         return false;

@@ -21,11 +21,12 @@ export const UserStatusCheck = () => {
 
       try {
         const { data, error } = await supabase
-          .from('admin_users')
+          .from('admin_users_mv')
           .select('user_id')
-          .single();
+          .eq('user_id', session.user.id)
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error checking admin status:', error);
           setIsAdmin(false);
           return;

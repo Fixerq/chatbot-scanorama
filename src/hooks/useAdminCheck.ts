@@ -6,7 +6,7 @@ export const useAdminCheck = (): AdminCheck => {
   const checkAdminStatus = async (userId: string): Promise<boolean> => {
     try {
       const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
+        .from('admin_users_mv')
         .select('user_id')
         .eq('user_id', userId)
         .maybeSingle();

@@ -1628,12 +1628,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      check_admin_status: {
-        Args: {
-          user_id: string
-        }
-        Returns: boolean
-      }
       check_alert_thresholds: {
         Args: Record<PropertyKey, never>
         Returns: {
