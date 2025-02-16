@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,11 +8,15 @@ import { toast } from 'sonner';
 import BatchProgress from './BatchProgress';
 import { useBatchProgress } from '../hooks/useBatchProgress';
 
-const SearchForm = () => {
-  const [query, setQuery] = useState('');
-  const [location, setLocation] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [batchId, setBatchId] = useState<string | undefined>();
+interface SearchFormProps {
+  onResults?: (results: Array<{ website?: string }>) => void;
+}
+
+const SearchForm: React.FC<SearchFormProps> = ({ onResults }) => {
+  const [query, setQuery] = React.useState('');
+  const [location, setLocation] = React.useState('');
+  const [isSearching, setIsSearching] = React.useState(false);
+  const [batchId, setBatchId] = React.useState<string | null>(null);
   const batchProgress = useBatchProgress(batchId);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -62,6 +66,10 @@ const SearchForm = () => {
       if (analysisResult?.batchId) {
         setBatchId(analysisResult.batchId);
         toast.success('Analysis started');
+      }
+
+      if (onResults) {
+        onResults(searchResult.data.results);
       }
 
     } catch (error) {

@@ -20,13 +20,8 @@ interface BatchProgress {
   error: string | null;
 }
 
-export const useBatchProgress = (batchId: string | null): BatchProgress => {
-  const [progress, setProgress] = useState<BatchProgress>({
-    totalUrls: 0,
-    processedUrls: 0,
-    status: 'pending',
-    error: null
-  });
+export const useBatchProgress = (batchId: string | null): BatchProgress | null => {
+  const [progress, setProgress] = useState<BatchProgress | null>(null);
 
   useEffect(() => {
     if (!batchId) return;
@@ -41,7 +36,7 @@ export const useBatchProgress = (batchId: string | null): BatchProgress => {
 
       if (error || !data) {
         console.error('Error fetching batch:', error);
-        setProgress(prev => ({ ...prev, error: error?.message || 'Failed to fetch batch data' }));
+        setProgress(null);
         return;
       }
 
@@ -68,14 +63,17 @@ export const useBatchProgress = (batchId: string | null): BatchProgress => {
         },
         (payload: RealtimePostgresChangesPayload<AnalysisBatch>) => {
           const batch = payload.new;
-          if (batch) {
-            setProgress({
-              totalUrls: batch.total_urls,
-              processedUrls: batch.processed_urls,
-              status: batch.status,
-              error: batch.error_message || null
-            });
+          if (!batch) {
+            setProgress(null);
+            return;
           }
+          
+          setProgress({
+            totalUrls: batch.total_urls,
+            processedUrls: batch.processed_urls,
+            status: batch.status,
+            error: batch.error_message || null
+          });
         }
       )
       .subscribe();
