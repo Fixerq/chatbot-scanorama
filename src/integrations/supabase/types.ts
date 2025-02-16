@@ -1620,10 +1620,6 @@ export type Database = {
       }
     }
     Functions: {
-      check_admin_access: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
       check_admin_no_recursion: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1814,7 +1810,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      is_admin: {
+      is_admin_check: {
         Args: {
           user_id: string
         }
