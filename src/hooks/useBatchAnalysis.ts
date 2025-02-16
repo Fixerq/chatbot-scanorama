@@ -58,22 +58,21 @@ export function useBatchAnalysis() {
           },
           (payload: RealtimePostgresChangesPayload<AnalysisBatch>) => {
             console.log('Batch update:', payload);
-            if (!payload.new) return;
+            const newData = payload.new;
+            if (!newData) return;
 
-            const { processed_urls, total_urls, status, error_message } = payload.new;
-            
             // Calculate and update progress
-            const progressValue = Math.round((processed_urls / total_urls) * 100);
+            const progressValue = Math.round((newData.processed_urls / newData.total_urls) * 100);
             setProgress(progressValue);
             
             // Handle completion or failure
-            if (status === 'completed') {
+            if (newData.status === 'completed') {
               console.log('Batch analysis completed');
               toast.success('Analysis complete!');
               setIsProcessing(false);
-            } else if (status === 'failed') {
-              console.error('Batch analysis failed:', error_message);
-              toast.error(error_message || 'Analysis failed');
+            } else if (newData.status === 'failed') {
+              console.error('Batch analysis failed:', newData.error_message);
+              toast.error(newData.error_message || 'Analysis failed');
               setIsProcessing(false);
             }
           }
