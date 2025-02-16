@@ -54,6 +54,35 @@ export const CrawlForm = () => {
           duration: 3000,
         });
         setCrawlResult(data.data);
+
+        // Subscribe to real-time updates
+        const crawlId = data.crawlId;
+        const channel = supabase
+          .channel(`crawl-${crawlId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'crawl_results',
+              filter: `id=eq.${crawlId}`
+            },
+            (payload) => {
+              console.log('Crawl update:', payload);
+              if (payload.new) {
+                const result = payload.new.result;
+                if (result) {
+                  setCrawlResult(result);
+                }
+              }
+            }
+          )
+          .subscribe();
+
+        // Cleanup subscription on component unmount
+        return () => {
+          supabase.removeChannel(channel);
+        };
       } else {
         toast({
           title: "Error",
