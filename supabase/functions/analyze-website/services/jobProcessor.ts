@@ -17,16 +17,18 @@ export async function processNextJob(): Promise<void> {
       .single();
 
     if (jobError || !job) {
-      console.log('[JobProcessor] No jobs available or error:', jobError);
+      console.log('[JobProcessor] No jobs available or error:', jobError?.message || 'No jobs in queue');
       return;
     }
 
-    console.log(`[JobProcessor] Processing job ${job.id} for URL: ${job.url}`);
+    console.log(`[JobProcessor] Started processing job ${job.id} for URL: ${job.url}`);
 
     try {
       // Process the URL
       const result = await websiteAnalyzer(job.url);
       
+      console.log(`[JobProcessor] Analysis completed for job ${job.id}. Updating status...`);
+
       // Update job with success result
       await supabase
         .from('analysis_jobs')
