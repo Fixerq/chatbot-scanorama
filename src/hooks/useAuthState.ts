@@ -42,7 +42,13 @@ export const useAuthState = (): AuthState => {
         if (mounted.current) {
           console.log('Valid session found, checking admin status');
           const isAdmin = await checkAdminStatus(session.user.id);
-          navigate(isAdmin ? '/admin' : '/dashboard');
+          if (isAdmin) {
+            console.log('User is admin, redirecting to admin page');
+            navigate('/admin');
+          } else {
+            console.log('User is not admin, redirecting to dashboard');
+            navigate('/dashboard');
+          }
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -76,7 +82,13 @@ export const useAuthState = (): AuthState => {
             try {
               const isAdmin = await checkAdminStatus(session.user.id);
               if (mounted.current) {
-                navigate(isAdmin ? '/admin' : '/dashboard');
+                if (isAdmin) {
+                  console.log('User is admin, navigating to admin page');
+                  navigate('/admin');
+                } else {
+                  console.log('User is not admin, navigating to dashboard');
+                  navigate('/dashboard');
+                }
                 toast.success('Successfully signed in!');
               }
             } catch (error) {
