@@ -4,6 +4,9 @@ import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+const BATCH_SIZE = 5; // Process 5 URLs at a time
+const BATCH_DELAY = 2000; // 2 second delay between batches
+
 export const useUrlProcessor = () => {
   const [processing, setProcessing] = useState<boolean>(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -46,44 +49,55 @@ export const useUrlProcessor = () => {
         return;
       }
 
-      // Create analysis requests for each URL
-      for (const result of results) {
-        try {
-          // Create the analysis request with the batch ID
-          const { data: requestData, error: requestError } = await supabase
-            .from('analysis_requests')
-            .insert({
-              url: result.url,
-              status: 'pending',
-              search_batch_id: batchData.id,
-              batch_id: batchData.id,
-              retry_count: 0
-            })
-            .select()
-            .single();
+      // Process URLs in batches
+      for (let i = 0; i < results.length; i += BATCH_SIZE) {
+        const batch = results.slice(i, i + BATCH_SIZE);
+        console.log(`Processing batch ${i / BATCH_SIZE + 1} of ${Math.ceil(results.length / BATCH_SIZE)}`);
 
-          if (requestError) {
-            console.error('Error creating analysis request:', requestError);
-            continue;
-          }
+        // Create analysis requests for the current batch
+        for (const result of batch) {
+          try {
+            // Create the analysis request with the batch ID
+            const { data: requestData, error: requestError } = await supabase
+              .from('analysis_requests')
+              .insert({
+                url: result.url,
+                status: 'pending',
+                search_batch_id: batchData.id,
+                batch_id: batchData.id,
+                retry_count: 0
+              })
+              .select()
+              .single();
 
-          console.log('Created analysis request:', requestData);
-
-          // Queue the analysis job
-          const { error } = await supabase.functions.invoke('analyze-website', {
-            body: { 
-              url: result.url,
-              requestId: requestData.id,
-              batchId: batchData.id
+            if (requestError) {
+              console.error('Error creating analysis request:', requestError);
+              continue;
             }
-          });
 
-          if (error) {
-            console.error('Error queuing analysis:', error);
-            toast.error(`Failed to queue analysis for ${result.url}`);
+            console.log('Created analysis request:', requestData);
+
+            // Queue the analysis job
+            const { error } = await supabase.functions.invoke('analyze-website', {
+              body: { 
+                url: result.url,
+                requestId: requestData.id,
+                batchId: batchData.id
+              }
+            });
+
+            if (error) {
+              console.error('Error queuing analysis:', error);
+              toast.error(`Failed to queue analysis for ${result.url}`);
+            }
+          } catch (error) {
+            console.error(`Failed to process ${result.url}:`, error);
           }
-        } catch (error) {
-          console.error(`Failed to process ${result.url}:`, error);
+        }
+
+        // Add delay between batches if there are more URLs to process
+        if (i + BATCH_SIZE < results.length) {
+          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
         }
       }
 
