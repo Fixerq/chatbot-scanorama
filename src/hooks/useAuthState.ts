@@ -100,15 +100,12 @@ export const useAuthState = (): AuthState => {
           console.log('Token refreshed successfully');
           break;
 
-        case 'USER_DELETED':
-          if (mounted.current) {
-            setError('User account has been deleted');
-            navigate('/login');
-          }
-          break;
-
         case 'USER_UPDATED':
           console.log('User profile updated');
+          break;
+
+        case 'INITIAL_SESSION':
+          console.log('Initial session loaded');
           break;
 
         default:
