@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import BatchProgress from './BatchProgress';
 import { useBatchProgress } from '../hooks/useBatchProgress';
+import { getRegionsForCountry } from '@/constants/regions';
 
 interface SearchFormProps {
   query: string;
@@ -39,6 +40,7 @@ const SearchForm: React.FC<SearchFormProps> = ({
 }) => {
   const [batchId, setBatchId] = React.useState<string | null>(null);
   const batchProgress = useBatchProgress(batchId);
+  const regions = getRegionsForCountry(country);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,17 +124,31 @@ const SearchForm: React.FC<SearchFormProps> = ({
               <SelectItem value="CA">Canada</SelectItem>
               <SelectItem value="GB">United Kingdom</SelectItem>
               <SelectItem value="AU">Australia</SelectItem>
+              <SelectItem value="DE">Germany</SelectItem>
             </SelectContent>
           </Select>
 
-          <Button 
-            type="submit" 
-            disabled={isSearching || !query || !country}
-            className="w-full md:w-auto"
-          >
-            {isSearching ? 'Searching...' : 'Search'}
-          </Button>
+          <Select value={region} onValueChange={onRegionChange} required>
+            <SelectTrigger>
+              <SelectValue placeholder="Select state/region" />
+            </SelectTrigger>
+            <SelectContent>
+              {regions.map((region) => (
+                <SelectItem key={region} value={region}>
+                  {region}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        <Button 
+          type="submit" 
+          disabled={isSearching || !query || !country || !region}
+          className="w-full md:w-auto"
+        >
+          {isSearching ? 'Searching...' : 'Search'}
+        </Button>
       </form>
 
       {batchId && batchProgress && (
@@ -148,3 +164,4 @@ const SearchForm: React.FC<SearchFormProps> = ({
 };
 
 export default SearchForm;
+
