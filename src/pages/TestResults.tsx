@@ -21,6 +21,7 @@ interface AnalysisResultPayload {
 const TestResults = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [query, setQuery] = useState('');
   const [country, setCountry] = useState('US');
   const [region, setRegion] = useState('CA');
@@ -55,8 +56,12 @@ const TestResults = () => {
       setResults(transformedResults);
       toast.success(`Found ${transformedResults.length} results`);
 
-      // Process URLs for chatbot detection
-      await processSearchResults(transformedResults);
+      // Process URLs for chatbot detection with new callbacks
+      await processSearchResults(
+        transformedResults,
+        () => setIsAnalyzing(true),
+        () => setIsAnalyzing(false)
+      );
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Search failed');
@@ -146,7 +151,7 @@ const TestResults = () => {
       {results.length > 0 && (
         <ResultsTable 
           results={results}
-          isLoading={isLoading || processing}
+          isLoading={isLoading || processing || isAnalyzing}
           onResultUpdate={handleResultUpdate}
         />
       )}
@@ -155,4 +160,3 @@ const TestResults = () => {
 };
 
 export default TestResults;
-

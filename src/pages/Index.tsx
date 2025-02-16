@@ -12,6 +12,7 @@ import { useUrlProcessor } from '@/hooks/useUrlProcessor';
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [newSearchTrigger, setNewSearchTrigger] = useState(false);
   const [searchParams, setSearchParams] = useState({
     query: '',
@@ -69,7 +70,11 @@ const Index = () => {
     if (mounted.current) {
       setResults(newResults);
       // Automatically trigger analysis for new results
-      await processSearchResults(newResults);
+      await processSearchResults(
+        newResults,
+        () => setIsAnalyzing(true),
+        () => setIsAnalyzing(false)
+      );
     }
   }, [processSearchResults]);
 
@@ -93,6 +98,7 @@ const Index = () => {
           hasMore={true}
           onLoadMore={handlePageChange}
           isLoadingMore={isSearching}
+          isAnalyzing={isAnalyzing}
           onResultUpdate={handleResultUpdate}
         />
       </div>
