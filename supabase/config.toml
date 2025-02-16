@@ -21,16 +21,16 @@ pop3_port = 54326
 file_size_limit = "50MiB"
 
 [auth]
-site_url = "https://detectify.engageai.pro"
+site_url = "https://detectifys.engageai.pro"
 additional_redirect_urls = [
-  "https://detectify.engageai.pro",
-  "https://detectify.engageai.pro/**",
-  "https://detectify.engageai.pro/reset-password",
-  "https://detectify.engageai.pro/reset-password/**",
+  "https://detectifys.engageai.pro",
+  "https://detectifys.engageai.pro/**",
+  "https://detectifys.engageai.pro/reset-password",
+  "https://detectifys.engageai.pro/reset-password/**",
   "http://localhost:3000",
   "https://gptengineer.app",
   "https://lovable.dev",
-  "https://detectifys.engageai.pro",
+  "https://detectify.engageai.pro",
   "https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com",
   "https://d261f35a-a484-4323-82d8-e28223e9f6af.lovableproject.com/**",
   "https://id-preview--d261f35a-a484-4323-82d8-e28223e9f6af.lovable.app",
@@ -89,3 +89,4 @@ verify_jwt = false
 
 [functions.send-support-email]
 verify_jwt = false
+
