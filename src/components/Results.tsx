@@ -9,7 +9,6 @@ import EmptyResults from './results/EmptyResults';
 import { QueuedAnalysis } from '@/types/database';
 import { Database } from '@/integrations/supabase/types';
 import { Loader2 } from 'lucide-react';
-import { Button } from './ui/button';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type AnalysisRecord = Database['public']['Tables']['analysis_results']['Row'];
@@ -35,15 +34,13 @@ const Results: React.FC<ResultsProps> = ({
   isAnalyzing,
   onResultUpdate
 }) => {
-  const hasResults = results.length > 0;
-
   // Add logging to track results prop changes
   useEffect(() => {
     console.log('Results component received new results:', results);
   }, [results]);
 
   useEffect(() => {
-    if (!hasResults) return;
+    if (!results.length) return;
 
     // Subscribe to worker status updates
     const workerChannel = supabase
@@ -134,7 +131,7 @@ const Results: React.FC<ResultsProps> = ({
       supabase.removeChannel(jobChannel);
       supabase.removeChannel(analysisChannel);
     };
-  }, [results, onResultUpdate, hasResults]);
+  }, [results, onResultUpdate]);
 
   if (isAnalyzing) {
     return (
@@ -146,7 +143,8 @@ const Results: React.FC<ResultsProps> = ({
     );
   }
 
-  if (!hasResults) {
+  // Changed this condition to only check for empty results
+  if (results.length === 0) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
