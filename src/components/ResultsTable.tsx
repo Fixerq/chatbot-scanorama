@@ -4,19 +4,15 @@ import {
   Table,
   TableBody,
   TableCaption,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { formatUrl } from '@/utils/urlFormatting';
-import ResultStatusCell from './results/ResultStatusCell';
 import { AnalysisResult } from '@/utils/types/search';
-import { Button } from './ui/button';
-import { RefreshCw, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from "./ui/alert";
 import TableWrapper from './TableWrapper';
+import TableLoadingState from './results/TableLoadingState';
+import TableEmptyState from './results/TableEmptyState';
+import ResultTableRow from './results/TableRow';
 
 export interface Result {
   url: string;
@@ -68,55 +64,14 @@ const ResultsTable = ({
     });
   }, [results, processing, isLoading, onResultUpdate, onRetry]);
 
-  const getErrorMessage = (result: Result): string | null => {
-    return result.error || 
-           result.details?.error || 
-           result.analysis_result?.error || 
-           null;
-  };
-
-  const getStatus = (result: Result): string => {
-    const error = getErrorMessage(result);
-    if (error) return 'error';
-    if (result.status === 'analyzing') return 'analyzing';
-    return result.status || 'pending';
-  };
-
-  const getBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'error':
-        return 'destructive';
-      case 'analyzing':
-        return 'secondary';
-      case 'completed':
-        return 'default';
-      default:
-        return 'secondary';
-    }
-  };
-
   if (isLoading || processing) {
     console.log('ResultsTable showing loading state');
-    return (
-      <div className="w-full space-y-4">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-gray-100/10 rounded"></div>
-          ))}
-        </div>
-      </div>
-    );
+    return <TableLoadingState />;
   }
 
   if (!results?.length) {
     console.log('ResultsTable showing empty state');
-    return (
-      <Alert>
-        <AlertDescription>
-          No results found. Start a new search to see results here.
-        </AlertDescription>
-      </Alert>
-    );
+    return <TableEmptyState />;
   }
 
   console.log('ResultsTable rendering results table with data:', {
@@ -129,7 +84,9 @@ const ResultsTable = ({
     <div className="w-full overflow-x-auto">
       <TableWrapper>
         <Table>
-          <TableCaption className="text-muted-foreground">Search results and analysis status.</TableCaption>
+          <TableCaption className="text-muted-foreground">
+            Search results and analysis status.
+          </TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[100px]">Status</TableHead>
@@ -140,70 +97,14 @@ const ResultsTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {results.map((result, i) => {
-              console.log(`Rendering row ${i}:`, result);
-              const { displayUrl } = formatUrl(result.url);
-              const status = getStatus(result);
-              const error = getErrorMessage(result);
-              
-              return (
-                <TableRow key={i} className={error ? 'bg-red-50/10' : ''}>
-                  <TableCell>
-                    <Badge variant={getBadgeVariant(status)}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Badge>
-                    {error && (
-                      <div className="mt-2 text-sm text-red-500 flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <span>{error}</span>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {result.title || result.details?.title || 'Untitled'}
-                  </TableCell>
-                  <TableCell>
-                    <a 
-                      href={result.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
-                    >
-                      {displayUrl}
-                    </a>
-                  </TableCell>
-                  <ResultStatusCell
-                    status={status}
-                    analysis_result={result.analysis_result}
-                    isAnalyzing={status === 'analyzing'}
-                    url={result.url}
-                    onAnalysisUpdate={(newAnalysis) => {
-                      if (onResultUpdate) {
-                        onResultUpdate({
-                          ...result,
-                          analysis_result: newAnalysis,
-                          status: newAnalysis.status,
-                          error: newAnalysis.error
-                        });
-                      }
-                    }}
-                  />
-                  <TableCell>
-                    {error && onRetry && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onRetry(result.url)}
-                        className="flex items-center gap-2"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Retry
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {results.map((result, i) => (
+              <ResultTableRow
+                key={i}
+                result={result}
+                onResultUpdate={onResultUpdate}
+                onRetry={onRetry}
+              />
+            ))}
           </TableBody>
         </Table>
       </TableWrapper>
