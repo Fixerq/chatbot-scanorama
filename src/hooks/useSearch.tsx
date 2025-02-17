@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SearchResult, Status, AnalysisResult, isAnalysisResult } from '@/utils/types/search';
-import { PostgresChangesPayload } from '@/types/database';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-// Simplified analysis job interface
+// Simplified analysis job interface with explicit types
 interface AnalysisJob {
   url: string;
   status: Status;
@@ -36,7 +36,7 @@ export const useSearch = () => {
 
     const channel = supabase
       .channel(`analysis_jobs_${currentBatchId}`)
-      .on(
+      .on<AnalysisJob>(
         'postgres_changes',
         {
           event: '*',
@@ -44,7 +44,7 @@ export const useSearch = () => {
           table: 'analysis_jobs',
           filter: `batch_id=eq.${currentBatchId}`
         },
-        (payload: PostgresChangesPayload<AnalysisJob>) => {
+        (payload: RealtimePostgresChangesPayload<AnalysisJob>) => {
           const newJob = payload.new;
           
           if (!isAnalysisJob(newJob)) {
@@ -173,4 +173,3 @@ export const useSearch = () => {
     results
   };
 };
-

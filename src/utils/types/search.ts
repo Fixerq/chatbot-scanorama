@@ -9,7 +9,7 @@ export interface PatternMatch {
   matched: string;
 }
 
-// Analysis result with simplified structure
+// Analysis result with simplified structure and fixed types
 export interface AnalysisResult {
   has_chatbot: boolean;
   chatSolutions: string[];
@@ -42,7 +42,7 @@ export interface SearchMetadata {
   [key: string]: unknown;
 }
 
-// Search result interface
+// Search result interface without circular references
 export interface SearchResult {
   url: string;
   title?: string;
@@ -52,4 +52,3 @@ export interface SearchResult {
   analysis_result?: AnalysisResult;
   metadata?: SearchMetadata;
 }
-
