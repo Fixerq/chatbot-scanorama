@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,6 +9,7 @@ import { QueuedAnalysis } from '@/types/database';
 import { Database } from '@/integrations/supabase/types';
 import { Loader2 } from 'lucide-react';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import ErrorBoundary from './ErrorBoundary';
 
 type AnalysisRecord = Database['public']['Tables']['analysis_results']['Row'];
 
@@ -34,7 +34,6 @@ const Results: React.FC<ResultsProps> = ({
   isAnalyzing,
   onResultUpdate
 }) => {
-  // Add logging to track results prop changes
   useEffect(() => {
     console.log('Results component received new results:', results);
   }, [results]);
@@ -42,7 +41,6 @@ const Results: React.FC<ResultsProps> = ({
   useEffect(() => {
     if (!results.length) return;
 
-    // Subscribe to worker status updates
     const workerChannel = supabase
       .channel('worker_updates')
       .on(
@@ -59,7 +57,6 @@ const Results: React.FC<ResultsProps> = ({
       )
       .subscribe();
 
-    // Subscribe to job updates
     const jobChannel = supabase
       .channel('job_updates')
       .on(
@@ -87,7 +84,6 @@ const Results: React.FC<ResultsProps> = ({
       )
       .subscribe();
 
-    // Subscribe to analysis results
     const analysisChannel = supabase
       .channel('analysis_updates')
       .on(
@@ -143,7 +139,6 @@ const Results: React.FC<ResultsProps> = ({
     );
   }
 
-  // Changed this condition to only check for empty results
   if (results.length === 0) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
@@ -164,27 +159,29 @@ const Results: React.FC<ResultsProps> = ({
         isLoadingMore={isLoadingMore}
         isAnalyzing={isAnalyzing}
       >
-        <ResultsTable 
-          results={results} 
-          isLoading={isLoadingMore}
-          onResultUpdate={onResultUpdate}
-          onRetry={async (url: string) => {
-            try {
-              const { error } = await supabase.functions.invoke('analyze-website', {
-                body: { url, retry: true }
-              });
+        <ErrorBoundary>
+          <ResultsTable 
+            results={results} 
+            isLoading={isLoadingMore}
+            onResultUpdate={onResultUpdate}
+            onRetry={async (url: string) => {
+              try {
+                const { error } = await supabase.functions.invoke('analyze-website', {
+                  body: { url, retry: true }
+                });
 
-              if (error) {
-                toast.error(`Failed to retry analysis for ${url}`);
-              } else {
-                toast.success(`Analysis retried for ${url}`);
+                if (error) {
+                  toast.error(`Failed to retry analysis for ${url}`);
+                } else {
+                  toast.success(`Analysis retried for ${url}`);
+                }
+              } catch (error) {
+                console.error('Error retrying analysis:', error);
+                toast.error('Failed to retry analysis');
               }
-            } catch (error) {
-              console.error('Error retrying analysis:', error);
-              toast.error('Failed to retry analysis');
-            }
-          }}
-        />
+            }}
+          />
+        </ErrorBoundary>
       </ResultsContent>
     </ResultsContainer>
   );

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Table,
@@ -16,6 +15,7 @@ import { AnalysisResult } from '@/utils/types/search';
 import { Button } from './ui/button';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from "./ui/alert";
+import TableWrapper from './TableWrapper';
 
 export interface Result {
   url: string;
@@ -107,83 +107,85 @@ const ResultsTable = ({
 
   return (
     <div className="w-full overflow-x-auto">
-      <Table>
-        <TableCaption className="text-muted-foreground">Search results and analysis status.</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">Status</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>URL</TableHead>
-            <TableHead>Analysis</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {results.map((result, i) => {
-            const { displayUrl } = formatUrl(result.url);
-            const status = getStatus(result);
-            const error = getErrorMessage(result);
-            
-            return (
-              <TableRow key={i} className={error ? 'bg-red-50/10' : ''}>
-                <TableCell>
-                  <Badge variant={getBadgeVariant(status)}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Badge>
-                  {error && (
-                    <div className="mt-2 text-sm text-red-500 flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span>{error}</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {result.title || result.details?.title || 'Untitled'}
-                </TableCell>
-                <TableCell>
-                  <a 
-                    href={result.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
-                  >
-                    {displayUrl}
-                  </a>
-                </TableCell>
-                <ResultStatusCell
-                  status={status}
-                  analysis_result={result.analysis_result}
-                  isAnalyzing={status === 'analyzing'}
-                  url={result.url}
-                  onAnalysisUpdate={(newAnalysis) => {
-                    if (onResultUpdate) {
-                      onResultUpdate({
-                        ...result,
-                        analysis_result: newAnalysis,
-                        status: newAnalysis.status,
-                        error: newAnalysis.error
-                      });
-                    }
-                  }}
-                />
-                <TableCell>
-                  {error && onRetry && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRetry(result.url)}
-                      className="flex items-center gap-2"
+      <TableWrapper>
+        <Table>
+          <TableCaption className="text-muted-foreground">Search results and analysis status.</TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Status</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>URL</TableHead>
+              <TableHead>Analysis</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {results.map((result, i) => {
+              const { displayUrl } = formatUrl(result.url);
+              const status = getStatus(result);
+              const error = getErrorMessage(result);
+              
+              return (
+                <TableRow key={i} className={error ? 'bg-red-50/10' : ''}>
+                  <TableCell>
+                    <Badge variant={getBadgeVariant(status)}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Badge>
+                    {error && (
+                      <div className="mt-2 text-sm text-red-500 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <span>{error}</span>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {result.title || result.details?.title || 'Untitled'}
+                  </TableCell>
+                  <TableCell>
+                    <a 
+                      href={result.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
                     >
-                      <RefreshCw className="w-4 h-4" />
-                      Retry
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                      {displayUrl}
+                    </a>
+                  </TableCell>
+                  <ResultStatusCell
+                    status={status}
+                    analysis_result={result.analysis_result}
+                    isAnalyzing={status === 'analyzing'}
+                    url={result.url}
+                    onAnalysisUpdate={(newAnalysis) => {
+                      if (onResultUpdate) {
+                        onResultUpdate({
+                          ...result,
+                          analysis_result: newAnalysis,
+                          status: newAnalysis.status,
+                          error: newAnalysis.error
+                        });
+                      }
+                    }}
+                  />
+                  <TableCell>
+                    {error && onRetry && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRetry(result.url)}
+                        className="flex items-center gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Retry
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableWrapper>
     </div>
   );
 };
