@@ -11,7 +11,7 @@ const initSentry = () => {
 
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [new BrowserTracing() as unknown as Integration],
+    integrations: [new BrowserTracing()],
     tracesSampleRate: 1.0,
     environment: import.meta.env.MODE,
   });
