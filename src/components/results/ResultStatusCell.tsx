@@ -1,13 +1,10 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { AnalysisResult } from '@/utils/types/search';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { QueuedAnalysis } from '@/types/database';
 
 interface ResultStatusCellProps {
   status?: string;
@@ -24,44 +21,14 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   url,
   onAnalysisUpdate
 }) => {
-  const [pollCount, setPollCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!url || !onAnalysisUpdate) return;
-
-    const channel = supabase
-      .channel(`analysis-${url.replace(/[^a-zA-Z0-9]/g, '_')}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'analysis_results',
-          filter: `url=eq.${url}`
-        },
-        (payload: RealtimePostgresChangesPayload<QueuedAnalysis>) => {
-          console.log('Analysis result update:', payload);
-          if (payload.eventType !== 'DELETE' && payload.new) {
-            onAnalysisUpdate(payload.new);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [url, onAnalysisUpdate]);
-
   const getStatusDisplay = () => {
-    if (error || status === 'error' || analysis_result?.error) {
+    const error = analysis_result?.error || (status === 'error' ? 'Analysis failed' : undefined);
+
+    if (error) {
       return (
         <div className="flex items-center gap-2 text-red-500">
           <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">
-            {error || analysis_result?.error || 'Analysis failed'}
-          </span>
+          <span className="text-sm">{error}</span>
         </div>
       );
     }
@@ -106,7 +73,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
       default:
         return (
           <Badge variant="secondary">
-            {status}
+            {status || 'Unknown'}
           </Badge>
         );
     }
@@ -117,11 +84,11 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
       <div className="space-y-2">
         {getStatusDisplay()}
         
-        {!isAnalyzing && analysis_result && status === 'completed' && !error && (
+        {!isAnalyzing && analysis_result && status === 'completed' && !analysis_result.error && (
           <>
             {analysis_result.chatSolutions && analysis_result.chatSolutions.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {analysis_result.chatSolutions.map((solution, index) => (
+                {analysis_result.chatSolutions.map((solution: string, index: number) => (
                   <Badge key={index} variant="outline" className="text-xs">
                     {solution}
                   </Badge>
@@ -136,4 +103,3 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
-
