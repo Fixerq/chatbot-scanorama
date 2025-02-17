@@ -4,10 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalysisUpdates } from './useAnalysisUpdates';
 import { createAnalysisBatch } from './useBatchCreation';
+import { useWorkerMonitoring } from './useWorkerMonitoring';
 
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const workerMonitoring = useWorkerMonitoring();
 
   const analyzeBatch = async (results: any[]) => {
     setIsProcessing(true);
@@ -16,6 +18,9 @@ export function useBatchAnalysis() {
     try {
       // Create batch and get batch ID
       const { batchId, validUrls } = await createAnalysisBatch(results);
+
+      // Setup worker monitoring
+      const cleanupWorkerMonitoring = workerMonitoring.subscribeToWorkerUpdates();
 
       // Call analyze-website function to start processing
       console.log('Sending request to analyze-website function with payload:', {
@@ -44,7 +49,10 @@ export function useBatchAnalysis() {
       const { subscribeToUpdates } = useAnalysisUpdates(
         batchId,
         (newProgress) => setProgress(newProgress),
-        () => setIsProcessing(false)
+        () => {
+          setIsProcessing(false);
+          cleanupWorkerMonitoring();
+        }
       );
 
       const cleanup = subscribeToUpdates();
@@ -52,7 +60,10 @@ export function useBatchAnalysis() {
       // Return cleanup function for component unmount
       return { 
         batchId,
-        cleanup,
+        cleanup: () => {
+          cleanup();
+          cleanupWorkerMonitoring();
+        },
         results: data?.results
       };
       

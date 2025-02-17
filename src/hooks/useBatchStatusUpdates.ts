@@ -53,16 +53,44 @@ export function useBatchStatusUpdates(
           const progressValue = Math.round((processed_urls / total_urls) * 100);
           onProgress(progressValue);
           
-          // Monitor for stalled batches
-          const STALL_THRESHOLD = 5 * 60 * 1000; // 5 minutes
-          if (status === 'processing' && payload.old?.processed_urls === processed_urls) {
+          // Check for stalled batches and worker health
+          if (status === 'processing') {
+            // Check if batch is stalled (no progress for 5 minutes)
             const timeSinceLastUpdate = Date.now() - new Date(payload.new.updated_at).getTime();
-            if (timeSinceLastUpdate > STALL_THRESHOLD) {
+            if (timeSinceLastUpdate > 5 * 60 * 1000) {
               console.warn('Batch appears to be stalled:', {
                 batchId,
                 lastProgress: processed_urls,
                 timeSinceUpdate: timeSinceLastUpdate
               });
+
+              // Check for active workers
+              const { data: workers, error: workersError } = await supabase
+                .from('worker_instances')
+                .select('*')
+                .eq('status', 'processing');
+
+              if (workersError) {
+                console.error('Error checking worker status:', workersError);
+              } else if (!workers || workers.length === 0) {
+                // No active workers found
+                const { error: alertError } = await supabase
+                  .from('monitoring_alerts')
+                  .insert({
+                    metric_name: 'no_active_workers',
+                    current_value: 0,
+                    threshold_value: 1,
+                    alert_type: 'error'
+                  });
+
+                if (alertError) {
+                  console.error('Error creating worker alert:', alertError);
+                }
+
+                toast.error('No active workers available', {
+                  description: 'Analysis is delayed due to unavailable workers.'
+                });
+              }
 
               // Create stall alert
               const { error: alertError } = await supabase
@@ -105,4 +133,3 @@ export function useBatchStatusUpdates(
 
   return { subscribeToUpdates };
 }
-
