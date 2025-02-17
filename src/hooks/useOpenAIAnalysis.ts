@@ -56,12 +56,23 @@ export function useOpenAIAnalysis() {
     try {
       console.log('Starting OpenAI analysis for URL:', url);
       
-      // First check if we have a recent analysis in cache
+      // First ensure we have a cache entry
+      await supabase
+        .from('analysis_cache')
+        .upsert({
+          url,
+          openai_analysis_status: 'pending',
+          openai_analysis_date: null,
+          openai_response: null
+        })
+        .eq('url', url);
+
+      // Then check if we have a recent analysis in cache
       const { data: cacheData, error: cacheError } = await supabase
         .from('analysis_cache')
         .select('openai_response, openai_analysis_date')
         .eq('url', url)
-        .single();
+        .maybeSingle();
 
       if (!cacheError && cacheData?.openai_response && cacheData?.openai_analysis_date) {
         const analysisAge = Date.now() - new Date(cacheData.openai_analysis_date).getTime();
@@ -78,8 +89,7 @@ export function useOpenAIAnalysis() {
       // Update cache status to processing
       await supabase
         .from('analysis_cache')
-        .upsert({
-          url,
+        .update({
           openai_analysis_status: 'processing',
           openai_analysis_date: new Date().toISOString()
         })
