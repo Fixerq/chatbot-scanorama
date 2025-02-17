@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,7 +8,6 @@ import ResultsTable, { Result } from './ResultsTable';
 import EmptyResults from './results/EmptyResults';
 import { QueuedAnalysis } from '@/types/database';
 import { Database } from '@/integrations/supabase/types';
-import { Loader2 } from 'lucide-react';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -129,17 +129,7 @@ const Results: React.FC<ResultsProps> = ({
     };
   }, [results, onResultUpdate]);
 
-  if (isAnalyzing) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-lg text-muted-foreground">Analyzing websites...</p>
-        <p className="text-sm text-muted-foreground">This may take a few moments</p>
-      </div>
-    );
-  }
-
-  if (results.length === 0) {
+  if (!results.length) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
@@ -188,3 +178,4 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
+
