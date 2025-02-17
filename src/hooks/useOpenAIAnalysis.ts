@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Json } from '@/types/database';
 
 export interface OpenAIAnalysisResult {
   pattern_improvements: string[];
@@ -10,16 +11,19 @@ export interface OpenAIAnalysisResult {
     should_retry: boolean;
     wait_time?: number;
     max_attempts?: number;
+    [key: string]: Json | undefined;  // Add index signature
   };
   diagnosis: {
     worker_state: string;
     job_queue: string;
     potential_issues: string[];
+    [key: string]: Json | undefined;  // Add index signature
   };
   worker_recovery: {
     should_restart: boolean;
     actions: string[];
     health_checks: string[];
+    [key: string]: Json | undefined;  // Add index signature
   };
   job_optimizations: {
     batch_size: number;
@@ -27,8 +31,11 @@ export interface OpenAIAnalysisResult {
     timeout_settings: {
       initial: number;
       retry: number;
+      [key: string]: Json | undefined;  // Add index signature for nested object
     };
+    [key: string]: Json | undefined;  // Add index signature
   };
+  [key: string]: Json | undefined;  // Add root level index signature
 }
 
 function isValidOpenAIAnalysisResult(obj: any): obj is OpenAIAnalysisResult {
