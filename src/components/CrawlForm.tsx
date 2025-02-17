@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { Json } from '@/types/database';
 
 interface CrawlResult {
   success: boolean;
@@ -39,9 +40,19 @@ interface CrawlRecord {
   analyzed?: boolean;
 }
 
-type SupabaseCrawlRecord = Required<Omit<CrawlRecord, 'result'>> & {
-  result: CrawlResult | null;
-};
+interface SupabaseRecord {
+  id: string;
+  url: string;
+  status: string;
+  result: Json;
+  error: string;
+  user_id: string;
+  started_at: string;
+  completed_at: string;
+  analyzed: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export const CrawlForm = () => {
   const { toast } = useToast();
@@ -65,17 +76,20 @@ export const CrawlForm = () => {
       }
 
       if (data) {
-        const transformedData: CrawlRecord[] = data.map((record: SupabaseCrawlRecord) => ({
-          id: record.id,
-          url: record.url,
-          status: record.status,
-          result: record.result,
-          error: record.error,
-          user_id: record.user_id,
-          started_at: record.started_at,
-          completed_at: record.completed_at,
-          analyzed: record.analyzed
-        }));
+        const transformedData: CrawlRecord[] = data.map((record: SupabaseRecord) => {
+          const parsedResult = record.result as unknown as CrawlResult;
+          return {
+            id: record.id,
+            url: record.url,
+            status: record.status,
+            result: parsedResult && typeof parsedResult === 'object' ? parsedResult : null,
+            error: record.error,
+            user_id: record.user_id,
+            started_at: record.started_at,
+            completed_at: record.completed_at,
+            analyzed: record.analyzed
+          };
+        });
         setCrawlRecords(transformedData);
       }
     };
@@ -91,22 +105,23 @@ export const CrawlForm = () => {
           schema: 'public', 
           table: 'crawl_results' 
         },
-        (payload: RealtimePostgresChangesPayload<SupabaseCrawlRecord>) => {
+        (payload: RealtimePostgresChangesPayload<SupabaseRecord>) => {
           console.log('Crawl results update:', payload);
-          // Type assertion after validation
-          const newData = payload.new as SupabaseCrawlRecord;
-          if (newData && isValidCrawlRecord(newData)) {
+          
+          if (payload.new && isValidCrawlRecord(payload.new)) {
+            const parsedResult = payload.new.result as unknown as CrawlResult;
+            
             setCrawlRecords(prevRecords => {
               const newRecord: CrawlRecord = {
-                id: newData.id,
-                url: newData.url,
-                status: newData.status,
-                result: newData.result,
-                error: newData.error,
-                user_id: newData.user_id,
-                started_at: newData.started_at,
-                completed_at: newData.completed_at,
-                analyzed: newData.analyzed
+                id: payload.new.id,
+                url: payload.new.url,
+                status: payload.new.status,
+                result: parsedResult && typeof parsedResult === 'object' ? parsedResult : null,
+                error: payload.new.error,
+                user_id: payload.new.user_id,
+                started_at: payload.new.started_at,
+                completed_at: payload.new.completed_at,
+                analyzed: payload.new.analyzed
               };
               
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
@@ -132,7 +147,7 @@ export const CrawlForm = () => {
   }, []);
 
   // Type guard function to validate the crawl record
-  const isValidCrawlRecord = (record: any): record is SupabaseCrawlRecord => {
+  const isValidCrawlRecord = (record: any): record is SupabaseRecord => {
     return (
       typeof record === 'object' &&
       record !== null &&
@@ -141,10 +156,6 @@ export const CrawlForm = () => {
       typeof record.status === 'string' &&
       typeof record.started_at === 'string' &&
       'result' in record &&
-      (record.result === null || (
-        typeof record.result === 'object' &&
-        typeof record.result.success === 'boolean'
-      )) &&
       'error' in record &&
       'user_id' in record &&
       'completed_at' in record &&
