@@ -17,7 +17,7 @@ export const useSearch = () => {
   useEffect(() => {
     if (!currentBatchId) return;
 
-    const subscription = supabase
+    const channel = supabase
       .channel(`analysis_jobs_${currentBatchId}`)
       .on(
         'postgres_changes',
@@ -59,7 +59,7 @@ export const useSearch = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(subscription);
+      supabase.removeChannel(channel);
     };
   }, [currentBatchId]);
 
@@ -93,7 +93,7 @@ export const useSearch = () => {
 
       if (placesError) throw placesError;
 
-      // Create analysis jobs for each result
+      // Create analysis jobs
       const analysisJobs = placesData.results.map((place: any) => ({
         url: place.website_url || place.url,
         batch_id: batch.id,
@@ -140,13 +140,21 @@ export const useSearch = () => {
         throw new Error('No active batch');
       }
 
+      type UpdatePayload = {
+        status: 'pending';
+        error: null;
+        result: null;
+      };
+
+      const updatePayload: UpdatePayload = {
+        status: 'pending',
+        error: null,
+        result: null
+      };
+
       const { error } = await supabase
         .from('analysis_jobs')
-        .update({
-          status: 'pending',
-          error: null,
-          result: null
-        })
+        .update(updatePayload)
         .eq('url', url)
         .eq('batch_id', currentBatchId);
 
@@ -167,3 +175,4 @@ export const useSearch = () => {
     results
   };
 };
+
