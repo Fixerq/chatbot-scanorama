@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast"; 
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,23 @@ interface CrawlResult {
   data?: any[];
 }
 
+// Type guard to validate CrawlRecord
+function isCrawlRecord(obj: any): obj is CrawlRecord {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof obj.id === 'string' &&
+    typeof obj.url === 'string' &&
+    typeof obj.status === 'string' &&
+    ('result' in obj) && // result can be null
+    typeof obj.user_id === 'string' &&
+    typeof obj.started_at === 'string' &&
+    typeof obj.created_at === 'string' &&
+    typeof obj.updated_at === 'string' &&
+    typeof obj.analyzed === 'boolean'
+  );
+}
+
 export const CrawlForm = () => {
   const { toast } = useToast();
   const [url, setUrl] = useState('');
@@ -51,7 +67,8 @@ export const CrawlForm = () => {
       }
 
       if (data) {
-        setCrawlRecords(data as CrawlRecord[]);
+        const validRecords = data.filter(isCrawlRecord);
+        setCrawlRecords(validRecords);
       }
     };
 
@@ -69,8 +86,8 @@ export const CrawlForm = () => {
         (payload: RealtimePostgresChangesPayload<CrawlRecord>) => {
           console.log('Crawl results update:', payload);
           
-          if (payload.new) {
-            const newRecord: CrawlRecord = payload.new; // Explicitly type as CrawlRecord
+          if (payload.new && isCrawlRecord(payload.new)) {
+            const newRecord = payload.new;
             
             setCrawlRecords(prevRecords => {
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
