@@ -28,7 +28,6 @@ export function useWorkerMonitoring() {
   const subscribeToWorkerUpdates = () => {
     console.log('Subscribing to worker status updates');
 
-    // Subscribe to worker instance updates
     const workerChannel = supabase
       .channel('worker-monitoring')
       .on(
@@ -46,7 +45,6 @@ export function useWorkerMonitoring() {
             const lastHeartbeat = new Date(worker.last_heartbeat);
             const timeSinceHeartbeat = Date.now() - lastHeartbeat.getTime();
 
-            // Check for stalled workers (no heartbeat for > 5 minutes)
             if (timeSinceHeartbeat > 5 * 60 * 1000 && worker.status === 'processing') {
               console.warn('Worker appears to be stalled:', {
                 workerId: worker.id,
@@ -54,14 +52,12 @@ export function useWorkerMonitoring() {
                 timeSinceHeartbeat
               });
 
-              // Get overall worker health
               const { data: healthData, error: healthError } = await supabase
                 .rpc('check_worker_health');
 
               if (!healthError && healthData && healthData.length > 0) {
                 const workerHealth = healthData[0] as WorkerHealth;
                 
-                // Get current job details if there is one
                 if (worker.current_job_id) {
                   const { data: jobData } = await supabase
                     .from('analysis_job_queue')
@@ -71,7 +67,7 @@ export function useWorkerMonitoring() {
 
                   if (jobData) {
                     const metadata = jobData.metadata as JobMetadata;
-                    // Analyze with OpenAI
+                    // Get AI analysis and recommendations
                     const aiAnalysis = await analyzeWithAI(
                       jobData.url,
                       metadata?.patterns || [],
@@ -83,19 +79,38 @@ export function useWorkerMonitoring() {
                     );
 
                     if (aiAnalysis) {
+                      console.log('AI analysis results:', aiAnalysis);
+                      
                       // Apply AI recommendations
                       if (aiAnalysis.retry_strategy.should_retry) {
+                        const waitTime = aiAnalysis.retry_strategy.wait_time || 0;
+                        
+                        // Wait for the recommended time before retrying
+                        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+                        
                         await supabase
                           .from('analysis_job_queue')
                           .update({
-                            retry_count: 0, // Reset retry count based on AI recommendation
+                            retry_count: 0,
                             status: 'pending',
                             error_message: null,
+                            metadata: {
+                              ...metadata,
+                              ai_recommendations: aiAnalysis.pattern_improvements,
+                              last_error_resolution: aiAnalysis.error_resolution
+                            },
                             updated_at: new Date().toISOString()
                           })
                           .eq('id', worker.current_job_id);
                         
                         console.log('Applied AI retry strategy for job:', worker.current_job_id);
+                        
+                        toast.success('Analysis will be retried with AI optimizations');
+                      } else {
+                        console.log('AI recommended not to retry the job');
+                        toast.error('Analysis cannot be recovered automatically', {
+                          description: aiAnalysis.error_resolution[0] || 'Manual intervention required'
+                        });
                       }
                     }
                   }
@@ -108,7 +123,6 @@ export function useWorkerMonitoring() {
                 }
               }
 
-              // Trigger cleanup of stalled workers
               const { error: cleanupError } = await supabase
                 .rpc('cleanup_stalled_workers');
 
@@ -140,7 +154,6 @@ export function useWorkerMonitoring() {
       return null;
     }
 
-    // Return the first item from the array since we know it returns a single-item array
     return healthData && healthData.length > 0 ? healthData[0] as WorkerHealth : null;
   };
 
