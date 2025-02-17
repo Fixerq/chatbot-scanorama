@@ -6,6 +6,8 @@ import { AnalysisUpdatePayload, isAnalysisUpdatePayload } from './types/analysis
 
 export const useRealtimeAnalysis = () => {
   const subscribeToAnalysisResults = () => {
+    console.log('Setting up general analysis results subscription');
+    
     const channel = supabase
       .channel('analysis-results')
       .on(
@@ -28,16 +30,14 @@ export const useRealtimeAnalysis = () => {
               error
             });
 
-            if (has_chatbot) {
-              toast.success(`Chatbot detected on ${url}`, {
-                description: chatbot_solutions?.join(', ')
-              });
-            }
-
             if (error) {
               console.error(`Analysis error for ${url}:`, error);
               toast.error(`Analysis failed for ${url}`, {
                 description: error
+              });
+            } else if (has_chatbot) {
+              toast.success(`Chatbot detected on ${url}`, {
+                description: chatbot_solutions?.join(', ')
               });
             }
           }
@@ -46,6 +46,7 @@ export const useRealtimeAnalysis = () => {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up general analysis results subscription');
       supabase.removeChannel(channel);
     };
   };

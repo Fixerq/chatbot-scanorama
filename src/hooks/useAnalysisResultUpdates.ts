@@ -2,38 +2,31 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { AnalysisResult } from '@/utils/types/search';
 
-export interface AnalysisResult {
+interface AnalysisResultPayload {
+  url: string;
   has_chatbot: boolean;
-  chatSolutions: string[];
+  chatbot_solutions: string[];
   status: string;
-  url?: string;
   error?: string;
-  lastChecked?: string;
-  details?: {
-    patterns?: Array<{
-      type: string;
-      pattern: string;
-      matched: string;
-    }>;
-    error?: string;
-  };
+  updated_at: string;
 }
 
-function isValidAnalysisResult(payload: any): payload is AnalysisResult {
-  return (
-    payload &&
-    typeof payload.has_chatbot === 'boolean' &&
-    Array.isArray(payload.chatSolutions) &&
-    typeof payload.status === 'string'
-  );
+function isAnalysisResultPayload(obj: any): obj is AnalysisResultPayload {
+  return obj && 
+    typeof obj.url === 'string' &&
+    typeof obj.has_chatbot === 'boolean' &&
+    Array.isArray(obj.chatbot_solutions) &&
+    typeof obj.status === 'string' &&
+    typeof obj.updated_at === 'string';
 }
 
 export function useAnalysisResultUpdates(batchId: string | null) {
   const subscribeToUpdates = () => {
     if (!batchId) return;
 
-    console.log('Subscribing to analysis results for batch:', batchId);
+    console.log('Setting up analysis result updates for batch:', batchId);
 
     const channel = supabase
       .channel(`results-${batchId}`)
@@ -42,96 +35,34 @@ export function useAnalysisResultUpdates(batchId: string | null) {
         {
           event: '*',
           schema: 'public',
-          table: 'analysis_results',
+          table: 'analysis_results_with_requests',
           filter: `batch_id=eq.${batchId}`
         },
-        async (payload: RealtimePostgresChangesPayload<AnalysisResult>) => {
-          console.log('Analysis result update:', payload);
+        (payload: RealtimePostgresChangesPayload<AnalysisResultPayload>) => {
+          console.log('Analysis result update received:', payload);
           
-          if (payload.new && isValidAnalysisResult(payload.new)) {
+          if (payload.new && isAnalysisResultPayload(payload.new)) {
             if (payload.new.error) {
-              // Create an alert for analysis errors
-              const { error: alertError } = await supabase
-                .from('analysis_alerts')
-                .insert({
-                  url: payload.new.url || '',
-                  batch_id: batchId,
-                  alert_type: 'analysis_error',
-                  alert_message: `Analysis failed for ${payload.new.url}: ${payload.new.error}`,
-                  pattern_details: []
-                });
-
-              if (alertError) {
-                console.error('Error creating error alert:', alertError);
-              }
-
+              console.error(`Analysis failed for ${payload.new.url}:`, payload.new.error);
               toast.error(`Analysis failed for ${payload.new.url}`, {
                 description: payload.new.error
               });
             } else if (payload.new.has_chatbot) {
-              // Create an alert record for chatbot detection
-              const { error } = await supabase
-                .from('analysis_alerts')
-                .insert({
-                  url: payload.new.url || '',
-                  batch_id: batchId,
-                  alert_type: 'chatbot_detected',
-                  alert_message: `Chatbot detected on ${payload.new.url || 'website'}`,
-                  pattern_details: payload.new.details?.patterns || []
-                });
-
-              if (error) {
-                console.error('Error creating alert:', error);
-              } else {
-                const solutions = payload.new.chatSolutions?.length > 0
-                  ? `Solutions: ${payload.new.chatSolutions.join(', ')}`
-                  : '';
-
-                toast.success("Chatbot Detected!", {
-                  description: `URL: ${payload.new.url}\n${solutions}`
-                });
-              }
+              console.log(`Chatbot detected on ${payload.new.url}`);
+              toast.success(`Chatbot detected on ${payload.new.url}`, {
+                description: payload.new.chatbot_solutions.join(', ')
+              });
             }
           }
         }
       )
       .subscribe();
 
-    // Also subscribe to alerts table to handle showing alerts
-    const alertsChannel = supabase
-      .channel(`alerts-${batchId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'analysis_alerts'
-        },
-        (payload: RealtimePostgresChangesPayload<any>) => {
-          console.log('New alert:', payload);
-          // Mark alert as shown
-          if (payload.new) {
-            supabase
-              .from('analysis_alerts')
-              .update({ shown: true })
-              .eq('id', payload.new.id)
-              .then(({ error }) => {
-                if (error) {
-                  console.error('Error marking alert as shown:', error);
-                }
-              });
-          }
-        }
-      )
-      .subscribe();
-
     return () => {
-      console.log('Unsubscribing from analysis results');
+      console.log('Cleaning up analysis result updates subscription');
       supabase.removeChannel(channel);
-      supabase.removeChannel(alertsChannel);
     };
   };
 
   return { subscribeToUpdates };
 }
-
