@@ -30,38 +30,29 @@ const ResultsContent = ({
 }: ResultsContentProps) => {
   useEffect(() => {
     console.log('ResultsContent: Received results:', results?.length);
-  }, [results]);
-
-  if (isAnalyzing) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-lg text-muted-foreground">Analyzing websites...</p>
-        <p className="text-sm text-muted-foreground">This may take a few moments</p>
-      </div>
-    );
-  }
-
-  if (!results?.length) {
-    console.log('ResultsContent: No results to display');
-    return null;
-  }
+    console.log('ResultsContent: isAnalyzing:', isAnalyzing);
+  }, [results, isAnalyzing]);
 
   const totalPages = Math.ceil(results.length / 50);
   const currentPage = Math.ceil(results.length / 50);
 
-  console.log('ResultsContent: Pagination info:', {
-    totalPages,
-    currentPage,
-    hasMore
-  });
-
   return (
     <>
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
-        {React.cloneElement(children as React.ReactElement, { results })}
+        {React.cloneElement(children as React.ReactElement, { 
+          results,
+          isLoading: isLoadingMore || isAnalyzing 
+        })}
       </div>
       
+      {isAnalyzing && (
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-lg text-muted-foreground">Analyzing websites...</p>
+          <p className="text-sm text-muted-foreground">This may take a few moments</p>
+        </div>
+      )}
+
       {hasMore && (
         <LoadMoreButton 
           onLoadMore={() => onLoadMore?.(currentPage + 1)}
@@ -110,4 +101,3 @@ const ResultsContent = ({
 };
 
 export default ResultsContent;
-

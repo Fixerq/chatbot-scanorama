@@ -39,7 +39,9 @@ const Results: React.FC<ResultsProps> = ({
     console.log('isAnalyzing:', isAnalyzing);
   }, [results, isAnalyzing]);
 
+  // Setup realtime subscriptions
   useEffect(() => {
+    // Skip if no results yet
     if (!results.length) return;
 
     const workerChannel = supabase
@@ -130,6 +132,7 @@ const Results: React.FC<ResultsProps> = ({
     };
   }, [results, onResultUpdate]);
 
+  // Show empty state only when there are no results and not analyzing
   if (!results.length && !isAnalyzing) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
@@ -142,6 +145,7 @@ const Results: React.FC<ResultsProps> = ({
       hasMore={hasMore}
       onLoadMore={onLoadMore}
       isLoadingMore={isLoadingMore}
+      isAnalyzing={isAnalyzing}
     >
       <ResultsContent
         results={results}
@@ -179,4 +183,3 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
-

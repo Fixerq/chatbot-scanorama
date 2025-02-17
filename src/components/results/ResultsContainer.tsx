@@ -3,7 +3,6 @@ import React, { ReactNode } from 'react';
 import { Result } from '../ResultsTable';
 import ResultsHeader from './ResultsHeader';
 import ResultsFilters from './ResultsFilters';
-import ResultsContent from './ResultsContent';
 import { useResultsState } from '@/hooks/useResultsState';
 
 interface ResultsContainerProps {
@@ -13,7 +12,7 @@ interface ResultsContainerProps {
   hasMore?: boolean;
   onLoadMore?: (currentPage: number) => void;
   isLoadingMore?: boolean;
-  currentPage?: number;
+  isAnalyzing?: boolean;
   children: ReactNode;
 }
 
@@ -24,22 +23,20 @@ const ResultsContainer = ({
   hasMore = false,
   onLoadMore,
   isLoadingMore = false,
-  currentPage = 1,
+  isAnalyzing = false,
   children
 }: ResultsContainerProps) => {
   const {
     filteredResults,
     filterValue,
     sortValue,
-    localPage,
-    setLocalPage,
     handleFilter,
     handleSort,
-    isLoading
   } = useResultsState(results);
 
   console.log('ResultsContainer: Received results:', results.length);
   console.log('ResultsContainer: Filtered results:', filteredResults.length);
+  console.log('ResultsContainer: isAnalyzing:', isAnalyzing);
 
   return (
     <div className="mt-12 space-y-6">
@@ -58,10 +55,13 @@ const ResultsContainer = ({
           onExport={onExport}
         />
       </div>
-      {React.cloneElement(children as React.ReactElement, { results: filteredResults })}
+      {React.cloneElement(children as React.ReactElement, { 
+        results: filteredResults,
+        isAnalyzing,
+        isLoadingMore 
+      })}
     </div>
   );
 };
 
 export default ResultsContainer;
-
