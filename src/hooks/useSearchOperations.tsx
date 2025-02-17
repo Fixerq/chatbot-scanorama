@@ -74,9 +74,12 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
       if (error) throw error;
 
       if (data?.results) {
-        setResults((prevResults) => {
-          const newResults: SearchResult[] = [...prevResults, ...data.results];
-          return newResults;
+        const prevResults = await new Promise<SearchResult[]>((resolve) => {
+          setResults((current) => {
+            const newResults = [...current, ...data.results];
+            resolve(newResults);
+            return newResults;
+          });
         });
         setNextPageToken(data.nextPageToken || null);
       }

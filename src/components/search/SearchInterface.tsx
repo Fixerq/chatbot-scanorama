@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import SearchFormContainer from '@/components/SearchFormContainer';
 import Results from '@/components/Results';
 import { Result } from '@/components/ResultsTable';
-import { useSearch } from '@/hooks/useSearch';
+import { useSearchOperations } from '@/hooks/useSearchOperations';
 
 interface SearchInterfaceProps {
   initialSearch?: {
@@ -14,7 +14,8 @@ interface SearchInterfaceProps {
 }
 
 const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
-  const { handleSearch, retryAnalysis, isSearching, results } = useSearch();
+  const [results, setResults] = useState<Result[]>([]);
+  const { handleSearch, handleLoadMore, isSearching } = useSearchOperations(setResults);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleResults = async (newResults: Result[]) => {
@@ -28,12 +29,12 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
 
   const handleSearchParamsChange = async (params: { query: string; country: string; region: string }) => {
     setIsProcessing(true);
-    await handleSearch(params.query, params.country, params.region);
+    await handleSearch(params.query, params.country, params.region, '', 25);
     setIsProcessing(false);
   };
 
   const handleNewSearch = () => {
-    window.location.reload(); // Reset the entire search state
+    window.location.reload();
   };
 
   return (
@@ -50,18 +51,15 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
         results={results}
         onExport={() => {}} 
         onNewSearch={handleNewSearch}
-        hasMore={false}
-        onLoadMore={() => {}}
+        hasMore={true}
+        onLoadMore={(page) => handleLoadMore('', '', '', page, (page + 1) * 25)}
         isLoadingMore={false}
         isAnalyzing={isSearching}
-        onResultUpdate={(updatedResult) => {
-          if (updatedResult.error) {
-            retryAnalysis(updatedResult.url);
-          }
-        }}
+        onResultUpdate={undefined}
       />
     </div>
   );
 };
 
 export default SearchInterface;
+
