@@ -7,6 +7,7 @@ export interface AnalysisResult {
   has_chatbot: boolean;
   chatSolutions: string[];
   status: string;
+  url?: string;
   error?: string;
   lastChecked?: string;
   details?: {
@@ -42,7 +43,7 @@ export function useAnalysisResultUpdates(batchId: string | null) {
           table: 'analysis_results',
           filter: `batch_id=eq.${batchId}`
         },
-        async (payload) => {
+        async (payload: RealtimePostgresChangesPayload<AnalysisResult>) => {
           console.log('Analysis result update:', payload);
           
           if (payload.new && isValidAnalysisResult(payload.new)) {
@@ -51,11 +52,11 @@ export function useAnalysisResultUpdates(batchId: string | null) {
               const { error } = await supabase
                 .from('analysis_alerts')
                 .insert({
-                  url: payload.new.url,
+                  url: payload.new.url || '',
                   batch_id: batchId,
                   alert_type: 'chatbot_detected',
-                  alert_message: `Chatbot detected on ${payload.new.url}`,
-                  pattern_details: payload.new.details?.patterns || [],
+                  alert_message: `Chatbot detected on ${payload.new.url || 'website'}`,
+                  pattern_details: payload.new.details?.patterns || []
                 });
 
               if (error) {
@@ -90,7 +91,7 @@ export function useAnalysisResultUpdates(batchId: string | null) {
           schema: 'public',
           table: 'analysis_alerts'
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<any>) => {
           console.log('New alert:', payload);
           // Mark alert as shown
           if (payload.new) {
