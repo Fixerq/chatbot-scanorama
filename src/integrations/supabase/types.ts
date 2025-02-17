@@ -131,7 +131,7 @@ export type Database = {
           cache_valid_until?: string
           chatbot_solutions?: string[] | null
           details?: Json | null
-          has_chatbot: boolean
+          has_chatbot?: boolean
           last_checked?: string
           processed_at?: string | null
           status?: string | null
@@ -382,6 +382,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "analysis_requests"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_results_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_results_with_requests"
+            referencedColumns: ["request_id"]
           },
         ]
       }
@@ -1566,6 +1573,22 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_results_with_requests: {
+        Row: {
+          batch_id: string | null
+          chatbot_solutions: string[] | null
+          created_at: string | null
+          error: string | null
+          has_chatbot: boolean | null
+          request_id: string | null
+          request_status: Database["public"]["Enums"]["analysis_status"] | null
+          result_id: string | null
+          status: Database["public"]["Enums"]["analysis_status"] | null
+          updated_at: string | null
+          url: string | null
+        }
+        Relationships: []
+      }
       pattern_performance_metrics: {
         Row: {
           accuracy_score: number | null
@@ -1778,6 +1801,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_rate_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_stale_analyses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

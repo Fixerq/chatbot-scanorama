@@ -24,7 +24,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 }) => {
   useEffect(() => {
     if (url && onAnalysisUpdate) {
-      // Subscribe to realtime updates for this URL's analysis results
+      // Subscribe to realtime updates from our new view
       const subscription = supabase
         .channel(`analysis-${url}`)
         .on(
@@ -32,13 +32,20 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
           {
             event: '*',
             schema: 'public',
-            table: 'analysis_results',
+            table: 'analysis_results_with_requests',
             filter: `url=eq.${url}`
           },
           (payload) => {
             console.log('Analysis result update for URL:', url, payload);
             if (payload.new && onAnalysisUpdate) {
-              onAnalysisUpdate(payload.new as AnalysisResult);
+              const result: AnalysisResult = {
+                has_chatbot: payload.new.has_chatbot,
+                chatSolutions: payload.new.chatbot_solutions || [],
+                status: payload.new.status,
+                error: payload.new.error,
+                lastChecked: payload.new.updated_at
+              };
+              onAnalysisUpdate(result);
             }
           }
         )

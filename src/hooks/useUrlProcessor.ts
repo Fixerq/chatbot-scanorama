@@ -6,14 +6,12 @@ import { toast } from 'sonner';
 import { useBatchAnalysis } from './useBatchAnalysis';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-// Define the type for analysis request payload
 interface AnalysisRequest {
   status: string;
   batch_id: string;
   url: string;
 }
 
-// Type guard to check if an object is an AnalysisRequest
 function isAnalysisRequest(obj: any): obj is AnalysisRequest {
   return obj 
     && typeof obj.status === 'string'
@@ -41,32 +39,27 @@ export const useUrlProcessor = () => {
 
       // Subscribe to realtime updates for batch progress
       const subscription = supabase
-        .channel('public:analysis_requests')
+        .channel('analysis-updates')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'analysis_requests'
+            table: 'analysis_results_with_requests'
           },
-          (payload: RealtimePostgresChangesPayload<AnalysisRequest>) => {
-            console.log('Analysis request update:', payload);
+          (payload: RealtimePostgresChangesPayload<any>) => {
+            console.log('Analysis result update:', payload);
             
-            // Type guard to ensure payload.new exists and has the correct shape
-            if (payload.new && isAnalysisRequest(payload.new)) {
-              if (payload.new.status === 'completed') {
-                // Fetch the analysis result
-                supabase
-                  .from('analysis_results')
-                  .select('*')
-                  .eq('batch_id', payload.new.batch_id)
-                  .eq('url', payload.new.url)
-                  .single()
-                  .then(({ data, error }) => {
-                    if (!error && data) {
-                      console.log('Analysis result fetched:', data);
-                    }
-                  });
+            if (payload.new) {
+              const { url, has_chatbot, chatbot_solutions, status, error } = payload.new;
+              if (status === 'completed') {
+                console.log('Analysis completed for URL:', url, {
+                  has_chatbot,
+                  chatbot_solutions,
+                  status
+                });
+              } else if (error) {
+                console.error('Analysis error for URL:', url, error);
               }
             }
           }
@@ -74,11 +67,36 @@ export const useUrlProcessor = () => {
         .subscribe();
 
       // Start batch analysis
-      const { cleanup } = await analyzeBatch(urls);
+      const { cleanup, batchId } = await analyzeBatch(urls);
 
-      // Set up cleanup on component unmount
+      // Subscribe to specific batch updates
+      const batchSubscription = supabase
+        .channel(`batch-${batchId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'analysis_batches',
+            filter: `id=eq.${batchId}`
+          },
+          (payload) => {
+            console.log('Batch update:', payload);
+            if (payload.new && payload.new.status === 'completed') {
+              setProcessing(false);
+              onAnalysisComplete();
+              cleanup();
+              subscription.unsubscribe();
+              batchSubscription.unsubscribe();
+            }
+          }
+        )
+        .subscribe();
+
+      // Return cleanup function
       return () => {
         subscription.unsubscribe();
+        batchSubscription.unsubscribe();
         cleanup();
         setProcessing(false);
       };
