@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
-import { AnalysisResult } from '@/utils/types/search';
+import { AnalysisResult, isAnalysisResult } from '@/utils/types/search';
 
 type AnalysisJob = Database['public']['Tables']['analysis_jobs']['Row'];
 
@@ -31,7 +31,15 @@ export const useSearch = () => {
           if (payload.eventType === 'DELETE' || !payload.new) return;
           
           const newData = payload.new;
-          const analysisResult = newData.result as AnalysisResult | null;
+          
+          // Safely handle the analysis result
+          let analysisResult: AnalysisResult | undefined;
+          if (newData.result && typeof newData.result === 'object') {
+            const potentialResult = newData.result as unknown;
+            if (isAnalysisResult(potentialResult)) {
+              analysisResult = potentialResult;
+            }
+          }
           
           setResults(current => 
             current.map(result => {
@@ -40,7 +48,7 @@ export const useSearch = () => {
                   ...result,
                   status: newData.status || 'pending',
                   error: newData.error || undefined,
-                  analysis_result: analysisResult || undefined
+                  analysis_result: analysisResult
                 };
               }
               return result;
@@ -103,12 +111,13 @@ export const useSearch = () => {
 
       if (jobsError) throw jobsError;
 
-      // Initialize results with place data
+      // Initialize results
       const initialResults: Result[] = placesData.results.map((place: any) => ({
         url: place.website_url || place.url,
         status: 'pending',
         title: place.business_name,
         details: {
+          search_batch_id: batch.id,
           business_name: place.business_name,
           address: place.address,
           website_url: place.website_url,
@@ -131,14 +140,17 @@ export const useSearch = () => {
         throw new Error('No active batch');
       }
 
-      await supabase
+      const { error } = await supabase
         .from('analysis_jobs')
         .update({
           status: 'pending',
-          error: null
+          error: null,
+          result: null
         })
         .eq('url', url)
         .eq('batch_id', currentBatchId);
+
+      if (error) throw error;
       
       toast.success('Analysis retry initiated');
       
@@ -155,4 +167,3 @@ export const useSearch = () => {
     results
   };
 };
-

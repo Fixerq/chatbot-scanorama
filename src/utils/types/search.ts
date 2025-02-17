@@ -14,3 +14,15 @@ export interface AnalysisResult {
     error?: string;
   };
 }
+
+// Helper type guard for safer type checking
+export function isAnalysisResult(obj: unknown): obj is AnalysisResult {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  const result = obj as Partial<AnalysisResult>;
+  return (
+    typeof result.has_chatbot === 'boolean' &&
+    Array.isArray(result.chatSolutions) &&
+    typeof result.status === 'string'
+  );
+}
