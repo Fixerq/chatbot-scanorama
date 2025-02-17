@@ -75,6 +75,53 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_alerts: {
+        Row: {
+          alert_message: string
+          alert_type: string
+          batch_id: string | null
+          created_at: string | null
+          id: string
+          pattern_details: Json | null
+          shown: boolean | null
+          updated_at: string | null
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          alert_message: string
+          alert_type: string
+          batch_id?: string | null
+          created_at?: string | null
+          id?: string
+          pattern_details?: Json | null
+          shown?: boolean | null
+          updated_at?: string | null
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          alert_message?: string
+          alert_type?: string
+          batch_id?: string | null
+          created_at?: string | null
+          id?: string
+          pattern_details?: Json | null
+          shown?: boolean | null
+          updated_at?: string | null
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_alerts_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_batches: {
         Row: {
           completed_at: string | null
