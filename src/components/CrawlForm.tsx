@@ -76,7 +76,9 @@ export const CrawlForm = () => {
       if (data) {
         // Transform the data to match CrawlRecord type
         const transformedData: CrawlRecord[] = data.map((record: SupabaseCrawlRecord) => ({
-          ...record,
+          id: record.id,
+          url: record.url,
+          status: record.status,
           result: record.result ? {
             success: Boolean(record.result.success),
             status: record.result.status || undefined,
@@ -85,7 +87,12 @@ export const CrawlForm = () => {
             creditsUsed: record.result.creditsUsed || undefined,
             expiresAt: record.result.expiresAt || undefined,
             data: record.result.data || undefined,
-          } : null
+          } : null,
+          error: record.error,
+          user_id: record.user_id,
+          started_at: record.started_at,
+          completed_at: record.completed_at,
+          analyzed: record.analyzed
         }));
         setCrawlRecords(transformedData);
       }
@@ -107,7 +114,9 @@ export const CrawlForm = () => {
           if (payload.new) {
             setCrawlRecords(prevRecords => {
               const newRecord: CrawlRecord = {
-                ...payload.new,
+                id: payload.new.id,
+                url: payload.new.url,
+                status: payload.new.status,
                 result: payload.new.result ? {
                   success: Boolean(payload.new.result.success),
                   status: payload.new.result.status || undefined,
@@ -116,7 +125,12 @@ export const CrawlForm = () => {
                   creditsUsed: payload.new.result.creditsUsed || undefined,
                   expiresAt: payload.new.result.expiresAt || undefined,
                   data: payload.new.result.data || undefined,
-                } : null
+                } : null,
+                error: payload.new.error,
+                user_id: payload.new.user_id,
+                started_at: payload.new.started_at,
+                completed_at: payload.new.completed_at,
+                analyzed: payload.new.analyzed
               };
               
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
@@ -296,4 +310,3 @@ export const CrawlForm = () => {
     </div>
   );
 };
-
