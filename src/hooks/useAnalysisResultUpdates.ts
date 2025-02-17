@@ -63,16 +63,15 @@ export function useAnalysisResultUpdates(batchId: string | null) {
                 console.error('Error creating alert:', error);
               } else {
                 // Show toast with more details
+                const solutions = payload.new.chatSolutions?.length > 0
+                  ? `Solutions: ${payload.new.chatSolutions.join(', ')}`
+                  : '';
+
                 toast.success(
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">Chatbot Detected!</h3>
-                    <p className="text-sm">URL: {payload.new.url}</p>
-                    {payload.new.chatSolutions?.length > 0 && (
-                      <p className="text-sm text-gray-600">
-                        Solutions: {payload.new.chatSolutions.join(', ')}
-                      </p>
-                    )}
-                  </div>
+                  {
+                    title: "Chatbot Detected!",
+                    description: `URL: ${payload.new.url}\n${solutions}`
+                  }
                 );
               }
             }
