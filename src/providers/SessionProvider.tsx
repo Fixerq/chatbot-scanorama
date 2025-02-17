@@ -24,18 +24,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (!mounted.current) return;
 
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session: newSession }, error } = await supabase.auth.getSession();
       
       if (error) {
         console.error('Session refresh error:', error);
-        if (mounted.current && window.location.pathname !== '/login') {
+        if (mounted.current) {
+          // Clear any stored auth data
+          await supabase.auth.signOut();
+          localStorage.clear(); // Clear all local storage
           navigate('/login');
           toast.error('Your session has expired. Please sign in again.');
         }
         return;
       }
 
-      if (!session) {
+      if (!newSession) {
         console.log('No active session');
         if (mounted.current && window.location.pathname !== '/login') {
           navigate('/login');
@@ -43,10 +46,29 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      console.log('Session refreshed successfully');
+      // If we have a valid session, check its expiry
+      const expiresAt = newSession.expires_at;
+      if (expiresAt) {
+        const expiresIn = expiresAt - Math.floor(Date.now() / 1000);
+        // If token expires in less than 5 minutes, refresh it
+        if (expiresIn < 300) {
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            if (mounted.current) {
+              await supabase.auth.signOut();
+              navigate('/login');
+              toast.error('Unable to refresh your session. Please sign in again.');
+            }
+          }
+        }
+      }
+
+      console.log('Session check completed successfully');
     } catch (error) {
       console.error('Unexpected error during session refresh:', error);
-      if (mounted.current && window.location.pathname !== '/login') {
+      if (mounted.current) {
+        await supabase.auth.signOut();
         navigate('/login');
         toast.error('An error occurred with your session. Please sign in again.');
       }
@@ -62,7 +84,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
         if (error) {
           console.error('Error getting initial session:', error);
-          if (mounted.current && window.location.pathname !== '/login') {
+          if (mounted.current) {
+            await supabase.auth.signOut();
             navigate('/login');
           }
           return;
@@ -76,7 +99,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error during session setup:', error);
-        if (mounted.current && window.location.pathname !== '/login') {
+        if (mounted.current) {
+          await supabase.auth.signOut();
           navigate('/login');
         }
       } finally {
@@ -95,8 +119,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     }, 4 * 60 * 1000); // Refresh every 4 minutes
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted.current) return;
+      
+      console.log('Auth state changed:', event);
+      
+      if (event === 'SIGNED_OUT') {
+        // Clear all auth-related storage
+        localStorage.clear();
+        if (mounted.current) {
+          navigate('/login');
+        }
+      }
+    });
+
     return () => {
       mounted.current = false;
+      subscription?.unsubscribe();
       if (refreshTimeout.current) {
         clearInterval(refreshTimeout.current);
       }

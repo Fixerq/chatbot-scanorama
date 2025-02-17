@@ -16,7 +16,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     let inactivityTimeout: NodeJS.Timeout;
     
     const handleLogout = async () => {
+      // Clear auth state and storage
       await supabase.auth.signOut();
+      localStorage.clear();
       toast.info('You have been logged out due to inactivity');
       navigate('/login');
     };
