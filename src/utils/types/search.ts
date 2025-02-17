@@ -2,14 +2,14 @@
 // Basic status types
 export type Status = 'pending' | 'processing' | 'completed' | 'failed';
 
-// Pattern match type
+// Simple pattern match type without circular references
 export interface PatternMatch {
   type: string;
   pattern: string;
   matched: string;
 }
 
-// Analysis result interface
+// Analysis result with simplified structure
 export interface AnalysisResult {
   has_chatbot: boolean;
   chatSolutions: string[];
