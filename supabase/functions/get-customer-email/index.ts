@@ -1,13 +1,13 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from 'https://esm.sh/stripe@14.21.0';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
   'Access-Control-Max-Age': '86400',
-}
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -19,83 +19,45 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received request to get customer email');
+    const { userId } = await req.json();
     
-    // Validate request method
-    if (req.method !== 'POST') {
-      throw new Error('Method not allowed');
+    if (!userId) {
+      throw new Error('User ID is required');
     }
 
-    const body = await req.json();
-    const { sessionId, userId } = body;
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    console.log('Request parameters:', { sessionId, userId });
-
-    // If sessionId is provided, get email from Stripe session
-    if (sessionId) {
-      console.log('Fetching Stripe session:', sessionId);
-      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-      if (!stripeKey) {
-        throw new Error('Stripe key not configured');
-      }
-
-      const stripe = new Stripe(stripeKey, {
-        apiVersion: '2023-10-16',
-      });
-
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      console.log('Successfully retrieved Stripe session');
-      
-      return new Response(
-        JSON.stringify({ 
-          email: session.customer_details?.email,
-          source: 'stripe'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase credentials');
     }
 
-    // If userId is provided, get email from Supabase auth
-    if (userId) {
-      console.log('Fetching user from Supabase:', userId);
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Missing Supabase credentials');
-      }
-
-      const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
-      const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
-      
-      if (userError) {
-        console.error('Error fetching user:', userError);
-        throw new Error(`User not found: ${userError.message}`);
-      }
-
-      if (!userData.user) {
-        console.error('No user data found');
-        throw new Error('User not found in database');
-      }
-
-      console.log('Successfully found user email');
-      return new Response(
-        JSON.stringify({ 
-          email: userData.user.email,
-          source: 'supabase'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
+    // Get user email from auth.users
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+    
+    if (userError) {
+      console.error('Error fetching user:', userError);
+      throw new Error(`User not found: ${userError.message}`);
     }
 
-    throw new Error('Either sessionId or userId must be provided');
+    if (!userData.user) {
+      throw new Error('User not found in database');
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        email: userData.user.email,
+        source: 'supabase'
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
+
   } catch (error) {
     console.error('Error in get-customer-email function:', error);
     return new Response(
@@ -106,7 +68,7 @@ serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: error.message === 'Method not allowed' ? 405 : 500,
+        status: 500,
       }
     );
   }
