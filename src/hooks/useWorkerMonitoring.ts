@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOpenAIAnalysis } from './useOpenAIAnalysis';
 
 interface WorkerInstance {
   id: string;
@@ -17,6 +18,8 @@ interface WorkerHealth {
 }
 
 export function useWorkerMonitoring() {
+  const { analyzeWithAI } = useOpenAIAnalysis();
+
   const subscribeToWorkerUpdates = () => {
     console.log('Subscribing to worker status updates');
 
@@ -52,6 +55,46 @@ export function useWorkerMonitoring() {
 
               if (!healthError && healthData && healthData.length > 0) {
                 const workerHealth = healthData[0] as WorkerHealth;
+                
+                // Get worker's current job details for AI analysis
+                if (worker.current_job_id) {
+                  const { data: jobData } = await supabase
+                    .from('analysis_requests')
+                    .select('url, patterns, error_message')
+                    .eq('id', worker.current_job_id)
+                    .single();
+
+                  if (jobData) {
+                    // Analyze with OpenAI
+                    const aiAnalysis = await analyzeWithAI(
+                      jobData.url,
+                      jobData.patterns || [],
+                      {
+                        error: jobData.error_message,
+                        stall_duration: timeSinceHeartbeat,
+                        worker_health: workerHealth
+                      }
+                    );
+
+                    if (aiAnalysis) {
+                      // Apply AI recommendations
+                      if (aiAnalysis.retry_strategy.should_retry) {
+                        await supabase
+                          .from('analysis_requests')
+                          .update({
+                            retry_count: 0, // Reset retry count based on AI recommendation
+                            status: 'pending',
+                            error_message: null,
+                            updated_at: new Date().toISOString()
+                          })
+                          .eq('id', worker.current_job_id);
+                        
+                        console.log('Applied AI retry strategy for job:', worker.current_job_id);
+                      }
+                    }
+                  }
+                }
+
                 if (workerHealth.active_workers === 0) {
                   toast.error('All workers are currently unavailable', {
                     description: 'Analysis requests may be delayed. Our team has been notified.'
