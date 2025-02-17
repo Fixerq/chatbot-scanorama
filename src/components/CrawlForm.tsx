@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast"; 
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface CrawlResult {
   success: boolean;
@@ -93,15 +94,15 @@ export const CrawlForm = () => {
     fetchCrawlRecords();
 
     // Subscribe to real-time updates
-    const channel = supabase
-      .channel('crawl_results_changes')
-      .on('postgres_changes', 
+    const channel = supabase.channel('crawl_results_changes')
+      .on(
+        'postgres_changes',
         { 
           event: '*', 
           schema: 'public', 
           table: 'crawl_results' 
         },
-        (payload: { new: SupabaseCrawlRecord }) => {
+        (payload: RealtimePostgresChangesPayload<SupabaseCrawlRecord>) => {
           console.log('Crawl results update:', payload);
           if (payload.new) {
             setCrawlRecords(prevRecords => {
@@ -295,3 +296,4 @@ export const CrawlForm = () => {
     </div>
   );
 };
+
