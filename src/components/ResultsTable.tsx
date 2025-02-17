@@ -14,7 +14,7 @@ import { formatUrl } from '@/utils/urlFormatting';
 import ResultStatusCell from './results/ResultStatusCell';
 import { AnalysisResult } from '@/utils/types/search';
 import { Button } from './ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from "./ui/alert";
 
 export interface Result {
@@ -56,30 +56,30 @@ const ResultsTable = ({
   onResultUpdate,
   onRetry 
 }: ResultsTableProps) => {
-  // Filter out failed results
-  const validResults = results.filter(result => {
-    const hasError = result.error || 
-                    result.status?.toLowerCase().includes('error') || 
-                    result.analysis_result?.error;
-    return !hasError;
-  });
-
-  const handleAnalysisUpdate = (url: string, newAnalysis: AnalysisResult) => {
-    if (onResultUpdate) {
-      const resultToUpdate = results.find(r => r.url === url);
-      if (resultToUpdate) {
-        onResultUpdate({
-          ...resultToUpdate,
-          analysis_result: newAnalysis,
-          status: newAnalysis.status
-        });
-      }
-    }
+  const getErrorMessage = (result: Result): string | null => {
+    return result.error || 
+           result.details?.error || 
+           result.analysis_result?.error || 
+           null;
   };
 
-  const handleRetry = (url: string) => {
-    if (onRetry) {
-      onRetry(url);
+  const getStatus = (result: Result): string => {
+    const error = getErrorMessage(result);
+    if (error) return 'error';
+    if (result.status === 'analyzing') return 'analyzing';
+    return result.status || 'pending';
+  };
+
+  const getBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'error':
+        return 'destructive';
+      case 'analyzing':
+        return 'secondary';
+      case 'completed':
+        return 'default';
+      default:
+        return 'secondary';
     }
   };
 
@@ -95,11 +95,11 @@ const ResultsTable = ({
     );
   }
 
-  if (!validResults.length) {
+  if (!results.length) {
     return (
       <Alert>
         <AlertDescription>
-          No valid analysis results found. Some results may have failed - check the error messages and try again.
+          No results found. Start a new search to see results here.
         </AlertDescription>
       </Alert>
     );
@@ -108,7 +108,7 @@ const ResultsTable = ({
   return (
     <div className="w-full overflow-x-auto">
       <Table>
-        <TableCaption className="text-muted-foreground">Recent search results.</TableCaption>
+        <TableCaption className="text-muted-foreground">Search results and analysis status.</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead className="w-[100px]">Status</TableHead>
@@ -119,20 +119,27 @@ const ResultsTable = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {validResults.map((result, i) => {
+          {results.map((result, i) => {
             const { displayUrl } = formatUrl(result.url);
-            const showRetry = result.status === 'failed' || 
-                            result.analysis_result?.error ||
-                            result.error;
+            const status = getStatus(result);
+            const error = getErrorMessage(result);
             
             return (
-              <TableRow key={i}>
+              <TableRow key={i} className={error ? 'bg-red-50/10' : ''}>
                 <TableCell>
-                  <Badge variant={result.status === 'failed' ? 'destructive' : 'secondary'}>
-                    {result.status === 'failed' ? 'Failed' : 'OK'}
+                  <Badge variant={getBadgeVariant(status)}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
                   </Badge>
+                  {error && (
+                    <div className="mt-2 text-sm text-red-500 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
                 </TableCell>
-                <TableCell className="font-medium">{result.title || result.details?.title || 'Untitled'}</TableCell>
+                <TableCell className="font-medium">
+                  {result.title || result.details?.title || 'Untitled'}
+                </TableCell>
                 <TableCell>
                   <a 
                     href={result.url} 
@@ -144,18 +151,27 @@ const ResultsTable = ({
                   </a>
                 </TableCell>
                 <ResultStatusCell
-                  status={result.status}
+                  status={status}
                   analysis_result={result.analysis_result}
-                  isAnalyzing={result.status === 'analyzing'}
+                  isAnalyzing={status === 'analyzing'}
                   url={result.url}
-                  onAnalysisUpdate={(newAnalysis) => handleAnalysisUpdate(result.url, newAnalysis)}
+                  onAnalysisUpdate={(newAnalysis) => {
+                    if (onResultUpdate) {
+                      onResultUpdate({
+                        ...result,
+                        analysis_result: newAnalysis,
+                        status: newAnalysis.status,
+                        error: newAnalysis.error
+                      });
+                    }
+                  }}
                 />
                 <TableCell>
-                  {showRetry && (
+                  {error && onRetry && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRetry(result.url)}
+                      onClick={() => onRetry(result.url)}
                       className="flex items-center gap-2"
                     >
                       <RefreshCw className="w-4 h-4" />
@@ -173,4 +189,3 @@ const ResultsTable = ({
 };
 
 export default ResultsTable;
-
