@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useBatchAnalysis } from './useBatchAnalysis';
 import { PostgresChangesPayload } from '@/types/database';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Define the type for analysis request payload
 interface AnalysisRequest {
@@ -31,17 +32,17 @@ export const useUrlProcessor = () => {
       const urls = results.map(result => result.url);
       console.log(`Processing ${urls.length} URLs in batch`);
 
-      // Subscribe to realtime updates for batch progress
+      // Subscribe to realtime updates for batch progress using the correct event type
       const subscription = supabase
         .channel('public:analysis_requests')
         .on(
-          'postgres_changes',
+          'postgres_changes' as 'INSERT' | 'UPDATE' | 'DELETE',
           {
             event: '*',
             schema: 'public',
             table: 'analysis_requests'
           },
-          (payload: PostgresChangesPayload<AnalysisRequest>) => {
+          (payload: RealtimePostgresChangesPayload<AnalysisRequest>) => {
             console.log('Analysis request update:', payload);
             if (payload.new && payload.new.status === 'completed') {
               // Fetch the analysis result
