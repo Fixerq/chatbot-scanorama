@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface OpenAIAnalysisResult {
+export interface OpenAIAnalysisResult {
   pattern_improvements: string[];
   error_resolution: string[];
   chatbot_confidence: number;
@@ -10,6 +10,24 @@ interface OpenAIAnalysisResult {
     should_retry: boolean;
     wait_time?: number;
     max_attempts?: number;
+  };
+  diagnosis: {
+    worker_state: string;
+    job_queue: string;
+    potential_issues: string[];
+  };
+  worker_recovery: {
+    should_restart: boolean;
+    actions: string[];
+    health_checks: string[];
+  };
+  job_optimizations: {
+    batch_size: number;
+    priority_rules: string[];
+    timeout_settings: {
+      initial: number;
+      retry: number;
+    };
   };
 }
 
@@ -55,3 +73,4 @@ export function useOpenAIAnalysis() {
     analyzeWithAI
   };
 }
+

@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOpenAIAnalysis } from './useOpenAIAnalysis';
+import { Json } from '@/types/database';
 
 interface WorkerInstance {
   id: string;
@@ -31,6 +32,16 @@ interface WorkerConfig {
   optimization_source?: string;
 }
 
+type DatabaseWorkerConfig = {
+  batch_size: number;
+  timeout_settings: Json;
+  optimization_source?: string;
+  worker_id: string;
+  id: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export function useWorkerMonitoring() {
   const { analyzeWithAI } = useOpenAIAnalysis();
 
@@ -55,7 +66,16 @@ export function useWorkerMonitoring() {
         return null;
       }
 
-      return data;
+      const dbConfig = data as DatabaseWorkerConfig;
+      const config: WorkerConfig = {
+        batch_size: dbConfig.batch_size,
+        timeout_settings: typeof dbConfig.timeout_settings === 'string' 
+          ? JSON.parse(dbConfig.timeout_settings)
+          : dbConfig.timeout_settings as { initial: number; retry: number },
+        optimization_source: dbConfig.optimization_source
+      };
+
+      return config;
     } catch (error) {
       console.error('Error in initializeWorkerConfig:', error);
       return null;
