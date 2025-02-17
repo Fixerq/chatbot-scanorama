@@ -1,129 +1,78 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from '../_shared/cors.ts';
-import { validateSearchRequest } from './validation.ts';
-import { searchBusinesses } from './businessSearch.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from '@supabase/supabase-js';
+import { searchBusinesses } from "./businessSearch.ts";
+import { validateSearchRequest } from "./validation.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Log request details for debugging
-    console.log('Request received:', {
-      method: req.method,
-      url: req.url,
-      headers: Object.fromEntries(req.headers.entries())
-    });
+    const { query, country, region, pageToken, page, limit } = await req.json();
     
-    // Handle CORS preflight request
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { 
-        headers: corsHeaders,
-        status: 204 
-      });
-    }
+    console.log('Received search request with params:', { query, country, region, pageToken, page, limit });
 
-    if (req.method !== 'POST') {
-      console.log('Invalid method:', req.method);
-      throw new Error('Method not allowed');
-    }
-
-    // Get the origin from the request headers
-    const origin = req.headers.get('origin');
-    console.log('Request origin:', origin);
-
-    // Accept all origins for now since we validate them in the frontend
-    // You can add specific origin validation here if needed in the future
-
-    let requestBody;
-    try {
-      requestBody = await req.json();
-      console.log('Request body:', requestBody);
-    } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
-      throw new Error('Invalid JSON in request body');
-    }
-
-    const { action, params } = requestBody;
-    console.log('Search request:', { action, params });
-
-    if (!params?.query) {
-      throw new Error('Query parameter is required');
-    }
-
-    // Validate search parameters
-    const validationError = validateSearchRequest(action, params);
+    // Validate request parameters
+    const validationError = validateSearchRequest({ query, country, region });
     if (validationError) {
       console.error('Validation error:', validationError);
-      throw new Error(validationError);
+      return new Response(
+        JSON.stringify({ error: validationError }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase configuration');
-      throw new Error('Server configuration error');
+      throw new Error('Missing Supabase environment variables');
     }
 
-    console.log('Initializing Supabase client');
-    
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-      }
-    });
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Search for businesses with pagination support
-    console.log('Starting business search with params:', {
-      ...params,
-      pageToken: params.nextPageToken || 'not provided'
-    });
-    
-    const searchResponse = await searchBusinesses(params, supabase);
-    
-    console.log('Search completed successfully:', {
-      resultsCount: searchResponse.results.length,
-      hasMore: searchResponse.hasMore,
-      nextPageToken: searchResponse.nextPageToken || 'none'
-    });
+    // Search for businesses
+    const searchResults = await searchBusinesses({ 
+      query, 
+      country, 
+      region,
+      nextPageToken: pageToken,
+    }, supabase);
 
-    // Return the response with proper CORS headers
+    console.log('Search completed successfully with', searchResults.results.length, 'results');
+
     return new Response(
       JSON.stringify({
-        data: searchResponse,
-        status: 'success'
+        results: searchResults.results,
+        nextPageToken: searchResults.nextPageToken,
+        searchBatchId: searchResults.searchBatchId
       }),
       { 
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 200
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
 
   } catch (error) {
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      cause: error.cause
-    });
-    
-    // Return error response with proper CORS headers
+    console.error('Error in search-places function:', error);
     return new Response(
-      JSON.stringify({
-        error: error.message || 'An unexpected error occurred',
-        status: 'error'
+      JSON.stringify({ 
+        error: 'An error occurred during search',
+        details: error.message 
       }),
       { 
-        status: error.message === 'Method not allowed' ? 405 : 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

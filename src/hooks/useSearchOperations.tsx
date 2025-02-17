@@ -2,19 +2,14 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResult, Status } from '@/utils/types/search';
+import { toast } from 'sonner';
 
-interface AnalysisJob {
-  url: string;
-  status: Status;
+interface SearchResponse {
+  results: SearchResult[];
+  nextPageToken?: string;
+  searchBatchId?: string;
   error?: string;
-  result?: {
-    has_chatbot: boolean;
-    chatSolutions: string[];
-    status: Status;
-    error?: string;
-  };
-  metadata?: Record<string, unknown>;
-  batch_id: string;
+  details?: string;
 }
 
 export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAction<SearchResult[]>>) => {
@@ -30,18 +25,35 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
   ) => {
     setIsSearching(true);
     try {
-      const { data, error } = await supabase.functions.invoke<{ results: SearchResult[]; nextPageToken?: string }>('search-places', {
-        body: { query, country, region, apiKey, limit }
+      const { data, error } = await supabase.functions.invoke<SearchResponse>('search-places', {
+        body: { 
+          query: query.trim(), 
+          country: country.trim(), 
+          region: region.trim(), 
+          limit 
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        toast.error('Search failed: ' + error.message);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error('Search error:', data.error, data.details);
+        toast.error(data.error);
+        throw new Error(data.error);
+      }
 
       if (data?.results) {
+        console.log('Search successful:', data.results.length, 'results found');
         setResults(data.results);
         setNextPageToken(data.nextPageToken || null);
       }
     } catch (error) {
       console.error('Search error:', error);
+      toast.error('An error occurred during search');
       throw error;
     } finally {
       setIsSearching(false);
@@ -59,27 +71,37 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
 
     setIsSearching(true);
     try {
-      const { data, error } = await supabase.functions.invoke<{ results: SearchResult[]; nextPageToken?: string }>('search-places', {
+      const { data, error } = await supabase.functions.invoke<SearchResponse>('search-places', {
         body: { 
-          query, 
-          country, 
-          region, 
+          query: query.trim(), 
+          country: country.trim(), 
+          region: region.trim(), 
           pageToken: nextPageToken,
           page,
           limit
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Load more error:', error);
+        toast.error('Failed to load more results: ' + error.message);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error('Load more error:', data.error, data.details);
+        toast.error(data.error);
+        throw new Error(data.error);
+      }
 
       if (data?.results) {
-        setResults(prevResults => {
-          return [...prevResults, ...data.results];
-        });
+        console.log('Load more successful:', data.results.length, 'additional results');
+        setResults(prevResults => [...prevResults, ...data.results]);
         setNextPageToken(data.nextPageToken || null);
       }
     } catch (error) {
       console.error('Load more error:', error);
+      toast.error('Failed to load more results');
       throw error;
     } finally {
       setIsSearching(false);

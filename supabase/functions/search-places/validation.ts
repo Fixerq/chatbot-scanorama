@@ -1,30 +1,23 @@
 
-import { SearchParams } from './types.ts';
+interface SearchRequest {
+  query: string;
+  country: string;
+  region?: string;
+}
 
-export const validateSearchParams = (params: SearchParams): string | null => {
-  if (!params.query?.trim()) {
-    return 'Missing required parameter: query';
+export function validateSearchRequest(params: SearchRequest): string | null {
+  if (!params.query || typeof params.query !== 'string' || params.query.trim().length === 0) {
+    return 'Search query is required';
   }
 
-  if (!params.country?.trim()) {
-    return 'Missing required parameter: country';
+  if (!params.country || typeof params.country !== 'string' || params.country.trim().length === 0) {
+    return 'Country is required';
   }
 
-  if (!params.region?.trim()) {
-    return 'Missing required parameter: region';
+  // Region is optional but must be a string if provided
+  if (params.region && typeof params.region !== 'string') {
+    return 'Region must be a string';
   }
 
   return null;
-};
-
-export const validateSearchRequest = (action: string, params: any): string | null => {
-  if (action !== 'search') {
-    return 'Invalid action type';
-  }
-
-  if (!params) {
-    return 'Missing search parameters';
-  }
-
-  return validateSearchParams(params as SearchParams);
-};
+}
