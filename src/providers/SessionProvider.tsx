@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { clearAuthData } from '@/integrations/supabase/client';
 
 interface SessionContextType {
   isLoading: boolean;
@@ -29,9 +30,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('Session refresh error:', error);
         if (mounted.current) {
-          // Clear any stored auth data
-          await supabase.auth.signOut();
-          localStorage.clear(); // Clear all local storage
+          clearAuthData();
           navigate('/login');
           toast.error('Your session has expired. Please sign in again.');
         }
@@ -56,7 +55,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           if (refreshError) {
             console.error('Token refresh failed:', refreshError);
             if (mounted.current) {
-              await supabase.auth.signOut();
+              clearAuthData();
               navigate('/login');
               toast.error('Unable to refresh your session. Please sign in again.');
             }
@@ -68,7 +67,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Unexpected error during session refresh:', error);
       if (mounted.current) {
-        await supabase.auth.signOut();
+        clearAuthData();
         navigate('/login');
         toast.error('An error occurred with your session. Please sign in again.');
       }
@@ -85,7 +84,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error('Error getting initial session:', error);
           if (mounted.current) {
-            await supabase.auth.signOut();
+            clearAuthData();
             navigate('/login');
           }
           return;
@@ -100,7 +99,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Error during session setup:', error);
         if (mounted.current) {
-          await supabase.auth.signOut();
+          clearAuthData();
           navigate('/login');
         }
       } finally {
@@ -125,8 +124,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       console.log('Auth state changed:', event);
       
       if (event === 'SIGNED_OUT') {
-        // Clear all auth-related storage
-        localStorage.clear();
+        clearAuthData();
         if (mounted.current) {
           navigate('/login');
         }
@@ -160,3 +158,4 @@ export const useSessionContext = () => {
   }
   return context;
 };
+

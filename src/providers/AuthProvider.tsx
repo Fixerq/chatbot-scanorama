@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { clearAuthData } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SessionProvider } from './SessionProvider';
 
@@ -16,9 +16,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     let inactivityTimeout: NodeJS.Timeout;
     
     const handleLogout = async () => {
-      // Clear auth state and storage
-      await supabase.auth.signOut();
-      localStorage.clear();
+      clearAuthData();
       toast.info('You have been logged out due to inactivity');
       navigate('/login');
     };
@@ -45,3 +43,4 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return <SessionProvider>{children}</SessionProvider>;
 };
+
