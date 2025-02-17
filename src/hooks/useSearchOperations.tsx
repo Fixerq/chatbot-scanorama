@@ -23,6 +23,7 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
     apiKey: string,
     limit: number
   ) => {
+    console.log('Starting search with params:', { query, country, region, limit });
     setIsSearching(true);
     try {
       const { data, error } = await supabase.functions.invoke<SearchResponse>('search-places', {
@@ -46,14 +47,26 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
         throw new Error(data.error);
       }
 
-      if (data?.results) {
-        console.log('Search successful:', data.results.length, 'results found');
-        setResults(data.results);
-        setNextPageToken(data.nextPageToken || null);
+      if (!data?.results) {
+        console.error('No results returned from search');
+        toast.error('No results found');
+        setResults([]);
+        return;
+      }
+
+      console.log('Search successful:', data.results.length, 'results found');
+      // Ensure results are initialized as an empty array if none are found
+      setResults(data.results || []);
+      setNextPageToken(data.nextPageToken || null);
+      
+      if (data.results.length === 0) {
+        toast.info('No results found for your search');
       }
     } catch (error) {
       console.error('Search error:', error);
       toast.error('An error occurred during search');
+      // Clear results on error
+      setResults([]);
       throw error;
     } finally {
       setIsSearching(false);
@@ -67,8 +80,12 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
     page: number,
     limit: number
   ) => {
-    if (!nextPageToken) return;
+    if (!nextPageToken) {
+      console.log('No next page token available');
+      return;
+    }
 
+    console.log('Loading more results with params:', { query, country, region, page, limit });
     setIsSearching(true);
     try {
       const { data, error } = await supabase.functions.invoke<SearchResponse>('search-places', {
