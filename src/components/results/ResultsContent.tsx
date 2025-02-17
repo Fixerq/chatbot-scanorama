@@ -1,5 +1,5 @@
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { Result } from '../ResultsTable';
 import LoadMoreButton from '../LoadMoreButton';
 import {
@@ -28,28 +28,29 @@ const ResultsContent = ({
   isAnalyzing = false,
   children
 }: ResultsContentProps) => {
-  // More permissive validation that accepts results with any meaningful data
+  useEffect(() => {
+    console.log('ResultsContent mounted/updated with results:', results);
+  }, [results]);
+
+  // Super permissive validation that accepts results with any non-empty URL
   const validResults = results.filter(r => {
-    const hasData = r.url && (
-      r.status !== undefined || 
-      r.details || 
-      r.title || 
-      r.business_name
-    );
+    const isValid = Boolean(r.url?.trim());
     console.log('Validating result:', {
+      result: r,
       url: r.url,
-      hasStatus: r.status !== undefined,
-      hasDetails: !!r.details,
+      isValid,
       hasTitle: !!r.title,
       hasBusinessName: !!r.business_name,
-      isValid: hasData
+      hasStatus: !!r.status,
+      hasDetails: !!r.details
     });
-    return hasData;
+    return isValid;
   });
 
-  console.log('ResultsContent filtered results:', {
+  console.log('ResultsContent processing:', {
     totalResults: results.length,
-    validResults: validResults.length
+    validResults: validResults.length,
+    sample: validResults[0]
   });
 
   if (isAnalyzing) {
@@ -63,11 +64,18 @@ const ResultsContent = ({
   }
 
   if (!results || results.length === 0) {
+    console.log('No results to display');
     return null;
   }
 
   const totalPages = Math.ceil(validResults.length / 50);
   const currentPage = Math.ceil(validResults.length / 50);
+
+  console.log('Pagination info:', {
+    totalPages,
+    currentPage,
+    hasMore
+  });
 
   return (
     <>
@@ -123,4 +131,3 @@ const ResultsContent = ({
 };
 
 export default ResultsContent;
-
