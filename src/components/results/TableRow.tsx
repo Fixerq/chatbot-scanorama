@@ -23,6 +23,7 @@ const ResultTableRow = ({ result, onResultUpdate, onRetry }: TableRowProps) => {
   };
 
   const getStatus = (result: Result): string => {
+    if (result.analysis_result?.status) return result.analysis_result.status;
     const error = getErrorMessage(result);
     if (error) return 'error';
     if (result.status === 'analyzing') return 'analyzing';

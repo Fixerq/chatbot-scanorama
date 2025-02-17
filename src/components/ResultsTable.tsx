@@ -54,31 +54,21 @@ const ResultsTable = ({
   onRetry 
 }: ResultsTableProps) => {
   useEffect(() => {
-    console.log('ResultsTable mount/update:', {
+    console.log('ResultsTable render:', {
       resultsLength: results?.length,
+      firstResult: results?.[0],
       isProcessing: processing,
-      isLoading,
-      hasUpdateHandler: !!onResultUpdate,
-      hasRetryHandler: !!onRetry,
-      firstResult: results?.[0]
+      isLoading
     });
-  }, [results, processing, isLoading, onResultUpdate, onRetry]);
+  }, [results, processing, isLoading]);
 
   if (isLoading || processing) {
-    console.log('ResultsTable showing loading state');
     return <TableLoadingState />;
   }
 
   if (!results?.length) {
-    console.log('ResultsTable showing empty state');
     return <TableEmptyState />;
   }
-
-  console.log('ResultsTable rendering results table with data:', {
-    resultsCount: results.length,
-    columns: ['Status', 'Title', 'URL', 'Analysis', 'Actions'],
-    sampleResult: results[0]
-  });
 
   return (
     <div className="w-full overflow-x-auto">
@@ -99,7 +89,7 @@ const ResultsTable = ({
           <TableBody>
             {results.map((result, i) => (
               <ResultTableRow
-                key={i}
+                key={`${result.url}-${i}`}
                 result={result}
                 onResultUpdate={onResultUpdate}
                 onRetry={onRetry}
@@ -113,4 +103,3 @@ const ResultsTable = ({
 };
 
 export default ResultsTable;
-
