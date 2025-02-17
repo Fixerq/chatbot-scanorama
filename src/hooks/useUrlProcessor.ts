@@ -4,6 +4,14 @@ import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useBatchAnalysis } from './useBatchAnalysis';
+import { PostgresChangesPayload } from '@/types/database';
+
+// Define the type for analysis request payload
+interface AnalysisRequest {
+  status: string;
+  batch_id: string;
+  url: string;
+}
 
 export const useUrlProcessor = () => {
   const [processing, setProcessing] = useState<boolean>(false);
@@ -33,7 +41,7 @@ export const useUrlProcessor = () => {
             schema: 'public',
             table: 'analysis_requests'
           },
-          (payload) => {
+          (payload: PostgresChangesPayload<AnalysisRequest>) => {
             console.log('Analysis request update:', payload);
             if (payload.new && payload.new.status === 'completed') {
               // Fetch the analysis result
