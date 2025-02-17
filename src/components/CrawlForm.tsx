@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast"; 
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface CrawlResult {
   success: boolean;
@@ -40,17 +39,9 @@ interface CrawlRecord {
   analyzed?: boolean;
 }
 
-interface SupabaseCrawlRecord {
-  id: string;
-  url: string;
-  status: string;
-  result: any;
-  error?: string;
-  user_id?: string;
-  started_at: string;
-  completed_at?: string;
-  analyzed?: boolean;
-}
+type SupabaseCrawlRecord = Required<Omit<CrawlRecord, 'result'>> & {
+  result: CrawlResult | null;
+};
 
 export const CrawlForm = () => {
   const { toast } = useToast();
@@ -74,20 +65,11 @@ export const CrawlForm = () => {
       }
 
       if (data) {
-        // Transform the data to match CrawlRecord type
         const transformedData: CrawlRecord[] = data.map((record: SupabaseCrawlRecord) => ({
           id: record.id,
           url: record.url,
           status: record.status,
-          result: record.result ? {
-            success: Boolean(record.result.success),
-            status: record.result.status || undefined,
-            completed: record.result.completed || undefined,
-            total: record.result.total || undefined,
-            creditsUsed: record.result.creditsUsed || undefined,
-            expiresAt: record.result.expiresAt || undefined,
-            data: record.result.data || undefined,
-          } : null,
+          result: record.result,
           error: record.error,
           user_id: record.user_id,
           started_at: record.started_at,
@@ -111,26 +93,20 @@ export const CrawlForm = () => {
         },
         (payload: RealtimePostgresChangesPayload<SupabaseCrawlRecord>) => {
           console.log('Crawl results update:', payload);
-          if (payload.new && isValidCrawlRecord(payload.new)) {
+          // Type assertion after validation
+          const newData = payload.new as SupabaseCrawlRecord;
+          if (newData && isValidCrawlRecord(newData)) {
             setCrawlRecords(prevRecords => {
               const newRecord: CrawlRecord = {
-                id: payload.new.id,
-                url: payload.new.url,
-                status: payload.new.status,
-                result: payload.new.result ? {
-                  success: Boolean(payload.new.result.success),
-                  status: payload.new.result.status || undefined,
-                  completed: payload.new.result.completed || undefined,
-                  total: payload.new.result.total || undefined,
-                  creditsUsed: payload.new.result.creditsUsed || undefined,
-                  expiresAt: payload.new.result.expiresAt || undefined,
-                  data: payload.new.result.data || undefined,
-                } : null,
-                error: payload.new.error,
-                user_id: payload.new.user_id,
-                started_at: payload.new.started_at,
-                completed_at: payload.new.completed_at,
-                analyzed: payload.new.analyzed
+                id: newData.id,
+                url: newData.url,
+                status: newData.status,
+                result: newData.result,
+                error: newData.error,
+                user_id: newData.user_id,
+                started_at: newData.started_at,
+                completed_at: newData.completed_at,
+                analyzed: newData.analyzed
               };
               
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
@@ -163,7 +139,16 @@ export const CrawlForm = () => {
       typeof record.id === 'string' &&
       typeof record.url === 'string' &&
       typeof record.status === 'string' &&
-      typeof record.started_at === 'string'
+      typeof record.started_at === 'string' &&
+      'result' in record &&
+      (record.result === null || (
+        typeof record.result === 'object' &&
+        typeof record.result.success === 'boolean'
+      )) &&
+      'error' in record &&
+      'user_id' in record &&
+      'completed_at' in record &&
+      'analyzed' in record
     );
   };
 
@@ -322,4 +307,3 @@ export const CrawlForm = () => {
     </div>
   );
 };
-
