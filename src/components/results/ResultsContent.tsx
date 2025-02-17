@@ -28,10 +28,28 @@ const ResultsContent = ({
   isAnalyzing = false,
   children
 }: ResultsContentProps) => {
+  // More permissive validation that accepts results with any meaningful data
   const validResults = results.filter(r => {
-    const hasValidStatus = r.status !== undefined;
-    const hasDetails = Boolean(r.details);
-    return hasValidStatus || hasDetails;
+    const hasData = r.url && (
+      r.status !== undefined || 
+      r.details || 
+      r.title || 
+      r.business_name
+    );
+    console.log('Validating result:', {
+      url: r.url,
+      hasStatus: r.status !== undefined,
+      hasDetails: !!r.details,
+      hasTitle: !!r.title,
+      hasBusinessName: !!r.business_name,
+      isValid: hasData
+    });
+    return hasData;
+  });
+
+  console.log('ResultsContent filtered results:', {
+    totalResults: results.length,
+    validResults: validResults.length
   });
 
   if (isAnalyzing) {
@@ -105,3 +123,4 @@ const ResultsContent = ({
 };
 
 export default ResultsContent;
+

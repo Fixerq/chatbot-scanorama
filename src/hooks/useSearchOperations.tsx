@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResult, Status } from '@/utils/types/search';
@@ -15,15 +14,17 @@ interface SearchResponse {
 
 const transformSearchResult = (searchResult: SearchResult): Result => {
   console.log('Transforming search result:', searchResult);
-  return {
+
+  // Ensure we have default values for all required fields
+  const transformedResult: Result = {
     url: searchResult.url,
-    title: searchResult.title || '',
+    title: searchResult.title || searchResult.metadata?.business_name || 'Untitled',
     description: searchResult.description || '',
     business_name: searchResult.metadata?.business_name || '',
     website_url: searchResult.url,
     address: searchResult.metadata?.formatted_address || '',
     placeId: searchResult.metadata?.place_id || '',
-    status: searchResult.status,
+    status: searchResult.status || 'pending',
     error: searchResult.error,
     details: {
       search_batch_id: '',
@@ -35,6 +36,9 @@ const transformSearchResult = (searchResult: SearchResult): Result => {
     },
     analysis_result: searchResult.analysis_result
   };
+
+  console.log('Transformed result:', transformedResult);
+  return transformedResult;
 };
 
 export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
@@ -168,4 +172,3 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
     nextPageToken
   };
 };
-
