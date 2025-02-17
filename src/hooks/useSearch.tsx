@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SearchResult, Status, AnalysisResult } from '@/utils/types/search';
+import { SearchResult, Status, AnalysisResult, isAnalysisResult } from '@/utils/types/search';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Define the shape of analysis job records from the database
@@ -13,6 +13,17 @@ interface AnalysisJob {
   result?: AnalysisResult;
   metadata?: Record<string, unknown>;
   batch_id: string;
+}
+
+// Type guard for AnalysisJob
+function isAnalysisJob(obj: unknown): obj is AnalysisJob {
+  if (!obj || typeof obj !== 'object') return false;
+  const job = obj as Partial<AnalysisJob>;
+  return (
+    typeof job.url === 'string' &&
+    typeof job.status === 'string' &&
+    typeof job.batch_id === 'string'
+  );
 }
 
 export const useSearch = () => {
@@ -35,7 +46,12 @@ export const useSearch = () => {
         },
         (payload: RealtimePostgresChangesPayload<AnalysisJob>) => {
           const newJob = payload.new;
-          if (!newJob) return;
+          
+          // Type guard to ensure newJob has the correct shape
+          if (!isAnalysisJob(newJob)) {
+            console.error('Invalid job data received:', newJob);
+            return;
+          }
 
           console.log('Analysis job update:', newJob);
           
@@ -46,7 +62,9 @@ export const useSearch = () => {
                   ...result,
                   status: newJob.status,
                   error: newJob.error,
-                  analysis_result: newJob.result
+                  analysis_result: newJob.result && isAnalysisResult(newJob.result) 
+                    ? newJob.result 
+                    : undefined
                 };
               }
               return result;
