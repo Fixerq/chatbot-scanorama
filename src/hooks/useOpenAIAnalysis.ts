@@ -31,6 +31,19 @@ export interface OpenAIAnalysisResult {
   };
 }
 
+function isValidOpenAIAnalysisResult(obj: any): obj is OpenAIAnalysisResult {
+  return (
+    obj &&
+    Array.isArray(obj.pattern_improvements) &&
+    Array.isArray(obj.error_resolution) &&
+    typeof obj.chatbot_confidence === 'number' &&
+    typeof obj.retry_strategy === 'object' &&
+    typeof obj.diagnosis === 'object' &&
+    typeof obj.worker_recovery === 'object' &&
+    typeof obj.job_optimizations === 'object'
+  );
+}
+
 export function useOpenAIAnalysis() {
   const analyzeWithAI = async (url: string, patterns: any[], errorContext: any) => {
     try {
@@ -48,7 +61,10 @@ export function useOpenAIAnalysis() {
         // Use cached analysis if it's less than 24 hours old
         if (analysisAge < 24 * 60 * 60 * 1000) {
           console.log('Using cached OpenAI analysis');
-          return cacheData.openai_response as OpenAIAnalysisResult;
+          if (isValidOpenAIAnalysisResult(cacheData.openai_response)) {
+            return cacheData.openai_response;
+          }
+          console.warn('Cached analysis has invalid format, proceeding with new analysis');
         }
       }
 
@@ -97,19 +113,24 @@ export function useOpenAIAnalysis() {
         });
 
       // Parse the AI response
-      const aiResponse = JSON.parse(data.choices[0].message.content);
+      const parsedResponse = JSON.parse(data.choices[0].message.content);
       
+      if (!isValidOpenAIAnalysisResult(parsedResponse)) {
+        console.error('Invalid OpenAI analysis result format');
+        throw new Error('Invalid analysis result format');
+      }
+
       // Update cache with successful analysis
       await supabase
         .from('analysis_cache')
         .update({
           openai_analysis_status: 'completed',
-          openai_response: aiResponse,
+          openai_response: parsedResponse,
           openai_analysis_date: new Date().toISOString()
         })
         .eq('url', url);
 
-      return aiResponse as OpenAIAnalysisResult;
+      return parsedResponse;
     } catch (error) {
       console.error('Error in AI analysis:', error);
       
