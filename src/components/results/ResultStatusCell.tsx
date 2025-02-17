@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { AnalysisResult } from '@/utils/types/search';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface ResultStatusCellProps {
   status?: string;
@@ -13,6 +14,15 @@ interface ResultStatusCellProps {
   isAnalyzing?: boolean;
   url?: string;
   onAnalysisUpdate?: (result: AnalysisResult) => void;
+}
+
+// Define interface for the realtime payload
+interface AnalysisResultPayload {
+  has_chatbot: boolean;
+  chatbot_solutions: string[];
+  status: string;
+  error?: string;
+  updated_at: string;
 }
 
 const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
@@ -35,7 +45,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
             table: 'analysis_results_with_requests',
             filter: `url=eq.${url}`
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<AnalysisResultPayload>) => {
             console.log('Analysis result update for URL:', url, payload);
             if (payload.new && onAnalysisUpdate) {
               const result: AnalysisResult = {

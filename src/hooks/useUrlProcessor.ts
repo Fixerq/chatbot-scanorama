@@ -12,6 +12,14 @@ interface AnalysisRequest {
   url: string;
 }
 
+interface AnalysisUpdatePayload {
+  url: string;
+  has_chatbot: boolean;
+  chatbot_solutions: string[];
+  status: string;
+  error?: string;
+}
+
 function isAnalysisRequest(obj: any): obj is AnalysisRequest {
   return obj 
     && typeof obj.status === 'string'
@@ -47,7 +55,7 @@ export const useUrlProcessor = () => {
             schema: 'public',
             table: 'analysis_results_with_requests'
           },
-          (payload: RealtimePostgresChangesPayload<any>) => {
+          (payload: RealtimePostgresChangesPayload<AnalysisUpdatePayload>) => {
             console.log('Analysis result update:', payload);
             
             if (payload.new) {
