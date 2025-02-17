@@ -28,6 +28,5 @@ export function useBatchInitiation() {
     return data;
   };
 
-  return { initiateBatchAnalysis };
+  return { initiateBatchInitiation };
 }
-
