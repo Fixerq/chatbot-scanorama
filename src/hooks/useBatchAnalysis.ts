@@ -28,10 +28,16 @@ export function useBatchAnalysis() {
       console.log('Starting batch analysis process...');
       
       // First ensure worker is available
-      cleanupWorkerMonitoring = await ensureWorkerAvailable();
+      try {
+        cleanupWorkerMonitoring = await ensureWorkerAvailable();
+      } catch (workerError) {
+        console.error('Worker startup failed:', workerError);
+        throw new Error('Failed to start analysis worker. Please try again.');
+      }
+      
       console.log('Worker availability confirmed');
 
-      // Then create batch and get batch ID
+      // Create batch and get batch ID
       const { batchId, validUrls } = await createAnalysisBatch(results);
       console.log('Created batch with ID:', batchId, 'and', validUrls.length, 'valid URLs');
 
@@ -63,7 +69,10 @@ export function useBatchAnalysis() {
       if (batchCleanup) batchCleanup();
       if (cleanupWorkerMonitoring) cleanupWorkerMonitoring();
       setIsProcessing(false);
-      toast.error(error instanceof Error ? error.message : 'Failed to process websites');
+      
+      // Show more specific error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process websites';
+      toast.error(errorMessage);
       throw error;
     }
   };
@@ -74,4 +83,3 @@ export function useBatchAnalysis() {
     progress
   };
 }
-
