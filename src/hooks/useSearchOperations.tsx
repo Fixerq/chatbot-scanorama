@@ -3,7 +3,6 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResult, Status } from '@/utils/types/search';
 
-// Simplified analysis job interface
 interface AnalysisJob {
   url: string;
   status: Status;
@@ -18,7 +17,7 @@ interface AnalysisJob {
   batch_id: string;
 }
 
-export const useSearchOperations = (setResults: (results: SearchResult[]) => void) => {
+export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAction<SearchResult[]>>) => {
   const [isSearching, setIsSearching] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
 
@@ -74,9 +73,8 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
       if (error) throw error;
 
       if (data?.results) {
-        setResults((current: SearchResult[]) => {
-          const updatedResults: SearchResult[] = [...current, ...data.results];
-          return updatedResults;
+        setResults(prevResults => {
+          return [...prevResults, ...data.results];
         });
         setNextPageToken(data.nextPageToken || null);
       }
@@ -95,4 +93,3 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
     nextPageToken
   };
 };
-
