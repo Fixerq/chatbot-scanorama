@@ -3,6 +3,17 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SearchResult, Status, AnalysisResult } from '@/utils/types/search';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+// Define the shape of analysis job records from the database
+interface AnalysisJob {
+  url: string;
+  status: Status;
+  error?: string;
+  result?: AnalysisResult;
+  metadata?: Record<string, unknown>;
+  batch_id: string;
+}
 
 export const useSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
@@ -22,8 +33,8 @@ export const useSearch = () => {
           table: 'analysis_jobs',
           filter: `batch_id=eq.${currentBatchId}`
         },
-        (payload) => {
-          const { new: newJob, old: oldJob } = payload;
+        (payload: RealtimePostgresChangesPayload<AnalysisJob>) => {
+          const newJob = payload.new;
           if (!newJob) return;
 
           console.log('Analysis job update:', newJob);
@@ -33,9 +44,9 @@ export const useSearch = () => {
               if (result.url === newJob.url) {
                 return {
                   ...result,
-                  status: newJob.status as Status,
+                  status: newJob.status,
                   error: newJob.error,
-                  analysis_result: newJob.result as AnalysisResult | undefined
+                  analysis_result: newJob.result
                 };
               }
               return result;
@@ -145,4 +156,3 @@ export const useSearch = () => {
     results
   };
 };
-
