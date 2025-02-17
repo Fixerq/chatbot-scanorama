@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -56,6 +57,17 @@ const ResultsTable = ({
   onResultUpdate,
   onRetry 
 }: ResultsTableProps) => {
+  useEffect(() => {
+    console.log('ResultsTable mount/update:', {
+      resultsLength: results?.length,
+      isProcessing: processing,
+      isLoading,
+      hasUpdateHandler: !!onResultUpdate,
+      hasRetryHandler: !!onRetry,
+      firstResult: results?.[0]
+    });
+  }, [results, processing, isLoading, onResultUpdate, onRetry]);
+
   const getErrorMessage = (result: Result): string | null => {
     return result.error || 
            result.details?.error || 
@@ -84,6 +96,7 @@ const ResultsTable = ({
   };
 
   if (isLoading || processing) {
+    console.log('ResultsTable showing loading state');
     return (
       <div className="w-full space-y-4">
         <div className="animate-pulse space-y-4">
@@ -95,7 +108,8 @@ const ResultsTable = ({
     );
   }
 
-  if (!results.length) {
+  if (!results?.length) {
+    console.log('ResultsTable showing empty state');
     return (
       <Alert>
         <AlertDescription>
@@ -104,6 +118,12 @@ const ResultsTable = ({
       </Alert>
     );
   }
+
+  console.log('ResultsTable rendering results table with data:', {
+    resultsCount: results.length,
+    columns: ['Status', 'Title', 'URL', 'Analysis', 'Actions'],
+    sampleResult: results[0]
+  });
 
   return (
     <div className="w-full overflow-x-auto">
@@ -121,6 +141,7 @@ const ResultsTable = ({
           </TableHeader>
           <TableBody>
             {results.map((result, i) => {
+              console.log(`Rendering row ${i}:`, result);
               const { displayUrl } = formatUrl(result.url);
               const status = getStatus(result);
               const error = getErrorMessage(result);
@@ -191,3 +212,4 @@ const ResultsTable = ({
 };
 
 export default ResultsTable;
+
