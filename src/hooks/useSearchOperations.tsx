@@ -31,7 +31,7 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
   ) => {
     setIsSearching(true);
     try {
-      const { data, error } = await supabase.functions.invoke('search-places', {
+      const { data, error } = await supabase.functions.invoke<{ results: SearchResult[]; nextPageToken?: string }>('search-places', {
         body: { query, country, region, apiKey, limit }
       });
 
@@ -60,7 +60,7 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
 
     setIsSearching(true);
     try {
-      const { data, error } = await supabase.functions.invoke('search-places', {
+      const { data, error } = await supabase.functions.invoke<{ results: SearchResult[]; nextPageToken?: string }>('search-places', {
         body: { 
           query, 
           country, 
@@ -75,7 +75,8 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
 
       if (data?.results) {
         setResults((current: SearchResult[]) => {
-          return [...current, ...data.results];
+          const updatedResults: SearchResult[] = [...current, ...data.results];
+          return updatedResults;
         });
         setNextPageToken(data.nextPageToken || null);
       }
@@ -94,3 +95,4 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
     nextPageToken
   };
 };
+
