@@ -29,29 +29,8 @@ const ResultsContent = ({
   children
 }: ResultsContentProps) => {
   useEffect(() => {
-    console.log('ResultsContent mounted/updated with results:', results);
+    console.log('ResultsContent: Received results:', results?.length);
   }, [results]);
-
-  // Super permissive validation that accepts results with any non-empty URL
-  const validResults = results.filter(r => {
-    const isValid = Boolean(r.url?.trim());
-    console.log('Validating result:', {
-      result: r,
-      url: r.url,
-      isValid,
-      hasTitle: !!r.title,
-      hasBusinessName: !!r.business_name,
-      hasStatus: !!r.status,
-      hasDetails: !!r.details
-    });
-    return isValid;
-  });
-
-  console.log('ResultsContent processing:', {
-    totalResults: results.length,
-    validResults: validResults.length,
-    sample: validResults[0]
-  });
 
   if (isAnalyzing) {
     return (
@@ -63,15 +42,15 @@ const ResultsContent = ({
     );
   }
 
-  if (!results || results.length === 0) {
-    console.log('No results to display');
+  if (!results?.length) {
+    console.log('ResultsContent: No results to display');
     return null;
   }
 
-  const totalPages = Math.ceil(validResults.length / 50);
-  const currentPage = Math.ceil(validResults.length / 50);
+  const totalPages = Math.ceil(results.length / 50);
+  const currentPage = Math.ceil(results.length / 50);
 
-  console.log('Pagination info:', {
+  console.log('ResultsContent: Pagination info:', {
     totalPages,
     currentPage,
     hasMore
@@ -80,7 +59,7 @@ const ResultsContent = ({
   return (
     <>
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
-        {children}
+        {React.cloneElement(children as React.ReactElement, { results })}
       </div>
       
       {hasMore && (
@@ -131,3 +110,4 @@ const ResultsContent = ({
 };
 
 export default ResultsContent;
+

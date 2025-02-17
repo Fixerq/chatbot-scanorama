@@ -34,8 +34,12 @@ const ResultsContainer = ({
     localPage,
     setLocalPage,
     handleFilter,
-    handleSort
+    handleSort,
+    isLoading
   } = useResultsState(results);
+
+  console.log('ResultsContainer: Received results:', results.length);
+  console.log('ResultsContainer: Filtered results:', filteredResults.length);
 
   return (
     <div className="mt-12 space-y-6">
@@ -47,16 +51,17 @@ const ResultsContainer = ({
           onSortChange={handleSort}
         />
         <ResultsHeader
-          results={results}
-          totalCount={results.length}
-          chatbotCount={0}
+          results={filteredResults}
+          totalCount={filteredResults.length}
+          chatbotCount={filteredResults.filter(r => r.analysis_result?.has_chatbot).length}
           onNewSearch={onNewSearch}
           onExport={onExport}
         />
       </div>
-      {children}
+      {React.cloneElement(children as React.ReactElement, { results: filteredResults })}
     </div>
   );
 };
 
 export default ResultsContainer;
+
