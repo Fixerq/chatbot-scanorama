@@ -1,6 +1,7 @@
 
 import * as Sentry from '@sentry/browser';
 import { BrowserTracing } from '@sentry/tracing';
+import type { Integration } from '@sentry/types';
 
 const initSentry = () => {
   if (!import.meta.env.VITE_SENTRY_DSN) {
@@ -8,14 +9,16 @@ const initSentry = () => {
     return;
   }
 
+  // Cast BrowserTracing as Integration to match the expected type
+  const browserTracing = new BrowserTracing() as unknown as Integration;
+
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: (defaultIntegrations) => {
-      return [...defaultIntegrations, new BrowserTracing()];
-    },
+    integrations: [browserTracing],
     tracesSampleRate: 1.0,
     environment: import.meta.env.MODE,
   });
 };
 
 export default initSentry;
+
