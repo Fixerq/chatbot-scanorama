@@ -30,7 +30,7 @@ serve(async (req) => {
     2. Queue management and job distribution
     3. Error recovery and retry strategies
     4. Pattern matching optimization
-    Provide specific, technical recommendations that can be implemented.`;
+    You must respond with valid JSON only. Do not include any markdown formatting or explanatory text.`;
 
     const userPrompt = `
     Analysis Context:
@@ -38,33 +38,32 @@ serve(async (req) => {
     Current Detection Patterns: ${JSON.stringify(patterns)}
     System State: ${JSON.stringify(error_context)}
     
-    Analyze this situation and provide:
-    1. Diagnosis of potential worker initialization or job distribution issues
-    2. Recommendations for pattern matching improvements
-    3. Specific error resolution steps
-    4. Worker recovery strategy
-    5. Job processing optimizations
-    
-    Format your response as a JSON object with these keys:
+    Analyze this situation and provide recommendations in a JSON object with these exact keys:
     {
       "diagnosis": {
-        "worker_state": string,
-        "job_queue": string,
-        "potential_issues": string[]
+        "worker_state": "<description of current worker state>",
+        "job_queue": "<description of queue status>",
+        "potential_issues": ["issue1", "issue2"]
       },
-      "pattern_improvements": string[],
-      "error_resolution": string[],
+      "pattern_improvements": ["improvement1", "improvement2"],
+      "error_resolution": ["step1", "step2"],
+      "chatbot_confidence": <number between 0 and 1>,
+      "retry_strategy": {
+        "should_retry": <boolean>,
+        "wait_time": <number in milliseconds>,
+        "max_attempts": <number>
+      },
       "worker_recovery": {
-        "should_restart": boolean,
-        "actions": string[],
-        "health_checks": string[]
+        "should_restart": <boolean>,
+        "actions": ["action1", "action2"],
+        "health_checks": ["check1", "check2"]
       },
       "job_optimizations": {
-        "batch_size": number,
-        "priority_rules": string[],
+        "batch_size": <number>,
+        "priority_rules": ["rule1", "rule2"],
         "timeout_settings": {
-          "initial": number,
-          "retry": number
+          "initial": <number in milliseconds>,
+          "retry": <number in milliseconds>
         }
       }
     }`;
@@ -81,8 +80,7 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 1500
+        temperature: 0.3, // Lower temperature for more consistent, structured output
       }),
     });
 
@@ -91,7 +89,23 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('OpenAI analysis result:', data);
+    console.log('Raw OpenAI response:', data);
+
+    // Validate and parse the AI response
+    let aiResponse;
+    try {
+      // Extract the content and ensure it's valid JSON
+      const content = data.choices[0].message.content.trim();
+      aiResponse = JSON.parse(content);
+      
+      // Basic validation of required fields
+      if (!aiResponse.diagnosis || !aiResponse.retry_strategy || !aiResponse.job_optimizations) {
+        throw new Error('Missing required fields in AI response');
+      }
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError);
+      throw new Error('Failed to parse AI response into valid JSON');
+    }
 
     // Store the analysis insights for monitoring
     const { error: insertError } = await supabase
@@ -99,7 +113,7 @@ serve(async (req) => {
       .insert({
         url,
         analysis_type: 'worker_system_optimization',
-        insights: data.choices[0].message.content,
+        insights: aiResponse,
         performance_impact: {
           analyzed_at: new Date().toISOString(),
           worker_health: error_context.worker_health,
@@ -111,25 +125,7 @@ serve(async (req) => {
       console.error('Error storing AI analysis:', insertError);
     }
 
-    // Also update the worker monitoring metrics
-    const { error: metricsError } = await supabase
-      .from('monitoring_alerts')
-      .insert({
-        alert_type: 'ai_optimization',
-        metric_name: 'worker_optimization',
-        current_value: 1,
-        threshold_value: 1,
-        details: {
-          optimization_time: new Date().toISOString(),
-          ai_recommendations: JSON.parse(data.choices[0].message.content)
-        }
-      });
-
-    if (metricsError) {
-      console.error('Error updating monitoring metrics:', metricsError);
-    }
-
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({ ...data, parsed_response: aiResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
@@ -140,3 +136,4 @@ serve(async (req) => {
     });
   }
 });
+
