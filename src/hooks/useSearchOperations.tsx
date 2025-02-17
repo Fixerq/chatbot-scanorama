@@ -35,6 +35,8 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
         }
       });
 
+      console.log('Search response:', data);
+
       if (error) {
         console.error('Supabase function error:', error);
         toast.error('Search failed: ' + error.message);
@@ -55,6 +57,8 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
       }
 
       console.log('Search successful:', data.results.length, 'results found');
+      console.log('Results data:', data.results);
+      
       // Ensure results are initialized as an empty array if none are found
       setResults(data.results || []);
       setNextPageToken(data.nextPageToken || null);
@@ -98,6 +102,8 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
           limit
         }
       });
+
+      console.log('Load more response:', data);
 
       if (error) {
         console.error('Load more error:', error);

@@ -37,6 +37,11 @@ const Results: React.FC<ResultsProps> = ({
 }) => {
   const hasResults = results.length > 0;
 
+  // Add logging to track results prop changes
+  useEffect(() => {
+    console.log('Results component received new results:', results);
+  }, [results]);
+
   useEffect(() => {
     if (!hasResults) return;
 
@@ -131,26 +136,19 @@ const Results: React.FC<ResultsProps> = ({
     };
   }, [results, onResultUpdate, hasResults]);
 
-  if (!hasResults && !isAnalyzing) {
-    return <EmptyResults onNewSearch={onNewSearch} />;
+  if (isAnalyzing) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-lg text-muted-foreground">Analyzing websites...</p>
+        <p className="text-sm text-muted-foreground">This may take a few moments</p>
+      </div>
+    );
   }
 
-  const handleRetryAnalysis = async (url: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('analyze-website', {
-        body: { url, retry: true }
-      });
-
-      if (error) {
-        toast.error(`Failed to retry analysis for ${url}`);
-      } else {
-        toast.success(`Analysis retried for ${url}`);
-      }
-    } catch (error) {
-      console.error('Error retrying analysis:', error);
-      toast.error('Failed to retry analysis');
-    }
-  };
+  if (!hasResults) {
+    return <EmptyResults onNewSearch={onNewSearch} />;
+  }
 
   return (
     <ResultsContainer
@@ -172,7 +170,22 @@ const Results: React.FC<ResultsProps> = ({
           results={results} 
           isLoading={isLoadingMore}
           onResultUpdate={onResultUpdate}
-          onRetry={handleRetryAnalysis}
+          onRetry={async (url: string) => {
+            try {
+              const { error } = await supabase.functions.invoke('analyze-website', {
+                body: { url, retry: true }
+              });
+
+              if (error) {
+                toast.error(`Failed to retry analysis for ${url}`);
+              } else {
+                toast.success(`Analysis retried for ${url}`);
+              }
+            } catch (error) {
+              console.error('Error retrying analysis:', error);
+              toast.error('Failed to retry analysis');
+            }
+          }}
         />
       </ResultsContent>
     </ResultsContainer>
@@ -180,4 +193,3 @@ const Results: React.FC<ResultsProps> = ({
 };
 
 export default Results;
-
