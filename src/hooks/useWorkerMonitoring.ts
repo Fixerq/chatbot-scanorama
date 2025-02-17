@@ -17,6 +17,11 @@ interface WorkerHealth {
   jobs_in_progress: number;
 }
 
+interface JobMetadata {
+  patterns?: string[];
+  [key: string]: any;
+}
+
 export function useWorkerMonitoring() {
   const { analyzeWithAI } = useOpenAIAnalysis();
 
@@ -65,10 +70,11 @@ export function useWorkerMonitoring() {
                     .single();
 
                   if (jobData) {
+                    const metadata = jobData.metadata as JobMetadata;
                     // Analyze with OpenAI
                     const aiAnalysis = await analyzeWithAI(
                       jobData.url,
-                      jobData.metadata?.patterns || [],
+                      metadata?.patterns || [],
                       {
                         error: jobData.error_message,
                         stall_duration: timeSinceHeartbeat,
