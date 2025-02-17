@@ -87,37 +87,35 @@ export const useUrlProcessor = () => {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      // Pass the entire results array to analyzeBatch
-      console.log(`Processing ${results.length} search results in batch`);
-
-      // Subscribe to realtime updates for analysis progress 
-      const subscription = supabase
-        .channel('analysis-updates')
+      // Subscribe to realtime updates for individual analysis results
+      const analysisResultsChannel = supabase
+        .channel('analysis-results')
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'analysis_results_with_requests'
+            table: 'analysis_results'
           },
-          (payload: RealtimePostgresChangesPayload<AnalysisUpdatePayload>) => {
-            console.log('Analysis result update:', payload);
+          (payload: RealtimePostgresChangesPayload<any>) => {
+            console.log('Analysis result update received:', payload);
             
-            if (payload.new && isAnalysisUpdatePayload(payload.new)) {
+            if (payload.new) {
               const { url, has_chatbot, chatbot_solutions, status, error } = payload.new;
-              
-              if (status === 'completed') {
-                console.log('Analysis completed for URL:', url, {
-                  has_chatbot,
-                  chatbot_solutions,
-                  status
-                });
-                
-                if (has_chatbot) {
-                  toast.success(`Chatbot detected on ${url}`);
-                }
-              } else if (error) {
-                console.error('Analysis error for URL:', url, error);
+              console.log('Processing analysis result:', {
+                url,
+                has_chatbot,
+                chatbot_solutions,
+                status,
+                error
+              });
+
+              if (has_chatbot) {
+                toast.success(`Chatbot detected on ${url}`);
+              }
+
+              if (error) {
+                console.error(`Analysis error for ${url}:`, error);
                 toast.error(`Analysis failed for ${url}: ${error}`);
               }
             }
@@ -126,14 +124,17 @@ export const useUrlProcessor = () => {
         .subscribe();
 
       // Start batch analysis
+      console.log(`Starting batch analysis for ${results.length} URLs...`);
       const { cleanup, batchId } = await analyzeBatch(results);
 
       if (!batchId) {
         throw new Error('Failed to create analysis batch');
       }
 
-      // Subscribe to specific batch updates
-      const batchSubscription = supabase
+      console.log('Batch created with ID:', batchId);
+
+      // Subscribe to batch status updates
+      const batchChannel = supabase
         .channel(`batch-${batchId}`)
         .on(
           'postgres_changes',
@@ -144,24 +145,27 @@ export const useUrlProcessor = () => {
             filter: `id=eq.${batchId}`
           },
           (payload: RealtimePostgresChangesPayload<BatchUpdatePayload>) => {
-            console.log('Batch update:', payload);
+            console.log('Batch status update:', payload);
             
             if (payload.new && isBatchUpdatePayload(payload.new)) {
-              if (payload.new.status === 'completed') {
+              const { status, processed_urls, total_urls } = payload.new;
+              console.log(`Batch progress: ${processed_urls}/${total_urls} URLs processed`);
+              
+              if (status === 'completed') {
                 console.log('Batch analysis completed successfully');
                 setProcessing(false);
                 onAnalysisComplete();
                 cleanup();
-                subscription.unsubscribe();
-                batchSubscription.unsubscribe();
-              } else if (payload.new.status === 'failed') {
+                batchChannel.unsubscribe();
+                analysisResultsChannel.unsubscribe();
+              } else if (status === 'failed') {
                 console.error('Batch analysis failed');
                 toast.error('Analysis failed. Please try again.');
                 setProcessing(false);
                 onAnalysisComplete();
                 cleanup();
-                subscription.unsubscribe();
-                batchSubscription.unsubscribe();
+                batchChannel.unsubscribe();
+                analysisResultsChannel.unsubscribe();
               }
             }
           }
@@ -170,8 +174,8 @@ export const useUrlProcessor = () => {
 
       // Return cleanup function
       return () => {
-        subscription.unsubscribe();
-        batchSubscription.unsubscribe();
+        batchChannel.unsubscribe();
+        analysisResultsChannel.unsubscribe();
         cleanup();
         setProcessing(false);
       };
