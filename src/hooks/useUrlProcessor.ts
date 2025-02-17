@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useBatchAnalysis } from './useBatchAnalysis';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { Status } from '@/utils/types/search';
 
 interface AnalysisRequest {
   status: string;
@@ -16,8 +17,15 @@ interface AnalysisUpdatePayload {
   url: string;
   has_chatbot: boolean;
   chatbot_solutions: string[];
-  status: string;
+  status: Status;
   error?: string;
+}
+
+interface BatchUpdatePayload {
+  status: Status;
+  id: string;
+  processed_urls: number;
+  total_urls: number;
 }
 
 function isAnalysisRequest(obj: any): obj is AnalysisRequest {
@@ -33,6 +41,14 @@ function isAnalysisUpdatePayload(obj: any): obj is AnalysisUpdatePayload {
     && typeof obj.has_chatbot === 'boolean'
     && Array.isArray(obj.chatbot_solutions)
     && typeof obj.status === 'string';
+}
+
+function isBatchUpdatePayload(obj: any): obj is BatchUpdatePayload {
+  return obj 
+    && typeof obj.status === 'string'
+    && typeof obj.id === 'string'
+    && typeof obj.processed_urls === 'number'
+    && typeof obj.total_urls === 'number';
 }
 
 export const useUrlProcessor = () => {
@@ -53,7 +69,7 @@ export const useUrlProcessor = () => {
       const urls = results.map(result => result.url);
       console.log(`Processing ${urls.length} URLs in batch`);
 
-      // Subscribe to realtime updates for batch progress
+      // Subscribe to realtime updates for batch progress 
       const subscription = supabase
         .channel('analysis-updates')
         .on(
@@ -96,9 +112,9 @@ export const useUrlProcessor = () => {
             table: 'analysis_batches',
             filter: `id=eq.${batchId}`
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<BatchUpdatePayload>) => {
             console.log('Batch update:', payload);
-            if (payload.new && typeof payload.new.status === 'string' && payload.new.status === 'completed') {
+            if (payload.new && isBatchUpdatePayload(payload.new) && payload.new.status === 'completed') {
               setProcessing(false);
               onAnalysisComplete();
               cleanup();
@@ -129,4 +145,3 @@ export const useUrlProcessor = () => {
     processSearchResults
   };
 };
-

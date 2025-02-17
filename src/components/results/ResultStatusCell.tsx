@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
-import { AnalysisResult } from '@/utils/types/search';
+import { AnalysisResult, Status } from '@/utils/types/search';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
@@ -20,7 +20,7 @@ interface ResultStatusCellProps {
 interface AnalysisResultPayload {
   has_chatbot: boolean;
   chatbot_solutions: string[];
-  status: string;
+  status: Status;
   error?: string;
   updated_at: string;
 }
@@ -59,7 +59,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
               const result: AnalysisResult = {
                 has_chatbot: payload.new.has_chatbot,
                 chatSolutions: payload.new.chatbot_solutions || [],
-                status: payload.new.status,
+                status: payload.new.status as Status,
                 error: payload.new.error,
                 lastChecked: payload.new.updated_at
               };
