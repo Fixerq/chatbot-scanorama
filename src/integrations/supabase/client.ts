@@ -60,14 +60,19 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 // Add a helper to properly clear auth state
 export const clearAuthData = async () => {
   try {
-    // Clear the session first
-    await supabase.auth.signOut();
-    
-    // Then clear storage
+    // Clear storage first
     customStorage.clear();
+    
+    // Then attempt to sign out from Supabase
+    // We don't await this since we don't want to block on potential failures
+    supabase.auth.signOut().catch(error => {
+      console.warn('Error during server-side signout:', error);
+      // We don't throw here since we've already cleared local storage
+    });
   } catch (error) {
     console.error('Error clearing auth data:', error);
-    // Ensure storage is cleared even if signOut fails
+    // Ensure storage is cleared even if there's an error
     customStorage.clear();
   }
 };
+
