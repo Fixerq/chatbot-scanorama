@@ -90,7 +90,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   };
 
   return (
-    <TableCell>
+    <TableCell className="min-w-[200px]">
       <div className="space-y-2">
         {getStatusDisplay()}
       </div>

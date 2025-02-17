@@ -82,7 +82,7 @@ const ResultsTable = ({
               <TableHead className="w-[100px]">Status</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>URL</TableHead>
-              <TableHead>Analysis</TableHead>
+              <TableHead className="min-w-[200px]">Analysis</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
