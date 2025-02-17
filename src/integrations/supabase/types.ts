@@ -216,6 +216,9 @@ export type Database = {
           details: Json | null
           has_chatbot: boolean
           last_checked: string
+          openai_analysis_date: string | null
+          openai_analysis_status: string | null
+          openai_response: Json | null
           processed_at: string | null
           status: string | null
           url: string
@@ -227,6 +230,9 @@ export type Database = {
           details?: Json | null
           has_chatbot?: boolean
           last_checked?: string
+          openai_analysis_date?: string | null
+          openai_analysis_status?: string | null
+          openai_response?: Json | null
           processed_at?: string | null
           status?: string | null
           url: string
@@ -238,6 +244,9 @@ export type Database = {
           details?: Json | null
           has_chatbot?: boolean
           last_checked?: string
+          openai_analysis_date?: string | null
+          openai_analysis_status?: string | null
+          openai_response?: Json | null
           processed_at?: string | null
           status?: string | null
           url?: string
