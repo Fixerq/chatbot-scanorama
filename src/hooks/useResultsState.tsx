@@ -16,11 +16,8 @@ export const useResultsState = (initialResults: Result[] = []) => {
       status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
 
-    updatedResults = updatedResults.filter(r => {
-      const hasValidStatus = r.status !== undefined;
-      const hasDetails = Boolean(r.details);
-      return hasValidStatus || hasDetails;
-    });
+    // Less restrictive filtering - only filter out results with no URL
+    updatedResults = updatedResults.filter(r => r.url);
 
     setFilteredResults(updatedResults);
     setLocalPage(1);
@@ -35,11 +32,8 @@ export const useResultsState = (initialResults: Result[] = []) => {
       status: result.details?.error ? `Error: ${result.details.error}` : result.status
     }));
     
-    filtered = filtered.filter(r => {
-      const hasValidStatus = r.status !== undefined;
-      const hasDetails = Boolean(r.details);
-      return hasValidStatus || hasDetails;
-    });
+    // Less restrictive filtering - only filter out results with no URL
+    filtered = filtered.filter(r => r.url);
     
     setFilteredResults(filtered);
     setLocalPage(1);
