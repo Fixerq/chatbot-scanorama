@@ -1,15 +1,15 @@
 
-// Basic status types
+// Basic status type
 export type Status = 'pending' | 'processing' | 'completed' | 'failed';
 
-// Simple pattern match type without circular references
+// Simple pattern match type
 export interface PatternMatch {
   type: string;
   pattern: string;
   matched: string;
 }
 
-// Analysis result with simplified structure and fixed types
+// Analysis result with flattened structure
 export interface AnalysisResult {
   has_chatbot: boolean;
   chatSolutions: string[];
@@ -34,7 +34,7 @@ export function isAnalysisResult(obj: unknown): obj is AnalysisResult {
   );
 }
 
-// Simple metadata type
+// Simplified metadata type
 export interface SearchMetadata {
   place_id?: string;
   business_name?: string;
@@ -42,7 +42,7 @@ export interface SearchMetadata {
   [key: string]: unknown;
 }
 
-// Search result interface without circular references
+// Search result with simplified structure
 export interface SearchResult {
   url: string;
   title?: string;

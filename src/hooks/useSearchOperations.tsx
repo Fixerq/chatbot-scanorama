@@ -1,53 +1,49 @@
 
 import { useState, useCallback } from 'react';
-import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { SearchResult, Status } from '@/utils/types/search';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-export const useSearchOperations = (setResults: (results: Result[]) => void) => {
+// Simplified analysis job interface
+interface AnalysisJob {
+  url: string;
+  status: Status;
+  error?: string;
+  result?: {
+    has_chatbot: boolean;
+    chatSolutions: string[];
+    status: Status;
+    error?: string;
+  };
+  metadata?: Record<string, unknown>;
+  batch_id: string;
+}
+
+export const useSearchOperations = (setResults: (results: SearchResult[]) => void) => {
   const [isSearching, setIsSearching] = useState(false);
-  const [nextPageToken, setNextPageToken] = useState<string | undefined>();
-  const [currentResults, setCurrentResults] = useState<Result[]>([]);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
 
   const handleSearch = useCallback(async (
     query: string,
     country: string,
     region: string,
     apiKey: string,
-    resultsLimit: number
+    limit: number
   ) => {
+    setIsSearching(true);
     try {
-      setIsSearching(true);
       const { data, error } = await supabase.functions.invoke('search-places', {
-        body: {
-          action: 'search',
-          params: {
-            query,
-            country,
-            region,
-            resultsLimit
-          }
-        }
+        body: { query, country, region, apiKey, limit }
       });
 
-      if (error) {
-        console.error('Search error:', error);
-        toast.error('An error occurred during search');
-        throw error;
-      }
+      if (error) throw error;
 
-      if (data?.data?.results) {
-        const typedResults = data.data.results as Result[];
-        setCurrentResults(typedResults);
-        setResults(typedResults);
-        setNextPageToken(data.data.nextPageToken);
-        return data.data;
+      if (data?.results) {
+        setResults(data.results);
+        setNextPageToken(data.nextPageToken || null);
       }
-
-      return null;
     } catch (error) {
-      console.error('Search operation failed:', error);
-      toast.error('Search failed. Please try again.');
+      console.error('Search error:', error);
       throw error;
     } finally {
       setIsSearching(false);
@@ -61,47 +57,34 @@ export const useSearchOperations = (setResults: (results: Result[]) => void) => 
     page: number,
     limit: number
   ) => {
-    try {
-      setIsSearching(true);
+    if (!nextPageToken) return;
 
+    setIsSearching(true);
+    try {
       const { data, error } = await supabase.functions.invoke('search-places', {
-        body: {
-          action: 'search',
-          params: {
-            query,
-            country,
-            region,
-            nextPageToken,
-            resultsLimit: limit
-          }
+        body: { 
+          query, 
+          country, 
+          region, 
+          pageToken: nextPageToken,
+          page,
+          limit
         }
       });
 
-      if (error) {
-        console.error('Load more error:', error);
-        toast.error('Failed to load more results');
-        return;
-      }
+      if (error) throw error;
 
-      if (data?.data?.results) {
-        const newResults = data.data.results as Result[];
-        
-        // Filter out duplicates based on URL
-        const existingUrls = new Set(currentResults.map(r => r.url));
-        const uniqueNewResults = newResults.filter(result => !existingUrls.has(result.url));
-        
-        const combinedResults = [...currentResults, ...uniqueNewResults];
-        setCurrentResults(combinedResults);
-        setResults(combinedResults);
-        setNextPageToken(data.data.nextPageToken);
+      if (data?.results) {
+        setResults(prevResults => [...prevResults, ...data.results]);
+        setNextPageToken(data.nextPageToken || null);
       }
     } catch (error) {
-      console.error('Load more operation failed:', error);
-      toast.error('Failed to load additional results');
+      console.error('Load more error:', error);
+      throw error;
     } finally {
       setIsSearching(false);
     }
-  }, [nextPageToken, setResults, currentResults]);
+  }, [nextPageToken, setResults]);
 
   return {
     isSearching,
