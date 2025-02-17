@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react';
 import { useBatchStatusUpdates } from './useBatchStatusUpdates';
 import { useAnalysisResultUpdates } from './useAnalysisResultUpdates';
 import { useRealtimeAnalysis } from './useRealtimeAnalysis';
@@ -12,10 +13,8 @@ export function useAnalysisUpdates(
   const resultUpdates = useAnalysisResultUpdates(batchId);
   const { subscribeToAnalysisResults } = useRealtimeAnalysis();
 
-  const subscribeToUpdates = () => {
-    if (!batchId) return;
-
-    console.log('Setting up analysis update subscriptions for batch:', batchId);
+  const subscribeToUpdates = (newBatchId: string) => {
+    console.log('Setting up analysis update subscriptions for batch:', newBatchId);
 
     const batchCleanup = batchUpdates.subscribeToUpdates();
     const resultCleanup = resultUpdates.subscribeToUpdates();
@@ -23,11 +22,19 @@ export function useAnalysisUpdates(
 
     return () => {
       console.log('Cleaning up analysis update subscriptions');
-      batchCleanup?.();
-      resultCleanup?.();
-      analysisCleanup?.();
+      if (batchCleanup) batchCleanup();
+      if (resultCleanup) resultCleanup();
+      if (analysisCleanup) analysisCleanup();
     };
   };
+
+  // Cleanup on unmount if there's an active batch
+  useEffect(() => {
+    if (batchId) {
+      const cleanup = subscribeToUpdates(batchId);
+      return cleanup;
+    }
+  }, [batchId]);
 
   return { subscribeToUpdates };
 }
