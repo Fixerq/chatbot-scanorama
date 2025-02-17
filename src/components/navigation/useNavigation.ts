@@ -12,22 +12,25 @@ export const useNavigation = () => {
 
   const handleLogout = async () => {
     try {
-      // First try to sign out on Supabase
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
-      if (error) throw error;
+      // First try to sign out locally
+      const { error } = await supabase.auth.signOut();
       
-      // Always clear local auth data
-      await clearAuthData();
+      if (error) {
+        console.error('Error during signout:', error);
+        // Even if server logout fails, clear local auth data
+        await clearAuthData();
+        toast.error('There was an issue logging out, but you have been logged out locally');
+      } else {
+        await clearAuthData();
+        toast.success('Logged out successfully');
+      }
       
-      toast.success('Logged out successfully');
       navigate('/login', { replace: true });
     } catch (error) {
-      console.error('Error logging out:', error);
-      
-      // Even if server logout fails, clear local auth state and redirect
+      console.error('Unexpected error during logout:', error);
+      // Even if there's an unexpected error, clear local auth data
       await clearAuthData();
       navigate('/login', { replace: true });
-      
       toast.error('There was an issue logging out, but you have been logged out locally');
     }
   };

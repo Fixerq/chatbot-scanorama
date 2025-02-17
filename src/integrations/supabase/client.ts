@@ -60,10 +60,14 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 // Add a helper to properly clear auth state
 export const clearAuthData = async () => {
   try {
-    const { error } = await supabase.auth.signOut({ scope: 'local' });
-    if (error) throw error;
-    
+    // First clear the local storage
     customStorage.clear();
+    
+    // Then try to sign out locally without global scope
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error clearing session:', error);
+    }
   } catch (error) {
     console.error('Error clearing auth data:', error);
     // Still try to clear local storage even if signOut fails
