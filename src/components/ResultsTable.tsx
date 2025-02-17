@@ -15,6 +15,7 @@ import ResultStatusCell from './results/ResultStatusCell';
 import { AnalysisResult } from '@/utils/types/search';
 import { Button } from './ui/button';
 import { RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription } from "./ui/alert";
 
 export interface Result {
   url: string;
@@ -34,6 +35,7 @@ export interface Result {
     description?: string;
     address?: string;
     website_url?: string;
+    error?: string;
     [key: string]: any;
   };
   analysis_result?: AnalysisResult;
@@ -81,6 +83,28 @@ const ResultsTable = ({
     }
   };
 
+  if (isLoading || processing) {
+    return (
+      <div className="w-full space-y-4">
+        <div className="animate-pulse space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 bg-gray-100/10 rounded"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!validResults.length) {
+    return (
+      <Alert>
+        <AlertDescription>
+          No valid analysis results found. Some results may have failed - check the error messages and try again.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <div className="w-full overflow-x-auto">
       <Table>
@@ -100,15 +124,15 @@ const ResultsTable = ({
             const showRetry = result.status === 'failed' || 
                             result.analysis_result?.error ||
                             result.error;
-
+            
             return (
               <TableRow key={i}>
                 <TableCell>
-                  <Badge variant="secondary">
+                  <Badge variant={result.status === 'failed' ? 'destructive' : 'secondary'}>
                     {result.status === 'failed' ? 'Failed' : 'OK'}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium">{result.title}</TableCell>
+                <TableCell className="font-medium">{result.title || result.details?.title || 'Untitled'}</TableCell>
                 <TableCell>
                   <a 
                     href={result.url} 
@@ -142,13 +166,6 @@ const ResultsTable = ({
               </TableRow>
             );
           })}
-          {(processing || isLoading) && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground">
-                Processing...
-              </TableCell>
-            </TableRow>
-          )}
         </TableBody>
       </Table>
     </div>
@@ -156,3 +173,4 @@ const ResultsTable = ({
 };
 
 export default ResultsTable;
+
