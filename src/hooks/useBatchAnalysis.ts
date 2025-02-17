@@ -1,15 +1,16 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalysisUpdates } from './useAnalysisUpdates';
 import { createAnalysisBatch } from './useBatchCreation';
-import { useWorkerMonitoring } from './useWorkerMonitoring';
+import { useWorkerStartup } from './useWorkerStartup';
+import { useBatchInitiation } from './useBatchInitiation';
 
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const workerMonitoring = useWorkerMonitoring();
+  const { ensureWorkerAvailable } = useWorkerStartup();
+  const { initiateBatchAnalysis } = useBatchInitiation();
 
   const analyzeBatch = async (results: any[]) => {
     setIsProcessing(true);
@@ -19,42 +20,11 @@ export function useBatchAnalysis() {
       // Create batch and get batch ID
       const { batchId, validUrls } = await createAnalysisBatch(results);
 
-      // Start a worker if none are available
-      const { data: healthData } = await supabase.rpc('check_worker_health');
-      if (!healthData || healthData[0]?.active_workers === 0) {
-        console.log('No active workers found, starting new worker...');
-        const workerId = await workerMonitoring.startWorker();
-        if (!workerId) {
-          throw new Error('Failed to start worker');
-        }
-        console.log('Started new worker with ID:', workerId);
-      }
+      // Ensure worker is available and setup monitoring
+      const cleanupWorkerMonitoring = await ensureWorkerAvailable();
 
-      // Setup worker monitoring
-      const cleanupWorkerMonitoring = workerMonitoring.subscribeToWorkerUpdates();
-
-      // Call analyze-website function to start processing
-      console.log('Sending request to analyze-website function with payload:', {
-        urls: validUrls,
-        batchId,
-        isBatch: true
-      });
-
-      const { data, error } = await supabase.functions.invoke('analyze-website', {
-        body: { 
-          urls: validUrls,
-          batchId,
-          isBatch: true
-        }
-      });
-
-      if (error) {
-        console.error('Error initiating batch analysis:', error);
-        toast.error('Failed to start analysis');
-        throw error;
-      }
-      
-      console.log('Batch analysis initiated successfully:', data);
+      // Initiate the batch analysis
+      const data = await initiateBatchAnalysis(validUrls, batchId);
 
       // Subscribe to realtime updates
       const { subscribeToUpdates } = useAnalysisUpdates(
@@ -96,3 +66,4 @@ export function useBatchAnalysis() {
     progress
   };
 }
+
