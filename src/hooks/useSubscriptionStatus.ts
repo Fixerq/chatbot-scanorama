@@ -21,6 +21,8 @@ export const useSubscriptionStatus = () => {
       }
 
       try {
+        console.log('Fetching subscription for user:', session.user.id);
+        
         // Get subscription from the view for the current user and active status
         const { data: subscription, error: subscriptionError } = await supabase
           .from('subscriptions_with_user')

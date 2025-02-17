@@ -16,10 +16,20 @@ export const SubscriptionStatus = () => {
 
   const { level, searchesRemaining, status } = subscriptionData;
 
-  // Don't show inactive subscriptions
+  // Don't show anything for inactive subscriptions
   if (status !== 'active') {
     return null;
   }
+
+  // Format the badge text
+  const badgeText = level === 'founders' 
+    ? 'Founders' 
+    : `${level.charAt(0).toUpperCase() + level.slice(1)} Plan`;
+
+  // Format the searches text
+  const searchesText = searchesRemaining === -1 
+    ? '∞ searches' 
+    : `${searchesRemaining} searches remaining`;
 
   return (
     <div className="flex items-center gap-2">
@@ -27,10 +37,10 @@ export const SubscriptionStatus = () => {
         variant={level === 'founders' ? 'default' : 'secondary'} 
         className="capitalize"
       >
-        {level === 'founders' ? 'Founders' : `${level} Plan`}
+        {badgeText}
       </Badge>
       <span className="text-sm text-muted-foreground">
-        {searchesRemaining === -1 ? '∞ searches' : `${searchesRemaining} searches remaining`}
+        {searchesText}
       </span>
     </div>
   );
