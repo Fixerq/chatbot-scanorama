@@ -14,7 +14,8 @@ export function useBatchInitiation() {
       body: { 
         urls: validUrls,
         batchId,
-        isBatch: true
+        isBatch: true,
+        retry: true // Enable retries for failed analysis
       }
     });
 
@@ -24,9 +25,14 @@ export function useBatchInitiation() {
       throw error;
     }
     
+    if (!data) {
+      throw new Error('No response from analysis function');
+    }
+    
     console.log('Batch analysis initiated successfully:', data);
     return data;
   };
 
   return { initiateBatchAnalysis };
 }
+

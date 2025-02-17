@@ -14,32 +14,43 @@ export function useBatchAnalysis() {
   const { subscribeToUpdates } = useAnalysisUpdates(null, setProgress, () => setIsProcessing(false));
 
   const analyzeBatch = async (results: any[]) => {
+    if (isProcessing) {
+      console.log('Batch analysis already in progress, skipping...');
+      return;
+    }
+
     setIsProcessing(true);
     setProgress(0);
+    let cleanupWorkerMonitoring: (() => void) | undefined;
+    let batchCleanup: (() => void) | undefined;
     
     try {
       console.log('Starting batch analysis process...');
       
-      // Create batch and get batch ID
+      // First ensure worker is available
+      cleanupWorkerMonitoring = await ensureWorkerAvailable();
+      console.log('Worker availability confirmed');
+
+      // Then create batch and get batch ID
       const { batchId, validUrls } = await createAnalysisBatch(results);
       console.log('Created batch with ID:', batchId, 'and', validUrls.length, 'valid URLs');
 
-      // Ensure worker is available and setup monitoring
-      const cleanupWorkerMonitoring = await ensureWorkerAvailable();
-      console.log('Worker availability confirmed');
+      if (!validUrls.length) {
+        throw new Error('No valid URLs to analyze');
+      }
+
+      // Set up subscriptions for this batch
+      batchCleanup = subscribeToUpdates(batchId);
+      console.log('Subscriptions established for batch:', batchId);
 
       // Start the analysis
       const data = await initiateBatchAnalysis(validUrls, batchId);
       console.log('Batch analysis initiated:', data);
 
-      // Set up subscriptions for this batch
-      const cleanup = subscribeToUpdates(batchId);
-      console.log('Subscriptions established for batch:', batchId);
-
       return { 
         batchId,
         cleanup: () => {
-          cleanup();
+          if (batchCleanup) batchCleanup();
           if (cleanupWorkerMonitoring) cleanupWorkerMonitoring();
           setIsProcessing(false);
         },
@@ -48,6 +59,9 @@ export function useBatchAnalysis() {
       
     } catch (error) {
       console.error('Batch analysis error:', error);
+      // Clean up subscriptions and monitoring if they were started
+      if (batchCleanup) batchCleanup();
+      if (cleanupWorkerMonitoring) cleanupWorkerMonitoring();
       setIsProcessing(false);
       toast.error(error instanceof Error ? error.message : 'Failed to process websites');
       throw error;
@@ -60,3 +74,4 @@ export function useBatchAnalysis() {
     progress
   };
 }
+

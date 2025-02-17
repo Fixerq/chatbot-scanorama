@@ -7,6 +7,9 @@ export function useWorkerStartup() {
     console.log('Attempting to start new worker...');
     
     try {
+      // First clean up any stalled workers
+      await supabase.rpc('cleanup_stalled_workers');
+      
       const { data, error } = await supabase.functions.invoke('start-worker');
       
       if (error) {
@@ -42,9 +45,11 @@ export function useWorkerStartup() {
     }
     
     console.log('Current worker status:', healthData);
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    if (!healthData || healthData[0]?.active_workers === 0) {
-      console.log('No active workers found, starting new worker...');
+    while ((!healthData || healthData[0]?.active_workers === 0) && retryCount < maxRetries) {
+      console.log(`No active workers found, attempt ${retryCount + 1} of ${maxRetries}`);
       
       // Clean up any stalled workers first
       await supabase.rpc('cleanup_stalled_workers');
@@ -53,20 +58,28 @@ export function useWorkerStartup() {
       const workerId = await startNewWorker();
       
       if (!workerId) {
-        throw new Error('Failed to start worker');
+        retryCount++;
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait before retry
+        continue;
       }
       
-      // Wait briefly for worker to initialize
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait for worker to initialize
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Verify worker started successfully
       const { data: verifyHealth } = await supabase.rpc('check_worker_health');
       
-      if (!verifyHealth || verifyHealth[0]?.active_workers === 0) {
-        throw new Error('Worker failed to start properly');
+      if (verifyHealth && verifyHealth[0]?.active_workers > 0) {
+        console.log('Worker started and verified');
+        break;
       }
       
-      console.log('Worker started and verified');
+      retryCount++;
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before next attempt
+    }
+    
+    if (retryCount >= maxRetries) {
+      throw new Error('Failed to start worker after multiple attempts');
     }
 
     return subscribeToWorkerUpdates();
@@ -87,6 +100,15 @@ export function useWorkerStartup() {
         },
         (payload) => {
           console.log('Worker status update:', payload);
+          
+          if (payload.new && 'status' in payload.new) {
+            const status = payload.new.status;
+            if (status === 'stopped' || status === 'failed') {
+              toast.error('Worker stopped unexpectedly', {
+                description: 'Analysis may be interrupted'
+              });
+            }
+          }
         }
       )
       .subscribe();
@@ -99,3 +121,4 @@ export function useWorkerStartup() {
 
   return { ensureWorkerAvailable };
 }
+
