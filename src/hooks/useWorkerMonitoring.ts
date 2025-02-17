@@ -27,6 +27,14 @@ export function useWorkerMonitoring() {
 
   const startWorker = async () => {
     try {
+      const { data: queueState } = await supabase
+        .from('analysis_job_queue')
+        .select('status, created_at')
+        .order('created_at', { ascending: true })
+        .limit(5);
+
+      console.log('Current queue state:', queueState);
+
       const { data, error } = await supabase.functions.invoke('start-worker');
       
       if (error) {
@@ -36,6 +44,39 @@ export function useWorkerMonitoring() {
       }
 
       console.log('Worker started successfully:', data);
+      
+      // Get initial worker health check
+      const { data: healthData } = await supabase.rpc('check_worker_health');
+      
+      // Perform AI analysis on worker startup
+      const aiAnalysis = await analyzeWithAI(
+        'worker_startup',
+        [],
+        {
+          worker_id: data.worker_id,
+          queue_state: queueState,
+          worker_health: healthData?.[0],
+          startup_time: new Date().toISOString()
+        }
+      );
+
+      if (aiAnalysis) {
+        console.log('AI startup analysis:', aiAnalysis);
+        
+        // Apply any immediate optimizations
+        if (aiAnalysis.job_optimizations) {
+          await supabase
+            .from('worker_config')
+            .update({
+              batch_size: aiAnalysis.job_optimizations.batch_size,
+              timeout_settings: aiAnalysis.job_optimizations.timeout_settings,
+              updated_at: new Date().toISOString(),
+              optimization_source: 'ai_analysis'
+            })
+            .eq('worker_id', data.worker_id);
+        }
+      }
+
       toast.success('Worker started successfully');
       return data.worker_id;
     } catch (error) {
@@ -72,86 +113,93 @@ export function useWorkerMonitoring() {
                 timeSinceHeartbeat
               });
 
-              const { data: healthData, error: healthError } = await supabase
-                .rpc('check_worker_health');
+              // Get comprehensive system state
+              const [healthData, queueData] = await Promise.all([
+                supabase.rpc('check_worker_health'),
+                supabase
+                  .from('analysis_job_queue')
+                  .select('status, error_message, created_at, updated_at')
+                  .order('created_at', { ascending: true })
+                  .limit(10)
+              ]);
 
-              if (!healthError && healthData && healthData.length > 0) {
-                const workerHealth = healthData[0] as WorkerHealth;
-                
-                if (worker.current_job_id) {
-                  const { data: jobData } = await supabase
-                    .from('analysis_job_queue')
-                    .select('url, metadata, error_message')
-                    .eq('id', worker.current_job_id)
-                    .single();
+              const systemState = {
+                worker_health: healthData.data?.[0],
+                queue_state: queueData.data,
+                stall_duration: timeSinceHeartbeat,
+                last_job_id: worker.current_job_id
+              };
 
-                  if (jobData) {
-                    const metadata = jobData.metadata as JobMetadata;
-                    // Get AI analysis and recommendations
-                    const aiAnalysis = await analyzeWithAI(
-                      jobData.url,
-                      metadata?.patterns || [],
-                      {
-                        error: jobData.error_message,
-                        stall_duration: timeSinceHeartbeat,
-                        worker_health: workerHealth
-                      }
-                    );
+              if (worker.current_job_id) {
+                const { data: jobData } = await supabase
+                  .from('analysis_job_queue')
+                  .select('url, metadata, error_message')
+                  .eq('id', worker.current_job_id)
+                  .single();
 
-                    if (aiAnalysis) {
-                      console.log('AI analysis results:', aiAnalysis);
-                      
-                      // Apply AI recommendations
-                      if (aiAnalysis.retry_strategy.should_retry) {
-                        const waitTime = aiAnalysis.retry_strategy.wait_time || 0;
-                        
-                        // Wait for the recommended time before retrying
-                        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
-                        
-                        await supabase
-                          .from('analysis_job_queue')
-                          .update({
-                            retry_count: 0,
-                            status: 'pending',
-                            error_message: null,
-                            metadata: {
-                              ...metadata,
-                              ai_recommendations: aiAnalysis.pattern_improvements,
-                              last_error_resolution: aiAnalysis.error_resolution
-                            },
-                            updated_at: new Date().toISOString()
-                          })
-                          .eq('id', worker.current_job_id);
-                        
-                        console.log('Applied AI retry strategy for job:', worker.current_job_id);
-                        
-                        toast.success('Analysis will be retried with AI optimizations');
-                      } else {
-                        console.log('AI recommended not to retry the job');
-                        toast.error('Analysis cannot be recovered automatically', {
-                          description: aiAnalysis.error_resolution[0] || 'Manual intervention required'
-                        });
-                      }
+                if (jobData) {
+                  const metadata = jobData.metadata as JobMetadata;
+                  
+                  // Get comprehensive AI analysis
+                  const aiAnalysis = await analyzeWithAI(
+                    jobData.url,
+                    metadata?.patterns || [],
+                    {
+                      error: jobData.error_message,
+                      ...systemState
                     }
+                  );
+
+                  if (aiAnalysis) {
+                    console.log('AI analysis results:', aiAnalysis);
+                    
+                    // Apply AI recommendations
+                    if (aiAnalysis.worker_recovery.should_restart) {
+                      // Cleanup stalled worker and start new one
+                      await supabase.rpc('cleanup_stalled_workers');
+                      const newWorkerId = await startWorker();
+                      
+                      if (newWorkerId) {
+                        console.log('Started replacement worker:', newWorkerId);
+                        toast.success('Started new worker with AI-optimized settings');
+                      }
+                    } else if (aiAnalysis.job_optimizations) {
+                      // Apply optimization settings
+                      await supabase
+                        .from('worker_config')
+                        .update({
+                          batch_size: aiAnalysis.job_optimizations.batch_size,
+                          timeout_settings: aiAnalysis.job_optimizations.timeout_settings,
+                          updated_at: new Date().toISOString(),
+                          optimization_source: 'ai_recovery'
+                        })
+                        .eq('worker_id', worker.id);
+                        
+                      console.log('Applied AI optimizations to worker configuration');
+                    }
+
+                    // Update job with AI recommendations
+                    await supabase
+                      .from('analysis_job_queue')
+                      .update({
+                        retry_count: 0,
+                        status: 'pending',
+                        error_message: null,
+                        metadata: {
+                          ...metadata,
+                          ai_diagnosis: aiAnalysis.diagnosis,
+                          pattern_improvements: aiAnalysis.pattern_improvements,
+                          last_error_resolution: aiAnalysis.error_resolution
+                        },
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq('id', worker.current_job_id);
                   }
                 }
-
-                if (workerHealth.active_workers === 0) {
-                  toast.error('All workers are currently unavailable', {
-                    description: 'Analysis requests may be delayed. Our team has been notified.'
-                  });
-                }
-              }
-
-              const { error: cleanupError } = await supabase
-                .rpc('cleanup_stalled_workers');
-
-              if (cleanupError) {
-                console.error('Error cleaning up stalled workers:', cleanupError);
               }
 
               toast.error('Worker instance stalled', {
-                description: 'Analysis may be delayed. The system will attempt to recover automatically.'
+                description: 'Analysis may be delayed. AI system is attempting recovery.'
               });
             }
           }
