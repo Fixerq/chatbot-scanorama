@@ -95,7 +95,7 @@ export const useUrlProcessor = () => {
           {
             event: '*',
             schema: 'public',
-            table: 'analysis_results'
+            table: 'analysis_results_with_requests'
           },
           (payload: RealtimePostgresChangesPayload<any>) => {
             console.log('Analysis result update received:', payload);
@@ -111,12 +111,16 @@ export const useUrlProcessor = () => {
               });
 
               if (has_chatbot) {
-                toast.success(`Chatbot detected on ${url}`);
+                toast.success(`Chatbot detected on ${url}`, {
+                  description: chatbot_solutions?.join(', ')
+                });
               }
 
               if (error) {
                 console.error(`Analysis error for ${url}:`, error);
-                toast.error(`Analysis failed for ${url}: ${error}`);
+                toast.error(`Analysis failed for ${url}`, {
+                  description: error
+                });
               }
             }
           }
@@ -153,6 +157,9 @@ export const useUrlProcessor = () => {
               
               if (status === 'completed') {
                 console.log('Batch analysis completed successfully');
+                toast.success('Analysis completed!', {
+                  description: `Processed ${processed_urls} URLs`
+                });
                 setProcessing(false);
                 onAnalysisComplete();
                 cleanup();
