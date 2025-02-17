@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { Json } from '@/types/database';
+import { CrawlRecord, Json } from '@/types/database';
 
 interface CrawlResult {
   success: boolean;
@@ -26,32 +26,6 @@ interface CrawlResult {
   creditsUsed?: number;
   expiresAt?: string;
   data?: any[];
-}
-
-interface CrawlRecord {
-  id: string;
-  url: string;
-  status: string;
-  result: CrawlResult | null;
-  error?: string;
-  user_id?: string;
-  started_at: string;
-  completed_at?: string;
-  analyzed?: boolean;
-}
-
-interface SupabaseRecord {
-  id: string;
-  url: string;
-  status: string;
-  result: Json;
-  error: string;
-  user_id: string;
-  started_at: string;
-  completed_at: string;
-  analyzed: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 export const CrawlForm = () => {
@@ -76,21 +50,7 @@ export const CrawlForm = () => {
       }
 
       if (data) {
-        const transformedData: CrawlRecord[] = data.map((record: SupabaseRecord) => {
-          const parsedResult = record.result as unknown as CrawlResult;
-          return {
-            id: record.id,
-            url: record.url,
-            status: record.status,
-            result: parsedResult && typeof parsedResult === 'object' ? parsedResult : null,
-            error: record.error,
-            user_id: record.user_id,
-            started_at: record.started_at,
-            completed_at: record.completed_at,
-            analyzed: record.analyzed
-          };
-        });
-        setCrawlRecords(transformedData);
+        setCrawlRecords(data as CrawlRecord[]);
       }
     };
 
@@ -105,25 +65,13 @@ export const CrawlForm = () => {
           schema: 'public', 
           table: 'crawl_results' 
         },
-        (payload: RealtimePostgresChangesPayload<SupabaseRecord>) => {
+        (payload: RealtimePostgresChangesPayload<CrawlRecord>) => {
           console.log('Crawl results update:', payload);
           
-          if (payload.new && isValidCrawlRecord(payload.new)) {
-            const parsedResult = payload.new.result as unknown as CrawlResult;
+          if (payload.new) {
+            const newRecord = payload.new;
             
             setCrawlRecords(prevRecords => {
-              const newRecord: CrawlRecord = {
-                id: payload.new.id,
-                url: payload.new.url,
-                status: payload.new.status,
-                result: parsedResult && typeof parsedResult === 'object' ? parsedResult : null,
-                error: payload.new.error,
-                user_id: payload.new.user_id,
-                started_at: payload.new.started_at,
-                completed_at: payload.new.completed_at,
-                analyzed: payload.new.analyzed
-              };
-              
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
               
               if (existingIndex >= 0) {
@@ -145,23 +93,6 @@ export const CrawlForm = () => {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  // Type guard function to validate the crawl record
-  const isValidCrawlRecord = (record: any): record is SupabaseRecord => {
-    return (
-      typeof record === 'object' &&
-      record !== null &&
-      typeof record.id === 'string' &&
-      typeof record.url === 'string' &&
-      typeof record.status === 'string' &&
-      typeof record.started_at === 'string' &&
-      'result' in record &&
-      'error' in record &&
-      'user_id' in record &&
-      'completed_at' in record &&
-      'analyzed' in record
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
