@@ -9,6 +9,7 @@ interface BatchUpdatePayload {
   total_urls: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   error_message?: string | null;
+  updated_at?: string;
 }
 
 function isValidBatchPayload(payload: any): payload is BatchUpdatePayload {
@@ -56,7 +57,9 @@ export function useBatchStatusUpdates(
           // Check for stalled batches and worker health
           if (status === 'processing') {
             // Check if batch is stalled (no progress for 5 minutes)
-            const timeSinceLastUpdate = Date.now() - new Date(payload.new.updated_at).getTime();
+            const timeSinceLastUpdate = payload.new.updated_at ? 
+              Date.now() - new Date(payload.new.updated_at).getTime() : 0;
+
             if (timeSinceLastUpdate > 5 * 60 * 1000) {
               console.warn('Batch appears to be stalled:', {
                 batchId,
@@ -73,20 +76,6 @@ export function useBatchStatusUpdates(
               if (workersError) {
                 console.error('Error checking worker status:', workersError);
               } else if (!workers || workers.length === 0) {
-                // No active workers found
-                const { error: alertError } = await supabase
-                  .from('monitoring_alerts')
-                  .insert({
-                    metric_name: 'no_active_workers',
-                    current_value: 0,
-                    threshold_value: 1,
-                    alert_type: 'error'
-                  });
-
-                if (alertError) {
-                  console.error('Error creating worker alert:', alertError);
-                }
-
                 toast.error('No active workers available', {
                   description: 'Analysis is delayed due to unavailable workers.'
                 });
@@ -96,9 +85,11 @@ export function useBatchStatusUpdates(
               const { error: alertError } = await supabase
                 .from('analysis_alerts')
                 .insert({
+                  url: 'Batch Analysis',
                   batch_id: batchId,
                   alert_type: 'batch_stalled',
                   alert_message: `Batch ${batchId} appears to be stalled. No progress for ${Math.round(timeSinceLastUpdate / 1000 / 60)} minutes.`,
+                  pattern_details: []
                 });
 
               if (alertError) {
