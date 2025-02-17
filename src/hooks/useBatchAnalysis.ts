@@ -91,6 +91,12 @@ export function useBatchAnalysis() {
       }
 
       // Call analyze-website function to start processing
+      console.log('Sending request to analyze-website function with payload:', {
+        urls,
+        batchId,
+        isBatch: true
+      });
+
       const { data, error } = await supabase.functions.invoke('analyze-website', {
         body: { 
           urls,
@@ -105,6 +111,8 @@ export function useBatchAnalysis() {
         throw error;
       }
       
+      console.log('Batch analysis initiated successfully:', data);
+
       // Subscribe to realtime updates for this batch
       const channel = supabase
         .channel(`batch-${batchId}`)
