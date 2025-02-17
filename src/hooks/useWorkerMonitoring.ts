@@ -4,9 +4,16 @@ import { toast } from 'sonner';
 
 interface WorkerInstance {
   id: string;
-  status: 'idle' | 'processing';
+  status: 'idle' | 'processing' | 'stopped';
   last_heartbeat: string;
   current_job_id: string | null;
+}
+
+interface WorkerHealth {
+  total_workers: number;
+  active_workers: number;
+  stalled_workers: number;
+  jobs_in_progress: number;
 }
 
 export function useWorkerMonitoring() {
@@ -39,45 +46,29 @@ export function useWorkerMonitoring() {
                 timeSinceHeartbeat
               });
 
-              // Create monitoring alert for stalled worker
-              const { error: alertError } = await supabase
-                .from('monitoring_alerts')
-                .insert({
-                  metric_name: 'worker_stalled',
-                  current_value: 1,
-                  threshold_value: 0,
-                  alert_type: 'error'
-                });
+              // Get overall worker health
+              const { data: health, error: healthError } = await supabase
+                .rpc('check_worker_health');
 
-              if (alertError) {
-                console.error('Error creating worker stall alert:', alertError);
+              if (!healthError && health) {
+                const workerHealth = health as WorkerHealth;
+                if (workerHealth.active_workers === 0) {
+                  toast.error('All workers are currently unavailable', {
+                    description: 'Analysis requests may be delayed. Our team has been notified.'
+                  });
+                }
+              }
+
+              // Trigger cleanup of stalled workers
+              const { error: cleanupError } = await supabase
+                .rpc('cleanup_stalled_workers');
+
+              if (cleanupError) {
+                console.error('Error cleaning up stalled workers:', cleanupError);
               }
 
               toast.error('Worker instance stalled', {
-                description: 'Analysis may be delayed due to a stalled worker.'
-              });
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    // Subscribe to monitoring alerts
-    const alertsChannel = supabase
-      .channel('monitoring-alerts')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'monitoring_alerts'
-        },
-        (payload) => {
-          if (payload.new) {
-            const alert = payload.new;
-            if (alert.alert_type === 'error') {
-              toast.error(`Monitoring Alert: ${alert.metric_name}`, {
-                description: `Current value: ${alert.current_value}, Threshold: ${alert.threshold_value}`
+                description: 'Analysis may be delayed. The system will attempt to recover automatically.'
               });
             }
           }
@@ -88,9 +79,23 @@ export function useWorkerMonitoring() {
     return () => {
       console.log('Unsubscribing from worker monitoring');
       supabase.removeChannel(workerChannel);
-      supabase.removeChannel(alertsChannel);
     };
   };
 
-  return { subscribeToWorkerUpdates };
+  const checkWorkerHealth = async () => {
+    const { data: health, error } = await supabase
+      .rpc('check_worker_health');
+
+    if (error) {
+      console.error('Error checking worker health:', error);
+      return null;
+    }
+
+    return health as WorkerHealth;
+  };
+
+  return { 
+    subscribeToWorkerUpdates,
+    checkWorkerHealth
+  };
 }

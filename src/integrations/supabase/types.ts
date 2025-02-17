@@ -1871,6 +1871,15 @@ export type Database = {
         }
         Returns: Json
       }
+      check_worker_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_workers: number
+          active_workers: number
+          stalled_workers: number
+          jobs_in_progress: number
+        }[]
+      }
       citext:
         | {
             Args: {
@@ -1952,6 +1961,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_stalled_workers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_stuck_analyses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1969,6 +1982,13 @@ export type Database = {
           user_id_param: string
         }
         Returns: undefined
+      }
+      get_available_worker: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          worker_id: string
+          last_heartbeat: string
+        }[]
       }
       get_next_available_proxy: {
         Args: Record<PropertyKey, never>
