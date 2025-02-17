@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
+import { AnalysisResult } from '@/utils/types/search';
 
 type AnalysisJob = Database['public']['Tables']['analysis_jobs']['Row'];
 
@@ -13,7 +14,6 @@ export const useSearch = () => {
   const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
   const [results, setResults] = useState<Result[]>([]);
 
-  // Set up real-time subscription for analysis jobs
   useEffect(() => {
     if (!currentBatchId) return;
 
@@ -31,18 +31,20 @@ export const useSearch = () => {
           if (payload.eventType === 'DELETE' || !payload.new) return;
           
           const newData = payload.new;
+          const analysisResult = newData.result as AnalysisResult | null;
           
           setResults(current => 
-            current.map(result => 
-              result.url === newData.url 
-                ? {
-                    ...result,
-                    status: newData.status || 'pending',
-                    error: newData.error || undefined,
-                    analysis_result: newData.result || undefined
-                  }
-                : result
-            )
+            current.map(result => {
+              if (result.url === newData.url) {
+                return {
+                  ...result,
+                  status: newData.status || 'pending',
+                  error: newData.error || undefined,
+                  analysis_result: analysisResult || undefined
+                };
+              }
+              return result;
+            })
           );
         }
       )
@@ -105,7 +107,7 @@ export const useSearch = () => {
       const initialResults: Result[] = placesData.results.map((place: any) => ({
         url: place.website_url || place.url,
         status: 'pending',
-        business_name: place.business_name,
+        title: place.business_name,
         details: {
           business_name: place.business_name,
           address: place.address,
@@ -129,27 +131,16 @@ export const useSearch = () => {
         throw new Error('No active batch');
       }
 
-      // Reset the job status
-      const { data: job, error: jobError } = await supabase
+      await supabase
         .from('analysis_jobs')
         .update({
           status: 'pending',
           error: null
         })
-        .eq('batch_id', currentBatchId)
         .eq('url', url)
-        .select()
-        .single();
-
-      if (jobError) throw jobError;
-
-      // Retry analysis
-      const { error: analysisError } = await supabase.functions
-        .invoke('analyze-website', {
-          body: { jobId: job.id }
-        });
-
-      if (analysisError) throw analysisError;
+        .eq('batch_id', currentBatchId);
+      
+      toast.success('Analysis retry initiated');
       
     } catch (error) {
       console.error('Retry error:', error);
@@ -164,3 +155,4 @@ export const useSearch = () => {
     results
   };
 };
+
