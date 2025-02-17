@@ -320,6 +320,7 @@ export type Database = {
           chatbot_solutions: string[] | null
           created_at: string | null
           details: Json | null
+          error: string | null
           has_chatbot: boolean
           id: string
           last_checked: string | null
@@ -339,6 +340,7 @@ export type Database = {
           chatbot_solutions?: string[] | null
           created_at?: string | null
           details?: Json | null
+          error?: string | null
           has_chatbot?: boolean
           id?: string
           last_checked?: string | null
@@ -358,6 +360,7 @@ export type Database = {
           chatbot_solutions?: string[] | null
           created_at?: string | null
           details?: Json | null
+          error?: string | null
           has_chatbot?: boolean
           id?: string
           last_checked?: string | null
