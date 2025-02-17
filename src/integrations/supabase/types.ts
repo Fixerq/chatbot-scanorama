@@ -1725,6 +1725,44 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_config: {
+        Row: {
+          batch_size: number | null
+          created_at: string
+          id: string
+          optimization_source: string | null
+          timeout_settings: Json | null
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          batch_size?: number | null
+          created_at?: string
+          id?: string
+          optimization_source?: string | null
+          timeout_settings?: Json | null
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          batch_size?: number | null
+          created_at?: string
+          id?: string
+          optimization_source?: string | null
+          timeout_settings?: Json | null
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_config_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "worker_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       worker_instances: {
         Row: {
           created_at: string | null

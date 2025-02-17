@@ -22,8 +22,64 @@ interface JobMetadata {
   [key: string]: any;
 }
 
+interface WorkerConfig {
+  batch_size: number;
+  timeout_settings: {
+    initial: number;
+    retry: number;
+  };
+  optimization_source?: string;
+}
+
 export function useWorkerMonitoring() {
   const { analyzeWithAI } = useOpenAIAnalysis();
+
+  const initializeWorkerConfig = async (workerId: string): Promise<WorkerConfig | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('worker_config')
+        .insert({
+          worker_id: workerId,
+          batch_size: 10,
+          timeout_settings: {
+            initial: 30000,
+            retry: 60000
+          },
+          optimization_source: 'initial_setup'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error initializing worker config:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in initializeWorkerConfig:', error);
+      return null;
+    }
+  };
+
+  const updateWorkerConfig = async (workerId: string, config: Partial<WorkerConfig>) => {
+    try {
+      const { error } = await supabase
+        .from('worker_config')
+        .update(config)
+        .eq('worker_id', workerId);
+
+      if (error) {
+        console.error('Error updating worker config:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in updateWorkerConfig:', error);
+      return false;
+    }
+  };
 
   const startWorker = async () => {
     try {
@@ -44,6 +100,12 @@ export function useWorkerMonitoring() {
       }
 
       console.log('Worker started successfully:', data);
+
+      // Initialize worker configuration
+      const config = await initializeWorkerConfig(data.worker_id);
+      if (!config) {
+        console.warn('Failed to initialize worker configuration');
+      }
       
       // Get initial worker health check
       const { data: healthData } = await supabase.rpc('check_worker_health');
@@ -56,25 +118,18 @@ export function useWorkerMonitoring() {
           worker_id: data.worker_id,
           queue_state: queueState,
           worker_health: healthData?.[0],
-          startup_time: new Date().toISOString()
+          startup_time: new Date().toISOString(),
+          initial_config: config
         }
       );
 
-      if (aiAnalysis) {
-        console.log('AI startup analysis:', aiAnalysis);
-        
-        // Apply any immediate optimizations
-        if (aiAnalysis.job_optimizations) {
-          await supabase
-            .from('worker_config')
-            .update({
-              batch_size: aiAnalysis.job_optimizations.batch_size,
-              timeout_settings: aiAnalysis.job_optimizations.timeout_settings,
-              updated_at: new Date().toISOString(),
-              optimization_source: 'ai_analysis'
-            })
-            .eq('worker_id', data.worker_id);
-        }
+      if (aiAnalysis?.job_optimizations) {
+        // Apply AI-recommended optimizations to worker configuration
+        await updateWorkerConfig(data.worker_id, {
+          batch_size: aiAnalysis.job_optimizations.batch_size,
+          timeout_settings: aiAnalysis.job_optimizations.timeout_settings,
+          optimization_source: 'ai_startup_analysis'
+        });
       }
 
       toast.success('Worker started successfully');
@@ -114,18 +169,24 @@ export function useWorkerMonitoring() {
               });
 
               // Get comprehensive system state
-              const [healthData, queueData] = await Promise.all([
+              const [healthData, queueData, configData] = await Promise.all([
                 supabase.rpc('check_worker_health'),
                 supabase
                   .from('analysis_job_queue')
                   .select('status, error_message, created_at, updated_at')
                   .order('created_at', { ascending: true })
-                  .limit(10)
+                  .limit(10),
+                supabase
+                  .from('worker_config')
+                  .select('*')
+                  .eq('worker_id', worker.id)
+                  .single()
               ]);
 
               const systemState = {
                 worker_health: healthData.data?.[0],
                 queue_state: queueData.data,
+                worker_config: configData.data,
                 stall_duration: timeSinceHeartbeat,
                 last_job_id: worker.current_job_id
               };
@@ -153,9 +214,7 @@ export function useWorkerMonitoring() {
                   if (aiAnalysis) {
                     console.log('AI analysis results:', aiAnalysis);
                     
-                    // Apply AI recommendations
                     if (aiAnalysis.worker_recovery.should_restart) {
-                      // Cleanup stalled worker and start new one
                       await supabase.rpc('cleanup_stalled_workers');
                       const newWorkerId = await startWorker();
                       
@@ -164,21 +223,15 @@ export function useWorkerMonitoring() {
                         toast.success('Started new worker with AI-optimized settings');
                       }
                     } else if (aiAnalysis.job_optimizations) {
-                      // Apply optimization settings
-                      await supabase
-                        .from('worker_config')
-                        .update({
-                          batch_size: aiAnalysis.job_optimizations.batch_size,
-                          timeout_settings: aiAnalysis.job_optimizations.timeout_settings,
-                          updated_at: new Date().toISOString(),
-                          optimization_source: 'ai_recovery'
-                        })
-                        .eq('worker_id', worker.id);
+                      await updateWorkerConfig(worker.id, {
+                        batch_size: aiAnalysis.job_optimizations.batch_size,
+                        timeout_settings: aiAnalysis.job_optimizations.timeout_settings,
+                        optimization_source: 'ai_recovery'
+                      });
                         
                       console.log('Applied AI optimizations to worker configuration');
                     }
 
-                    // Update job with AI recommendations
                     await supabase
                       .from('analysis_job_queue')
                       .update({
@@ -231,3 +284,4 @@ export function useWorkerMonitoring() {
     checkWorkerHealth
   };
 }
+
