@@ -2,17 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SearchResult, AnalysisResult, isAnalysisResult } from '@/utils/types/search';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-
-interface AnalysisJob {
-  id: string;
-  url: string;
-  status: string;
-  error?: string;
-  result?: AnalysisResult;
-  metadata?: Record<string, any>;
-}
+import { SearchResult, Status, AnalysisResult } from '@/utils/types/search';
 
 export const useSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
@@ -32,26 +22,21 @@ export const useSearch = () => {
           table: 'analysis_jobs',
           filter: `batch_id=eq.${currentBatchId}`
         },
-        (payload: RealtimePostgresChangesPayload<AnalysisJob>) => {
-          if (payload.eventType === 'DELETE' || !payload.new) return;
-          
-          const newJob = payload.new;
-          console.log('Analysis job update:', newJob);
+        (payload) => {
+          const { new: newJob, old: oldJob } = payload;
+          if (!newJob) return;
 
+          console.log('Analysis job update:', newJob);
+          
           setResults(current => 
             current.map(result => {
               if (result.url === newJob.url) {
-                const updatedResult: SearchResult = {
+                return {
                   ...result,
-                  status: newJob.status as SearchResult['status'],
+                  status: newJob.status as Status,
                   error: newJob.error,
+                  analysis_result: newJob.result as AnalysisResult | undefined
                 };
-
-                if (newJob.result && isAnalysisResult(newJob.result)) {
-                  updatedResult.analysis_result = newJob.result;
-                }
-
-                return updatedResult;
               }
               return result;
             })
@@ -92,11 +77,11 @@ export const useSearch = () => {
       const analysisJobs = placesData.results.map((place: any) => ({
         url: place.website_url || place.url,
         batch_id: batch.id,
-        status: 'pending',
+        status: 'pending' as Status,
         metadata: {
           place_id: place.place_id,
           business_name: place.business_name,
-          address: place.address
+          formatted_address: place.address
         }
       }));
 
@@ -160,3 +145,4 @@ export const useSearch = () => {
     results
   };
 };
+

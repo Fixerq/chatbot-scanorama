@@ -1,21 +1,28 @@
 
+// Basic status types
+export type Status = 'pending' | 'processing' | 'completed' | 'failed';
+
+// Pattern match type
+export interface PatternMatch {
+  type: string;
+  pattern: string;
+  matched: string;
+}
+
+// Analysis result interface
 export interface AnalysisResult {
   has_chatbot: boolean;
   chatSolutions: string[];
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: Status;
   error?: string;
   lastChecked?: string;
   details?: {
-    patterns?: Array<{
-      type: string;
-      pattern: string;
-      matched: string;
-    }>;
+    patterns?: PatternMatch[];
     error?: string;
   };
 }
 
-// Helper type guard for safer type checking
+// Type guard for safer type checking
 export function isAnalysisResult(obj: unknown): obj is AnalysisResult {
   if (!obj || typeof obj !== 'object') return false;
   
@@ -27,17 +34,22 @@ export function isAnalysisResult(obj: unknown): obj is AnalysisResult {
   );
 }
 
+// Simple metadata type
+export interface SearchMetadata {
+  place_id?: string;
+  business_name?: string;
+  formatted_address?: string;
+  [key: string]: unknown;
+}
+
+// Search result interface
 export interface SearchResult {
   url: string;
   title?: string;
   description?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: Status;
   error?: string;
   analysis_result?: AnalysisResult;
-  metadata?: {
-    place_id?: string;
-    business_name?: string;
-    formatted_address?: string;
-    [key: string]: unknown;
-  };
+  metadata?: SearchMetadata;
 }
+
