@@ -25,6 +25,15 @@ interface AnalysisResultPayload {
   updated_at: string;
 }
 
+// Type guard for the analysis result payload
+function isAnalysisResultPayload(obj: any): obj is AnalysisResultPayload {
+  return obj && 
+    typeof obj.has_chatbot === 'boolean' &&
+    Array.isArray(obj.chatbot_solutions) &&
+    typeof obj.status === 'string' &&
+    typeof obj.updated_at === 'string';
+}
+
 const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   status,
   analysis_result,
@@ -34,7 +43,6 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 }) => {
   useEffect(() => {
     if (url && onAnalysisUpdate) {
-      // Subscribe to realtime updates from our new view
       const subscription = supabase
         .channel(`analysis-${url}`)
         .on(
@@ -47,7 +55,7 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
           },
           (payload: RealtimePostgresChangesPayload<AnalysisResultPayload>) => {
             console.log('Analysis result update for URL:', url, payload);
-            if (payload.new && onAnalysisUpdate) {
+            if (payload.new && isAnalysisResultPayload(payload.new) && onAnalysisUpdate) {
               const result: AnalysisResult = {
                 has_chatbot: payload.new.has_chatbot,
                 chatSolutions: payload.new.chatbot_solutions || [],
@@ -145,3 +153,4 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
 };
 
 export default ResultStatusCell;
+

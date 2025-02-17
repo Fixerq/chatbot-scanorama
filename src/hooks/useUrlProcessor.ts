@@ -27,6 +27,14 @@ function isAnalysisRequest(obj: any): obj is AnalysisRequest {
     && typeof obj.url === 'string';
 }
 
+function isAnalysisUpdatePayload(obj: any): obj is AnalysisUpdatePayload {
+  return obj 
+    && typeof obj.url === 'string'
+    && typeof obj.has_chatbot === 'boolean'
+    && Array.isArray(obj.chatbot_solutions)
+    && typeof obj.status === 'string';
+}
+
 export const useUrlProcessor = () => {
   const [processing, setProcessing] = useState<boolean>(false);
   const { analyzeBatch, progress } = useBatchAnalysis();
@@ -58,7 +66,7 @@ export const useUrlProcessor = () => {
           (payload: RealtimePostgresChangesPayload<AnalysisUpdatePayload>) => {
             console.log('Analysis result update:', payload);
             
-            if (payload.new) {
+            if (payload.new && isAnalysisUpdatePayload(payload.new)) {
               const { url, has_chatbot, chatbot_solutions, status, error } = payload.new;
               if (status === 'completed') {
                 console.log('Analysis completed for URL:', url, {
@@ -90,7 +98,7 @@ export const useUrlProcessor = () => {
           },
           (payload) => {
             console.log('Batch update:', payload);
-            if (payload.new && payload.new.status === 'completed') {
+            if (payload.new && typeof payload.new.status === 'string' && payload.new.status === 'completed') {
               setProcessing(false);
               onAnalysisComplete();
               cleanup();
@@ -121,3 +129,4 @@ export const useUrlProcessor = () => {
     processSearchResults
   };
 };
+
