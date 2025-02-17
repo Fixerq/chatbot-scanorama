@@ -36,7 +36,8 @@ const Results: React.FC<ResultsProps> = ({
 }) => {
   useEffect(() => {
     console.log('Results component received new results:', results);
-  }, [results]);
+    console.log('isAnalyzing:', isAnalyzing);
+  }, [results, isAnalyzing]);
 
   useEffect(() => {
     if (!results.length) return;
@@ -129,7 +130,7 @@ const Results: React.FC<ResultsProps> = ({
     };
   }, [results, onResultUpdate]);
 
-  if (!results.length) {
+  if (!results.length && !isAnalyzing) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
