@@ -4,7 +4,6 @@ import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useBatchAnalysis } from './useBatchAnalysis';
-import { PostgresChangesPayload } from '@/types/database';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Define the type for analysis request payload
@@ -12,6 +11,14 @@ interface AnalysisRequest {
   status: string;
   batch_id: string;
   url: string;
+}
+
+// Type guard to check if an object is an AnalysisRequest
+function isAnalysisRequest(obj: any): obj is AnalysisRequest {
+  return obj 
+    && typeof obj.status === 'string'
+    && typeof obj.batch_id === 'string'
+    && typeof obj.url === 'string';
 }
 
 export const useUrlProcessor = () => {
@@ -32,11 +39,11 @@ export const useUrlProcessor = () => {
       const urls = results.map(result => result.url);
       console.log(`Processing ${urls.length} URLs in batch`);
 
-      // Subscribe to realtime updates for batch progress using the correct event type
+      // Subscribe to realtime updates for batch progress
       const subscription = supabase
         .channel('public:analysis_requests')
         .on(
-          'postgres_changes' as 'INSERT' | 'UPDATE' | 'DELETE',
+          'postgres_changes',
           {
             event: '*',
             schema: 'public',
@@ -44,19 +51,23 @@ export const useUrlProcessor = () => {
           },
           (payload: RealtimePostgresChangesPayload<AnalysisRequest>) => {
             console.log('Analysis request update:', payload);
-            if (payload.new && payload.new.status === 'completed') {
-              // Fetch the analysis result
-              supabase
-                .from('analysis_results')
-                .select('*')
-                .eq('batch_id', payload.new.batch_id)
-                .eq('url', payload.new.url)
-                .single()
-                .then(({ data, error }) => {
-                  if (!error && data) {
-                    console.log('Analysis result fetched:', data);
-                  }
-                });
+            
+            // Type guard to ensure payload.new exists and has the correct shape
+            if (payload.new && isAnalysisRequest(payload.new)) {
+              if (payload.new.status === 'completed') {
+                // Fetch the analysis result
+                supabase
+                  .from('analysis_results')
+                  .select('*')
+                  .eq('batch_id', payload.new.batch_id)
+                  .eq('url', payload.new.url)
+                  .single()
+                  .then(({ data, error }) => {
+                    if (!error && data) {
+                      console.log('Analysis result fetched:', data);
+                    }
+                  });
+              }
             }
           }
         )
