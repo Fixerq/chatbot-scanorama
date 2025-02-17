@@ -24,6 +24,53 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_analysis_insights: {
+        Row: {
+          analysis_type: string
+          applied_recommendations: boolean | null
+          batch_id: string | null
+          created_at: string
+          id: string
+          insights: Json | null
+          performance_impact: Json | null
+          success_rate: number | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          analysis_type: string
+          applied_recommendations?: boolean | null
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          insights?: Json | null
+          performance_impact?: Json | null
+          success_rate?: number | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          analysis_type?: string
+          applied_recommendations?: boolean | null
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          insights?: Json | null
+          performance_impact?: Json | null
+          success_rate?: number | null
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analysis_insights_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_thresholds: {
         Row: {
           alert_type: string
