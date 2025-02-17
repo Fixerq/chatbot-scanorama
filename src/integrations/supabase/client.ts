@@ -12,32 +12,37 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create a custom storage object that handles token persistence
 const customStorage = {
   getItem: (key: string) => {
-    const item = localStorage.getItem(key);
-    if (item) {
-      try {
-        return JSON.parse(item);
-      } catch {
-        return item;
-      }
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch {
+      return null;
     }
-    return null;
   },
   setItem: (key: string, value: string) => {
-    if (typeof value === 'object') {
-      localStorage.setItem(key, JSON.stringify(value));
-    } else {
-      localStorage.setItem(key, value);
+    try {
+      localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
     }
   },
   removeItem: (key: string) => {
-    localStorage.removeItem(key);
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.error('Error removing from localStorage:', error);
+    }
   },
   clear: () => {
-    // Only clear Supabase-related items
-    const supabaseKeys = Object.keys(localStorage).filter(key => 
-      key.startsWith('sb-') || key.includes('supabase')
-    );
-    supabaseKeys.forEach(key => localStorage.removeItem(key));
+    try {
+      // Only clear Supabase-related items
+      const supabaseKeys = Object.keys(localStorage).filter(key => 
+        key.startsWith('sb-') || key.includes('supabase')
+      );
+      supabaseKeys.forEach(key => localStorage.removeItem(key));
+    } catch (error) {
+      console.error('Error clearing localStorage:', error);
+    }
   }
 };
 
@@ -53,8 +58,15 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 // Add a helper to properly clear auth state
-export const clearAuthData = () => {
-  customStorage.clear();
-  supabase.auth.signOut();
+export const clearAuthData = async () => {
+  try {
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    if (error) throw error;
+    
+    customStorage.clear();
+  } catch (error) {
+    console.error('Error clearing auth data:', error);
+    // Still try to clear local storage even if signOut fails
+    customStorage.clear();
+  }
 };
-
