@@ -95,7 +95,7 @@ export const useUrlProcessor = () => {
           {
             event: '*',
             schema: 'public',
-            table: 'analysis_results_with_requests'
+            table: 'analysis_results_with_requests'  // Updated table name
           },
           (payload: RealtimePostgresChangesPayload<any>) => {
             console.log('Analysis result update received:', payload);
@@ -200,3 +200,4 @@ export const useUrlProcessor = () => {
     processSearchResults
   };
 };
+
