@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import { AnalysisResult } from '@/utils/types/search';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResultStatusCellProps {
   status?: string;
@@ -21,6 +22,34 @@ const ResultStatusCell: React.FC<ResultStatusCellProps> = ({
   url,
   onAnalysisUpdate
 }) => {
+  useEffect(() => {
+    if (url && onAnalysisUpdate) {
+      // Subscribe to realtime updates for this URL's analysis results
+      const subscription = supabase
+        .channel(`analysis-${url}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'analysis_results',
+            filter: `url=eq.${url}`
+          },
+          (payload) => {
+            console.log('Analysis result update for URL:', url, payload);
+            if (payload.new && onAnalysisUpdate) {
+              onAnalysisUpdate(payload.new as AnalysisResult);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [url, onAnalysisUpdate]);
+
   const getStatusDisplay = () => {
     if (status === 'error' || analysis_result?.error) {
       return (

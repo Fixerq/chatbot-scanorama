@@ -23,11 +23,42 @@ export const useUrlProcessor = () => {
       const urls = results.map(result => result.url);
       console.log(`Processing ${urls.length} URLs in batch`);
 
+      // Subscribe to realtime updates for batch progress
+      const subscription = supabase
+        .channel('public:analysis_requests')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'analysis_requests'
+          },
+          (payload) => {
+            console.log('Analysis request update:', payload);
+            if (payload.new && payload.new.status === 'completed') {
+              // Fetch the analysis result
+              supabase
+                .from('analysis_results')
+                .select('*')
+                .eq('batch_id', payload.new.batch_id)
+                .eq('url', payload.new.url)
+                .single()
+                .then(({ data, error }) => {
+                  if (!error && data) {
+                    console.log('Analysis result fetched:', data);
+                  }
+                });
+            }
+          }
+        )
+        .subscribe();
+
       // Start batch analysis
       const { cleanup } = await analyzeBatch(urls);
 
       // Set up cleanup on component unmount
       return () => {
+        subscription.unsubscribe();
         cleanup();
         setProcessing(false);
       };
