@@ -47,11 +47,11 @@ export function useWorkerMonitoring() {
               });
 
               // Get overall worker health
-              const { data: health, error: healthError } = await supabase
+              const { data: healthData, error: healthError } = await supabase
                 .rpc('check_worker_health');
 
-              if (!healthError && health) {
-                const workerHealth = health as WorkerHealth;
+              if (!healthError && healthData && healthData.length > 0) {
+                const workerHealth = healthData[0] as WorkerHealth;
                 if (workerHealth.active_workers === 0) {
                   toast.error('All workers are currently unavailable', {
                     description: 'Analysis requests may be delayed. Our team has been notified.'
@@ -83,7 +83,7 @@ export function useWorkerMonitoring() {
   };
 
   const checkWorkerHealth = async () => {
-    const { data: health, error } = await supabase
+    const { data: healthData, error } = await supabase
       .rpc('check_worker_health');
 
     if (error) {
@@ -91,7 +91,8 @@ export function useWorkerMonitoring() {
       return null;
     }
 
-    return health as WorkerHealth;
+    // Return the first item from the array since we know it returns a single-item array
+    return healthData && healthData.length > 0 ? healthData[0] as WorkerHealth : null;
   };
 
   return { 
