@@ -111,7 +111,7 @@ export const CrawlForm = () => {
         },
         (payload: RealtimePostgresChangesPayload<SupabaseCrawlRecord>) => {
           console.log('Crawl results update:', payload);
-          if (payload.new) {
+          if (payload.new && isValidCrawlRecord(payload.new)) {
             setCrawlRecords(prevRecords => {
               const newRecord: CrawlRecord = {
                 id: payload.new.id,
@@ -154,6 +154,18 @@ export const CrawlForm = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Type guard function to validate the crawl record
+  const isValidCrawlRecord = (record: any): record is SupabaseCrawlRecord => {
+    return (
+      typeof record === 'object' &&
+      record !== null &&
+      typeof record.id === 'string' &&
+      typeof record.url === 'string' &&
+      typeof record.status === 'string' &&
+      typeof record.started_at === 'string'
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -310,3 +322,4 @@ export const CrawlForm = () => {
     </div>
   );
 };
+
