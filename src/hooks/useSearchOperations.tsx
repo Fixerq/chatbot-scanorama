@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResult, Status } from '@/utils/types/search';
+import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
 
 interface SearchResponse {
@@ -12,7 +13,31 @@ interface SearchResponse {
   details?: string;
 }
 
-export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAction<SearchResult[]>>) => {
+const transformSearchResult = (searchResult: SearchResult): Result => {
+  console.log('Transforming search result:', searchResult);
+  return {
+    url: searchResult.url,
+    title: searchResult.title || '',
+    description: searchResult.description || '',
+    business_name: searchResult.metadata?.business_name || '',
+    website_url: searchResult.url,
+    address: searchResult.metadata?.formatted_address || '',
+    placeId: searchResult.metadata?.place_id || '',
+    status: searchResult.status,
+    error: searchResult.error,
+    details: {
+      search_batch_id: '',
+      business_name: searchResult.metadata?.business_name || '',
+      title: searchResult.title || '',
+      description: searchResult.description || '',
+      address: searchResult.metadata?.formatted_address || '',
+      website_url: searchResult.url,
+    },
+    analysis_result: searchResult.analysis_result
+  };
+};
+
+export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
   const [isSearching, setIsSearching] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
 
@@ -57,10 +82,13 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
       }
 
       console.log('Search successful:', data.results.length, 'results found');
-      console.log('Results data:', data.results);
+      console.log('Raw results data:', data.results);
       
-      // Ensure results are initialized as an empty array if none are found
-      setResults(data.results || []);
+      // Transform SearchResult[] to Result[]
+      const transformedResults = data.results.map(transformSearchResult);
+      console.log('Transformed results:', transformedResults);
+      
+      setResults(transformedResults);
       setNextPageToken(data.nextPageToken || null);
       
       if (data.results.length === 0) {
@@ -69,7 +97,6 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
     } catch (error) {
       console.error('Search error:', error);
       toast.error('An error occurred during search');
-      // Clear results on error
       setResults([]);
       throw error;
     } finally {
@@ -119,7 +146,10 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
 
       if (data?.results) {
         console.log('Load more successful:', data.results.length, 'additional results');
-        setResults(prevResults => [...prevResults, ...data.results]);
+        const transformedResults = data.results.map(transformSearchResult);
+        console.log('Transformed additional results:', transformedResults);
+        
+        setResults(prevResults => [...prevResults, ...transformedResults]);
         setNextPageToken(data.nextPageToken || null);
       }
     } catch (error) {
@@ -138,3 +168,4 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
     nextPageToken
   };
 };
+
