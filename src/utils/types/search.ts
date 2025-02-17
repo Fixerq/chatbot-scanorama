@@ -26,3 +26,18 @@ export function isAnalysisResult(obj: unknown): obj is AnalysisResult {
     typeof result.status === 'string'
   );
 }
+
+export interface SearchResult {
+  url: string;
+  title?: string;
+  description?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error?: string;
+  analysis_result?: AnalysisResult;
+  metadata?: {
+    place_id?: string;
+    business_name?: string;
+    formatted_address?: string;
+    [key: string]: any;
+  };
+}

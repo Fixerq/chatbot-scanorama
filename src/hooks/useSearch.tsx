@@ -2,17 +2,22 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Result } from '@/components/ResultsTable';
+import { SearchResult, AnalysisResult, isAnalysisResult } from '@/utils/types/search';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { Database } from '@/integrations/supabase/types';
-import { AnalysisResult, isAnalysisResult } from '@/utils/types/search';
 
-type AnalysisJob = Database['public']['Tables']['analysis_jobs']['Row'];
+interface AnalysisJob {
+  id: string;
+  url: string;
+  status: string;
+  error?: string;
+  result?: AnalysisResult;
+  metadata?: Record<string, any>;
+}
 
 export const useSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
-  const [results, setResults] = useState<Result[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
     if (!currentBatchId) return;
@@ -30,26 +35,23 @@ export const useSearch = () => {
         (payload: RealtimePostgresChangesPayload<AnalysisJob>) => {
           if (payload.eventType === 'DELETE' || !payload.new) return;
           
-          const newData = payload.new;
-          
-          // Safely handle the analysis result
-          let analysisResult: AnalysisResult | undefined;
-          if (newData.result && typeof newData.result === 'object') {
-            const potentialResult = newData.result as unknown;
-            if (isAnalysisResult(potentialResult)) {
-              analysisResult = potentialResult;
-            }
-          }
-          
+          const newJob = payload.new;
+          console.log('Analysis job update:', newJob);
+
           setResults(current => 
             current.map(result => {
-              if (result.url === newData.url) {
-                return {
+              if (result.url === newJob.url) {
+                const updatedResult: SearchResult = {
                   ...result,
-                  status: newData.status || 'pending',
-                  error: newData.error || undefined,
-                  analysis_result: analysisResult
+                  status: newJob.status as SearchResult['status'],
+                  error: newJob.error,
                 };
+
+                if (newJob.result && isAnalysisResult(newJob.result)) {
+                  updatedResult.analysis_result = newJob.result;
+                }
+
+                return updatedResult;
               }
               return result;
             })
@@ -66,7 +68,6 @@ export const useSearch = () => {
   const handleSearch = async (query: string, country: string, region: string) => {
     setIsSearching(true);
     try {
-      // Create a new search batch
       const { data: batch, error: batchError } = await supabase
         .from('search_batches')
         .insert({
@@ -81,19 +82,13 @@ export const useSearch = () => {
       
       setCurrentBatchId(batch.id);
 
-      // Call search-places edge function
       const { data: placesData, error: placesError } = await supabase.functions
         .invoke('search-places', {
-          body: {
-            query,
-            country,
-            region
-          }
+          body: { query, country, region }
         });
 
       if (placesError) throw placesError;
 
-      // Create analysis jobs
       const analysisJobs = placesData.results.map((place: any) => ({
         url: place.website_url || place.url,
         batch_id: batch.id,
@@ -111,16 +106,14 @@ export const useSearch = () => {
 
       if (jobsError) throw jobsError;
 
-      // Initialize results
-      const initialResults: Result[] = placesData.results.map((place: any) => ({
+      const initialResults: SearchResult[] = placesData.results.map((place: any) => ({
         url: place.website_url || place.url,
         status: 'pending',
         title: place.business_name,
-        details: {
-          search_batch_id: batch.id,
+        metadata: {
+          place_id: place.place_id,
           business_name: place.business_name,
-          address: place.address,
-          website_url: place.website_url,
+          formatted_address: place.address
         }
       }));
 
@@ -140,21 +133,13 @@ export const useSearch = () => {
         throw new Error('No active batch');
       }
 
-      type UpdatePayload = {
-        status: 'pending';
-        error: null;
-        result: null;
-      };
-
-      const updatePayload: UpdatePayload = {
-        status: 'pending',
-        error: null,
-        result: null
-      };
-
       const { error } = await supabase
         .from('analysis_jobs')
-        .update(updatePayload)
+        .update({
+          status: 'pending',
+          error: null,
+          result: null
+        })
         .eq('url', url)
         .eq('batch_id', currentBatchId);
 
@@ -175,4 +160,3 @@ export const useSearch = () => {
     results
   };
 };
-
