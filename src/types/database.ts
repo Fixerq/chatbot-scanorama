@@ -18,6 +18,14 @@ export interface AnalysisQueuePayload {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
 }
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export type PostgresChangesPayload<T> = {
   new: T;
   old: T;
