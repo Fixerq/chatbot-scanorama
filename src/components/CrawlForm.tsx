@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast"; 
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ export const CrawlForm = () => {
           console.log('Crawl results update:', payload);
           
           if (payload.new) {
-            const newRecord = payload.new;
+            const newRecord: CrawlRecord = payload.new; // Explicitly type as CrawlRecord
             
             setCrawlRecords(prevRecords => {
               const existingIndex = prevRecords.findIndex(r => r.id === newRecord.id);
