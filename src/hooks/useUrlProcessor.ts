@@ -66,10 +66,31 @@ export const useUrlProcessor = () => {
     onAnalysisStart();
 
     try {
+      // Get current worker status
+      const { data: workerHealth } = await supabase.rpc('check_worker_health');
+      console.log('Worker health check:', workerHealth);
+
+      if (!workerHealth || workerHealth[0]?.active_workers === 0) {
+        console.log('No active workers found, attempting to start worker...');
+        
+        // Attempt to start a worker
+        const { data: workerData, error: workerError } = await supabase.functions.invoke('start-worker');
+        
+        if (workerError || !workerData) {
+          console.error('Failed to start worker:', workerError);
+          throw new Error('Failed to start analysis worker');
+        }
+        
+        console.log('Started new worker:', workerData);
+        
+        // Wait briefly for worker to initialize
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
       // Pass the entire results array to analyzeBatch
       console.log(`Processing ${results.length} search results in batch`);
 
-      // Subscribe to realtime updates for batch progress 
+      // Subscribe to realtime updates for analysis progress 
       const subscription = supabase
         .channel('analysis-updates')
         .on(
@@ -84,14 +105,20 @@ export const useUrlProcessor = () => {
             
             if (payload.new && isAnalysisUpdatePayload(payload.new)) {
               const { url, has_chatbot, chatbot_solutions, status, error } = payload.new;
+              
               if (status === 'completed') {
                 console.log('Analysis completed for URL:', url, {
                   has_chatbot,
                   chatbot_solutions,
                   status
                 });
+                
+                if (has_chatbot) {
+                  toast.success(`Chatbot detected on ${url}`);
+                }
               } else if (error) {
                 console.error('Analysis error for URL:', url, error);
+                toast.error(`Analysis failed for ${url}: ${error}`);
               }
             }
           }
@@ -100,6 +127,10 @@ export const useUrlProcessor = () => {
 
       // Start batch analysis
       const { cleanup, batchId } = await analyzeBatch(results);
+
+      if (!batchId) {
+        throw new Error('Failed to create analysis batch');
+      }
 
       // Subscribe to specific batch updates
       const batchSubscription = supabase
@@ -114,12 +145,24 @@ export const useUrlProcessor = () => {
           },
           (payload: RealtimePostgresChangesPayload<BatchUpdatePayload>) => {
             console.log('Batch update:', payload);
-            if (payload.new && isBatchUpdatePayload(payload.new) && payload.new.status === 'completed') {
-              setProcessing(false);
-              onAnalysisComplete();
-              cleanup();
-              subscription.unsubscribe();
-              batchSubscription.unsubscribe();
+            
+            if (payload.new && isBatchUpdatePayload(payload.new)) {
+              if (payload.new.status === 'completed') {
+                console.log('Batch analysis completed successfully');
+                setProcessing(false);
+                onAnalysisComplete();
+                cleanup();
+                subscription.unsubscribe();
+                batchSubscription.unsubscribe();
+              } else if (payload.new.status === 'failed') {
+                console.error('Batch analysis failed');
+                toast.error('Analysis failed. Please try again.');
+                setProcessing(false);
+                onAnalysisComplete();
+                cleanup();
+                subscription.unsubscribe();
+                batchSubscription.unsubscribe();
+              }
             }
           }
         )
@@ -134,8 +177,9 @@ export const useUrlProcessor = () => {
       };
     } catch (error) {
       console.error('Failed to process search results:', error);
-      toast.error('Failed to analyze websites');
+      toast.error('Failed to analyze websites. Please try again.');
       setProcessing(false);
+      onAnalysisComplete();
     }
   }, [analyzeBatch]);
 
