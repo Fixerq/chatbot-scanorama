@@ -29,7 +29,6 @@ interface AnalysisResult {
   };
 }
 
-// Type guard to check if payload is a valid AnalysisBatch
 function isValidBatchPayload(payload: any): payload is AnalysisBatch {
   return (
     payload &&
@@ -39,15 +38,57 @@ function isValidBatchPayload(payload: any): payload is AnalysisBatch {
   );
 }
 
+function isValidBusinessUrl(url: string): boolean {
+  // Skip Google Maps URLs and other non-business URLs
+  if (url.includes('google.com/maps') || url.includes('maps.google.com')) {
+    return false;
+  }
+  
+  // Basic URL validation
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function extractWebsiteUrl(result: any): string | null {
+  // If we have a website_url in the details, use that
+  if (result.details?.website_url) {
+    return result.details.website_url;
+  }
+  
+  // If the URL is already a valid business URL, use it
+  if (isValidBusinessUrl(result.url)) {
+    return result.url;
+  }
+  
+  return null;
+}
+
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const analyzeBatch = async (urls: string[]) => {
+  const analyzeBatch = async (results: any[]) => {
     setIsProcessing(true);
     setProgress(0);
     
     try {
+      // Extract and filter valid business URLs
+      const validUrls = results
+        .map(result => extractWebsiteUrl(result))
+        .filter((url): url is string => url !== null);
+
+      if (validUrls.length === 0) {
+        toast.error('No valid business websites found to analyze');
+        setIsProcessing(false);
+        return;
+      }
+
+      console.log(`Found ${validUrls.length} valid business URLs to analyze`);
+
       // Generate a request ID for the batch
       const request_id = crypto.randomUUID();
 
@@ -55,7 +96,7 @@ export function useBatchAnalysis() {
       const { data: batchData, error: batchError } = await supabase
         .from('analysis_batches')
         .insert({
-          total_urls: urls.length,
+          total_urls: validUrls.length,
           processed_urls: 0,
           status: 'pending' as const,
           request_id
@@ -73,7 +114,7 @@ export function useBatchAnalysis() {
       console.log('Batch analysis started with ID:', batchId);
 
       // Create analysis requests for each URL
-      const requests = urls.map(url => ({
+      const requests = validUrls.map(url => ({
         batch_id: batchId,
         url,
         status: 'pending' as const,
@@ -92,14 +133,14 @@ export function useBatchAnalysis() {
 
       // Call analyze-website function to start processing
       console.log('Sending request to analyze-website function with payload:', {
-        urls,
+        urls: validUrls,
         batchId,
         isBatch: true
       });
 
       const { data, error } = await supabase.functions.invoke('analyze-website', {
         body: { 
-          urls,
+          urls: validUrls,
           batchId,
           isBatch: true
         }

@@ -66,8 +66,8 @@ export const useUrlProcessor = () => {
     onAnalysisStart();
 
     try {
-      const urls = results.map(result => result.url);
-      console.log(`Processing ${urls.length} URLs in batch`);
+      // Pass the entire results array to analyzeBatch
+      console.log(`Processing ${results.length} search results in batch`);
 
       // Subscribe to realtime updates for batch progress 
       const subscription = supabase
@@ -99,7 +99,7 @@ export const useUrlProcessor = () => {
         .subscribe();
 
       // Start batch analysis
-      const { cleanup, batchId } = await analyzeBatch(urls);
+      const { cleanup, batchId } = await analyzeBatch(results);
 
       // Subscribe to specific batch updates
       const batchSubscription = supabase
