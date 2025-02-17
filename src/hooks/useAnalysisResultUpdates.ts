@@ -67,12 +67,9 @@ export function useAnalysisResultUpdates(batchId: string | null) {
                   ? `Solutions: ${payload.new.chatSolutions.join(', ')}`
                   : '';
 
-                toast.success(
-                  {
-                    title: "Chatbot Detected!",
-                    description: `URL: ${payload.new.url}\n${solutions}`
-                  }
-                );
+                toast.success("Chatbot Detected!", {
+                  description: `URL: ${payload.new.url}\n${solutions}`
+                });
               }
             }
           }
