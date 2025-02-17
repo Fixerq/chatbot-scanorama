@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResult, Status } from '@/utils/types/search';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // Simplified analysis job interface
 interface AnalysisJob {
@@ -75,7 +74,7 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
       if (error) throw error;
 
       if (data?.results) {
-        setResults(prevResults => [...prevResults, ...data.results]);
+        setResults((prevResults: SearchResult[]) => [...prevResults, ...data.results]);
         setNextPageToken(data.nextPageToken || null);
       }
     } catch (error) {
@@ -93,3 +92,4 @@ export const useSearchOperations = (setResults: (results: SearchResult[]) => voi
     nextPageToken
   };
 };
+
