@@ -19,6 +19,17 @@ export function useBatchAnalysis() {
       // Create batch and get batch ID
       const { batchId, validUrls } = await createAnalysisBatch(results);
 
+      // Start a worker if none are available
+      const { data: healthData } = await supabase.rpc('check_worker_health');
+      if (!healthData || healthData[0]?.active_workers === 0) {
+        console.log('No active workers found, starting new worker...');
+        const workerId = await workerMonitoring.startWorker();
+        if (!workerId) {
+          throw new Error('Failed to start worker');
+        }
+        console.log('Started new worker with ID:', workerId);
+      }
+
       // Setup worker monitoring
       const cleanupWorkerMonitoring = workerMonitoring.subscribeToWorkerUpdates();
 
