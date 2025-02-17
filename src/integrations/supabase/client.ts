@@ -13,15 +13,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const customStorage = {
   getItem: (key: string) => {
     try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : null;
-    } catch {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
       return null;
     }
   },
   setItem: (key: string, value: string) => {
     try {
-      localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
+      localStorage.setItem(key, value);
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
@@ -36,10 +36,11 @@ const customStorage = {
   clear: () => {
     try {
       // Only clear Supabase-related items
-      const supabaseKeys = Object.keys(localStorage).filter(key => 
-        key.startsWith('sb-') || key.includes('supabase')
-      );
-      supabaseKeys.forEach(key => localStorage.removeItem(key));
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
     } catch (error) {
       console.error('Error clearing localStorage:', error);
     }
@@ -52,25 +53,21 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storage: customStorage,
-    storageKey: `sb-${supabaseUrl.split('//')[1]}-auth-token`,
-    flowType: 'pkce',
+    storageKey: 'supabase.auth.token',
   },
 });
 
 // Add a helper to properly clear auth state
 export const clearAuthData = async () => {
   try {
-    // First clear the local storage
-    customStorage.clear();
+    // Clear the session first
+    await supabase.auth.signOut();
     
-    // Then try to sign out locally without global scope
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error clearing session:', error);
-    }
+    // Then clear storage
+    customStorage.clear();
   } catch (error) {
     console.error('Error clearing auth data:', error);
-    // Still try to clear local storage even if signOut fails
+    // Ensure storage is cleared even if signOut fails
     customStorage.clear();
   }
 };

@@ -38,21 +38,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!newSession) {
-        console.log('No active session');
         if (mounted.current && window.location.pathname !== '/login') {
+          await clearAuthData();
           navigate('/login');
         }
         return;
       }
 
-      // If we have a valid session, check its expiry
+      // Check token expiry
       const expiresAt = newSession.expires_at;
       if (expiresAt) {
         const expiresIn = expiresAt - Math.floor(Date.now() / 1000);
-        // If token expires in less than 5 minutes, refresh it
-        if (expiresIn < 300) {
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
+        if (expiresIn < 300) { // Less than 5 minutes until expiry
+          const { data, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !data.session) {
             console.error('Token refresh failed:', refreshError);
             if (mounted.current) {
               await clearAuthData();
@@ -63,7 +62,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Unexpected error during session refresh:', error);
+      console.error('Session refresh error:', error);
       if (mounted.current) {
         await clearAuthData();
         navigate('/login');
@@ -73,29 +72,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const setupSession = async () => {
-      if (!mounted.current) return;
-
+    const initialize = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('Error getting initial session:', error);
-          if (mounted.current) {
-            await clearAuthData();
-            navigate('/login');
-          }
-          return;
-        }
-
-        if (!session) {
-          console.log('No initial session found');
+        
+        if (error || !session) {
           if (mounted.current && window.location.pathname !== '/login') {
+            await clearAuthData();
             navigate('/login');
           }
         }
       } catch (error) {
-        console.error('Error during session setup:', error);
+        console.error('Session initialization error:', error);
         if (mounted.current) {
           await clearAuthData();
           navigate('/login');
@@ -107,27 +95,27 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    setupSession();
+    initialize();
 
-    // Set up periodic session refresh
-    refreshTimeout.current = setInterval(() => {
-      if (session?.user && mounted.current) {
-        refreshSession();
-      }
-    }, 4 * 60 * 1000); // Refresh every 4 minutes
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted.current) return;
       
       console.log('Auth state changed:', event);
       
-      if (event === 'SIGNED_OUT') {
-        await clearAuthData();
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         if (mounted.current) {
+          await clearAuthData();
           navigate('/login');
         }
+      } else if (event === 'SIGNED_IN' && currentSession) {
+        // Refresh session immediately on sign in
+        await refreshSession();
       }
     });
+
+    // Set up periodic session refresh
+    refreshTimeout.current = setInterval(refreshSession, 4 * 60 * 1000); // Every 4 minutes
 
     return () => {
       mounted.current = false;
@@ -136,7 +124,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         clearInterval(refreshTimeout.current);
       }
     };
-  }, [session?.user?.id]);
+  }, [navigate, supabase]);
 
   return (
     <SessionContext.Provider value={{
