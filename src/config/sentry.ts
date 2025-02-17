@@ -1,6 +1,7 @@
 
 import * as Sentry from '@sentry/browser';
 import { BrowserTracing } from '@sentry/tracing';
+import type { Integration } from '@sentry/types';
 
 const initSentry = () => {
   if (!import.meta.env.VITE_SENTRY_DSN) {
@@ -10,7 +11,7 @@ const initSentry = () => {
 
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [new BrowserTracing()],
+    integrations: [new BrowserTracing() as unknown as Integration],
     tracesSampleRate: 1.0,
     environment: import.meta.env.MODE,
   });
