@@ -339,7 +339,7 @@ export type Database = {
           chatbot_solutions?: string[] | null
           created_at?: string | null
           details?: Json | null
-          has_chatbot: boolean
+          has_chatbot?: boolean
           id?: string
           last_checked?: string | null
           match_patterns?: Json[] | null
