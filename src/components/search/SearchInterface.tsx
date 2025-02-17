@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import SearchFormContainer from '@/components/SearchFormContainer';
 import Results from '@/components/Results';
 import { Result } from '@/components/ResultsTable';
-import { toast } from 'sonner';
+import { useSearch } from '@/hooks/useSearch';
 
 interface SearchInterfaceProps {
   initialSearch?: {
@@ -14,48 +14,26 @@ interface SearchInterfaceProps {
 }
 
 const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
-  const [results, setResults] = useState<Result[]>([]);
+  const { handleSearch, retryAnalysis, isSearching, results } = useSearch();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [searchParams, setSearchParams] = useState({
-    query: initialSearch?.query || '',
-    country: initialSearch?.country || '',
-    region: initialSearch?.region || ''
-  });
 
   const handleResults = async (newResults: Result[]) => {
-    console.log('New search results received:', newResults);
-    setResults(newResults);
-    
-    if (newResults.length === 0) {
-      toast.info('No results found for your search.');
-      return;
-    }
-    
-    toast.success(`Found ${newResults.length} result${newResults.length === 1 ? '' : 's'}`);
+    console.log('Search results received:', newResults);
   };
 
   const handleSearchError = (error: Error) => {
     console.error('Search error:', error);
-    toast.error('An error occurred during search. Please try again.');
     setIsProcessing(false);
   };
 
-  const handleResultUpdate = (updatedResult: Result) => {
-    setResults(prevResults => 
-      prevResults.map(result => 
-        result.url === updatedResult.url ? updatedResult : result
-      )
-    );
+  const handleSearchParamsChange = async (params: { query: string; country: string; region: string }) => {
+    setIsProcessing(true);
+    await handleSearch(params.query, params.country, params.region);
+    setIsProcessing(false);
   };
 
   const handleNewSearch = () => {
-    setResults([]);
-    setSearchParams({
-      query: '',
-      country: '',
-      region: ''
-    });
+    window.location.reload(); // Reset the entire search state
   };
 
   return (
@@ -65,7 +43,7 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
         isProcessing={isProcessing}
         setIsProcessing={setIsProcessing}
         onError={handleSearchError}
-        onSearchParamsChange={setSearchParams}
+        onSearchParamsChange={handleSearchParamsChange}
       />
       
       <Results 
@@ -75,8 +53,12 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
         hasMore={false}
         onLoadMore={() => {}}
         isLoadingMore={false}
-        isAnalyzing={isAnalyzing}
-        onResultUpdate={handleResultUpdate}
+        isAnalyzing={isSearching}
+        onResultUpdate={(updatedResult) => {
+          if (updatedResult.error) {
+            retryAnalysis(updatedResult.url);
+          }
+        }}
       />
     </div>
   );
