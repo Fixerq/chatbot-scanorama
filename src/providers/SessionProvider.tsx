@@ -103,7 +103,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       
       console.log('Auth state changed:', event);
       
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      if (event === 'SIGNED_OUT') {
         if (mounted.current) {
           await clearAuthData();
           navigate('/login');
@@ -144,3 +144,4 @@ export const useSessionContext = () => {
   }
   return context;
 };
+
