@@ -28,6 +28,8 @@ export function useBatchStatusUpdates(
   const subscribeToUpdates = () => {
     if (!batchId) return;
 
+    console.log('Subscribing to batch status updates for:', batchId);
+
     const channel = supabase
       .channel(`batch-${batchId}`)
       .on(
@@ -38,7 +40,7 @@ export function useBatchStatusUpdates(
           table: 'analysis_batches',
           filter: `id=eq.${batchId}`
         },
-        (payload: RealtimePostgresChangesPayload<BatchUpdatePayload>) => {
+        async (payload: RealtimePostgresChangesPayload<BatchUpdatePayload>) => {
           console.log('Batch update:', payload);
           if (!payload.new || !isValidBatchPayload(payload.new)) {
             console.warn('Invalid batch payload received:', payload);
@@ -50,6 +52,36 @@ export function useBatchStatusUpdates(
           // Calculate and update progress
           const progressValue = Math.round((processed_urls / total_urls) * 100);
           onProgress(progressValue);
+          
+          // Monitor for stalled batches
+          const STALL_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+          if (status === 'processing' && payload.old?.processed_urls === processed_urls) {
+            const timeSinceLastUpdate = Date.now() - new Date(payload.new.updated_at).getTime();
+            if (timeSinceLastUpdate > STALL_THRESHOLD) {
+              console.warn('Batch appears to be stalled:', {
+                batchId,
+                lastProgress: processed_urls,
+                timeSinceUpdate: timeSinceLastUpdate
+              });
+
+              // Create stall alert
+              const { error: alertError } = await supabase
+                .from('analysis_alerts')
+                .insert({
+                  batch_id: batchId,
+                  alert_type: 'batch_stalled',
+                  alert_message: `Batch ${batchId} appears to be stalled. No progress for ${Math.round(timeSinceLastUpdate / 1000 / 60)} minutes.`,
+                });
+
+              if (alertError) {
+                console.error('Error creating stall alert:', alertError);
+              }
+
+              toast.error('Analysis appears to be stalled', {
+                description: 'The analysis has not made progress for several minutes.'
+              });
+            }
+          }
           
           // Handle completion or failure
           if (status === 'completed') {
@@ -66,9 +98,11 @@ export function useBatchStatusUpdates(
       .subscribe();
 
     return () => {
+      console.log('Unsubscribing from batch status updates');
       supabase.removeChannel(channel);
     };
   };
 
   return { subscribeToUpdates };
 }
+

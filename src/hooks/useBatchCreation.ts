@@ -11,6 +11,7 @@ export async function createAnalysisBatch(results: any[]) {
   }
 
   console.log(`Found ${validUrls.length} valid business URLs to analyze`);
+  console.log('URLs to analyze:', validUrls);
 
   // Generate a request ID for the batch
   const request_id = crypto.randomUUID();
@@ -40,7 +41,10 @@ export async function createAnalysisBatch(results: any[]) {
     batch_id: batchId,
     url,
     status: 'pending' as const,
-    processed: false
+    processed: false,
+    retry_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }));
 
   const { error: requestsError } = await supabase
@@ -49,8 +53,33 @@ export async function createAnalysisBatch(results: any[]) {
 
   if (requestsError) {
     console.error('Error creating analysis requests:', requestsError);
+    
+    // Attempt to mark batch as failed if request creation fails
+    await supabase
+      .from('analysis_batches')
+      .update({
+        status: 'failed',
+        error_message: 'Failed to create analysis requests'
+      })
+      .eq('id', batchId);
+
     throw requestsError;
+  }
+
+  // Create monitoring record for the batch
+  const { error: monitoringError } = await supabase
+    .from('monitoring_alerts')
+    .insert({
+      metric_name: 'batch_created',
+      current_value: validUrls.length,
+      threshold_value: validUrls.length,
+      alert_type: 'info'
+    });
+
+  if (monitoringError) {
+    console.error('Error creating monitoring alert:', monitoringError);
   }
 
   return { batchId, validUrls };
 }
+

@@ -33,6 +33,8 @@ export function useAnalysisResultUpdates(batchId: string | null) {
   const subscribeToUpdates = () => {
     if (!batchId) return;
 
+    console.log('Subscribing to analysis results for batch:', batchId);
+
     const channel = supabase
       .channel(`results-${batchId}`)
       .on(
@@ -47,8 +49,27 @@ export function useAnalysisResultUpdates(batchId: string | null) {
           console.log('Analysis result update:', payload);
           
           if (payload.new && isValidAnalysisResult(payload.new)) {
-            if (payload.new.has_chatbot) {
-              // Create an alert record
+            if (payload.new.error) {
+              // Create an alert for analysis errors
+              const { error: alertError } = await supabase
+                .from('analysis_alerts')
+                .insert({
+                  url: payload.new.url || '',
+                  batch_id: batchId,
+                  alert_type: 'analysis_error',
+                  alert_message: `Analysis failed for ${payload.new.url}: ${payload.new.error}`,
+                  pattern_details: []
+                });
+
+              if (alertError) {
+                console.error('Error creating error alert:', alertError);
+              }
+
+              toast.error(`Analysis failed for ${payload.new.url}`, {
+                description: payload.new.error
+              });
+            } else if (payload.new.has_chatbot) {
+              // Create an alert record for chatbot detection
               const { error } = await supabase
                 .from('analysis_alerts')
                 .insert({
@@ -62,7 +83,6 @@ export function useAnalysisResultUpdates(batchId: string | null) {
               if (error) {
                 console.error('Error creating alert:', error);
               } else {
-                // Show toast with more details
                 const solutions = payload.new.chatSolutions?.length > 0
                   ? `Solutions: ${payload.new.chatSolutions.join(', ')}`
                   : '';
@@ -106,6 +126,7 @@ export function useAnalysisResultUpdates(batchId: string | null) {
       .subscribe();
 
     return () => {
+      console.log('Unsubscribing from analysis results');
       supabase.removeChannel(channel);
       supabase.removeChannel(alertsChannel);
     };
@@ -113,3 +134,4 @@ export function useAnalysisResultUpdates(batchId: string | null) {
 
   return { subscribeToUpdates };
 }
+
