@@ -7,39 +7,39 @@ export const useResultsState = (initialResults: Result[] = []) => {
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
   const [localPage, setLocalPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Initial results received:', initialResults);
     let updatedResults = [...initialResults].map(result => ({
       ...result,
       url: result.details?.website_url || result.url || '',
       business_name: result.details?.business_name || result.business_name || '',
-      status: result.details?.error ? `Error: ${result.details.error}` : result.status
+      status: result.details?.error ? `Error: ${result.details.error}` : result.status || 'pending'
     }));
 
-    // Less restrictive filtering - only filter out results with no URL
-    updatedResults = updatedResults.filter(r => r.url);
-
+    console.log('Processed results:', updatedResults);
     setFilteredResults(updatedResults);
     setLocalPage(1);
+    setIsLoading(false);
   }, [initialResults]);
 
   const handleFilter = (value: string) => {
+    console.log('Applying filter:', value);
     setFilterValue(value);
     let filtered = [...initialResults].map(result => ({
       ...result,
       url: result.details?.website_url || result.url || '',
       business_name: result.details?.business_name || result.business_name || '',
-      status: result.details?.error ? `Error: ${result.details.error}` : result.status
+      status: result.details?.error ? `Error: ${result.details.error}` : result.status || 'pending'
     }));
-    
-    // Less restrictive filtering - only filter out results with no URL
-    filtered = filtered.filter(r => r.url);
     
     setFilteredResults(filtered);
     setLocalPage(1);
   };
 
   const handleSort = (value: string) => {
+    console.log('Applying sort:', value);
     setSortValue(value);
     let sorted = [...filteredResults];
     
@@ -60,6 +60,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
         break;
     }
     
+    console.log('Sorted results:', sorted);
     setFilteredResults(sorted);
   };
 
@@ -70,6 +71,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
     localPage,
     setLocalPage,
     handleFilter,
-    handleSort
+    handleSort,
+    isLoading
   };
 };
