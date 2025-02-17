@@ -18,8 +18,7 @@ async function registerWorker(supabase: ReturnType<typeof createClient>) {
   const { data, error } = await supabase
     .from('worker_instances')
     .insert({
-      status: 'idle',
-      last_heartbeat: new Date().toISOString()
+      status: 'idle'
     })
     .select()
     .single();
@@ -46,123 +45,119 @@ async function sendHeartbeat(supabase: ReturnType<typeof createClient>, workerId
   }
 }
 
+// Process a single URL
+async function processUrl(supabase: ReturnType<typeof createClient>, url: string) {
+  try {
+    const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
+      'analyze-website',
+      {
+        body: { url }
+      }
+    );
+
+    if (analysisError) throw analysisError;
+    return analysisResult;
+  } catch (error) {
+    console.error(`Error analyzing URL ${url}:`, error);
+    throw error;
+  }
+}
+
 // Process the job queue
 async function processJobQueue(supabase: ReturnType<typeof createClient>, workerId: string) {
-  // Get next available job
-  const { data: job, error: jobError } = await supabase
-    .from('analysis_job_queue')
-    .select('*')
-    .eq('status', 'pending')
-    .order('priority', { ascending: false })
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .single();
-
-  if (jobError || !job) {
-    return;
-  }
-
-  // Update job status to processing
-  await supabase
-    .from('analysis_job_queue')
-    .update({
-      status: 'processing',
-      worker_id: workerId,
-      started_at: new Date().toISOString()
-    })
-    .eq('id', job.id);
-
   try {
-    // Process each request in the batch
-    for (const requestId of job.request_ids) {
-      const { data: request } = await supabase
-        .from('analysis_requests')
-        .select('*')
-        .eq('id', requestId)
-        .single();
+    // Update worker status to processing
+    await supabase
+      .from('worker_instances')
+      .update({ status: 'processing' })
+      .eq('id', workerId);
 
-      if (!request) continue;
+    // Get next available job
+    const { data: job, error: jobError } = await supabase
+      .from('analysis_job_queue')
+      .select('*')
+      .eq('status', 'pending')
+      .order('priority', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single();
 
-      // Update request status
+    if (jobError || !job) {
       await supabase
-        .from('analysis_requests')
-        .update({
-          status: 'processing',
-          started_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
-
-      try {
-        // Invoke the analyze-website function
-        const { data: analysisResult, error: analysisError } = await supabase.functions.invoke(
-          'analyze-website',
-          {
-            body: {
-              url: request.url,
-              requestId: request.id
-            }
-          }
-        );
-
-        if (analysisError) {
-          throw analysisError;
-        }
-
-        // Store analysis result
-        await supabase
-          .from('analysis_results')
-          .insert({
-            request_id: requestId,
-            url: request.url,
-            user_id: request.user_id,
-            status: 'completed',
-            ...analysisResult
-          });
-
-        // Update request status to completed  
-        await supabase
-          .from('analysis_requests')
-          .update({
-            status: 'completed',
-            completed_at: new Date().toISOString()
-          })
-          .eq('id', requestId);
-
-      } catch (error) {
-        console.error(`Error processing request ${requestId}:`, error);
-        
-        // Update request status to failed
-        await supabase
-          .from('analysis_requests')
-          .update({
-            status: 'failed',
-            error_message: error.message,
-            completed_at: new Date().toISOString()
-          })
-          .eq('id', requestId);
-      }
+        .from('worker_instances')
+        .update({ status: 'idle' })
+        .eq('id', workerId);
+      return;
     }
 
-    // Update job status to completed
+    console.log(`[Worker ${workerId}] Processing job ${job.id} for URL: ${job.url}`);
+
+    // Update job status to processing
     await supabase
       .from('analysis_job_queue')
       .update({
-        status: 'completed',
-        completed_at: new Date().toISOString()
+        status: 'processing',
+        worker_id: workerId,
+        started_at: new Date().toISOString()
       })
       .eq('id', job.id);
 
-  } catch (error) {
-    console.error('Error processing job:', error);
-    
-    // Update job status to failed
+    try {
+      // Process the URL
+      const result = await processUrl(supabase, job.url);
+      
+      // Store analysis result
+      await supabase
+        .from('analysis_results')
+        .insert({
+          url: job.url,
+          batch_id: job.batch_id,
+          ...result
+        });
+
+      // Update job status to completed
+      await supabase
+        .from('analysis_job_queue')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', job.id);
+
+      console.log(`[Worker ${workerId}] Successfully completed job ${job.id}`);
+    } catch (error) {
+      console.error(`[Worker ${workerId}] Error processing job ${job.id}:`, error);
+      
+      // Increment retry count and potentially mark as failed
+      const newRetryCount = (job.retry_count || 0) + 1;
+      const status = newRetryCount >= job.max_retries ? 'failed' : 'pending';
+
+      await supabase
+        .from('analysis_job_queue')
+        .update({
+          status,
+          error_message: error.message,
+          retry_count: newRetryCount,
+          completed_at: status === 'failed' ? new Date().toISOString() : null,
+          worker_id: null
+        })
+        .eq('id', job.id);
+    }
+
+    // Reset worker status to idle
     await supabase
-      .from('analysis_job_queue')
-      .update({
-        status: 'failed',
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', job.id);
+      .from('worker_instances')
+      .update({ status: 'idle' })
+      .eq('id', workerId);
+
+  } catch (error) {
+    console.error('[Worker] Unexpected error processing job queue:', error);
+    
+    // Make sure to reset worker status on error
+    await supabase
+      .from('worker_instances')
+      .update({ status: 'idle' })
+      .eq('id', workerId);
   }
 }
 
@@ -239,7 +234,7 @@ addEventListener('beforeunload', async (event) => {
     // Update worker status to inactive
     await supabase
       .from('worker_instances')
-      .update({ status: 'failed' })
+      .update({ status: 'inactive' })
       .eq('id', workerState.id);
     
     workerState = null;

@@ -150,6 +150,72 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_job_queue: {
+        Row: {
+          batch_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          max_retries: number | null
+          metadata: Json | null
+          priority: number | null
+          retry_count: number | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          updated_at: string | null
+          url: string
+          worker_id: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          updated_at?: string | null
+          url: string
+          worker_id?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          updated_at?: string | null
+          url?: string
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_job_queue_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_job_queue_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "worker_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_jobs: {
         Row: {
           completed_at: string | null
@@ -1562,6 +1628,33 @@ export type Database = {
           last_checked?: string | null
           updated_at?: string | null
           url?: string
+        }
+        Relationships: []
+      }
+      worker_instances: {
+        Row: {
+          created_at: string | null
+          current_job_id: string | null
+          id: string
+          last_heartbeat: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_job_id?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_job_id?: string | null
+          id?: string
+          last_heartbeat?: string | null
+          status?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
