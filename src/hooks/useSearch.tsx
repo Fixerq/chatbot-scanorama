@@ -3,6 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { Database } from '@/integrations/supabase/types';
+
+type AnalysisJob = Database['public']['Tables']['analysis_jobs']['Row'];
 
 export const useSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
@@ -23,17 +27,19 @@ export const useSearch = () => {
           table: 'analysis_jobs',
           filter: `batch_id=eq.${currentBatchId}`
         },
-        (payload) => {
-          console.log('Analysis job update:', payload);
+        (payload: RealtimePostgresChangesPayload<AnalysisJob>) => {
+          if (payload.eventType === 'DELETE' || !payload.new) return;
+          
           const newData = payload.new;
+          
           setResults(current => 
             current.map(result => 
               result.url === newData.url 
                 ? {
                     ...result,
-                    status: newData.status,
-                    error: newData.error,
-                    analysis_result: newData.result
+                    status: newData.status || 'pending',
+                    error: newData.error || undefined,
+                    analysis_result: newData.result || undefined
                   }
                 : result
             )
@@ -89,10 +95,9 @@ export const useSearch = () => {
         }
       }));
 
-      const { data: jobs, error: jobsError } = await supabase
+      const { error: jobsError } = await supabase
         .from('analysis_jobs')
-        .insert(analysisJobs)
-        .select();
+        .insert(analysisJobs);
 
       if (jobsError) throw jobsError;
 
@@ -109,22 +114,6 @@ export const useSearch = () => {
       }));
 
       setResults(initialResults);
-
-      // Start analysis for each job using analyze-website edge function
-      jobs.forEach(async (job) => {
-        try {
-          const { error: analysisError } = await supabase.functions
-            .invoke('analyze-website', {
-              body: { jobId: job.id }
-            });
-
-          if (analysisError) {
-            throw analysisError;
-          }
-        } catch (error) {
-          console.error(`Analysis error for ${job.url}:`, error);
-        }
-      });
 
     } catch (error) {
       console.error('Search error:', error);
@@ -145,7 +134,6 @@ export const useSearch = () => {
         .from('analysis_jobs')
         .update({
           status: 'pending',
-          retry_count: supabase.sql`retry_count + 1`,
           error: null
         })
         .eq('batch_id', currentBatchId)
