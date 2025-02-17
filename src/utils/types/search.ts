@@ -2,7 +2,7 @@
 export interface AnalysisResult {
   has_chatbot: boolean;
   chatSolutions: string[];
-  status: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   error?: string;
   lastChecked?: string;
   details?: {
@@ -38,6 +38,6 @@ export interface SearchResult {
     place_id?: string;
     business_name?: string;
     formatted_address?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
