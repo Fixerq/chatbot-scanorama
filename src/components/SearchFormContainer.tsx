@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { Result } from './ResultsTable';
+import { SearchResult } from '@/utils/types/search';
 import { useSearchState } from '../hooks/useSearchState';
 import SearchForm from './SearchForm';
 import LoadMoreButton from './LoadMoreButton';
 import { useSearchOperations } from '@/hooks/useSearchOperations';
 
 interface SearchFormContainerProps {
-  onResults: (results: Result[]) => void;
+  onResults: (results: SearchResult[]) => void;
   isProcessing: boolean;
   setIsProcessing: (value: boolean) => void;
   triggerNewSearch?: boolean;
