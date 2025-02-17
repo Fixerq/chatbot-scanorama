@@ -25,6 +25,26 @@ interface JobMetadata {
 export function useWorkerMonitoring() {
   const { analyzeWithAI } = useOpenAIAnalysis();
 
+  const startWorker = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('start-worker');
+      
+      if (error) {
+        console.error('Error starting worker:', error);
+        toast.error('Failed to start worker');
+        return null;
+      }
+
+      console.log('Worker started successfully:', data);
+      toast.success('Worker started successfully');
+      return data.worker_id;
+    } catch (error) {
+      console.error('Error invoking start-worker function:', error);
+      toast.error('Failed to start worker');
+      return null;
+    }
+  };
+
   const subscribeToWorkerUpdates = () => {
     console.log('Subscribing to worker status updates');
 
@@ -158,6 +178,7 @@ export function useWorkerMonitoring() {
   };
 
   return { 
+    startWorker,
     subscribeToWorkerUpdates,
     checkWorkerHealth
   };
