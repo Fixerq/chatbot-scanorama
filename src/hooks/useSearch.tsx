@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SearchResult, Status, AnalysisResult, isAnalysisResult } from '@/utils/types/search';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { PostgresChangesPayload } from '@/types/database';
 
-// Define the shape of analysis job records from the database
+// Simplified analysis job interface
 interface AnalysisJob {
   url: string;
   status: Status;
@@ -44,10 +44,9 @@ export const useSearch = () => {
           table: 'analysis_jobs',
           filter: `batch_id=eq.${currentBatchId}`
         },
-        (payload: RealtimePostgresChangesPayload<AnalysisJob>) => {
+        (payload: PostgresChangesPayload<AnalysisJob>) => {
           const newJob = payload.new;
           
-          // Type guard to ensure newJob has the correct shape
           if (!isAnalysisJob(newJob)) {
             console.error('Invalid job data received:', newJob);
             return;
@@ -174,3 +173,4 @@ export const useSearch = () => {
     results
   };
 };
+
