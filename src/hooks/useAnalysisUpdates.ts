@@ -1,6 +1,9 @@
 
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
+
+type SimplifiedAnalysisResult = Database['public']['Tables']['simplified_analysis_results']['Row'];
 
 export function useAnalysisUpdates(
   url: string | null,
@@ -22,7 +25,7 @@ export function useAnalysisUpdates(
           table: 'simplified_analysis_results',
           filter: `url=eq.${url}`
         },
-        (payload) => {
+        (payload: { new: SimplifiedAnalysisResult }) => {
           console.log('Analysis update received:', payload);
           
           if (payload.new) {
@@ -49,7 +52,6 @@ export function useAnalysisUpdates(
   }, [url, onProgress, onComplete]);
 
   const subscribeToUpdates = () => {
-    // This function is now simplified since we handle updates in useEffect
     return () => {};
   };
 

@@ -1,15 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { Database } from '@/integrations/supabase/types';
 
-interface AnalysisResult {
-  url: string;
-  has_chatbot: boolean;
-  chatbot_solutions?: string[];
-  error?: string;
-  status: string;
-}
+type SimplifiedAnalysisResult = Database['public']['Tables']['simplified_analysis_results']['Row'];
 
 export const useRealtimeAnalysis = () => {
   const subscribeToAnalysisResults = () => {
@@ -24,7 +18,7 @@ export const useRealtimeAnalysis = () => {
           schema: 'public',
           table: 'simplified_analysis_results'
         },
-        (payload: RealtimePostgresChangesPayload<AnalysisResult>) => {
+        (payload: { new: SimplifiedAnalysisResult }) => {
           console.log('Analysis update received:', payload);
           
           if (payload.new) {

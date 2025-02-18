@@ -2,15 +2,10 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-interface SimplifiedAnalysisResult {
-  url: string;
-  status: string;
-  error?: string;
-  has_chatbot: boolean;
-  chatbot_solutions?: string[];
-}
+type SimplifiedAnalysisResult = Database['public']['Tables']['simplified_analysis_results']['Row'];
 
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
