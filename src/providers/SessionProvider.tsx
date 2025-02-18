@@ -105,7 +105,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       
       console.log('Auth state changed:', event, 'Session:', !!currentSession);
       
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      if (event === 'SIGNED_OUT') {
         if (mounted.current) {
           setIsLoading(false);
           await clearAuthData();
