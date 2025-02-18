@@ -66,7 +66,6 @@ export const SearchInterface = () => {
           query,
           country,
           region: region || null,
-          user_id: null  // Let RLS handle this
         })
         .select()
         .single();
@@ -103,21 +102,25 @@ export const SearchInterface = () => {
 
       if (placesError) throw placesError;
 
-      // Insert search results
+      // Filter and transform valid results before insertion
       if (placesData?.results?.length > 0) {
-        const searchResults = placesData.results.map((result: any) => ({
-          search_id: searchHistory.id,
-          business_name: result.name,
-          website_url: result.website,
-          phone_number: result.formatted_phone_number,
-          address: result.formatted_address,
-        }));
+        const validResults = placesData.results
+          .filter((result: any) => result.name) // Only include results with a name
+          .map((result: any) => ({
+            search_id: searchHistory.id,
+            business_name: result.name || 'Unnamed Business', // Fallback name if somehow null
+            website_url: result.website || null,
+            phone_number: result.formatted_phone_number || null,
+            address: result.formatted_address || null,
+          }));
 
-        const { error: resultsError } = await supabase
-          .from("search_results")
-          .insert(searchResults);
+        if (validResults.length > 0) {
+          const { error: resultsError } = await supabase
+            .from("search_results")
+            .insert(validResults);
 
-        if (resultsError) throw resultsError;
+          if (resultsError) throw resultsError;
+        }
       }
 
       toast({
