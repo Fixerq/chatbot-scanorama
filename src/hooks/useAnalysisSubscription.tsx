@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Result } from '@/components/ResultsTable';
 import { SimplifiedAnalysisResult } from '@/types/database';
@@ -15,7 +15,52 @@ const isValidAnalysisPayload = (
 };
 
 export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
-  const lastUpdateRef = useRef<Record<string, string>>({});
+  const updateQueueRef = useRef<Map<string, SimplifiedAnalysisResult>>(new Map());
+  const timeoutRef = useRef<number | null>(null);
+
+  const processUpdates = useCallback(() => {
+    if (updateQueueRef.current.size === 0) return;
+
+    setResults(prevResults => {
+      const newResults = [...prevResults];
+      let hasChanges = false;
+
+      updateQueueRef.current.forEach((update, url) => {
+        const index = newResults.findIndex(result => result.url === url);
+        if (index !== -1) {
+          const oldResult = newResults[index];
+          const newResult = {
+            ...oldResult,
+            status: update.status as Status,
+            error: update.error,
+            analysis_result: {
+              has_chatbot: update.has_chatbot,
+              chatSolutions: update.chatbot_solutions || [],
+              status: update.status as Status,
+              lastChecked: update.updated_at,
+              error: update.error
+            }
+          };
+
+          // Only update if there are actual changes
+          if (JSON.stringify(oldResult) !== JSON.stringify(newResult)) {
+            newResults[index] = newResult;
+            hasChanges = true;
+
+            // Show toast only for new chatbot detections
+            if (update.has_chatbot && !oldResult.analysis_result?.has_chatbot) {
+              toast.success(`Chatbot detected on ${url}`);
+            }
+          }
+        }
+      });
+
+      // Clear the update queue
+      updateQueueRef.current.clear();
+
+      return hasChanges ? newResults : prevResults;
+    });
+  }, [setResults]);
 
   useEffect(() => {
     const channel = supabase
@@ -28,49 +73,19 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
           table: 'simplified_analysis_results'
         },
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
-          console.log('Received analysis update:', payload);
-          
           if (isValidAnalysisPayload(payload)) {
-            const { url, updated_at } = payload.new;
-            
-            // Check if this is a newer update than what we've seen before
-            if (lastUpdateRef.current[url] && lastUpdateRef.current[url] >= updated_at) {
-              console.log('Skipping older or duplicate update for:', url);
-              return;
+            // Add or update the payload in the queue
+            updateQueueRef.current.set(payload.new.url, payload.new);
+
+            // Clear existing timeout
+            if (timeoutRef.current) {
+              window.clearTimeout(timeoutRef.current);
             }
-            
-            lastUpdateRef.current[url] = updated_at;
 
-            setResults(prevResults => {
-              const updatedResults = prevResults.map(result => {
-                if (result.url === url) {
-                  // Notify user when chatbot is detected
-                  if (payload.new.has_chatbot && !result.analysis_result?.has_chatbot) {
-                    toast.success(`Chatbot detected on ${url}`);
-                  }
-
-                  return {
-                    ...result,
-                    status: payload.new.status as Status,
-                    error: payload.new.error,
-                    analysis_result: {
-                      has_chatbot: payload.new.has_chatbot,
-                      chatSolutions: payload.new.chatbot_solutions || [],
-                      status: payload.new.status as Status,
-                      lastChecked: updated_at,
-                      error: payload.new.error
-                    }
-                  };
-                }
-                return result;
-              });
-
-              // Only trigger update if results actually changed
-              if (JSON.stringify(updatedResults) !== JSON.stringify(prevResults)) {
-                return updatedResults;
-              }
-              return prevResults;
-            });
+            // Set new timeout to process updates
+            timeoutRef.current = window.setTimeout(() => {
+              processUpdates();
+            }, 100); // Batch updates within 100ms
           }
         }
       )
@@ -79,10 +94,12 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
       });
 
     return () => {
-      console.log('Cleaning up analysis subscription');
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
       supabase.removeChannel(channel);
     };
-  }, [setResults]);
+  }, [processUpdates]);
 
   return null;
 };
