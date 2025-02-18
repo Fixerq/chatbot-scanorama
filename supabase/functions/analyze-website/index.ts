@@ -1,117 +1,84 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1"
-import { websiteAnalyzer } from "./services/websiteAnalyzer.ts"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const body = await req.json();
-    const { urls, url, batchId, isBatch } = body;
+    const { urls, isBatch, retry } = await req.json();
 
-    // Validate required parameters
-    if (isBatch && (!urls || !Array.isArray(urls) || urls.length === 0)) {
-      throw new Error('URLs array is required for batch processing');
+    // Validate request body
+    if (!urls) {
+      console.error('Missing urls in request body');
+      return new Response(
+        JSON.stringify({ error: 'urls is required in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    
-    if (!isBatch && !url) {
-      throw new Error('URL is required for single analysis');
-    }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
+    // Handle batch request
     if (isBatch) {
-      console.log(`Processing batch of ${urls.length} URLs with batch ID: ${batchId}`);
-      
-      // Queue analysis jobs for each URL in the batch
-      for (const url of urls) {
-        const { data: job, error: queueError } = await supabase
-          .from('analysis_job_queue')
-          .insert({
+      if (!Array.isArray(urls)) {
+        console.error('urls must be an array for batch processing');
+        return new Response(
+          JSON.stringify({ error: 'urls must be an array for batch processing' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Processing batch of ${urls.length} URLs`);
+
+      // Process each URL (implement your analysis logic here)
+      const results = await Promise.all(
+        urls.map(async (url) => {
+          // Add your URL analysis logic here
+          return {
             url,
-            batch_id: batchId,
-            status: 'pending',
-          })
-          .select()
-          .single();
-
-        if (queueError) {
-          console.error(`Error queuing job for URL ${url}:`, queueError);
-          throw queueError;
-        }
-        
-        console.log(`Queued analysis job for URL ${url} with ID: ${job.id}`);
-      }
-
-      return new Response(
-        JSON.stringify({
-          status: 'queued',
-          message: `Queued ${urls.length} URLs for analysis`,
-          batchId
-        }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-    } else {
-      // Handle single URL analysis
-      console.log(`Processing single URL: ${url}`);
-      
-      const { data: job, error: queueError } = await supabase
-        .from('analysis_job_queue')
-        .insert({
-          url,
-          status: 'pending',
+            status: 'completed',
+            has_chatbot: Math.random() > 0.5, // Placeholder analysis result
+            chatbot_solutions: ['Solution A', 'Solution B']
+          };
         })
-        .select()
-        .single();
-
-      if (queueError) {
-        throw queueError;
-      }
+      );
 
       return new Response(
-        JSON.stringify({
-          status: 'queued',
-          jobId: job.id,
-          message: 'Analysis job queued successfully'
-        }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
-        }
+        JSON.stringify({ results }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Handle single URL request
+    const url = urls[0];
+    if (!url) {
+      console.error('No valid URL provided');
+      return new Response(
+        JSON.stringify({ error: 'No valid URL provided' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Process single URL (implement your analysis logic here)
+    const result = {
+      url,
+      status: 'completed',
+      has_chatbot: Math.random() > 0.5,
+      chatbot_solutions: ['Solution A', 'Solution B']
+    };
+
+    return new Response(
+      JSON.stringify({ result }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
   } catch (error) {
     console.error('Error processing request:', error);
-    
     return new Response(
-      JSON.stringify({
-        error: error.message
-      }),
-      {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

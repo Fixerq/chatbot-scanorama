@@ -23,12 +23,14 @@ export function useBatchAnalysis() {
     try {
       console.log('Starting analysis process for', results.length, 'URLs');
       
-      // Extract valid URLs
+      // Extract and validate URLs
       const validUrls = results.filter(r => r.url).map(r => r.url);
       
       if (!validUrls.length) {
         throw new Error('No valid URLs to analyze');
       }
+
+      console.log('Validated URLs:', validUrls);
 
       // Insert initial records for each URL
       const { data: insertedRecords, error: insertError } = await supabase
@@ -42,23 +44,30 @@ export function useBatchAnalysis() {
         .select();
 
       if (insertError) {
+        console.error('Error inserting records:', insertError);
         throw insertError;
       }
 
       console.log('Created analysis records:', insertedRecords);
 
-      // Call the analyze-website function with isBatch flag
+      // Prepare request body
+      const requestBody = {
+        urls: validUrls,
+        isBatch: true,
+        retry: true
+      };
+
+      console.log('Sending request to analyze-website function:', requestBody);
+
+      // Call the analyze-website function
       const { data, error } = await supabase.functions.invoke('analyze-website', {
-        body: { 
-          urls: validUrls,
-          isBatch: true,
-          retry: true
-        }
+        body: requestBody
       });
 
       if (error) {
-        console.error('Error initiating analysis:', error);
-        throw error;
+        console.error('Error response from analyze-website:', error);
+        console.error('Error details:', error.message);
+        throw new Error(`Analysis failed: ${error.message}`);
       }
 
       console.log('Analysis initiated successfully:', data);
