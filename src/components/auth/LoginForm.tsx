@@ -10,10 +10,14 @@ import type { AuthError } from '@supabase/supabase-js';
 export const LoginForm = ({ error }: LoginFormProps) => {
   const [localError, setLocalError] = useState<string>('');
 
-  const handleAuthCallback = ({ error }: { error?: AuthError }) => {
-    if (error) {
-      console.error('Auth error:', error);
-      setLocalError(error.message);
+  const handleAuthEvent = (event: {
+    event: string;
+    session: unknown;
+    error?: AuthError;
+  }) => {
+    if (event.error) {
+      console.error('Auth error:', event.error);
+      setLocalError(event.error.message);
     } else {
       setLocalError('');
     }
@@ -74,7 +78,7 @@ export const LoginForm = ({ error }: LoginFormProps) => {
         redirectTo={`${window.location.origin}/dashboard`}
         showLinks={false}
         onlyThirdPartyProviders={false}
-        authCallback={handleAuthCallback}
+        onAuthEvent={handleAuthEvent}
       />
     </div>
   );
