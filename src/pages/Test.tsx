@@ -2,6 +2,7 @@
 import React from 'react';
 import NavigationBar from '@/components/NavigationBar';
 import { TestAnalysis } from '@/components/TestAnalysis';
+import { Toaster } from 'sonner';
 
 const Test = () => {
   return (
@@ -11,6 +12,7 @@ const Test = () => {
         <h1 className="text-2xl font-bold mb-6">Test Analysis Page</h1>
         <TestAnalysis />
       </main>
+      <Toaster />
     </div>
   );
 };
