@@ -7,7 +7,6 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Status } from '@/utils/types/search';
 import { toast } from 'sonner';
 
-// Type guard to check if the payload has the required properties
 const isValidAnalysisPayload = (
   payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>
 ): payload is RealtimePostgresChangesPayload<SimplifiedAnalysisResult> & { new: SimplifiedAnalysisResult } => {
@@ -22,22 +21,24 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
     if (updateQueueRef.current.size === 0) return;
 
     setResults(prevResults => {
-      const newResults = [...prevResults];
       let hasChanges = false;
+      const newResults = [...prevResults];
 
       updateQueueRef.current.forEach((update, url) => {
-        console.log('Processing update for URL:', url, update);
         const index = newResults.findIndex(result => result.url === url);
         if (index !== -1) {
           const oldResult = newResults[index];
+          const newStatus = update.status as Status;
+          
           const newResult = {
             ...oldResult,
-            status: update.status,
+            status: newStatus,
             error: update.error,
             analysis_result: {
+              ...oldResult.analysis_result,
               has_chatbot: update.has_chatbot,
               chatSolutions: update.chatbot_solutions || [],
-              status: update.status as Status,
+              status: newStatus,
               lastChecked: update.updated_at,
               error: update.error
             }
@@ -45,11 +46,11 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
 
           // Only update if there are actual changes
           if (JSON.stringify(oldResult) !== JSON.stringify(newResult)) {
-            console.log('Updating result:', oldResult, 'to:', newResult);
+            console.log('Updating result:', { url, oldStatus: oldResult.status, newStatus, oldResult, newResult });
             newResults[index] = newResult;
             hasChanges = true;
 
-            // Show toast only for new chatbot detections
+            // Show toast for new chatbot detections
             if (update.has_chatbot && !oldResult.analysis_result?.has_chatbot) {
               toast.success(`Chatbot detected on ${url}`);
             }
@@ -57,15 +58,17 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
         }
       });
 
-      // Clear the update queue
       updateQueueRef.current.clear();
-
-      return hasChanges ? newResults : prevResults;
+      
+      if (hasChanges) {
+        console.log('State updated with new results:', newResults);
+        return newResults;
+      }
+      return prevResults;
     });
   }, [setResults]);
 
   useEffect(() => {
-    console.log('Setting up analysis subscription');
     const channel = supabase
       .channel('analysis-updates')
       .on(
