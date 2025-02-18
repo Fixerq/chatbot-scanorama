@@ -9,6 +9,7 @@ import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
 import Monitoring from "@/pages/Monitoring";
 import Test from "@/pages/Test";
+import SearchPage from "@/pages/SearchPage";
 
 interface AppRoute {
   path: string;
@@ -64,6 +65,14 @@ const routes: AppRoute[] = [
   {
     path: "/register-and-order",
     element: <RegisterAndOrder />,
+  },
+  {
+    path: "/search",
+    element: (
+      <ProtectedRoute>
+        <SearchPage />
+      </ProtectedRoute>
+    ),
   },
 ];
 
