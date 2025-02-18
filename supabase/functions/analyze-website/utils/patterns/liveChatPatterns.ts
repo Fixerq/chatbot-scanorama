@@ -1,23 +1,182 @@
-
 export const LIVE_CHAT_PATTERNS = [
   {
-    pattern: /chat\s*live\s*with\s*us/i,
-    type: 'live-chat-cta'
+    pattern: /c4a_live_chat/i,
+    type: 'Click4Assistance'
   },
   {
-    pattern: /<[^>]*\b(?:chat|messenger|support|help)\b[^>]*live[^>]*>/i,
-    type: 'live-chat-element'
+    pattern: /click4assistance\.co\.uk/i,
+    type: 'Click4Assistance'
   },
   {
-    pattern: /\b(?:live|online)\s*(?:chat|support|help)\b/i,
-    type: 'live-chat-text'
+    pattern: /C4A_btn/i,
+    type: 'Click4Assistance'
   },
   {
-    pattern: /\b(?:chat|talk)\s*(?:now|with|to)\s*(?:us|team|support|representative)\b/i,
-    type: 'chat-cta'
+    pattern: /LivePerson/i,
+    type: 'LivePerson'
   },
   {
-    pattern: /data-[^=]*(?:chat|messenger|support|help)[^=]*=[^>]*live/i,
-    type: 'live-chat-attribute'
+    pattern: /tidio-chat/i,
+    type: 'Tidio'
+  },
+  {
+    pattern: /hubspot/i,
+    type: 'HubSpot'
+  },
+  {
+    pattern: /intercom/i,
+    type: 'Intercom'
+  },
+  {
+    pattern: /drift\.com/i,
+    type: 'Drift'
+  },
+  {
+    pattern: /olark/i,
+    type: 'Olark'
+  },
+  {
+    pattern: /zendesk/i,
+    type: 'Zendesk'
+  },
+  {
+    pattern: /crisp\.chat/i,
+    type: 'Crisp'
+  },
+  {
+    pattern: /tawk\.to/i,
+    type: 'Tawk.to'
+  },
+  {
+    pattern: /freshchat/i,
+    type: 'Freshchat'
+  },
+  {
+    pattern: /kommunicate/i,
+    type: 'Kommunicate'
+  },
+  {
+    pattern: /smartsupp/i,
+    type: 'Smartsupp'
+  },
+  {
+    pattern: /userlike/i,
+    type: 'Userlike'
+  },
+  {
+    pattern: /zoho salesiq/i,
+    type: 'Zoho SalesIQ'
+  },
+  {
+    pattern: /replain/i,
+    type: 'Replain'
+  },
+  {
+    pattern: /jivochat/i,
+    type: 'JivoChat'
+  },
+  {
+    pattern: /snapengage/i,
+    type: 'SnapEngage'
+  },
+  {
+    pattern: /livezilla/i,
+    type: 'LiveZilla'
+  },
+  {
+    pattern: /pure chat/i,
+    type: 'Pure Chat'
+  },
+  {
+    pattern: /chatra/i,
+    type: 'Chatra'
+  },
+  {
+    pattern: /acquire\.io/i,
+    type: 'Acquire.io'
+  },
+  {
+    pattern: /salesforce chatbot/i,
+    type: 'Salesforce Chatbot'
+  },
+  {
+    pattern: /ada chatbot/i,
+    type: 'Ada Chatbot'
+  },
+  {
+    pattern: /botsociety/i,
+    type: 'BotSociety'
+  },
+  {
+    pattern: /dialogflow/i,
+    type: 'Dialogflow'
+  },
+  {
+    pattern: /watson assistant/i,
+    type: 'Watson Assistant'
+  },
+  {
+    pattern: /rasa chatbot/i,
+    type: 'Rasa Chatbot'
+  },
+  {
+    pattern: /microsoft bot framework/i,
+    type: 'Microsoft Bot Framework'
+  },
+  {
+    pattern: /amazon lex/i,
+    type: 'Amazon Lex'
+  },
+  {
+    pattern: /gupshup/i,
+    type: 'Gupshup'
+  },
+  {
+    pattern: /kore\.ai/i,
+    type: 'Kore.ai'
+  },
+  {
+    pattern: /landbot/i,
+    type: 'Landbot'
+  },
+    {
+    pattern: /chatfuel/i,
+    type: 'Chatfuel'
+  },
+  {
+    pattern: /manychat/i,
+    type: 'ManyChat'
+  },
+  {
+    pattern: /mobilemonkey/i,
+    type: 'MobileMonkey'
+  },
+  {
+    pattern: /pandorabots/i,
+    type: 'Pandorabots'
+  },
+  {
+    pattern: /flowxo/i,
+    type: 'FlowXO'
+  },
+  {
+    pattern: /itsalive\.io/i,
+    type: 'Alivio'
+  },
+  {
+    pattern: /helpscout/i,
+    type: 'Help Scout'
+  },
+  {
+    pattern: /userpilot/i,
+    type: 'Userpilot'
+  },
+  {
+    pattern: /intercom/i,
+    type: 'Intercom'
+  },
+  {
+    pattern: /elevio/i,
+    type: 'Elevio'
   }
-].map(pattern => ({ pattern: pattern.pattern, type: `live-chat-${pattern.type}` }));
+];
