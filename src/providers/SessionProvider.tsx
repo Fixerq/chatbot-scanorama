@@ -20,7 +20,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const mounted = useRef(true);
-  const refreshTimeout = useRef<NodeJS.Timeout>();
   const initializationTimeout = useRef<NodeJS.Timeout>();
 
   const refreshSession = async () => {
@@ -33,6 +32,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         console.error('Session refresh error:', error);
         if (mounted.current) {
           await clearAuthData();
+          setIsAuthenticated(false);
           navigate('/login');
           toast.error('Your session has expired. Please sign in again.');
         }
@@ -42,6 +42,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (!newSession) {
         if (mounted.current && window.location.pathname !== '/login') {
           await clearAuthData();
+          setIsAuthenticated(false);
           navigate('/login');
         }
         return;
@@ -55,6 +56,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       console.error('Session refresh error:', error);
       if (mounted.current) {
         await clearAuthData();
+        setIsAuthenticated(false);
         navigate('/login');
         toast.error('An error occurred with your session. Please sign in again.');
       }
@@ -78,6 +80,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           console.log('No initial session found');
           if (isMounted && window.location.pathname !== '/login') {
             await clearAuthData();
+            setIsAuthenticated(false);
             navigate('/login');
           }
         } else {
@@ -90,6 +93,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         console.error('Session initialization error:', error);
         if (isMounted) {
           await clearAuthData();
+          setIsAuthenticated(false);
           navigate('/login');
         }
       } finally {
@@ -99,28 +103,39 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    initialize();
+    // Delay the initial session check slightly to ensure auth state is settled
+    initializationTimeout.current = setTimeout(() => {
+      initialize();
+    }, 100);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
       
       console.log('Auth state changed:', event, 'Session:', !!currentSession);
       
-      if (event === 'SIGNED_IN' && currentSession) {
-        console.log('User signed in, setting authenticated state');
-        if (isMounted) {
-          setIsAuthenticated(true);
-          setIsLoading(false);
-          navigate('/dashboard');
-        }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out, clearing auth state');
-        if (isMounted) {
+      switch (event) {
+        case 'SIGNED_IN':
+          if (currentSession) {
+            console.log('User signed in, setting authenticated state');
+            setIsAuthenticated(true);
+            setIsLoading(false);
+            navigate('/dashboard');
+          }
+          break;
+          
+        case 'SIGNED_OUT':
+          console.log('User signed out, clearing auth state');
           setIsAuthenticated(false);
           setIsLoading(false);
           await clearAuthData();
           navigate('/login');
-        }
+          break;
+          
+        case 'TOKEN_REFRESHED':
+          if (currentSession) {
+            setIsAuthenticated(true);
+          }
+          break;
       }
     });
 
@@ -128,9 +143,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       isMounted = false;
       mounted.current = false;
       subscription?.unsubscribe();
-      if (refreshTimeout.current) {
-        clearInterval(refreshTimeout.current);
-      }
       if (initializationTimeout.current) {
         clearTimeout(initializationTimeout.current);
       }
