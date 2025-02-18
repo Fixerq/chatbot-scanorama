@@ -11,7 +11,10 @@ export const LoginForm = ({ error }: LoginFormProps) => {
   const [localError, setLocalError] = useState<string>('');
 
   const handleAuthStateChange = (event: string, session: unknown) => {
+    console.log('Auth state changed:', event);
     if (event === 'SIGNED_IN') {
+      setLocalError('');
+    } else if (event === 'USER_UPDATED' || event === 'SIGNED_OUT') {
       setLocalError('');
     }
   };
@@ -71,10 +74,6 @@ export const LoginForm = ({ error }: LoginFormProps) => {
         redirectTo={`${window.location.origin}/dashboard`}
         showLinks={false}
         onlyThirdPartyProviders={false}
-        onError={(error: AuthError) => {
-          console.error('Auth error:', error);
-          setLocalError(error.message);
-        }}
         onAuthStateChange={handleAuthStateChange}
       />
     </div>
