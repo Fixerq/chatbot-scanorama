@@ -5,15 +5,19 @@ import { LogOut } from 'lucide-react';
 import { useNavigation } from './useNavigation';
 import { useLocation } from 'react-router-dom';
 import { AdminNavigationItems } from './AdminNavigationItems';
+import { useAdminStatus } from '@/hooks/useAdminStatus';
 
 export const NavigationActions = () => {
   const { handleLogout, isSubscriptionLoading } = useNavigation();
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const { isAdmin } = useAdminStatus();
+  const isAdminRoute = location.pathname.startsWith('/admin') || 
+                      location.pathname === '/monitoring' ||
+                      location.pathname === '/test';
 
   return (
     <div className="ml-auto flex items-center space-x-4">
-      {isAdminRoute && <AdminNavigationItems />}
+      {isAdmin && <AdminNavigationItems />}
       <Button
         variant="ghost"
         size="sm"

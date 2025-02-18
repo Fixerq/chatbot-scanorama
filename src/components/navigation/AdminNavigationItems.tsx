@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, Activity, ChevronDown } from 'lucide-react';
+import { Users, Activity, TestTube, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,11 @@ export const AdminNavigationItems = () => {
       title: "Monitoring",
       href: "/monitoring",
       icon: Activity
+    },
+    {
+      title: "Test",
+      href: "/test",
+      icon: TestTube
     }
   ];
 
@@ -35,7 +40,9 @@ export const AdminNavigationItems = () => {
           size="sm"
           className={cn(
             "flex items-center text-sm font-medium transition-colors",
-            location.pathname.startsWith('/admin')
+            location.pathname.startsWith('/admin') || 
+            location.pathname === '/monitoring' ||
+            location.pathname === '/test'
               ? "text-primary"
               : "text-muted-foreground"
           )}
