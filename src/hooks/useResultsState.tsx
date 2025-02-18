@@ -17,12 +17,12 @@ export const useResultsState = (initialResults: Result[] = []) => {
         ...result,
         url: result.url,
         business_name: result.business_name || result.details?.business_name || '',
-        status: result.status || 'pending',
+        status: result.analysis_result?.status || result.status || 'pending',
         error: result.error || null,
         analysis_result: {
           has_chatbot: result.analysis_result?.has_chatbot || false,
           chatSolutions: result.analysis_result?.chatSolutions || [],
-          status: result.analysis_result?.status || 'pending',
+          status: result.analysis_result?.status || result.status || 'pending',
           lastChecked: result.analysis_result?.lastChecked || new Date().toISOString(),
           error: result.analysis_result?.error || null
         }
@@ -58,7 +58,8 @@ export const useResultsState = (initialResults: Result[] = []) => {
   const filteredResults = results.filter(result => {
     if (filterValue === 'all') return true;
     if (filterValue === 'has_chatbot') return result.analysis_result?.has_chatbot;
-    return result.status === filterValue;
+    if (filterValue === 'analyzing') return result.status === 'analyzing' || result.analysis_result?.status === 'analyzing';
+    return result.status === filterValue || result.analysis_result?.status === filterValue;
   });
 
   const sortedResults = [...filteredResults].sort((a, b) => {
