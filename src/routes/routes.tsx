@@ -10,6 +10,7 @@ import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
 import { Navigate } from "react-router-dom";
 import Monitoring from "@/pages/Monitoring";
+import Test from "@/pages/Test";
 
 interface AppRoute {
   path: string;
@@ -63,6 +64,14 @@ const routes: AppRoute[] = [
     element: (
       <ProtectedRoute>
         <Monitoring />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/test",
+    element: (
+      <ProtectedRoute>
+        <Test />
       </ProtectedRoute>
     ),
   },
