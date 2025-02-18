@@ -148,7 +148,7 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
         },
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Received analysis update:', payload);
-          if (payload.new) {
+          if (payload.new && 'url' in payload.new) {
             setResults(prevResults => 
               prevResults.map(result => {
                 if (result.url === payload.new.url) {
