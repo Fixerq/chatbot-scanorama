@@ -23,18 +23,26 @@ export const useUrlProcessor = () => {
 
     try {
       // Get current worker status
-      const { data: workerHealth } = await supabase.rpc('check_worker_health');
+      const { data: workerHealth, error: healthError } = await supabase.rpc('check_worker_health');
+      
+      if (healthError) {
+        console.error('Worker health check failed:', healthError);
+        toast.error('Failed to check worker status');
+        throw healthError;
+      }
+
       console.log('Worker health check:', workerHealth);
 
-      if (!workerHealth || workerHealth[0]?.active_workers === 0) {
+      if (!workerHealth?.[0]?.active_workers) {
         console.log('No active workers found, attempting to start worker...');
         
         // Attempt to start a worker
         const { data: workerData, error: workerError } = await supabase.functions.invoke('start-worker');
         
-        if (workerError || !workerData) {
+        if (workerError) {
           console.error('Failed to start worker:', workerError);
-          throw new Error('Failed to start analysis worker');
+          toast.error('Failed to start analysis worker');
+          throw workerError;
         }
         
         console.log('Started new worker:', workerData);
@@ -61,7 +69,7 @@ export const useUrlProcessor = () => {
       setProcessing(false);
       onAnalysisComplete();
     }
-  }, [analyzeBatch]);
+  }, [analyzeBatch, subscribeToAnalysisResults]);
 
   return {
     processing,
