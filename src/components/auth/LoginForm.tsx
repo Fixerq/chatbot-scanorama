@@ -11,10 +11,8 @@ export const LoginForm = ({ error }: LoginFormProps) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event);
-      if (event === 'SIGNED_IN') {
-        setLocalError('');
-      } else if (event === 'USER_UPDATED' || event === 'SIGNED_OUT') {
+      console.log('LoginForm auth state changed:', event);
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         setLocalError('');
       }
     });
@@ -83,4 +81,3 @@ export const LoginForm = ({ error }: LoginFormProps) => {
     </div>
   );
 };
-

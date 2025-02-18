@@ -18,6 +18,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const session = useSession();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const mounted = useRef(true);
   const refreshTimeout = useRef<NodeJS.Timeout>();
   const initializationTimeout = useRef<NodeJS.Timeout>();
@@ -47,6 +48,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (mounted.current) {
+        setIsAuthenticated(true);
         setIsLoading(false);
       }
     } catch (error) {
@@ -60,6 +62,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const initialize = async () => {
       try {
         console.log('Initializing session check...');
@@ -72,21 +76,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
         if (!session) {
           console.log('No initial session found');
-          if (mounted.current && window.location.pathname !== '/login') {
+          if (isMounted && window.location.pathname !== '/login') {
             await clearAuthData();
             navigate('/login');
           }
         } else {
           console.log('Initial session found');
+          if (isMounted) {
+            setIsAuthenticated(true);
+          }
         }
       } catch (error) {
         console.error('Session initialization error:', error);
-        if (mounted.current) {
+        if (isMounted) {
           await clearAuthData();
           navigate('/login');
         }
       } finally {
-        if (mounted.current) {
+        if (isMounted) {
           setIsLoading(false);
         }
       }
@@ -95,18 +102,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (!mounted.current) return;
+      if (!isMounted) return;
       
       console.log('Auth state changed:', event, 'Session:', !!currentSession);
       
       if (event === 'SIGNED_IN' && currentSession) {
-        console.log('User signed in, refreshing session');
-        await refreshSession();
-        if (mounted.current) {
+        console.log('User signed in, setting authenticated state');
+        if (isMounted) {
+          setIsAuthenticated(true);
           setIsLoading(false);
+          navigate('/dashboard');
         }
       } else if (event === 'SIGNED_OUT') {
-        if (mounted.current) {
+        console.log('User signed out, clearing auth state');
+        if (isMounted) {
+          setIsAuthenticated(false);
           setIsLoading(false);
           await clearAuthData();
           navigate('/login');
@@ -115,6 +125,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      isMounted = false;
       mounted.current = false;
       subscription?.unsubscribe();
       if (refreshTimeout.current) {
@@ -129,7 +140,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   return (
     <SessionContext.Provider value={{
       isLoading,
-      isAuthenticated: !!session?.user,
+      isAuthenticated,
       refreshSession
     }}>
       {children}
