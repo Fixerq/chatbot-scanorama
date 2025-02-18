@@ -1,76 +1,116 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useAnalysisUpdates } from './useAnalysisUpdates';
-import { createAnalysisBatch } from './useBatchCreation';
-import { useWorkerStartup } from './useWorkerStartup';
-import { useBatchInitiation } from './useBatchInitiation';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const { ensureWorkerAvailable } = useWorkerStartup();
-  const { initiateBatchAnalysis } = useBatchInitiation();
-  const { subscribeToUpdates } = useAnalysisUpdates(null, setProgress, () => setIsProcessing(false));
 
   const analyzeBatch = async (results: any[]) => {
     if (isProcessing) {
-      console.log('Batch analysis already in progress, skipping...');
+      console.log('Analysis already in progress, skipping...');
       return;
     }
 
     setIsProcessing(true);
     setProgress(0);
-    let cleanupWorkerMonitoring: (() => void) | undefined;
-    let batchCleanup: (() => void) | undefined;
     
     try {
-      console.log('Starting batch analysis process...');
+      console.log('Starting analysis process for', results.length, 'URLs');
       
-      // First ensure worker is available
-      try {
-        cleanupWorkerMonitoring = await ensureWorkerAvailable();
-      } catch (workerError) {
-        console.error('Worker startup failed:', workerError);
-        throw new Error('Failed to start analysis worker. Please try again.');
-      }
+      // Extract valid URLs
+      const validUrls = results.filter(r => r.url).map(r => r.url);
       
-      console.log('Worker availability confirmed');
-
-      // Create batch and get batch ID
-      const { batchId, validUrls } = await createAnalysisBatch(results);
-      console.log('Created batch with ID:', batchId, 'and', validUrls.length, 'valid URLs');
-
       if (!validUrls.length) {
         throw new Error('No valid URLs to analyze');
       }
 
-      // Set up subscriptions for this batch
-      batchCleanup = subscribeToUpdates(batchId);
-      console.log('Subscriptions established for batch:', batchId);
+      // Insert initial records for each URL
+      const { data: insertedRecords, error: insertError } = await supabase
+        .from('simplified_analysis_results')
+        .insert(
+          validUrls.map(url => ({
+            url,
+            status: 'pending'
+          }))
+        )
+        .select();
 
-      // Start the analysis
-      const data = await initiateBatchAnalysis(validUrls, batchId);
-      console.log('Batch analysis initiated:', data);
+      if (insertError) {
+        throw insertError;
+      }
 
-      return { 
-        batchId,
+      console.log('Created analysis records:', insertedRecords);
+
+      // Call the analyze-website function
+      const { data, error } = await supabase.functions.invoke('analyze-website', {
+        body: { 
+          urls: validUrls,
+          retry: true
+        }
+      });
+
+      if (error) {
+        console.error('Error initiating analysis:', error);
+        throw error;
+      }
+
+      console.log('Analysis initiated successfully:', data);
+      
+      // Set up subscription to monitor status updates
+      const channel = supabase
+        .channel('analysis-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'simplified_analysis_results',
+            filter: `url=in.(${validUrls.map(url => `'${url}'`).join(',')})`
+          },
+          (payload) => {
+            console.log('Analysis update received:', payload);
+            
+            if (payload.new) {
+              // Calculate progress based on completed analyses
+              const completedCount = validUrls.length;
+              const newProgress = Math.round((completedCount / validUrls.length) * 100);
+              setProgress(newProgress);
+
+              if (payload.new.error) {
+                toast.error(`Analysis failed for ${payload.new.url}`, {
+                  description: payload.new.error
+                });
+              } else if (payload.new.has_chatbot) {
+                toast.success(`Chatbot detected on ${payload.new.url}`, {
+                  description: payload.new.chatbot_solutions?.join(', ')
+                });
+              }
+
+              // Check if all URLs are processed
+              if (newProgress === 100) {
+                console.log('All URLs processed');
+                setIsProcessing(false);
+                channel.unsubscribe();
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      return {
         cleanup: () => {
-          if (batchCleanup) batchCleanup();
-          if (cleanupWorkerMonitoring) cleanupWorkerMonitoring();
+          channel.unsubscribe();
           setIsProcessing(false);
         },
         results: data?.results
       };
-      
+
     } catch (error) {
-      console.error('Batch analysis error:', error);
-      // Clean up subscriptions and monitoring if they were started
-      if (batchCleanup) batchCleanup();
-      if (cleanupWorkerMonitoring) cleanupWorkerMonitoring();
+      console.error('Analysis error:', error);
       setIsProcessing(false);
       
-      // Show more specific error message
       const errorMessage = error instanceof Error ? error.message : 'Failed to process websites';
       toast.error(errorMessage);
       throw error;

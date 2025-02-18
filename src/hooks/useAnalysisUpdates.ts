@@ -1,40 +1,57 @@
 
 import { useEffect } from 'react';
-import { useBatchStatusUpdates } from './useBatchStatusUpdates';
-import { useAnalysisResultUpdates } from './useAnalysisResultUpdates';
-import { useRealtimeAnalysis } from './useRealtimeAnalysis';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useAnalysisUpdates(
-  batchId: string | null,
+  url: string | null,
   onProgress: (progress: number) => void,
   onComplete: () => void
 ) {
-  const batchUpdates = useBatchStatusUpdates(batchId, onProgress, onComplete);
-  const resultUpdates = useAnalysisResultUpdates(batchId);
-  const { subscribeToAnalysisResults } = useRealtimeAnalysis();
+  useEffect(() => {
+    if (!url) return;
 
-  const subscribeToUpdates = (newBatchId: string) => {
-    console.log('Setting up analysis update subscriptions for batch:', newBatchId);
+    console.log('Setting up analysis updates for URL:', url);
 
-    const batchCleanup = batchUpdates.subscribeToUpdates();
-    const resultCleanup = resultUpdates.subscribeToUpdates();
-    const analysisCleanup = subscribeToAnalysisResults();
+    const channel = supabase
+      .channel(`analysis-${url}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'simplified_analysis_results',
+          filter: `url=eq.${url}`
+        },
+        (payload) => {
+          console.log('Analysis update received:', payload);
+          
+          if (payload.new) {
+            // Calculate progress
+            if (payload.new.status === 'completed') {
+              onProgress(100);
+              onComplete();
+            } else if (payload.new.status === 'processing') {
+              onProgress(50);
+            }
+
+            if (payload.new.error) {
+              console.error(`Analysis failed for ${url}:`, payload.new.error);
+            }
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up analysis update subscriptions');
-      if (batchCleanup) batchCleanup();
-      if (resultCleanup) resultCleanup();
-      if (analysisCleanup) analysisCleanup();
+      console.log('Cleaning up analysis updates subscription');
+      supabase.removeChannel(channel);
     };
-  };
+  }, [url, onProgress, onComplete]);
 
-  // Cleanup on unmount if there's an active batch
-  useEffect(() => {
-    if (batchId) {
-      const cleanup = subscribeToUpdates(batchId);
-      return cleanup;
-    }
-  }, [batchId]);
+  const subscribeToUpdates = () => {
+    // This function is now simplified since we handle updates in useEffect
+    return () => {};
+  };
 
   return { subscribeToUpdates };
 }

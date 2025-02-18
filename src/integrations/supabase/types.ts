@@ -61,15 +61,7 @@ export type Database = {
           updated_at?: string | null
           url?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ai_analysis_insights_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "analysis_batches"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       alert_thresholds: {
         Row: {
@@ -159,53 +151,6 @@ export type Database = {
           url?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "analysis_alerts_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "analysis_batches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      analysis_batches: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          last_processed_at: string | null
-          processed_urls: number | null
-          request_id: string
-          status: Database["public"]["Enums"]["batch_status"] | null
-          total_urls: number
-          user_id: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          last_processed_at?: string | null
-          processed_urls?: number | null
-          request_id: string
-          status?: Database["public"]["Enums"]["batch_status"] | null
-          total_urls: number
-          user_id?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          last_processed_at?: string | null
-          processed_urls?: number | null
-          request_id?: string
-          status?: Database["public"]["Enums"]["batch_status"] | null
-          total_urls?: number
-          user_id?: string | null
-        }
         Relationships: []
       }
       analysis_cache: {
@@ -252,72 +197,6 @@ export type Database = {
           url?: string
         }
         Relationships: []
-      }
-      analysis_job_queue: {
-        Row: {
-          batch_id: string | null
-          completed_at: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          max_retries: number | null
-          metadata: Json | null
-          priority: number | null
-          retry_count: number | null
-          started_at: string | null
-          status: Database["public"]["Enums"]["job_status"] | null
-          updated_at: string | null
-          url: string
-          worker_id: string | null
-        }
-        Insert: {
-          batch_id?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          max_retries?: number | null
-          metadata?: Json | null
-          priority?: number | null
-          retry_count?: number | null
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["job_status"] | null
-          updated_at?: string | null
-          url: string
-          worker_id?: string | null
-        }
-        Update: {
-          batch_id?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          max_retries?: number | null
-          metadata?: Json | null
-          priority?: number | null
-          retry_count?: number | null
-          started_at?: string | null
-          status?: Database["public"]["Enums"]["job_status"] | null
-          updated_at?: string | null
-          url?: string
-          worker_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "analysis_job_queue_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "analysis_batches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "analysis_job_queue_worker_id_fkey"
-            columns: ["worker_id"]
-            isOneToOne: false
-            referencedRelation: "worker_instances"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       analysis_jobs: {
         Row: {
@@ -1623,6 +1502,45 @@ export type Database = {
         }
         Relationships: []
       }
+      simplified_analysis_results: {
+        Row: {
+          chatbot_solutions: string[] | null
+          created_at: string | null
+          details: Json | null
+          error: string | null
+          has_chatbot: boolean | null
+          id: string
+          status: string
+          updated_at: string | null
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          details?: Json | null
+          error?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          chatbot_solutions?: string[] | null
+          created_at?: string | null
+          details?: Json | null
+          error?: string | null
+          has_chatbot?: boolean | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_levels: {
         Row: {
           created_at: string
@@ -1731,71 +1649,6 @@ export type Database = {
           last_checked?: string | null
           updated_at?: string | null
           url?: string
-        }
-        Relationships: []
-      }
-      worker_config: {
-        Row: {
-          batch_size: number | null
-          created_at: string
-          id: string
-          optimization_source: string | null
-          timeout_settings: Json | null
-          updated_at: string
-          worker_id: string
-        }
-        Insert: {
-          batch_size?: number | null
-          created_at?: string
-          id?: string
-          optimization_source?: string | null
-          timeout_settings?: Json | null
-          updated_at?: string
-          worker_id: string
-        }
-        Update: {
-          batch_size?: number | null
-          created_at?: string
-          id?: string
-          optimization_source?: string | null
-          timeout_settings?: Json | null
-          updated_at?: string
-          worker_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "worker_config_worker_id_fkey"
-            columns: ["worker_id"]
-            isOneToOne: false
-            referencedRelation: "worker_instances"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      worker_instances: {
-        Row: {
-          created_at: string | null
-          current_job_id: string | null
-          id: string
-          last_heartbeat: string | null
-          status: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          current_job_id?: string | null
-          id?: string
-          last_heartbeat?: string | null
-          status?: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          current_job_id?: string | null
-          id?: string
-          last_heartbeat?: string | null
-          status?: string
-          updated_at?: string | null
         }
         Relationships: []
       }
