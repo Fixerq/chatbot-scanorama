@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SearchResult, Status } from '@/utils/types/search';
 import { Result } from '@/components/ResultsTable';
@@ -122,6 +122,53 @@ const initiateAnalysis = async (url: string) => {
 export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
   const [isSearching, setIsSearching] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [analysisSubscription, setAnalysisSubscription] = useState<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Subscribe to analysis updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('analysis-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'simplified_analysis_results'
+        },
+        (payload) => {
+          console.log('Received analysis update:', payload);
+          if (payload.new) {
+            setResults(prevResults => 
+              prevResults.map(result => {
+                if (result.url === payload.new.url) {
+                  return {
+                    ...result,
+                    status: payload.new.status,
+                    error: payload.new.error,
+                    analysis_result: {
+                      has_chatbot: payload.new.has_chatbot,
+                      chatSolutions: payload.new.chatbot_solutions || [],
+                      status: payload.new.status as Status,
+                      lastChecked: payload.new.updated_at
+                    }
+                  };
+                }
+                return result;
+              })
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    setAnalysisSubscription(channel);
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [setResults]);
 
   const handleSearch = useCallback(async (
     query: string,
