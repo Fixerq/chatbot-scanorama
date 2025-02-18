@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
@@ -7,6 +8,8 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 type SimplifiedAnalysisResult = Database['public']['Tables']['simplified_analysis_results']['Row'];
 
 export const useRealtimeAnalysis = () => {
+  const [results, setResults] = useState<Record<string, SimplifiedAnalysisResult>>({});
+
   const subscribeToAnalysisResults = () => {
     console.log('Setting up analysis results subscription');
     
@@ -24,6 +27,12 @@ export const useRealtimeAnalysis = () => {
           
           const newData = payload.new as SimplifiedAnalysisResult;
           if (newData && Object.keys(newData).length > 0) {
+            // Update local state with the new result
+            setResults(prev => ({
+              ...prev,
+              [newData.url]: newData
+            }));
+
             // Show immediate toast notifications for results
             if (newData.error) {
               console.error(`Analysis error for ${newData.url}:`, newData.error);
@@ -54,5 +63,9 @@ export const useRealtimeAnalysis = () => {
     };
   };
 
-  return { subscribeToAnalysisResults };
+  return { 
+    subscribeToAnalysisResults,
+    results
+  };
 };
+

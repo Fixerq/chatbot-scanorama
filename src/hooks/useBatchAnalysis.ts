@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -11,6 +11,7 @@ export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [completedUrls, setCompletedUrls] = useState<Set<string>>(new Set());
+  const [analysisResults, setAnalysisResults] = useState<Record<string, SimplifiedAnalysisResult>>({});
 
   const analyzeBatch = async (results: any[]) => {
     if (isProcessing) {
@@ -21,6 +22,7 @@ export function useBatchAnalysis() {
     setIsProcessing(true);
     setProgress(0);
     setCompletedUrls(new Set());
+    setAnalysisResults({});
     
     try {
       console.log('Starting analysis process for', results.length, 'URLs');
@@ -52,6 +54,15 @@ export function useBatchAnalysis() {
 
       console.log('Created analysis records:', insertedRecords);
 
+      // Set initial state
+      if (insertedRecords) {
+        const initialState = insertedRecords.reduce((acc, record) => {
+          acc[record.url] = record;
+          return acc;
+        }, {} as Record<string, SimplifiedAnalysisResult>);
+        setAnalysisResults(initialState);
+      }
+
       // Prepare request body
       const requestBody = {
         urls: validUrls,
@@ -68,7 +79,6 @@ export function useBatchAnalysis() {
 
       if (error) {
         console.error('Error response from analyze-website:', error);
-        console.error('Error details:', error.message);
         throw new Error(`Analysis failed: ${error.message}`);
       }
 
@@ -90,16 +100,26 @@ export function useBatchAnalysis() {
             
             const newData = payload.new as SimplifiedAnalysisResult;
             if (newData && Object.keys(newData).length > 0) {
+              // Update results state
+              setAnalysisResults(prev => ({
+                ...prev,
+                [newData.url]: newData
+              }));
+
               // Track completed URLs
-              setCompletedUrls(prev => {
-                const updated = new Set(prev);
-                updated.add(newData.url);
-                return updated;
-              });
+              if (newData.status === 'completed' || newData.error) {
+                setCompletedUrls(prev => {
+                  const updated = new Set(prev);
+                  updated.add(newData.url);
+                  return updated;
+                });
+              }
 
               // Calculate progress based on completed analyses
-              const newProgress = Math.round((completedUrls.size / validUrls.length) * 100);
-              setProgress(newProgress);
+              setProgress(prev => {
+                const newProgress = Math.round((completedUrls.size / validUrls.length) * 100);
+                return newProgress;
+              });
 
               // Show immediate feedback for each result
               if (newData.error) {
@@ -118,11 +138,12 @@ export function useBatchAnalysis() {
                 setIsProcessing(false);
                 channel.unsubscribe();
                 
+                const chatbotCount = Object.values(analysisResults)
+                  .filter(result => result.has_chatbot).length;
+
                 // Show completion toast
                 toast.success(`Analysis completed for ${validUrls.length} URLs`, {
-                  description: `Found ${Array.from(completedUrls).filter(url => 
-                    data?.results?.find(r => r.url === url)?.has_chatbot
-                  ).length} chatbots`
+                  description: `Found ${chatbotCount} chatbots`
                 });
               }
             }
@@ -135,14 +156,16 @@ export function useBatchAnalysis() {
           channel.unsubscribe();
           setIsProcessing(false);
           setCompletedUrls(new Set());
+          setAnalysisResults({});
         },
-        results: data?.results
+        results: analysisResults
       };
 
     } catch (error) {
       console.error('Analysis error:', error);
       setIsProcessing(false);
       setCompletedUrls(new Set());
+      setAnalysisResults({});
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to process websites';
       toast.error(errorMessage);
@@ -154,6 +177,7 @@ export function useBatchAnalysis() {
     analyzeBatch,
     isProcessing,
     progress,
-    completedUrls: Array.from(completedUrls)
+    completedUrls: Array.from(completedUrls),
+    results: analysisResults
   };
 }
