@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAdminCheck } from './useAdminCheck';
 import { AuthState } from '@/types/auth';
-import { AuthError, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export const useAuthState = (): AuthState => {
   const navigate = useNavigate();
@@ -41,14 +40,7 @@ export const useAuthState = (): AuthState => {
 
         if (mounted.current) {
           console.log('Valid session found, checking admin status');
-          const isAdmin = await checkAdminStatus(session.user.id);
-          if (isAdmin) {
-            console.log('User is admin, redirecting to admin page');
-            navigate('/admin');
-          } else {
-            console.log('User is not admin, redirecting to dashboard');
-            navigate('/dashboard');
-          }
+          await checkAdminStatus(session.user.id);
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -57,9 +49,12 @@ export const useAuthState = (): AuthState => {
           navigate('/login');
         }
       } finally {
-        if (mounted.current) {
-          setIsLoading(false);
-        }
+        // Always set loading to false after a reasonable timeout
+        setTimeout(() => {
+          if (mounted.current && isLoading) {
+            setIsLoading(false);
+          }
+        }, 3000);
       }
     };
 
@@ -71,7 +66,7 @@ export const useAuthState = (): AuthState => {
   }, [navigate]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
       
       console.log('Auth event:', event);
@@ -97,6 +92,10 @@ export const useAuthState = (): AuthState => {
                 setError('Error processing your authentication');
                 navigate('/login');
               }
+            } finally {
+              if (mounted.current) {
+                setIsLoading(false);
+              }
             }
           }
           break;
@@ -104,24 +103,16 @@ export const useAuthState = (): AuthState => {
         case 'SIGNED_OUT':
           if (mounted.current) {
             setError('');
+            setIsLoading(false);
             navigate('/login');
           }
           break;
 
-        case 'TOKEN_REFRESHED':
-          console.log('Token refreshed successfully');
-          break;
-
-        case 'USER_UPDATED':
-          console.log('User profile updated');
-          break;
-
-        case 'INITIAL_SESSION':
-          console.log('Initial session loaded');
-          break;
-
         default:
           console.log('Unhandled auth event:', event);
+          if (mounted.current) {
+            setIsLoading(false);
+          }
       }
     });
 
@@ -136,4 +127,3 @@ export const useAuthState = (): AuthState => {
 
   return { error, setError, isLoading };
 };
-

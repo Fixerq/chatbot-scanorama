@@ -45,22 +45,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Check token expiry
-      const expiresAt = newSession.expires_at;
-      if (expiresAt) {
-        const expiresIn = expiresAt - Math.floor(Date.now() / 1000);
-        if (expiresIn < 300) { // Less than 5 minutes until expiry
-          const { data, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !data.session) {
-            console.error('Token refresh failed:', refreshError);
-            if (mounted.current) {
-              await clearAuthData();
-              navigate('/login');
-              toast.error('Unable to refresh your session. Please sign in again.');
-            }
-          }
+      // Add timeout to prevent infinite loading
+      setTimeout(() => {
+        if (mounted.current && isLoading) {
+          setIsLoading(false);
+          console.log('Forced loading state to complete after timeout');
         }
-      }
+      }, 5000);
     } catch (error) {
       console.error('Session refresh error:', error);
       if (mounted.current) {
@@ -144,4 +135,3 @@ export const useSessionContext = () => {
   }
   return context;
 };
-
