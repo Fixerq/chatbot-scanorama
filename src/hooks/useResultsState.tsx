@@ -28,17 +28,16 @@ export const useResultsState = (initialResults: Result[] = []) => {
         }
       }));
 
-      console.log('Processed results:', updatedResults);
+      // Only update state if results have meaningfully changed
+      const currentResultsStr = JSON.stringify(filteredResults);
+      const updatedResultsStr = JSON.stringify(updatedResults);
       
-      // Only update state if results have changed
-      setFilteredResults(prevResults => {
-        if (JSON.stringify(prevResults) !== JSON.stringify(updatedResults)) {
-          return updatedResults;
-        }
-        return prevResults;
-      });
+      if (currentResultsStr !== updatedResultsStr) {
+        console.log('Updating filtered results with new data');
+        setFilteredResults(updatedResults);
+        setLocalPage(1);
+      }
       
-      setLocalPage(1);
       setIsLoading(false);
     } catch (error) {
       console.error('Error processing results:', error);
@@ -51,19 +50,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
     console.log('Applying filter:', value);
     try {
       setFilterValue(value);
-      let filtered = [...initialResults].map(result => ({
-        ...result,
-        url: result.details?.website_url || result.url || '',
-        business_name: result.details?.business_name || result.business_name || '',
-        status: result.details?.error ? `Error: ${result.details.error}` : result.status || 'pending',
-        error: result.details?.error || result.error,
-        analysis_result: result.analysis_result || {
-          has_chatbot: false,
-          chatSolutions: [],
-          status: 'pending',
-          lastChecked: new Date().toISOString()
-        }
-      }));
+      let filtered = [...initialResults];
       
       // Apply filters based on status or chatbot presence
       if (value !== 'all') {

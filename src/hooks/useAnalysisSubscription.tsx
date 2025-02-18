@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Result } from '@/components/ResultsTable';
 import { SimplifiedAnalysisResult } from '@/types/database';
@@ -15,6 +15,8 @@ const isValidAnalysisPayload = (
 };
 
 export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
+  const lastUpdateRef = useRef<Record<string, string>>({});
+
   useEffect(() => {
     const channel = supabase
       .channel('analysis-updates')
@@ -27,13 +29,24 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
         },
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Received analysis update:', payload);
+          
           if (isValidAnalysisPayload(payload)) {
+            const { url, updated_at } = payload.new;
+            
+            // Check if this is a newer update than what we've seen before
+            if (lastUpdateRef.current[url] && lastUpdateRef.current[url] >= updated_at) {
+              console.log('Skipping older or duplicate update for:', url);
+              return;
+            }
+            
+            lastUpdateRef.current[url] = updated_at;
+
             setResults(prevResults => {
               const updatedResults = prevResults.map(result => {
-                if (result.url === payload.new.url) {
+                if (result.url === url) {
                   // Notify user when chatbot is detected
                   if (payload.new.has_chatbot && !result.analysis_result?.has_chatbot) {
-                    toast.success(`Chatbot detected on ${payload.new.url}`);
+                    toast.success(`Chatbot detected on ${url}`);
                   }
 
                   return {
@@ -44,7 +57,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
                       has_chatbot: payload.new.has_chatbot,
                       chatSolutions: payload.new.chatbot_solutions || [],
                       status: payload.new.status as Status,
-                      lastChecked: payload.new.updated_at,
+                      lastChecked: updated_at,
                       error: payload.new.error
                     }
                   };
