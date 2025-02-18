@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type SimplifiedAnalysisResult = Database['public']['Tables']['simplified_analysis_results']['Row'];
 
@@ -17,7 +18,7 @@ export function useAnalysisUpdates(
 
     const channel = supabase
       .channel(`analysis-${url}`)
-      .on(
+      .on<SimplifiedAnalysisResult>(
         'postgres_changes',
         {
           event: '*',
@@ -25,10 +26,10 @@ export function useAnalysisUpdates(
           table: 'simplified_analysis_results',
           filter: `url=eq.${url}`
         },
-        (payload: { new: SimplifiedAnalysisResult }) => {
+        (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Analysis update received:', payload);
           
-          if (payload.new) {
+          if (payload.new && Object.keys(payload.new).length > 0) {
             // Calculate progress
             if (payload.new.status === 'completed') {
               onProgress(100);

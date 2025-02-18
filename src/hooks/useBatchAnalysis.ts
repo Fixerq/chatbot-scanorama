@@ -65,7 +65,7 @@ export function useBatchAnalysis() {
       // Set up subscription to monitor status updates
       const channel = supabase
         .channel('analysis-updates')
-        .on(
+        .on<SimplifiedAnalysisResult>(
           'postgres_changes',
           {
             event: '*',
@@ -76,7 +76,7 @@ export function useBatchAnalysis() {
           (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
             console.log('Analysis update received:', payload);
             
-            if (payload.new) {
+            if (payload.new && Object.keys(payload.new).length > 0) {
               // Calculate progress based on completed analyses
               const completedCount = validUrls.length;
               const newProgress = Math.round((completedCount / validUrls.length) * 100);
