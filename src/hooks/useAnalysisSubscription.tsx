@@ -7,14 +7,26 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Status } from '@/utils/types/search';
 import { toast } from 'sonner';
 
+// Type guard to check if payload is SimplifiedAnalysisResult
+const isSimplifiedAnalysisResult = (payload: any): payload is SimplifiedAnalysisResult => {
+  return (
+    payload &&
+    typeof payload === 'object' &&
+    'url' in payload &&
+    typeof payload.url === 'string'
+  );
+};
+
 export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
   const handleAnalysisUpdate = useCallback((payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
-    if (!payload.new || !payload.new.url) {
+    const update = payload.new;
+    
+    // Type guard check
+    if (!update || !isSimplifiedAnalysisResult(update)) {
       console.warn('Invalid analysis update received:', payload);
       return;
     }
 
-    const update = payload.new;
     console.log('Processing analysis update for URL:', update.url);
 
     setResults(prevResults => {
@@ -24,21 +36,23 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
 
       // Create a new array with the updated result
       const newResults = [...prevResults];
+      const currentResult = prevResults[resultIndex];
+      
       newResults[resultIndex] = {
-        ...prevResults[resultIndex],
+        ...currentResult,
         status: update.status,
-        error: update.error || null,
+        error: update.error ?? null,
         analysis_result: {
           has_chatbot: Boolean(update.has_chatbot),
-          chatSolutions: update.chatbot_solutions || [],
+          chatSolutions: update.chatbot_solutions ?? [],
           status: update.status as Status,
-          lastChecked: update.updated_at || new Date().toISOString(),
-          error: update.error || null
+          lastChecked: update.updated_at ?? new Date().toISOString(),
+          error: update.error ?? null
         }
       };
 
       // Show toast for new chatbot detections
-      if (update.has_chatbot && !prevResults[resultIndex].analysis_result?.has_chatbot) {
+      if (update.has_chatbot && !currentResult.analysis_result?.has_chatbot) {
         toast.success(`Chatbot detected on ${update.url}`);
       }
 
@@ -68,3 +82,4 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
     };
   }, [handleAnalysisUpdate]);
 };
+
