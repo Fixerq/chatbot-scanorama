@@ -50,7 +50,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
       if (mounted.current) {
         setIsAuthenticated(true);
-        setIsLoading(false);
       }
     } catch (error) {
       console.error('Session refresh error:', error);
@@ -68,6 +67,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     const initialize = async () => {
       try {
+        if (!isMounted) return;
+
         console.log('Initializing session check...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -87,6 +88,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           console.log('Initial session found');
           if (isMounted) {
             setIsAuthenticated(true);
+            setIsLoading(false);
           }
         }
       } catch (error) {
@@ -103,10 +105,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Delay the initial session check slightly to ensure auth state is settled
-    initializationTimeout.current = setTimeout(() => {
-      initialize();
-    }, 100);
+    // Initialize session check immediately
+    initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted) return;
@@ -133,7 +133,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           
         case 'TOKEN_REFRESHED':
           if (currentSession) {
+            console.log('Token refreshed, maintaining authenticated state');
             setIsAuthenticated(true);
+            setIsLoading(false);
           }
           break;
       }
@@ -142,12 +144,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
       mounted.current = false;
-      subscription?.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
       if (initializationTimeout.current) {
         clearTimeout(initializationTimeout.current);
       }
     };
   }, [navigate, supabase]);
+
+  useEffect(() => {
+    // Set authentication state based on session
+    if (session) {
+      setIsAuthenticated(true);
+      setIsLoading(false);
+    }
+  }, [session]);
 
   return (
     <SessionContext.Provider value={{
