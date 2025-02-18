@@ -1,150 +1,24 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { SearchForm } from "./SearchForm";
 import { SearchResults } from "./SearchResults";
-
-const countries = [
-  { code: "US", name: "United States" },
-  { code: "CA", name: "Canada" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "AU", name: "Australia" },
-];
-
-const regions = {
-  US: [
-    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
-  ],
-  CA: [
-    "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"
-  ],
-  GB: [
-    "England", "Scotland", "Wales", "Northern Ireland"
-  ],
-  AU: [
-    "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"
-  ]
-};
+import { performSearch } from "./searchOperations";
 
 export const SearchInterface = () => {
   const { toast } = useToast();
-  const [query, setQuery] = useState("");
-  const [country, setCountry] = useState("");
-  const [region, setRegion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [searchId, setSearchId] = useState<string | null>(null);
 
-  const handleSearch = async () => {
-    if (!query || !country) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleSearch = async (query: string, country: string, region: string) => {
     setIsLoading(true);
     try {
-      console.log("Starting search with params:", { query, country, region });
+      const newSearchId = await performSearch(query, country, region);
+      setSearchId(newSearchId);
       
-      // Create search batch first
-      const { data: searchBatch, error: batchError } = await supabase
-        .from("search_batches")
-        .insert({
-          query,
-          country,
-          region: region || null,
-        })
-        .select()
-        .single();
-
-      if (batchError) throw batchError;
-      console.log("Created search batch:", searchBatch);
-
-      // Create search history record
-      const { data: searchHistory, error: searchError } = await supabase
-        .from("search_history")
-        .insert({
-          query,
-          country,
-          region: region || '',
-          search_batch_id: searchBatch.id
-        })
-        .select()
-        .single();
-
-      if (searchError) throw searchError;
-      console.log("Created search history:", searchHistory);
-
-      setSearchId(searchHistory.id);
-
-      // Call places API
-      const { data: placesData, error: placesError } = await supabase.functions.invoke(
-        "search-places",
-        {
-          body: {
-            query,
-            country,
-            region: region || undefined,
-            searchId: searchHistory.id,
-          },
-        }
-      );
-
-      if (placesError) {
-        console.error("Places API error:", placesError);
-        throw placesError;
-      }
-      console.log("Places API response:", placesData);
-
-      if (!placesData?.results) {
-        console.error("No results array in Places API response");
-        throw new Error("Invalid response from Places API");
-      }
-
-      // Process and insert results
-      const validResults = placesData.results.map((result: any) => ({
-        search_id: searchHistory.id,
-        business_name: result.business_name || result.name || result.title,
-        website_url: result.website_url || result.website || null,
-        phone_number: result.phone_number || result.formatted_phone_number || null,
-        address: result.address || result.formatted_address || null,
-      }));
-
-      console.log("Processed results to insert:", validResults);
-
-      if (validResults.length > 0) {
-        const { data: insertedData, error: resultsError } = await supabase
-          .from("search_results")
-          .insert(validResults)
-          .select();
-
-        if (resultsError) {
-          console.error("Error inserting results:", resultsError);
-          throw resultsError;
-        }
-        console.log("Successfully inserted results:", insertedData);
-      } else {
-        console.log("No valid results to insert");
-      }
-
       toast({
         title: "Search completed",
-        description: `Found ${validResults.length} results`,
+        description: "Results have been fetched successfully",
       });
     } catch (error) {
       console.error("Search error:", error);
@@ -160,53 +34,7 @@ export const SearchInterface = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="md:col-span-2">
-          <Input
-            placeholder="Enter business category..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <div>
-          <Select value={country} onValueChange={setCountry}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select country" />
-            </SelectTrigger>
-            <SelectContent>
-              {countries.map((c) => (
-                <SelectItem key={c.code} value={c.code}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Select
-            value={region}
-            onValueChange={setRegion}
-            disabled={!country || !regions[country as keyof typeof regions]}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select region" />
-            </SelectTrigger>
-            <SelectContent>
-              {country &&
-                regions[country as keyof typeof regions]?.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <Button onClick={handleSearch} disabled={isLoading}>
-          {isLoading ? "Searching..." : "Search"}
-        </Button>
-      </div>
+      <SearchForm onSearch={handleSearch} isLoading={isLoading} />
       {searchId && <SearchResults searchId={searchId} />}
     </div>
   );
