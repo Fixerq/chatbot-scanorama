@@ -7,55 +7,43 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Status } from '@/utils/types/search';
 import { toast } from 'sonner';
 
-// Type guard to ensure we have a valid analysis result
-const isValidAnalysisUpdate = (
-  payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>
-): payload is RealtimePostgresChangesPayload<SimplifiedAnalysisResult> & { new: SimplifiedAnalysisResult } => {
-  return payload.new !== null && 
-    typeof payload.new === 'object' && 
-    'url' in payload.new &&
-    'status' in payload.new;
-};
-
 export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
   const handleAnalysisUpdate = useCallback((payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
-    if (!isValidAnalysisUpdate(payload)) {
-      console.warn('Received invalid analysis update:', payload);
+    if (!payload.new || !payload.new.url) {
+      console.warn('Invalid analysis update received:', payload);
       return;
     }
-    
+
     const update = payload.new;
-    console.log('Received analysis update:', update);
+    console.log('Processing analysis update for URL:', update.url);
 
     setResults(prevResults => {
-      return prevResults.map(result => {
-        if (result.url === update.url) {
-          console.log('Updating result for URL:', result.url);
-          
-          // Create updated result with new analysis data
-          const updatedResult = {
-            ...result,
-            status: update.status as Status,
-            error: update.error ?? null,
-            analysis_result: {
-              has_chatbot: Boolean(update.has_chatbot),
-              chatSolutions: update.chatbot_solutions ?? [],
-              status: update.status as Status,
-              lastChecked: update.updated_at ?? new Date().toISOString(),
-              error: update.error ?? null
-            }
-          };
+      // Find the result that needs to be updated
+      const resultIndex = prevResults.findIndex(r => r.url === update.url);
+      if (resultIndex === -1) return prevResults;
 
-          // Show toast for new chatbot detections
-          if (update.has_chatbot && !result.analysis_result?.has_chatbot) {
-            toast.success(`Chatbot detected on ${update.url}`);
-          }
-
-          console.log('Updated result:', updatedResult);
-          return updatedResult;
+      // Create a new array with the updated result
+      const newResults = [...prevResults];
+      newResults[resultIndex] = {
+        ...prevResults[resultIndex],
+        status: update.status,
+        error: update.error || null,
+        analysis_result: {
+          has_chatbot: Boolean(update.has_chatbot),
+          chatSolutions: update.chatbot_solutions || [],
+          status: update.status as Status,
+          lastChecked: update.updated_at || new Date().toISOString(),
+          error: update.error || null
         }
-        return result;
-      });
+      };
+
+      // Show toast for new chatbot detections
+      if (update.has_chatbot && !prevResults[resultIndex].analysis_result?.has_chatbot) {
+        toast.success(`Chatbot detected on ${update.url}`);
+      }
+
+      console.log('Updated result:', newResults[resultIndex]);
+      return newResults;
     });
   }, [setResults]);
 
@@ -79,7 +67,4 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
       supabase.removeChannel(channel);
     };
   }, [handleAnalysisUpdate]);
-
-  return null;
 };
-
