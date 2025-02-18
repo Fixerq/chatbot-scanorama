@@ -5,13 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useBatchAnalysis } from './useBatchAnalysis';
 import { useRealtimeAnalysis } from './useRealtimeAnalysis';
-import { useBatchStatusChannel } from './useBatchStatusChannel';
 
 export const useUrlProcessor = () => {
   const [processing, setProcessing] = useState<boolean>(false);
   const { analyzeBatch, progress } = useBatchAnalysis();
   const { subscribeToAnalysisResults } = useRealtimeAnalysis();
-  const { subscribeToBatchUpdates } = useBatchStatusChannel();
 
   const processSearchResults = useCallback(async (
     results: Result[], 
@@ -50,29 +48,11 @@ export const useUrlProcessor = () => {
 
       // Start batch analysis
       console.log(`Starting batch analysis for ${results.length} URLs...`);
-      const { cleanup, batchId } = await analyzeBatch(results);
+      const { cleanup } = await analyzeBatch(results);
 
-      if (!batchId) {
-        throw new Error('Failed to create analysis batch');
-      }
-
-      console.log('Batch created with ID:', batchId);
-
-      // Subscribe to batch status updates
-      const batchCleanup = subscribeToBatchUpdates(
-        batchId,
-        () => setProcessing(false),
-        () => {
-          cleanup();
-          analysisCleanup();
-        }
-      );
-
-      // Return cleanup function
       return () => {
-        batchCleanup();
-        analysisCleanup();
         cleanup();
+        analysisCleanup();
         setProcessing(false);
       };
     } catch (error) {

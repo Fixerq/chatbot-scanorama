@@ -2,6 +2,15 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+interface SimplifiedAnalysisResult {
+  url: string;
+  status: string;
+  error?: string;
+  has_chatbot: boolean;
+  chatbot_solutions?: string[];
+}
 
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -69,7 +78,7 @@ export function useBatchAnalysis() {
             table: 'simplified_analysis_results',
             filter: `url=in.(${validUrls.map(url => `'${url}'`).join(',')})`
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
             console.log('Analysis update received:', payload);
             
             if (payload.new) {

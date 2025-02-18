@@ -2,33 +2,33 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { AnalysisUpdatePayload, isAnalysisUpdatePayload } from './types/analysisTypes';
+
+interface AnalysisResult {
+  url: string;
+  has_chatbot: boolean;
+  chatbot_solutions?: string[];
+  error?: string;
+  status: string;
+}
 
 export const useRealtimeAnalysis = () => {
   const subscribeToAnalysisResults = () => {
-    console.log('Setting up general analysis results subscription');
+    console.log('Setting up analysis results subscription');
     
     const channel = supabase
-      .channel('analysis-results')
+      .channel('realtime-analysis')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'analysis_results_with_requests'
+          table: 'simplified_analysis_results'
         },
-        (payload: RealtimePostgresChangesPayload<any>) => {
-          console.log('Analysis result update received:', payload);
+        (payload: RealtimePostgresChangesPayload<AnalysisResult>) => {
+          console.log('Analysis update received:', payload);
           
-          if (payload.new && isAnalysisUpdatePayload(payload.new)) {
-            const { url, has_chatbot, chatbot_solutions, status, error } = payload.new;
-            console.log('Processing analysis result:', {
-              url,
-              has_chatbot,
-              chatbot_solutions,
-              status,
-              error
-            });
+          if (payload.new) {
+            const { url, has_chatbot, chatbot_solutions, error } = payload.new;
 
             if (error) {
               console.error(`Analysis error for ${url}:`, error);
@@ -46,7 +46,7 @@ export const useRealtimeAnalysis = () => {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up general analysis results subscription');
+      console.log('Cleaning up analysis results subscription');
       supabase.removeChannel(channel);
     };
   };
