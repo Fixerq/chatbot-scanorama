@@ -1,6 +1,5 @@
 
 import { createBrowserRouter } from "react-router-dom";
-import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
 import Success from "@/pages/Success";
@@ -8,7 +7,6 @@ import AdminConsole from "@/pages/AdminConsole";
 import SalesPage from "@/pages/SalesPage";
 import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
-import { Navigate } from "react-router-dom";
 import Monitoring from "@/pages/Monitoring";
 import Test from "@/pages/Test";
 
@@ -22,14 +20,6 @@ const routes: AppRoute[] = [
   {
     path: "/",
     element: <SalesPage />,
-  },
-  {
-    path: "/dashboard",
-    element: (
-      <ProtectedRoute>
-        <Index />
-      </ProtectedRoute>
-    ),
   },
   {
     path: "/login",
