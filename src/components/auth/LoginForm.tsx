@@ -59,6 +59,8 @@ export const LoginForm = ({ error }: LoginFormProps) => {
         providers={[]}
         view="sign_in"
         redirectTo={`${window.location.origin}/dashboard`}
+        showLinks={false}
+        onlyThirdPartyProviders={false}
       />
     </div>
   );

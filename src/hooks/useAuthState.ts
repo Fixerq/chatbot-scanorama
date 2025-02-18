@@ -26,7 +26,7 @@ export const useAuthState = (): AuthState => {
         if (sessionError) {
           console.error('Session check error:', sessionError);
           if (mounted.current) {
-            setError('Error checking session status');
+            setError(sessionError.message);
             navigate('/login');
           }
           return;
@@ -35,6 +35,7 @@ export const useAuthState = (): AuthState => {
         if (!session) {
           console.log('No session found during check');
           if (mounted.current && window.location.pathname !== '/login') {
+            setIsLoading(false);
             navigate('/login');
           }
           return;
@@ -50,6 +51,10 @@ export const useAuthState = (): AuthState => {
         if (mounted.current) {
           setError('Error checking session status');
           navigate('/login');
+        }
+      } finally {
+        if (mounted.current) {
+          setIsLoading(false);
         }
       }
     };
@@ -76,7 +81,7 @@ export const useAuthState = (): AuthState => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
       
-      console.log('Auth state changed in useAuthState:', event);
+      console.log('Auth state changed in useAuthState:', event, 'Session:', !!session);
       
       switch (event) {
         case 'SIGNED_IN':
@@ -98,6 +103,7 @@ export const useAuthState = (): AuthState => {
               console.error('Auth state change error:', error);
               if (mounted.current) {
                 setError('Error processing your authentication');
+                setIsLoading(false);
                 navigate('/login');
               }
             }
@@ -130,4 +136,3 @@ export const useAuthState = (): AuthState => {
 
   return { error, setError, isLoading };
 };
-
