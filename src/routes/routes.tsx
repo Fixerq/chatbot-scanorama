@@ -21,11 +21,7 @@ interface AppRoute {
 const routes: AppRoute[] = [
   {
     path: "/",
-    element: (
-      <ProtectedRoute>
-        <Navigate to="/dashboard" replace />
-      </ProtectedRoute>
-    ),
+    element: <SalesPage />,
   },
   {
     path: "/dashboard",
@@ -82,4 +78,3 @@ const routes: AppRoute[] = [
 ];
 
 export const router = createBrowserRouter(routes);
-
