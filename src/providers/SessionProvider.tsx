@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { clearAuthData } from '@/integrations/supabase/client';
 
@@ -17,10 +17,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const supabase = useSupabaseClient();
   const session = useSession();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const mounted = useRef(true);
-  const initializationTimeout = useRef<NodeJS.Timeout>();
 
   const refreshSession = async () => {
     if (!mounted.current) return;
@@ -40,7 +40,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!newSession) {
-        if (mounted.current && window.location.pathname !== '/login') {
+        if (mounted.current && !location.pathname.startsWith('/login')) {
           await clearAuthData();
           setIsAuthenticated(false);
           navigate('/login');
@@ -79,7 +79,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
         if (!session) {
           console.log('No initial session found');
-          if (isMounted && window.location.pathname !== '/login') {
+          if (isMounted && !location.pathname.startsWith('/login')) {
             await clearAuthData();
             setIsAuthenticated(false);
             navigate('/login');
@@ -88,7 +88,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           console.log('Initial session found');
           if (isMounted) {
             setIsAuthenticated(true);
-            setIsLoading(false);
           }
         }
       } catch (error) {
@@ -105,7 +104,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Initialize session check immediately
     initialize();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
@@ -118,27 +116,29 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           if (currentSession) {
             console.log('User signed in, setting authenticated state');
             setIsAuthenticated(true);
-            setIsLoading(false);
             navigate('/dashboard');
+            toast.success('Successfully signed in!');
           }
           break;
           
         case 'SIGNED_OUT':
           console.log('User signed out, clearing auth state');
           setIsAuthenticated(false);
-          setIsLoading(false);
           await clearAuthData();
-          navigate('/login');
+          if (location.pathname !== '/login') {
+            navigate('/login');
+          }
           break;
           
         case 'TOKEN_REFRESHED':
           if (currentSession) {
             console.log('Token refreshed, maintaining authenticated state');
             setIsAuthenticated(true);
-            setIsLoading(false);
           }
           break;
       }
+      
+      setIsLoading(false);
     });
 
     return () => {
@@ -147,19 +147,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (subscription) {
         subscription.unsubscribe();
       }
-      if (initializationTimeout.current) {
-        clearTimeout(initializationTimeout.current);
-      }
     };
-  }, [navigate, supabase]);
+  }, [navigate, supabase, location]);
 
   useEffect(() => {
-    // Set authentication state based on session
     if (session) {
       setIsAuthenticated(true);
       setIsLoading(false);
+      if (location.pathname === '/login') {
+        navigate('/dashboard');
+      }
     }
-  }, [session]);
+  }, [session, navigate, location]);
 
   return (
     <SessionContext.Provider value={{

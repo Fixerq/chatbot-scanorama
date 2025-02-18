@@ -5,22 +5,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoginFormProps } from '@/types/auth';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const LoginForm = ({ error }: LoginFormProps) => {
   const [localError, setLocalError] = useState<string>('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('LoginForm auth state changed:', event);
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+      console.log('LoginForm auth state changed:', event, 'Session:', !!session);
+      if (event === 'SIGNED_IN' && session) {
         setLocalError('');
+        navigate('/dashboard');
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="rounded-lg p-4">
