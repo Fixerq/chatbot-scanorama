@@ -46,7 +46,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Set loading to false after successful session check
       if (mounted.current) {
         setIsLoading(false);
       }
@@ -87,35 +86,30 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           navigate('/login');
         }
       } finally {
-        // Set a maximum timeout for initialization
-        initializationTimeout.current = setTimeout(() => {
-          if (mounted.current && isLoading) {
-            console.log('Forcing loading state to complete after timeout');
-            setIsLoading(false);
-          }
-        }, 3000);
+        if (mounted.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     initialize();
 
-    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted.current) return;
       
       console.log('Auth state changed:', event, 'Session:', !!currentSession);
       
-      if (event === 'SIGNED_OUT') {
-        if (mounted.current) {
-          setIsLoading(false);
-          await clearAuthData();
-          navigate('/login');
-        }
-      } else if (event === 'SIGNED_IN' && currentSession) {
+      if (event === 'SIGNED_IN' && currentSession) {
         console.log('User signed in, refreshing session');
         await refreshSession();
         if (mounted.current) {
           setIsLoading(false);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        if (mounted.current) {
+          setIsLoading(false);
+          await clearAuthData();
+          navigate('/login');
         }
       }
     });
@@ -150,4 +144,3 @@ export const useSessionContext = () => {
   }
   return context;
 };
-

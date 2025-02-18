@@ -4,13 +4,21 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoginFormProps } from '@/types/auth';
+import { useState } from 'react';
 
 export const LoginForm = ({ error }: LoginFormProps) => {
+  const [localError, setLocalError] = useState<string>('');
+
+  const handleAuthError = (error: Error) => {
+    console.error('Auth error:', error);
+    setLocalError(error.message);
+  };
+
   return (
     <div className="rounded-lg p-4">
-      {error && (
+      {(error || localError) && (
         <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error || localError}</AlertDescription>
         </Alert>
       )}
       <Auth
@@ -61,6 +69,7 @@ export const LoginForm = ({ error }: LoginFormProps) => {
         redirectTo={`${window.location.origin}/dashboard`}
         showLinks={false}
         onlyThirdPartyProviders={false}
+        onError={handleAuthError}
       />
     </div>
   );
