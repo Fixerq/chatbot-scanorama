@@ -11,14 +11,16 @@ export const useAuthState = (): AuthState => {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const mounted = useRef(true);
-  const authStateSubscription = useRef<{ data: { subscription: { unsubscribe: () => void } } }>();
   const { checkAdminStatus } = useAdminCheck();
+  const authStateSubscription = useRef<{ data: { subscription: { unsubscribe: () => void } } }>();
+  const initializationTimeout = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const checkSession = async () => {
       if (!mounted.current) return;
       
       try {
+        console.log('Checking session status...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -31,7 +33,7 @@ export const useAuthState = (): AuthState => {
         }
 
         if (!session) {
-          console.log('No session found, redirecting to login');
+          console.log('No session found during check');
           if (mounted.current && window.location.pathname !== '/login') {
             navigate('/login');
           }
@@ -41,6 +43,7 @@ export const useAuthState = (): AuthState => {
         if (mounted.current) {
           console.log('Valid session found, checking admin status');
           await checkAdminStatus(session.user.id);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Session check error:', error);
@@ -48,28 +51,32 @@ export const useAuthState = (): AuthState => {
           setError('Error checking session status');
           navigate('/login');
         }
-      } finally {
-        // Always set loading to false after a reasonable timeout
-        setTimeout(() => {
-          if (mounted.current && isLoading) {
-            setIsLoading(false);
-          }
-        }, 3000);
       }
     };
 
     checkSession();
     
+    // Set a timeout to prevent infinite loading
+    initializationTimeout.current = setTimeout(() => {
+      if (mounted.current && isLoading) {
+        console.log('Forcing auth state loading to complete after timeout');
+        setIsLoading(false);
+      }
+    }, 5000);
+    
     return () => {
       mounted.current = false;
+      if (initializationTimeout.current) {
+        clearTimeout(initializationTimeout.current);
+      }
     };
-  }, [navigate]);
+  }, [navigate, checkAdminStatus]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted.current) return;
       
-      console.log('Auth event:', event);
+      console.log('Auth state changed in useAuthState:', event);
       
       switch (event) {
         case 'SIGNED_IN':
@@ -77,6 +84,7 @@ export const useAuthState = (): AuthState => {
             try {
               const isAdmin = await checkAdminStatus(session.user.id);
               if (mounted.current) {
+                setIsLoading(false);
                 if (isAdmin) {
                   console.log('User is admin, navigating to admin page');
                   navigate('/admin');
@@ -92,10 +100,6 @@ export const useAuthState = (): AuthState => {
                 setError('Error processing your authentication');
                 navigate('/login');
               }
-            } finally {
-              if (mounted.current) {
-                setIsLoading(false);
-              }
             }
           }
           break;
@@ -109,7 +113,6 @@ export const useAuthState = (): AuthState => {
           break;
 
         default:
-          console.log('Unhandled auth event:', event);
           if (mounted.current) {
             setIsLoading(false);
           }
@@ -123,7 +126,8 @@ export const useAuthState = (): AuthState => {
         authStateSubscription.current.data.subscription.unsubscribe();
       }
     };
-  }, [navigate]);
+  }, [navigate, checkAdminStatus]);
 
   return { error, setError, isLoading };
 };
+

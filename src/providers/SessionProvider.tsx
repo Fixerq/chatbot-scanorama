@@ -20,6 +20,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const mounted = useRef(true);
   const refreshTimeout = useRef<NodeJS.Timeout>();
+  const initializationTimeout = useRef<NodeJS.Timeout>();
 
   const refreshSession = async () => {
     if (!mounted.current) return;
@@ -45,13 +46,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Add timeout to prevent infinite loading
-      setTimeout(() => {
-        if (mounted.current && isLoading) {
-          setIsLoading(false);
-          console.log('Forced loading state to complete after timeout');
-        }
-      }, 5000);
+      // Set loading to false after successful session check
+      if (mounted.current) {
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('Session refresh error:', error);
       if (mounted.current) {
@@ -65,13 +63,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initialize = async () => {
       try {
+        console.log('Initializing session check...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error || !session) {
+        if (error) {
+          console.error('Session initialization error:', error);
+          throw error;
+        }
+
+        if (!session) {
+          console.log('No initial session found');
           if (mounted.current && window.location.pathname !== '/login') {
             await clearAuthData();
             navigate('/login');
           }
+        } else {
+          console.log('Initial session found');
         }
       } catch (error) {
         console.error('Session initialization error:', error);
@@ -80,9 +87,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           navigate('/login');
         }
       } finally {
-        if (mounted.current) {
-          setIsLoading(false);
-        }
+        // Set a maximum timeout for initialization
+        initializationTimeout.current = setTimeout(() => {
+          if (mounted.current && isLoading) {
+            console.log('Forcing loading state to complete after timeout');
+            setIsLoading(false);
+          }
+        }, 3000);
       }
     };
 
@@ -92,27 +103,31 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted.current) return;
       
-      console.log('Auth state changed:', event);
+      console.log('Auth state changed:', event, 'Session:', !!currentSession);
       
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         if (mounted.current) {
+          setIsLoading(false);
           await clearAuthData();
           navigate('/login');
         }
       } else if (event === 'SIGNED_IN' && currentSession) {
-        // Refresh session immediately on sign in
+        console.log('User signed in, refreshing session');
         await refreshSession();
+        if (mounted.current) {
+          setIsLoading(false);
+        }
       }
     });
-
-    // Set up periodic session refresh
-    refreshTimeout.current = setInterval(refreshSession, 4 * 60 * 1000); // Every 4 minutes
 
     return () => {
       mounted.current = false;
       subscription?.unsubscribe();
       if (refreshTimeout.current) {
         clearInterval(refreshTimeout.current);
+      }
+      if (initializationTimeout.current) {
+        clearTimeout(initializationTimeout.current);
       }
     };
   }, [navigate, supabase]);
@@ -135,3 +150,4 @@ export const useSessionContext = () => {
   }
   return context;
 };
+
