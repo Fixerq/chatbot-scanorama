@@ -7,9 +7,22 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Status } from '@/utils/types/search';
 import { toast } from 'sonner';
 
+// Type guard to ensure we have a valid analysis result
+const isValidAnalysisUpdate = (
+  payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>
+): payload is RealtimePostgresChangesPayload<SimplifiedAnalysisResult> & { new: SimplifiedAnalysisResult } => {
+  return payload.new !== null && 
+    typeof payload.new === 'object' && 
+    'url' in payload.new &&
+    'status' in payload.new;
+};
+
 export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
   const handleAnalysisUpdate = useCallback((payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
-    if (!payload.new) return;
+    if (!isValidAnalysisUpdate(payload)) {
+      console.warn('Received invalid analysis update:', payload);
+      return;
+    }
     
     const update = payload.new;
     console.log('Received analysis update:', update);
@@ -23,13 +36,13 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
           const updatedResult = {
             ...result,
             status: update.status as Status,
-            error: update.error,
+            error: update.error ?? null,
             analysis_result: {
-              has_chatbot: update.has_chatbot,
-              chatSolutions: update.chatbot_solutions || [],
+              has_chatbot: Boolean(update.has_chatbot),
+              chatSolutions: update.chatbot_solutions ?? [],
               status: update.status as Status,
-              lastChecked: update.updated_at,
-              error: update.error
+              lastChecked: update.updated_at ?? new Date().toISOString(),
+              error: update.error ?? null
             }
           };
 
@@ -69,3 +82,4 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
 
   return null;
 };
+
