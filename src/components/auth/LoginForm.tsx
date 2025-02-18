@@ -5,13 +5,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoginFormProps } from '@/types/auth';
 import { useState } from 'react';
+import type { AuthError } from '@supabase/supabase-js';
 
 export const LoginForm = ({ error }: LoginFormProps) => {
   const [localError, setLocalError] = useState<string>('');
 
-  const handleAuthError = (error: Error) => {
-    console.error('Auth error:', error);
-    setLocalError(error.message);
+  const handleAuthCallback = ({ error }: { error?: AuthError }) => {
+    if (error) {
+      console.error('Auth error:', error);
+      setLocalError(error.message);
+    } else {
+      setLocalError('');
+    }
   };
 
   return (
@@ -69,8 +74,9 @@ export const LoginForm = ({ error }: LoginFormProps) => {
         redirectTo={`${window.location.origin}/dashboard`}
         showLinks={false}
         onlyThirdPartyProviders={false}
-        onError={handleAuthError}
+        authCallback={handleAuthCallback}
       />
     </div>
   );
 };
+
