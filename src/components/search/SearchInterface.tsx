@@ -66,6 +66,7 @@ export const SearchInterface = () => {
           query,
           country,
           region: region || null,
+          user_id: null  // Let RLS handle this
         })
         .select()
         .single();
