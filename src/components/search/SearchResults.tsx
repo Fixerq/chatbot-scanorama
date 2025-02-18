@@ -34,12 +34,18 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
   const { data: results, isLoading } = useQuery({
     queryKey: ["searchResults", searchId],
     queryFn: async () => {
+      console.log("Fetching results for searchId:", searchId);
       const { data, error } = await supabase
         .from("search_results")
         .select("*")
         .eq("search_id", searchId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching results:", error);
+        throw error;
+      }
+
+      console.log("Fetched results:", data);
       return data as SearchResult[];
     },
   });
@@ -92,6 +98,14 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
     return <div>Loading results...</div>;
   }
 
+  if (!results || results.length === 0) {
+    return (
+      <div className="mt-6 text-center text-gray-500">
+        No results found. Try adjusting your search parameters.
+      </div>
+    );
+  }
+
   return (
     <div className="mt-6">
       <Table>
@@ -106,7 +120,7 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results?.map((result) => (
+          {results.map((result) => (
             <TableRow key={result.id}>
               <TableCell>{result.business_name}</TableCell>
               <TableCell>{result.address}</TableCell>
@@ -140,3 +154,4 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
     </div>
   );
 };
+

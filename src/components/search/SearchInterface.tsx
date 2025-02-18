@@ -59,6 +59,8 @@ export const SearchInterface = () => {
 
     setIsLoading(true);
     try {
+      console.log("Starting search with params:", { query, country, region });
+      
       // Create search batch first
       const { data: searchBatch, error: batchError } = await supabase
         .from("search_batches")
@@ -71,6 +73,7 @@ export const SearchInterface = () => {
         .single();
 
       if (batchError) throw batchError;
+      console.log("Created search batch:", searchBatch);
 
       // Create search history record
       const { data: searchHistory, error: searchError } = await supabase
@@ -85,6 +88,7 @@ export const SearchInterface = () => {
         .single();
 
       if (searchError) throw searchError;
+      console.log("Created search history:", searchHistory);
 
       setSearchId(searchHistory.id);
 
@@ -101,6 +105,7 @@ export const SearchInterface = () => {
       );
 
       if (placesError) throw placesError;
+      console.log("Places API response:", placesData);
 
       // Filter and transform valid results before insertion
       if (placesData?.results?.length > 0) {
@@ -114,13 +119,23 @@ export const SearchInterface = () => {
             address: result.formatted_address || null,
           }));
 
+        console.log("Processed results to insert:", validResults);
+
         if (validResults.length > 0) {
           const { error: resultsError } = await supabase
             .from("search_results")
             .insert(validResults);
 
-          if (resultsError) throw resultsError;
+          if (resultsError) {
+            console.error("Error inserting results:", resultsError);
+            throw resultsError;
+          }
+          console.log("Successfully inserted results");
+        } else {
+          console.log("No valid results to insert");
         }
+      } else {
+        console.log("No results from Places API");
       }
 
       toast({
@@ -192,3 +207,4 @@ export const SearchInterface = () => {
     </div>
   );
 };
+
