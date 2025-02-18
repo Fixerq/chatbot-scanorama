@@ -27,7 +27,6 @@ export function useBatchAnalysis() {
     try {
       console.log('Starting analysis process for', results.length, 'URLs');
       
-      // Extract and validate URLs
       const validUrls = results.filter(r => r.url).map(r => r.url);
       
       if (!validUrls.length) {
@@ -36,7 +35,6 @@ export function useBatchAnalysis() {
 
       console.log('Validated URLs:', validUrls);
 
-      // Insert initial records for each URL
       const { data: insertedRecords, error: insertError } = await supabase
         .from('simplified_analysis_results')
         .insert(
@@ -56,7 +54,7 @@ export function useBatchAnalysis() {
 
       console.log('Created analysis records:', insertedRecords);
 
-      // Set initial state
+      // Set initial state with pending records
       if (insertedRecords) {
         const initialState = insertedRecords.reduce((acc, record) => {
           acc[record.url] = record;
@@ -65,18 +63,13 @@ export function useBatchAnalysis() {
         setAnalysisResults(initialState);
       }
 
-      // Prepare request body
-      const requestBody = {
-        urls: validUrls,
-        isBatch: true,
-        retry: true
-      };
-
-      console.log('Sending request to analyze-website function:', requestBody);
-
       // Call the analyze-website function
       const { data, error } = await supabase.functions.invoke('analyze-website', {
-        body: requestBody
+        body: {
+          urls: validUrls,
+          isBatch: true,
+          retry: true
+        }
       });
 
       if (error) {
@@ -102,46 +95,47 @@ export function useBatchAnalysis() {
             
             if (payload.eventType === 'DELETE') return;
             
-            const newData = payload.new as SimplifiedAnalysisResult;
-            if (newData && Object.keys(newData).length > 0) {
-              // Update results state immediately
-              setAnalysisResults(prev => ({
-                ...prev,
-                [newData.url]: {
-                  ...newData,
-                  status: newData.status || 'pending',
-                  has_chatbot: newData.has_chatbot || false,
-                  chatbot_solutions: newData.chatbot_solutions || []
-                }
-              }));
-
-              // Track completed URLs and update progress
-              if (newData.status === 'completed' || newData.error) {
-                setCompletedUrls(prev => {
-                  const updated = new Set(prev);
-                  updated.add(newData.url);
-                  
-                  // Update progress whenever completed URLs change
-                  const progress = Math.round((updated.size / validUrls.length) * 100);
-                  setProgress(progress);
-                  
-                  return updated;
-                });
+            const newData = payload.new;
+            if (!newData) return;
+            
+            // Update results state immediately
+            setAnalysisResults(prev => ({
+              ...prev,
+              [newData.url]: {
+                ...newData,
+                status: newData.status || 'pending',
+                has_chatbot: newData.has_chatbot || false,
+                chatbot_solutions: newData.chatbot_solutions || []
               }
+            }));
 
-              // Check if all URLs are processed
-              if (completedUrls.size === validUrls.length) {
-                console.log('All URLs processed');
-                setIsProcessing(false);
-                channel.unsubscribe();
+            // Track completed URLs
+            if (newData.status === 'completed' || newData.error) {
+              setCompletedUrls(prev => {
+                const updated = new Set(prev);
+                updated.add(newData.url);
                 
-                const chatbotCount = Object.values(analysisResults)
-                  .filter(result => result.has_chatbot).length;
+                // Update progress
+                const progressValue = Math.round((updated.size / validUrls.length) * 100);
+                setProgress(progressValue);
+                
+                // Check if all URLs are processed
+                if (updated.size === validUrls.length) {
+                  console.log('All URLs processed');
+                  setIsProcessing(false);
+                  
+                  const chatbotCount = Object.values(analysisResults)
+                    .filter(result => result.has_chatbot).length;
 
-                toast.success(`Analysis completed for ${validUrls.length} URLs`, {
-                  description: `Found ${chatbotCount} chatbots`
-                });
-              }
+                  toast.success(`Analysis completed for ${validUrls.length} URLs`, {
+                    description: `Found ${chatbotCount} chatbots`
+                  });
+                  
+                  channel.unsubscribe();
+                }
+                
+                return updated;
+              });
             }
           }
         )
