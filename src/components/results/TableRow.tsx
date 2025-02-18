@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { TableRow } from "@/components/ui/table";
 import { Result } from '../ResultsTable';
 import ResultStatusCell from './ResultStatusCell';
@@ -14,7 +14,7 @@ interface TableRowProps {
   onRetry?: (url: string) => void;
 }
 
-const ResultTableRow = ({ result, onResultUpdate, onRetry }: TableRowProps) => {
+const ResultTableRow = memo(({ result, onResultUpdate, onRetry }: TableRowProps) => {
   const getErrorMessage = (result: Result): string | null => {
     return result.error || 
            result.details?.error || 
@@ -33,6 +33,8 @@ const ResultTableRow = ({ result, onResultUpdate, onRetry }: TableRowProps) => {
   const error = getErrorMessage(result);
   const status = getStatus(result);
 
+  console.log('Rendering row for URL:', result.url, 'Status:', status);
+
   return (
     <TableRow className={error ? 'bg-red-50/10' : ''}>
       <StatusBadgeCell status={status} error={error} />
@@ -45,6 +47,7 @@ const ResultTableRow = ({ result, onResultUpdate, onRetry }: TableRowProps) => {
         url={result.url}
         onAnalysisUpdate={(newAnalysis) => {
           if (onResultUpdate) {
+            console.log('Updating result from status cell:', result.url);
             onResultUpdate({
               ...result,
               analysis_result: newAnalysis,
@@ -60,6 +63,8 @@ const ResultTableRow = ({ result, onResultUpdate, onRetry }: TableRowProps) => {
       />
     </TableRow>
   );
-};
+});
+
+ResultTableRow.displayName = 'ResultTableRow';
 
 export default ResultTableRow;

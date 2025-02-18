@@ -1,5 +1,4 @@
-
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Result } from '@/components/ResultsTable';
 import { SimplifiedAnalysisResult } from '@/types/database';
@@ -18,6 +17,9 @@ const isSimplifiedAnalysisResult = (payload: any): payload is SimplifiedAnalysis
 };
 
 export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
+  // Keep track of the latest updates to prevent duplicate processing
+  const latestUpdates = useRef<Map<string, string>>(new Map());
+
   const handleAnalysisUpdate = useCallback((payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
     const update = payload.new;
     
@@ -27,17 +29,40 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
       return;
     }
 
-    console.log('Processing analysis update for URL:', update.url);
+    // Check if we've already processed this exact update
+    const updateKey = `${update.url}-${update.updated_at}`;
+    if (latestUpdates.current.get(update.url) === updateKey) {
+      console.log('Skipping duplicate update for URL:', update.url);
+      return;
+    }
+
+    console.log('Processing analysis update for URL:', update.url, 'Status:', update.status);
+    latestUpdates.current.set(update.url, updateKey);
 
     setResults(prevResults => {
       // Find the result that needs to be updated
       const resultIndex = prevResults.findIndex(r => r.url === update.url);
-      if (resultIndex === -1) return prevResults;
+      if (resultIndex === -1) {
+        console.warn('No matching result found for URL:', update.url);
+        return prevResults;
+      }
 
       // Create a new array with the updated result
       const newResults = [...prevResults];
       const currentResult = prevResults[resultIndex];
       
+      // Only update if the new status represents progress
+      const shouldUpdate = (
+        update.status === 'completed' || 
+        update.status === 'error' ||
+        (update.status === 'analyzing' && currentResult.status === 'pending')
+      );
+
+      if (!shouldUpdate) {
+        console.log('Skipping update, no status progress:', update.status, 'current:', currentResult.status);
+        return prevResults;
+      }
+
       newResults[resultIndex] = {
         ...currentResult,
         status: update.status,
@@ -63,6 +88,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
 
   useEffect(() => {
     console.log('Setting up analysis subscription');
+    
     const channel = supabase
       .channel('analysis-updates')
       .on(
@@ -79,7 +105,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
     return () => {
       console.log('Cleaning up analysis subscription');
       supabase.removeChannel(channel);
+      latestUpdates.current.clear();
     };
   }, [handleAnalysisUpdate]);
 };
-

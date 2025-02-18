@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
 
@@ -10,10 +10,10 @@ export const useResultsState = (initialResults: Result[] = []) => {
   const [localPage, setLocalPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    console.log('Processing new results:', initialResults);
+  const processResults = useCallback((newResults: Result[]) => {
+    console.log('Processing new results:', newResults.length);
     try {
-      const processedResults = initialResults.map(result => ({
+      const processedResults = newResults.map(result => ({
         ...result,
         url: result.url,
         business_name: result.business_name || result.details?.business_name || '',
@@ -28,23 +28,31 @@ export const useResultsState = (initialResults: Result[] = []) => {
         }
       }));
 
-      setResults(processedResults);
-      setIsLoading(false);
+      return processedResults;
     } catch (error) {
       console.error('Error processing results:', error);
       toast.error('Error processing results');
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialResults.length > 0) {
+      console.log('Received new initial results:', initialResults.length);
+      const processed = processResults(initialResults);
+      setResults(processed);
       setIsLoading(false);
     }
-  }, [initialResults]);
+  }, [initialResults, processResults]);
 
-  const handleFilter = (value: string) => {
+  const handleFilter = useCallback((value: string) => {
     setFilterValue(value);
     setLocalPage(1);
-  };
+  }, []);
 
-  const handleSort = (value: string) => {
+  const handleSort = useCallback((value: string) => {
     setSortValue(value);
-  };
+  }, []);
 
   // Apply filters and sorting
   const filteredResults = results.filter(result => {
@@ -74,6 +82,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
     setLocalPage,
     handleFilter,
     handleSort,
-    isLoading
+    isLoading,
+    setResults
   };
 };
