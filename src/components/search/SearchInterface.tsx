@@ -59,13 +59,27 @@ export const SearchInterface = () => {
 
     setIsLoading(true);
     try {
+      // Create search batch first
+      const { data: searchBatch, error: batchError } = await supabase
+        .from("search_batches")
+        .insert({
+          query,
+          country,
+          region: region || null,
+        })
+        .select()
+        .single();
+
+      if (batchError) throw batchError;
+
       // Create search history record
       const { data: searchHistory, error: searchError } = await supabase
         .from("search_history")
         .insert({
           query,
           country,
-          region: region || null,
+          region: region || '',
+          search_batch_id: searchBatch.id
         })
         .select()
         .single();
@@ -93,8 +107,8 @@ export const SearchInterface = () => {
         const searchResults = placesData.results.map((result: any) => ({
           search_id: searchHistory.id,
           business_name: result.name,
-          url: result.website,
-          phone: result.formatted_phone_number,
+          website_url: result.website,
+          phone_number: result.formatted_phone_number,
           address: result.formatted_address,
         }));
 

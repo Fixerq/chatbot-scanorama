@@ -16,12 +16,12 @@ import { useQuery } from "@tanstack/react-query";
 interface SearchResult {
   id: string;
   business_name: string;
-  url: string | null;
-  phone: string | null;
+  website_url: string | null;
+  phone_number: string | null;
   address: string | null;
-  has_chatbot: boolean | null;
-  chatbot_solutions: string[] | null;
-  analysis_status: string;
+  has_chatbot?: boolean | null;
+  chatbot_solutions?: string[] | null;
+  analysis_status?: string;
 }
 
 interface SearchResultsProps {
@@ -110,8 +110,8 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
             <TableRow key={result.id}>
               <TableCell>{result.business_name}</TableCell>
               <TableCell>{result.address}</TableCell>
-              <TableCell>{result.phone}</TableCell>
-              <TableCell>{result.url}</TableCell>
+              <TableCell>{result.phone_number}</TableCell>
+              <TableCell>{result.website_url}</TableCell>
               <TableCell>
                 {result.has_chatbot === null
                   ? "Not analyzed"
@@ -120,11 +120,11 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
                   : "No chatbot"}
               </TableCell>
               <TableCell>
-                {result.url && (
+                {result.website_url && (
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => handleAnalyze(result.url!, result.id)}
+                    onClick={() => handleAnalyze(result.website_url!, result.id)}
                     disabled={result.analysis_status === "processing"}
                   >
                     {result.analysis_status === "processing"
