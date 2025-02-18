@@ -69,11 +69,7 @@ const routes: AppRoute[] = [
   },
   {
     path: "/test",
-    element: (
-      <ProtectedRoute>
-        <Test />
-      </ProtectedRoute>
-    ),
+    element: <Test />,
   },
   {
     path: "/sales",
@@ -86,3 +82,4 @@ const routes: AppRoute[] = [
 ];
 
 export const router = createBrowserRouter(routes);
+
