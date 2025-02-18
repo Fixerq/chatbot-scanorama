@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
@@ -10,7 +10,7 @@ type SimplifiedAnalysisResult = Database['public']['Tables']['simplified_analysi
 export const useRealtimeAnalysis = () => {
   const [results, setResults] = useState<Record<string, SimplifiedAnalysisResult>>({});
 
-  const subscribeToAnalysisResults = () => {
+  const subscribeToAnalysisResults = useCallback(() => {
     console.log('Setting up analysis results subscription');
     
     const channel = supabase
@@ -76,7 +76,7 @@ export const useRealtimeAnalysis = () => {
       console.log('Cleaning up analysis results subscription');
       supabase.removeChannel(channel);
     };
-  };
+  }, []);
 
   return { 
     subscribeToAnalysisResults,

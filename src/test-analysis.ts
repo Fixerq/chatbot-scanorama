@@ -31,8 +31,8 @@ export async function testAnalysis() {
       throw new Error('No data returned from analysis');
     }
 
-    console.log('Analysis response:', data);
-    toast.success('Analysis initiated successfully');
+    console.log('Analysis initiated successfully:', data);
+    toast.success('Analysis initiated');
     return data;
   } catch (error) {
     console.error('Failed to analyze website:', error);
