@@ -1818,15 +1818,6 @@ export type Database = {
         }
         Returns: Json
       }
-      check_worker_health: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          total_workers: number
-          active_workers: number
-          stalled_workers: number
-          jobs_in_progress: number
-        }[]
-      }
       citext:
         | {
             Args: {
