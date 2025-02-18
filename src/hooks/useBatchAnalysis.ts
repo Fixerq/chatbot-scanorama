@@ -42,7 +42,9 @@ export function useBatchAnalysis() {
         .insert(
           validUrls.map(url => ({
             url,
-            status: 'pending'
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }))
         )
         .select();
@@ -98,37 +100,32 @@ export function useBatchAnalysis() {
           (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
             console.log('Analysis update received:', payload);
             
+            if (payload.eventType === 'DELETE') return;
+            
             const newData = payload.new as SimplifiedAnalysisResult;
             if (newData && Object.keys(newData).length > 0) {
-              // Update results state
+              // Update results state immediately
               setAnalysisResults(prev => ({
                 ...prev,
-                [newData.url]: newData
+                [newData.url]: {
+                  ...newData,
+                  status: newData.status || 'pending',
+                  has_chatbot: newData.has_chatbot || false,
+                  chatbot_solutions: newData.chatbot_solutions || []
+                }
               }));
 
-              // Track completed URLs
+              // Track completed URLs and update progress
               if (newData.status === 'completed' || newData.error) {
                 setCompletedUrls(prev => {
                   const updated = new Set(prev);
                   updated.add(newData.url);
+                  
+                  // Update progress whenever completed URLs change
+                  const progress = Math.round((updated.size / validUrls.length) * 100);
+                  setProgress(progress);
+                  
                   return updated;
-                });
-              }
-
-              // Calculate progress based on completed analyses
-              setProgress(prev => {
-                const newProgress = Math.round((completedUrls.size / validUrls.length) * 100);
-                return newProgress;
-              });
-
-              // Show immediate feedback for each result
-              if (newData.error) {
-                toast.error(`Analysis failed for ${newData.url}`, {
-                  description: newData.error
-                });
-              } else if (newData.has_chatbot) {
-                toast.success(`Chatbot detected on ${newData.url}`, {
-                  description: newData.chatbot_solutions?.join(', ')
                 });
               }
 
@@ -141,7 +138,6 @@ export function useBatchAnalysis() {
                 const chatbotCount = Object.values(analysisResults)
                   .filter(result => result.has_chatbot).length;
 
-                // Show completion toast
                 toast.success(`Analysis completed for ${validUrls.length} URLs`, {
                   description: `Found ${chatbotCount} chatbots`
                 });
