@@ -10,6 +10,7 @@ type SimplifiedAnalysisResult = Database['public']['Tables']['simplified_analysi
 export function useBatchAnalysis() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [completedUrls, setCompletedUrls] = useState<Set<string>>(new Set());
 
   const analyzeBatch = async (results: any[]) => {
     if (isProcessing) {
@@ -19,6 +20,7 @@ export function useBatchAnalysis() {
 
     setIsProcessing(true);
     setProgress(0);
+    setCompletedUrls(new Set());
     
     try {
       console.log('Starting analysis process for', results.length, 'URLs');
@@ -88,11 +90,18 @@ export function useBatchAnalysis() {
             
             const newData = payload.new as SimplifiedAnalysisResult;
             if (newData && Object.keys(newData).length > 0) {
+              // Track completed URLs
+              setCompletedUrls(prev => {
+                const updated = new Set(prev);
+                updated.add(newData.url);
+                return updated;
+              });
+
               // Calculate progress based on completed analyses
-              const completedCount = validUrls.length;
-              const newProgress = Math.round((completedCount / validUrls.length) * 100);
+              const newProgress = Math.round((completedUrls.size / validUrls.length) * 100);
               setProgress(newProgress);
 
+              // Show immediate feedback for each result
               if (newData.error) {
                 toast.error(`Analysis failed for ${newData.url}`, {
                   description: newData.error
@@ -104,10 +113,17 @@ export function useBatchAnalysis() {
               }
 
               // Check if all URLs are processed
-              if (newProgress === 100) {
+              if (completedUrls.size === validUrls.length) {
                 console.log('All URLs processed');
                 setIsProcessing(false);
                 channel.unsubscribe();
+                
+                // Show completion toast
+                toast.success(`Analysis completed for ${validUrls.length} URLs`, {
+                  description: `Found ${Array.from(completedUrls).filter(url => 
+                    data?.results?.find(r => r.url === url)?.has_chatbot
+                  ).length} chatbots`
+                });
               }
             }
           }
@@ -118,6 +134,7 @@ export function useBatchAnalysis() {
         cleanup: () => {
           channel.unsubscribe();
           setIsProcessing(false);
+          setCompletedUrls(new Set());
         },
         results: data?.results
       };
@@ -125,6 +142,7 @@ export function useBatchAnalysis() {
     } catch (error) {
       console.error('Analysis error:', error);
       setIsProcessing(false);
+      setCompletedUrls(new Set());
       
       const errorMessage = error instanceof Error ? error.message : 'Failed to process websites';
       toast.error(errorMessage);
@@ -135,6 +153,7 @@ export function useBatchAnalysis() {
   return {
     analyzeBatch,
     isProcessing,
-    progress
+    progress,
+    completedUrls: Array.from(completedUrls)
   };
 }
