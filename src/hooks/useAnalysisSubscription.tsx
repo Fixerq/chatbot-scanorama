@@ -5,6 +5,7 @@ import { Result } from '@/components/ResultsTable';
 import { SimplifiedAnalysisResult } from '@/types/database';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Status } from '@/utils/types/search';
+import { toast } from 'sonner';
 
 // Type guard to check if the payload has the required properties
 const isValidAnalysisPayload = (
@@ -27,30 +28,45 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Received analysis update:', payload);
           if (isValidAnalysisPayload(payload)) {
-            setResults(prevResults => 
-              prevResults.map(result => {
+            setResults(prevResults => {
+              const updatedResults = prevResults.map(result => {
                 if (result.url === payload.new.url) {
+                  // Notify user when chatbot is detected
+                  if (payload.new.has_chatbot && !result.analysis_result?.has_chatbot) {
+                    toast.success(`Chatbot detected on ${payload.new.url}`);
+                  }
+
                   return {
                     ...result,
-                    status: payload.new.status,
+                    status: payload.new.status as Status,
                     error: payload.new.error,
                     analysis_result: {
                       has_chatbot: payload.new.has_chatbot,
                       chatSolutions: payload.new.chatbot_solutions || [],
                       status: payload.new.status as Status,
-                      lastChecked: payload.new.updated_at
+                      lastChecked: payload.new.updated_at,
+                      error: payload.new.error
                     }
                   };
                 }
                 return result;
-              })
-            );
+              });
+
+              // Only trigger update if results actually changed
+              if (JSON.stringify(updatedResults) !== JSON.stringify(prevResults)) {
+                return updatedResults;
+              }
+              return prevResults;
+            });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up analysis subscription');
       supabase.removeChannel(channel);
     };
   }, [setResults]);

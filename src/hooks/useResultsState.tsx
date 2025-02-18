@@ -13,16 +13,31 @@ export const useResultsState = (initialResults: Result[] = []) => {
   useEffect(() => {
     console.log('Initial results received:', initialResults);
     try {
-      let updatedResults = [...initialResults].map(result => ({
+      // Process results and ensure all required fields are present
+      let updatedResults = initialResults.map(result => ({
         ...result,
         url: result.details?.website_url || result.url || '',
         business_name: result.details?.business_name || result.business_name || '',
         status: result.details?.error ? `Error: ${result.details.error}` : result.status || 'pending',
-        error: result.details?.error || result.error
+        error: result.details?.error || result.error,
+        analysis_result: result.analysis_result || {
+          has_chatbot: false,
+          chatSolutions: [],
+          status: 'pending',
+          lastChecked: new Date().toISOString()
+        }
       }));
 
       console.log('Processed results:', updatedResults);
-      setFilteredResults(updatedResults);
+      
+      // Only update state if results have changed
+      setFilteredResults(prevResults => {
+        if (JSON.stringify(prevResults) !== JSON.stringify(updatedResults)) {
+          return updatedResults;
+        }
+        return prevResults;
+      });
+      
       setLocalPage(1);
       setIsLoading(false);
     } catch (error) {
@@ -41,8 +56,22 @@ export const useResultsState = (initialResults: Result[] = []) => {
         url: result.details?.website_url || result.url || '',
         business_name: result.details?.business_name || result.business_name || '',
         status: result.details?.error ? `Error: ${result.details.error}` : result.status || 'pending',
-        error: result.details?.error || result.error
+        error: result.details?.error || result.error,
+        analysis_result: result.analysis_result || {
+          has_chatbot: false,
+          chatSolutions: [],
+          status: 'pending',
+          lastChecked: new Date().toISOString()
+        }
       }));
+      
+      // Apply filters based on status or chatbot presence
+      if (value !== 'all') {
+        filtered = filtered.filter(result => {
+          if (value === 'has_chatbot') return result.analysis_result?.has_chatbot;
+          return result.status === value;
+        });
+      }
       
       setFilteredResults(filtered);
       setLocalPage(1);
@@ -73,9 +102,15 @@ export const useResultsState = (initialResults: Result[] = []) => {
             return urlA.localeCompare(urlB);
           });
           break;
+        case 'status':
+          sorted.sort((a, b) => {
+            const statusA = a.analysis_result?.status || 'pending';
+            const statusB = b.analysis_result?.status || 'pending';
+            return statusA.localeCompare(statusB);
+          });
+          break;
       }
       
-      console.log('Sorted results:', sorted);
       setFilteredResults(sorted);
     } catch (error) {
       console.error('Error sorting results:', error);
