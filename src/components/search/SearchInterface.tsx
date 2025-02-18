@@ -100,7 +100,7 @@ export const SearchInterface = () => {
             query,
             country,
             region: region || undefined,
-            searchId: searchHistory.id, // Add searchId to the request
+            searchId: searchHistory.id,
           },
         }
       );
@@ -116,22 +116,14 @@ export const SearchInterface = () => {
         throw new Error("Invalid response from Places API");
       }
 
-      // Filter and transform valid results before insertion
-      const validResults = placesData.results
-        .filter((result: any) => {
-          if (!result.name) {
-            console.log("Skipping result due to missing name:", result);
-            return false;
-          }
-          return true;
-        })
-        .map((result: any) => ({
-          search_id: searchHistory.id,
-          business_name: result.name,
-          website_url: result.website || null,
-          phone_number: result.formatted_phone_number || null,
-          address: result.formatted_address || null,
-        }));
+      // Process and insert results
+      const validResults = placesData.results.map((result: any) => ({
+        search_id: searchHistory.id,
+        business_name: result.business_name || result.name || result.title,
+        website_url: result.website_url || result.website || null,
+        phone_number: result.phone_number || result.formatted_phone_number || null,
+        address: result.address || result.formatted_address || null,
+      }));
 
       console.log("Processed results to insert:", validResults);
 
