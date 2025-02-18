@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SearchResult, Status } from '@/utils/types/search';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface SearchResponse {
   results: SearchResult[];
@@ -11,6 +12,16 @@ interface SearchResponse {
   searchBatchId?: string;
   error?: string;
   details?: string;
+}
+
+// Define the type for the analysis result from the database
+interface SimplifiedAnalysisResult {
+  url: string;
+  status: string;
+  error?: string;
+  has_chatbot: boolean;
+  chatbot_solutions: string[];
+  updated_at: string;
 }
 
 const transformSearchResult = (searchResult: SearchResult): Result => {
@@ -135,7 +146,7 @@ export const useSearchOperations = (setResults: React.Dispatch<React.SetStateAct
           schema: 'public',
           table: 'simplified_analysis_results'
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Received analysis update:', payload);
           if (payload.new) {
             setResults(prevResults => 
