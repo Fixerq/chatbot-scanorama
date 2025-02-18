@@ -29,17 +29,18 @@ export function useAnalysisUpdates(
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Analysis update received:', payload);
           
-          if (payload.new && Object.keys(payload.new).length > 0) {
+          const newData = payload.new as SimplifiedAnalysisResult;
+          if (newData && Object.keys(newData).length > 0) {
             // Calculate progress
-            if (payload.new.status === 'completed') {
+            if (newData.status === 'completed') {
               onProgress(100);
               onComplete();
-            } else if (payload.new.status === 'processing') {
+            } else if (newData.status === 'processing') {
               onProgress(50);
             }
 
-            if (payload.new.error) {
-              console.error(`Analysis failed for ${url}:`, payload.new.error);
+            if (newData.error) {
+              console.error(`Analysis failed for ${url}:`, newData.error);
             }
           }
         }

@@ -76,19 +76,20 @@ export function useBatchAnalysis() {
           (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
             console.log('Analysis update received:', payload);
             
-            if (payload.new && Object.keys(payload.new).length > 0) {
+            const newData = payload.new as SimplifiedAnalysisResult;
+            if (newData && Object.keys(newData).length > 0) {
               // Calculate progress based on completed analyses
               const completedCount = validUrls.length;
               const newProgress = Math.round((completedCount / validUrls.length) * 100);
               setProgress(newProgress);
 
-              if (payload.new.error) {
-                toast.error(`Analysis failed for ${payload.new.url}`, {
-                  description: payload.new.error
+              if (newData.error) {
+                toast.error(`Analysis failed for ${newData.url}`, {
+                  description: newData.error
                 });
-              } else if (payload.new.has_chatbot) {
-                toast.success(`Chatbot detected on ${payload.new.url}`, {
-                  description: payload.new.chatbot_solutions?.join(', ')
+              } else if (newData.has_chatbot) {
+                toast.success(`Chatbot detected on ${newData.url}`, {
+                  description: newData.chatbot_solutions?.join(', ')
                 });
               }
 

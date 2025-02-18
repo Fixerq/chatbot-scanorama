@@ -22,17 +22,16 @@ export const useRealtimeAnalysis = () => {
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Analysis update received:', payload);
           
-          if (payload.new && Object.keys(payload.new).length > 0) {
-            const { url, has_chatbot, chatbot_solutions, error } = payload.new;
-
-            if (error) {
-              console.error(`Analysis error for ${url}:`, error);
-              toast.error(`Analysis failed for ${url}`, {
-                description: error
+          const newData = payload.new as SimplifiedAnalysisResult;
+          if (newData && Object.keys(newData).length > 0) {
+            if (newData.error) {
+              console.error(`Analysis error for ${newData.url}:`, newData.error);
+              toast.error(`Analysis failed for ${newData.url}`, {
+                description: newData.error
               });
-            } else if (has_chatbot) {
-              toast.success(`Chatbot detected on ${url}`, {
-                description: chatbot_solutions?.join(', ')
+            } else if (newData.has_chatbot) {
+              toast.success(`Chatbot detected on ${newData.url}`, {
+                description: newData.chatbot_solutions?.join(', ')
               });
             }
           }
