@@ -6,6 +6,13 @@ import { SimplifiedAnalysisResult } from '@/types/database';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Status } from '@/utils/types/search';
 
+// Type guard to check if the payload has the required properties
+const isValidAnalysisPayload = (
+  payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>
+): payload is RealtimePostgresChangesPayload<SimplifiedAnalysisResult> & { new: SimplifiedAnalysisResult } => {
+  return payload.new !== null && 'url' in payload.new;
+};
+
 export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStateAction<Result[]>>) => {
   useEffect(() => {
     const channel = supabase
@@ -19,7 +26,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
         },
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Received analysis update:', payload);
-          if (payload.new && 'url' in payload.new) {
+          if (isValidAnalysisPayload(payload)) {
             setResults(prevResults => 
               prevResults.map(result => {
                 if (result.url === payload.new.url) {
