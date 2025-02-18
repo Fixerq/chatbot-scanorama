@@ -4,20 +4,25 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoginFormProps } from '@/types/auth';
-import { useState } from 'react';
-import type { AuthError } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
 
 export const LoginForm = ({ error }: LoginFormProps) => {
   const [localError, setLocalError] = useState<string>('');
 
-  const handleAuthStateChange = (event: string, session: unknown) => {
-    console.log('Auth state changed:', event);
-    if (event === 'SIGNED_IN') {
-      setLocalError('');
-    } else if (event === 'USER_UPDATED' || event === 'SIGNED_OUT') {
-      setLocalError('');
-    }
-  };
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event);
+      if (event === 'SIGNED_IN') {
+        setLocalError('');
+      } else if (event === 'USER_UPDATED' || event === 'SIGNED_OUT') {
+        setLocalError('');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <div className="rounded-lg p-4">
@@ -74,7 +79,6 @@ export const LoginForm = ({ error }: LoginFormProps) => {
         redirectTo={`${window.location.origin}/dashboard`}
         showLinks={false}
         onlyThirdPartyProviders={false}
-        onAuthStateChange={handleAuthStateChange}
       />
     </div>
   );
