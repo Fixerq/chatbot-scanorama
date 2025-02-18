@@ -153,6 +153,39 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_batches: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          processed_urls: number
+          status: string
+          total_urls: number
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_urls?: number
+          status: string
+          total_urls?: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_urls?: number
+          status?: string
+          total_urls?: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       analysis_cache: {
         Row: {
           analysis_result: Json | null
@@ -1652,6 +1685,33 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_config: {
+        Row: {
+          batch_size: number
+          created_at: string | null
+          id: string
+          timeout_settings: Json | null
+          updated_at: string | null
+          worker_id: string
+        }
+        Insert: {
+          batch_size?: number
+          created_at?: string | null
+          id?: string
+          timeout_settings?: Json | null
+          updated_at?: string | null
+          worker_id: string
+        }
+        Update: {
+          batch_size?: number
+          created_at?: string | null
+          id?: string
+          timeout_settings?: Json | null
+          updated_at?: string | null
+          worker_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       admin_users_mv: {
@@ -1817,6 +1877,15 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      check_worker_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_workers: number
+          active_workers: number
+          stalled_workers: number
+          jobs_in_progress: number
+        }[]
       }
       citext:
         | {
