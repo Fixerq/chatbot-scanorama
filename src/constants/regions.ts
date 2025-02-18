@@ -17,3 +17,7 @@ export const regions: { [key: string]: string[] } = {
     "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"
   ]
 };
+
+export const getRegionsForCountry = (countryCode: string): string[] => {
+  return regions[countryCode] || [];
+};
