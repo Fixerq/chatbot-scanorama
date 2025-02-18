@@ -26,12 +26,13 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
       let hasChanges = false;
 
       updateQueueRef.current.forEach((update, url) => {
+        console.log('Processing update for URL:', url, update);
         const index = newResults.findIndex(result => result.url === url);
         if (index !== -1) {
           const oldResult = newResults[index];
           const newResult = {
             ...oldResult,
-            status: update.status as Status,
+            status: update.status,
             error: update.error,
             analysis_result: {
               has_chatbot: update.has_chatbot,
@@ -44,6 +45,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
 
           // Only update if there are actual changes
           if (JSON.stringify(oldResult) !== JSON.stringify(newResult)) {
+            console.log('Updating result:', oldResult, 'to:', newResult);
             newResults[index] = newResult;
             hasChanges = true;
 
@@ -63,6 +65,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
   }, [setResults]);
 
   useEffect(() => {
+    console.log('Setting up analysis subscription');
     const channel = supabase
       .channel('analysis-updates')
       .on(
@@ -73,6 +76,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
           table: 'simplified_analysis_results'
         },
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
+          console.log('Received analysis update:', payload);
           if (isValidAnalysisPayload(payload)) {
             // Add or update the payload in the queue
             updateQueueRef.current.set(payload.new.url, payload.new);
@@ -89,9 +93,7 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
           }
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
       if (timeoutRef.current) {

@@ -18,13 +18,14 @@ export const useResultsState = (initialResults: Result[] = []) => {
         ...result,
         url: result.details?.website_url || result.url || '',
         business_name: result.details?.business_name || result.business_name || '',
-        status: result.details?.error ? `Error: ${result.details.error}` : result.status || 'pending',
-        error: result.details?.error || result.error,
-        analysis_result: result.analysis_result || {
-          has_chatbot: false,
-          chatSolutions: [],
-          status: 'pending',
-          lastChecked: new Date().toISOString()
+        status: result.status || 'pending',
+        error: result.error,
+        analysis_result: {
+          ...result.analysis_result,
+          has_chatbot: result.analysis_result?.has_chatbot || false,
+          chatSolutions: result.analysis_result?.chatSolutions || [],
+          status: result.analysis_result?.status || 'pending',
+          lastChecked: result.analysis_result?.lastChecked || new Date().toISOString()
         }
       }));
 
@@ -33,7 +34,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
       const updatedResultsStr = JSON.stringify(updatedResults);
       
       if (currentResultsStr !== updatedResultsStr) {
-        console.log('Updating filtered results with new data');
+        console.log('Updating filtered results with new data:', updatedResults);
         setFilteredResults(updatedResults);
         setLocalPage(1);
       }
