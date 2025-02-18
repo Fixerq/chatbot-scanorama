@@ -1,23 +1,12 @@
 
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import BenefitsSection from "@/components/sales/BenefitsSection";
 import FeaturesSection from "@/components/sales/FeaturesSection";
 import PricingSection from "@/components/sales/PricingSection";
 import Header from "@/components/Header";
-import { useSessionContext } from "@/providers/SessionProvider";
-import { useEffect } from "react";
 
 const SalesPage = () => {
-  const { isAuthenticated } = useSessionContext();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a192f] via-[#0d1f3a] to-[#0a192f]">
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
