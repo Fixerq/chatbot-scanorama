@@ -47,10 +47,11 @@ export function useBatchAnalysis() {
 
       console.log('Created analysis records:', insertedRecords);
 
-      // Call the analyze-website function
+      // Call the analyze-website function with isBatch flag
       const { data, error } = await supabase.functions.invoke('analyze-website', {
         body: { 
           urls: validUrls,
+          isBatch: true,
           retry: true
         }
       });
