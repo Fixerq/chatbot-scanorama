@@ -31,7 +31,7 @@ interface SearchResultsProps {
 export const SearchResults = ({ searchId }: SearchResultsProps) => {
   const { toast } = useToast();
 
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, error } = useQuery({
     queryKey: ["searchResults", searchId],
     queryFn: async () => {
       console.log("Fetching results for searchId:", searchId);
@@ -45,9 +45,15 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
         throw error;
       }
 
+      if (!data) {
+        console.log("No data returned from query");
+        return [];
+      }
+
       console.log("Fetched results:", data);
       return data as SearchResult[];
     },
+    retry: 1,
   });
 
   const handleAnalyze = async (url: string, resultId: string) => {
@@ -94,8 +100,17 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
     };
   }, [searchId]);
 
+  if (error) {
+    console.error("Query error:", error);
+    return (
+      <div className="mt-6 text-center text-red-500">
+        Error loading results. Please try again.
+      </div>
+    );
+  }
+
   if (isLoading) {
-    return <div>Loading results...</div>;
+    return <div className="mt-6 text-center">Loading results...</div>;
   }
 
   if (!results || results.length === 0) {
@@ -154,4 +169,3 @@ export const SearchResults = ({ searchId }: SearchResultsProps) => {
     </div>
   );
 };
-

@@ -100,47 +100,59 @@ export const SearchInterface = () => {
             query,
             country,
             region: region || undefined,
+            searchId: searchHistory.id, // Add searchId to the request
           },
         }
       );
 
-      if (placesError) throw placesError;
+      if (placesError) {
+        console.error("Places API error:", placesError);
+        throw placesError;
+      }
       console.log("Places API response:", placesData);
 
+      if (!placesData?.results) {
+        console.error("No results array in Places API response");
+        throw new Error("Invalid response from Places API");
+      }
+
       // Filter and transform valid results before insertion
-      if (placesData?.results?.length > 0) {
-        const validResults = placesData.results
-          .filter((result: any) => result.name) // Only include results with a name
-          .map((result: any) => ({
-            search_id: searchHistory.id,
-            business_name: result.name || 'Unnamed Business', // Fallback name if somehow null
-            website_url: result.website || null,
-            phone_number: result.formatted_phone_number || null,
-            address: result.formatted_address || null,
-          }));
-
-        console.log("Processed results to insert:", validResults);
-
-        if (validResults.length > 0) {
-          const { error: resultsError } = await supabase
-            .from("search_results")
-            .insert(validResults);
-
-          if (resultsError) {
-            console.error("Error inserting results:", resultsError);
-            throw resultsError;
+      const validResults = placesData.results
+        .filter((result: any) => {
+          if (!result.name) {
+            console.log("Skipping result due to missing name:", result);
+            return false;
           }
-          console.log("Successfully inserted results");
-        } else {
-          console.log("No valid results to insert");
+          return true;
+        })
+        .map((result: any) => ({
+          search_id: searchHistory.id,
+          business_name: result.name,
+          website_url: result.website || null,
+          phone_number: result.formatted_phone_number || null,
+          address: result.formatted_address || null,
+        }));
+
+      console.log("Processed results to insert:", validResults);
+
+      if (validResults.length > 0) {
+        const { data: insertedData, error: resultsError } = await supabase
+          .from("search_results")
+          .insert(validResults)
+          .select();
+
+        if (resultsError) {
+          console.error("Error inserting results:", resultsError);
+          throw resultsError;
         }
+        console.log("Successfully inserted results:", insertedData);
       } else {
-        console.log("No results from Places API");
+        console.log("No valid results to insert");
       }
 
       toast({
         title: "Search completed",
-        description: "Results have been retrieved",
+        description: `Found ${validResults.length} results`,
       });
     } catch (error) {
       console.error("Search error:", error);
@@ -207,4 +219,3 @@ export const SearchInterface = () => {
     </div>
   );
 };
-
