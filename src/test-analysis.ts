@@ -39,7 +39,7 @@ export async function testAnalysis() {
     console.log('Created analysis record:', analysis);
 
     // Call the analyze-website function
-    const { data, error } = await supabase.functions.invoke('analyze-website', {
+    const { error } = await supabase.functions.invoke('analyze-website', {
       body: {
         urls: ['https://psychiatry-uk.com/'],
         isBatch: false,
@@ -50,21 +50,10 @@ export async function testAnalysis() {
 
     if (error) {
       console.error('Error analyzing website:', error);
-      
-      // Update the analysis record with error status
-      await supabase
-        .from('simplified_analysis_results')
-        .update({
-          status: 'failed',
-          error: error.message,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', analysis.id);
-
       throw error;
     }
 
-    console.log('Analysis initiated successfully:', data);
+    console.log('Analysis initiated successfully');
     return analysis;
   } catch (error) {
     console.error('Failed to analyze website:', error);
