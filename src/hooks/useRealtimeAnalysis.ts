@@ -23,7 +23,7 @@ export const useRealtimeAnalysis = () => {
           table: 'simplified_analysis_results'
         },
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
-          console.log('Analysis update received:', payload);
+          console.log('Received analysis update:', payload);
           
           setResults(prev => {
             const updated = { ...prev };
@@ -36,7 +36,6 @@ export const useRealtimeAnalysis = () => {
             const newData = payload.new;
             if (!newData) return prev;
             
-            // Always update the state with new data
             updated[newData.url] = {
               ...newData,
               status: newData.status || 'pending',
@@ -44,24 +43,19 @@ export const useRealtimeAnalysis = () => {
               chatbot_solutions: newData.chatbot_solutions || []
             };
             
-            // Show notifications based on status changes
-            if (newData.error) {
-              console.error(`Analysis error for ${newData.url}:`, newData.error);
-              toast.error(`Analysis failed for ${newData.url}`, {
-                description: newData.error
-              });
-            } else if (newData.has_chatbot && !prev[newData.url]?.has_chatbot) {
-              console.log(`Chatbot detected on ${newData.url}:`, newData.chatbot_solutions);
-              toast.success(`Chatbot detected on ${newData.url}`, {
-                description: newData.chatbot_solutions?.join(', ')
-              });
-            } else if (newData.status === 'completed' && prev[newData.url]?.status !== 'completed') {
-              console.log(`Analysis completed for ${newData.url}`);
-              if (!newData.has_chatbot) {
-                toast.info(`Analysis completed for ${newData.url}`, {
-                  description: 'No chatbot detected'
+            // Show toast notifications based on status
+            if (newData.status === 'completed') {
+              if (newData.has_chatbot) {
+                toast.success(`Chatbot detected on ${newData.url}`, {
+                  description: newData.chatbot_solutions?.join(', ')
                 });
+              } else {
+                toast.info(`No chatbot detected on ${newData.url}`);
               }
+            } else if (newData.status === 'failed') {
+              toast.error(`Analysis failed for ${newData.url}`, {
+                description: newData.error || 'Unknown error'
+              });
             }
             
             return updated;

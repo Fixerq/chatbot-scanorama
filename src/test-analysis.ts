@@ -6,6 +6,20 @@ export async function testAnalysis() {
   console.log('Starting analysis for psychiatry-uk.com');
   
   try {
+    // First, create or update the analysis record with pending status
+    const { error: initError } = await supabase
+      .from('simplified_analysis_results')
+      .upsert({
+        url: 'https://psychiatry-uk.com/',
+        status: 'pending',
+        updated_at: new Date().toISOString()
+      });
+
+    if (initError) {
+      console.error('Error initializing analysis:', initError);
+      throw initError;
+    }
+
     // Call the analyze-website function
     const { data, error } = await supabase.functions.invoke('analyze-website', {
       body: {
@@ -17,18 +31,7 @@ export async function testAnalysis() {
 
     if (error) {
       console.error('Error analyzing website:', error);
-      toast.error('Analysis failed', {
-        description: error.message
-      });
       throw error;
-    }
-
-    if (!data) {
-      console.error('No data returned from analysis');
-      toast.error('Analysis failed', {
-        description: 'No data returned from server'
-      });
-      throw new Error('No data returned from analysis');
     }
 
     console.log('Analysis initiated successfully:', data);

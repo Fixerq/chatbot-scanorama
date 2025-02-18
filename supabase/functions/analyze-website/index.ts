@@ -1,6 +1,11 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 serve(async (req) => {
   // Handle CORS
@@ -9,76 +14,86 @@ serve(async (req) => {
   }
 
   try {
-    const { urls, isBatch, retry } = await req.json();
-
-    // Validate request body
-    if (!urls) {
-      console.error('Missing urls in request body');
-      return new Response(
-        JSON.stringify({ error: 'urls is required in request body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const { urls, isBatch = false, retry = false } = await req.json();
+    
+    if (!Array.isArray(urls) || urls.length === 0) {
+      throw new Error('No URLs provided for analysis');
     }
 
-    // Handle batch request
-    if (isBatch) {
-      if (!Array.isArray(urls)) {
-        console.error('urls must be an array for batch processing');
-        return new Response(
-          JSON.stringify({ error: 'urls must be an array for batch processing' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    console.log(`Starting analysis for ${urls.length} URLs, isBatch: ${isBatch}, retry: ${retry}`);
 
-      console.log(`Processing batch of ${urls.length} URLs`);
+    // Process each URL
+    const processUrl = async (url: string) => {
+      try {
+        console.log(`Processing URL: ${url}`);
+        
+        // Update status to processing
+        const { error: updateError } = await supabase
+          .from('simplified_analysis_results')
+          .upsert({
+            url,
+            status: 'processing',
+            updated_at: new Date().toISOString()
+          });
 
-      // Process each URL (implement your analysis logic here)
-      const results = await Promise.all(
-        urls.map(async (url) => {
-          // Add your URL analysis logic here
-          return {
+        if (updateError) {
+          console.error(`Error updating status for ${url}:`, updateError);
+          throw updateError;
+        }
+
+        // Simulate analysis (replace with actual analysis logic)
+        const hasChatbot = Math.random() > 0.5; // Mock result for testing
+        const solutions = hasChatbot ? ['Intercom', 'Drift'] : [];
+        
+        // Update with results
+        const { error: resultError } = await supabase
+          .from('simplified_analysis_results')
+          .upsert({
             url,
             status: 'completed',
-            has_chatbot: Math.random() > 0.5, // Placeholder analysis result
-            chatbot_solutions: ['Solution A', 'Solution B']
-          };
-        })
-      );
+            has_chatbot: hasChatbot,
+            chatbot_solutions: solutions,
+            updated_at: new Date().toISOString()
+          });
 
-      return new Response(
-        JSON.stringify({ results }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        if (resultError) {
+          console.error(`Error saving results for ${url}:`, resultError);
+          throw resultError;
+        }
 
-    // Handle single URL request
-    const url = urls[0];
-    if (!url) {
-      console.error('No valid URL provided');
-      return new Response(
-        JSON.stringify({ error: 'No valid URL provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        return { url, status: 'completed' };
+      } catch (error) {
+        console.error(`Error processing ${url}:`, error);
+        
+        // Update with error status
+        await supabase
+          .from('simplified_analysis_results')
+          .upsert({
+            url,
+            status: 'failed',
+            error: error.message,
+            updated_at: new Date().toISOString()
+          });
 
-    // Process single URL (implement your analysis logic here)
-    const result = {
-      url,
-      status: 'completed',
-      has_chatbot: Math.random() > 0.5,
-      chatbot_solutions: ['Solution A', 'Solution B']
+        return { url, status: 'failed', error: error.message };
+      }
     };
 
-    return new Response(
-      JSON.stringify({ result }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Process URLs
+    const results = isBatch 
+      ? await Promise.all(urls.map(processUrl))
+      : [await processUrl(urls[0])];
+
+    return new Response(JSON.stringify(results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
 
   } catch (error) {
-    console.error('Error processing request:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('Error in analyze-website function:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    });
   }
 });
