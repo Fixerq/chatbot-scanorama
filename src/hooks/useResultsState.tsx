@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
+import { Status } from '@/utils/types/search';
 
 export const useResultsState = (initialResults: Result[] = []) => {
   const [results, setResults] = useState<Result[]>(initialResults);
@@ -13,20 +14,30 @@ export const useResultsState = (initialResults: Result[] = []) => {
   const processResults = useCallback((newResults: Result[]) => {
     console.log('Processing new results:', newResults.length);
     try {
-      const processedResults = newResults.map(result => ({
-        ...result,
-        url: result.url,
-        business_name: result.business_name || result.details?.business_name || '',
-        status: result.analysis_result?.status || result.status || 'pending',
-        error: result.error || null,
-        analysis_result: {
-          has_chatbot: result.analysis_result?.has_chatbot || false,
-          chatSolutions: result.analysis_result?.chatSolutions || [],
-          status: result.analysis_result?.status || result.status || 'pending',
-          lastChecked: result.analysis_result?.lastChecked || new Date().toISOString(),
-          error: result.analysis_result?.error || null
-        }
-      }));
+      const processedResults = newResults.map(result => {
+        const currentStatus = result.analysis_result?.status || result.status || 'pending';
+        // Convert string status to Status type
+        const processedStatus: Status = 
+          currentStatus === 'pending' ? 'pending' :
+          currentStatus === 'processing' ? 'processing' :
+          currentStatus === 'completed' ? 'completed' :
+          'failed';
+
+        return {
+          ...result,
+          url: result.url,
+          business_name: result.business_name || result.details?.business_name || '',
+          status: processedStatus,
+          error: result.error || null,
+          analysis_result: {
+            has_chatbot: result.analysis_result?.has_chatbot || false,
+            chatSolutions: result.analysis_result?.chatSolutions || [],
+            status: processedStatus,
+            lastChecked: result.analysis_result?.lastChecked || new Date().toISOString(),
+            error: result.analysis_result?.error || null
+          }
+        };
+      });
 
       return processedResults;
     } catch (error) {
@@ -58,7 +69,7 @@ export const useResultsState = (initialResults: Result[] = []) => {
   const filteredResults = results.filter(result => {
     if (filterValue === 'all') return true;
     if (filterValue === 'has_chatbot') return result.analysis_result?.has_chatbot;
-    if (filterValue === 'analyzing') return result.status === 'analyzing' || result.analysis_result?.status === 'analyzing';
+    if (filterValue === 'processing') return result.status === 'processing' || result.analysis_result?.status === 'processing';
     return result.status === filterValue || result.analysis_result?.status === filterValue;
   });
 
