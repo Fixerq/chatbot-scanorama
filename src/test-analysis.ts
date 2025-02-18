@@ -11,7 +11,8 @@ export async function testAnalysis() {
       .from('simplified_analysis_results')
       .select('*')
       .eq('url', 'https://psychiatry-uk.com/')
-      .single();
+      .order('created_at', { ascending: false })
+      .maybeSingle();
 
     if (existingAnalysis?.status === 'processing') {
       console.log('Analysis already in progress for this URL');
