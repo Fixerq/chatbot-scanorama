@@ -10,32 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-
-const countries = [
-  { code: "US", name: "United States" },
-  { code: "CA", name: "Canada" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "AU", name: "Australia" },
-];
-
-const regions = {
-  US: [
-    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
-  ],
-  CA: [
-    "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"
-  ],
-  GB: [
-    "England", "Scotland", "Wales", "Northern Ireland"
-  ],
-  AU: [
-    "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"
-  ]
-};
+import { countries } from "@/constants/countries";
+import { regions } from "@/constants/regions";
 
 interface SearchFormProps {
   onSearch: (query: string, country: string, region: string) => Promise<void>;

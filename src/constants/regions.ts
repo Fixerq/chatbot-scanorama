@@ -1,29 +1,19 @@
-export const REGIONS_BY_COUNTRY: { [key: string]: string[] } = {
-  "United States": [
-    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
-    "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
-    "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
-    "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
-    "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
+
+export const regions: { [key: string]: string[] } = {
+  US: [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
   ],
-  "United Kingdom": [
+  CA: [
+    "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT"
+  ],
+  GB: [
     "England", "Scotland", "Wales", "Northern Ireland"
   ],
-  "Canada": [
-    "Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario",
-    "Prince Edward Island", "Quebec", "Saskatchewan", "Northwest Territories", "Nunavut", "Yukon"
-  ],
-  "Australia": [
-    "New South Wales", "Victoria", "Queensland", "Western Australia", "South Australia", "Tasmania",
-    "Australian Capital Territory", "Northern Territory"
-  ],
-  "Germany": [
-    "Baden-Württemberg", "Bavaria", "Berlin", "Brandenburg", "Bremen", "Hamburg", "Hesse", "Lower Saxony",
-    "Mecklenburg-Vorpommern", "North Rhine-Westphalia", "Rhineland-Palatinate", "Saarland", "Saxony",
-    "Saxony-Anhalt", "Schleswig-Holstein", "Thuringia"
+  AU: [
+    "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"
   ]
-};
-
-export const getRegionsForCountry = (country: string): string[] => {
-  return REGIONS_BY_COUNTRY[country] || [];
 };
