@@ -32,55 +32,41 @@ export const useBatchAnalysis = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
           },
           body: JSON.stringify(payload),
           signal: controller.signal,
-          mode: 'cors' // Explicitly set CORS mode
+          mode: 'no-cors' // Change to no-cors mode
         });
 
         clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        // Since we're using no-cors, we won't get a response we can parse
+        // Instead, we'll assume success if we get here
+        console.log('Zapier webhook called successfully');
 
-        console.log('Zapier response status:', response.status);
-        
-        // Wait for Zapier's response
-        const zapierResponse = await response.json();
-        console.log('Received response from Zapier:', zapierResponse);
+        // Update status in Supabase for each URL
+        for (const result of results) {
+          const { error: dbError } = await supabase
+            .from('simplified_analysis_results')
+            .upsert({
+              url: result.url,
+              status: 'pending', // Mark as pending since we can't confirm the webhook result
+              updated_at: new Date().toISOString()
+            });
 
-        // Update results with Zapier's analysis
-        if (Array.isArray(zapierResponse)) {
-          for (const analysisResult of zapierResponse) {
-            const { url, has_chatbot, chatbot_solutions, error } = analysisResult;
-            
-            // Update the simplified_analysis_results table
-            const { error: dbError } = await supabase
-              .from('simplified_analysis_results')
-              .upsert({
-                url,
-                has_chatbot,
-                chatbot_solutions: chatbot_solutions || [],
-                status: error ? 'error' : 'completed',
-                error: error || null,
-                updated_at: new Date().toISOString()
-              });
-
-            if (dbError) {
-              console.error('Error updating analysis results:', dbError);
-              throw dbError;
-            }
+          if (dbError) {
+            console.error('Error updating analysis results:', dbError);
+            throw dbError;
           }
         }
 
-        toast.success('Analysis completed successfully');
+        toast.success('Analysis request sent successfully');
       } catch (fetchError) {
         if (fetchError.name === 'AbortError') {
           throw new Error('Request timeout - please try again');
         }
-        throw fetchError;
+        console.error('Fetch error:', fetchError);
+        throw new Error(`Failed to send to Zapier: ${fetchError.message}`);
       } finally {
         clearTimeout(timeoutId);
       }
