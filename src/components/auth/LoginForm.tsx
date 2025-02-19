@@ -6,17 +6,33 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoginFormProps } from '@/types/auth';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export const LoginForm = ({ error }: LoginFormProps) => {
   const [localError, setLocalError] = useState<string>('');
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if we already have a session
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('Existing session found, redirecting to dashboard');
+        navigate('/dashboard');
+      }
+    };
+    
+    checkExistingSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('LoginForm auth state changed:', event, 'Session:', !!session);
+      console.log('Auth state changed:', event, 'Session:', !!session);
+      
       if (event === 'SIGNED_IN' && session) {
         setLocalError('');
+        toast.success('Successfully signed in!');
         navigate('/dashboard');
+      } else if (event === 'SIGNED_OUT') {
+        navigate('/login');
       }
     });
 
@@ -24,6 +40,12 @@ export const LoginForm = ({ error }: LoginFormProps) => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  const handleAuthError = (error: Error) => {
+    console.error('Auth error:', error);
+    setLocalError(error.message);
+    toast.error('Login failed. Please try again.');
+  };
 
   return (
     <div className="rounded-lg p-4">
@@ -76,6 +98,7 @@ export const LoginForm = ({ error }: LoginFormProps) => {
           },
         }}
         providers={[]}
+        onError={handleAuthError}
         view="sign_in"
         redirectTo={`${window.location.origin}/dashboard`}
         showLinks={false}
