@@ -8,6 +8,7 @@ export interface SimplifiedAnalysisResult {
   error?: string;
   created_at?: string;
   updated_at?: string;
+  supplier?: string;
 }
 
 export type Json =
