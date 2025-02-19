@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { create, verify } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,7 +35,7 @@ serve(async (req) => {
       });
     }
 
-    // Get the authorization header and validate it
+    // Get the authorization header and validate JWT
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error('Invalid authorization header format');
@@ -44,12 +45,30 @@ serve(async (req) => {
       });
     }
 
-    const providedToken = authHeader.split('Bearer ')[1];
+    const token = authHeader.split('Bearer ')[1];
     
-    // Simple secret comparison - make sure the provided token matches our secret
-    if (providedToken !== webhookSecret) {
-      console.error('Invalid webhook secret');
-      return new Response('Unauthorized', {
+    try {
+      // Verify the JWT using the webhook secret
+      const key = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(webhookSecret),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["verify"]
+      );
+
+      const isValid = await verify(token, key);
+      
+      if (!isValid) {
+        console.error('Invalid JWT token');
+        return new Response('Unauthorized', {
+          status: 401,
+          headers: { ...corsHeaders }
+        });
+      }
+    } catch (jwtError) {
+      console.error('JWT validation error:', jwtError);
+      return new Response('Invalid token', {
         status: 401,
         headers: { ...corsHeaders }
       });
@@ -99,4 +118,3 @@ serve(async (req) => {
     );
   }
 });
-
