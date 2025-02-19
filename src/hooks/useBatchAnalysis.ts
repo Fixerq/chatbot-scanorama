@@ -24,51 +24,71 @@ export const useBatchAnalysis = () => {
 
       console.log('Sending payload to Zapier:', payload);
       
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      if (!response.ok) {
-        throw new Error(`Failed to send data to Zapier: ${response.status}`);
-      }
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+          mode: 'cors' // Explicitly set CORS mode
+        });
 
-      // Wait for Zapier's response
-      const zapierResponse = await response.json();
-      console.log('Received response from Zapier:', zapierResponse);
+        clearTimeout(timeoutId);
 
-      // Update results with Zapier's analysis
-      if (Array.isArray(zapierResponse)) {
-        for (const analysisResult of zapierResponse) {
-          const { url, has_chatbot, chatbot_solutions, error } = analysisResult;
-          
-          // Update the simplified_analysis_results table
-          const { error: dbError } = await supabase
-            .from('simplified_analysis_results')
-            .upsert({
-              url,
-              has_chatbot,
-              chatbot_solutions: chatbot_solutions || [],
-              status: error ? 'error' : 'completed',
-              error: error || null,
-              updated_at: new Date().toISOString()
-            });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-          if (dbError) {
-            console.error('Error updating analysis results:', dbError);
-            throw dbError;
+        console.log('Zapier response status:', response.status);
+        
+        // Wait for Zapier's response
+        const zapierResponse = await response.json();
+        console.log('Received response from Zapier:', zapierResponse);
+
+        // Update results with Zapier's analysis
+        if (Array.isArray(zapierResponse)) {
+          for (const analysisResult of zapierResponse) {
+            const { url, has_chatbot, chatbot_solutions, error } = analysisResult;
+            
+            // Update the simplified_analysis_results table
+            const { error: dbError } = await supabase
+              .from('simplified_analysis_results')
+              .upsert({
+                url,
+                has_chatbot,
+                chatbot_solutions: chatbot_solutions || [],
+                status: error ? 'error' : 'completed',
+                error: error || null,
+                updated_at: new Date().toISOString()
+              });
+
+            if (dbError) {
+              console.error('Error updating analysis results:', dbError);
+              throw dbError;
+            }
           }
         }
+
+        toast.success('Analysis completed successfully');
+      } catch (fetchError) {
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timeout - please try again');
+        }
+        throw fetchError;
+      } finally {
+        clearTimeout(timeoutId);
       }
 
-      toast.success('Analysis completed successfully');
       return { cleanup: () => {} };
     } catch (error) {
       console.error('Failed to process websites:', error);
-      toast.error('Failed to process websites');
+      toast.error(`Failed to process websites: ${error.message}`);
       throw error;
     }
   }, []);
