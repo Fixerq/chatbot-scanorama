@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useBatchAnalysis = () => {
   const [progress, setProgress] = useState(0);
