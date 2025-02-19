@@ -44,11 +44,21 @@ export const useBatchAnalysis = () => {
           }
         }
 
-        // Make the Zapier request
+        // Get the secret from Supabase
+        const { data: { secret }, error: secretError } = await supabase
+          .rpc('get_webhook_secret');
+
+        if (secretError) {
+          console.error('Error fetching webhook secret:', secretError);
+          throw new Error('Failed to fetch webhook secret');
+        }
+
+        // Make the Zapier request with authentication
         const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${secret}`
           },
           body: JSON.stringify(payload),
           signal: controller.signal,
