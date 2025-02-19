@@ -11,6 +11,7 @@ interface WebhookPayload {
   url: string;
   has_chatbot: boolean;
   chatbot_solutions: string[];
+  supplier?: string; // Added supplier field as optional
   error?: string;
 }
 
@@ -49,6 +50,9 @@ serve(async (req) => {
         has_chatbot: payload.has_chatbot || false,
         chatbot_solutions: payload.chatbot_solutions || [],
         error: payload.error,
+        details: {
+          supplier: payload.supplier // Store supplier in details JSON field
+        },
         updated_at: new Date().toISOString()
       });
 
