@@ -27,9 +27,12 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
       const payload = results.map(result => ({
         business_name: result.details?.business_name || result.title || 'Unknown',
         url: result.url,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        status: result.status,
+        analysis_result: result.analysis_result
       }));
 
+      console.log('Sending payload to Zapier:', payload);
       await sendWebhookData(payload);
       console.log('Webhook sent successfully');
       toast.success('Search results sent to Zapier');
@@ -41,10 +44,11 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
 
   const handleResults = async (newResults: Result[]) => {
     console.log('Search results received:', newResults);
+    setResults(newResults);
+    
     if (newResults.length > 0) {
       await sendToZapier(newResults);
     }
-    setResults(newResults);
   };
 
   const handleSearchError = (error: Error) => {
@@ -54,8 +58,13 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
 
   const handleSearchParamsChange = async (params: { query: string; country: string; region: string }) => {
     setIsProcessing(true);
-    await handleSearch(params.query, params.country, params.region, '', 25);
-    setIsProcessing(false);
+    try {
+      await handleSearch(params.query, params.country, params.region, '', 25);
+    } catch (error) {
+      handleSearchError(error as Error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleNewSearch = () => {
