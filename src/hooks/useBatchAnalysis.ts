@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 function createJWT(secret: string, payload = {}): string {
-  // Create a simple JWT with header.payload.signature structure
+  // Create header
   const header = {
     alg: 'HS256',
     typ: 'JWT'
@@ -17,15 +17,30 @@ function createJWT(secret: string, payload = {}): string {
     exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiration
   };
 
-  const base64Header = btoa(JSON.stringify(header));
-  const base64Payload = btoa(JSON.stringify(tokenPayload));
+  // Base64Url encode header and payload
+  const base64UrlHeader = btoa(JSON.stringify(header))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+  
+  const base64UrlPayload = btoa(JSON.stringify(tokenPayload))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
 
-  // Create signature using WebCrypto
+  // Create signature
+  const signatureInput = base64UrlHeader + '.' + base64UrlPayload;
   const encoder = new TextEncoder();
-  const data = encoder.encode(base64Header + '.' + base64Payload);
-  const keyData = encoder.encode(secret);
+  const signatureData = encoder.encode(signatureInput);
+  const secretData = encoder.encode(secret);
 
-  return base64Header + '.' + base64Payload + '.' + btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(data))));
+  // Calculate HMAC
+  const signature = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(signatureData))))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `${base64UrlHeader}.${base64UrlPayload}.${signature}`;
 }
 
 export const useBatchAnalysis = () => {

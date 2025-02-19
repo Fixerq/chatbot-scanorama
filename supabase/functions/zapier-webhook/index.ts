@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { create, verify } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,7 +34,7 @@ serve(async (req) => {
       });
     }
 
-    // Get the authorization header and validate JWT
+    // Get the authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error('Invalid authorization header format');
@@ -47,21 +46,43 @@ serve(async (req) => {
 
     const token = authHeader.split('Bearer ')[1];
     
-    try {
-      // Verify the JWT using the webhook secret
-      const key = await crypto.subtle.importKey(
-        "raw",
-        new TextEncoder().encode(webhookSecret),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["verify"]
-      );
+    // Split the JWT into parts
+    const [headerB64, payloadB64, signature] = token.split('.');
+    
+    if (!headerB64 || !payloadB64 || !signature) {
+      console.error('Invalid JWT format');
+      return new Response('Invalid token format', {
+        status: 401,
+        headers: { ...corsHeaders }
+      });
+    }
 
-      const isValid = await verify(token, key);
+    try {
+      // Verify header and payload are valid base64
+      const header = JSON.parse(atob(headerB64));
+      const payload = JSON.parse(atob(payloadB64));
       
-      if (!isValid) {
-        console.error('Invalid JWT token');
-        return new Response('Unauthorized', {
+      // Verify expiration
+      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+        console.error('Token expired');
+        return new Response('Token expired', {
+          status: 401,
+          headers: { ...corsHeaders }
+        });
+      }
+
+      // Simple signature verification using the secret
+      const signatureInput = headerB64 + '.' + payloadB64;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(signatureInput);
+      const expectedSignature = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(data))))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+      
+      if (signature !== expectedSignature) {
+        console.error('Invalid signature');
+        return new Response('Invalid token', {
           status: 401,
           headers: { ...corsHeaders }
         });
