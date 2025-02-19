@@ -1,41 +1,65 @@
 
-import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { SearchForm } from "./SearchForm";
-import { SearchResults } from "./SearchResults";
-import { performSearch } from "./searchOperations";
+import React, { useState } from 'react';
+import SearchFormContainer from '@/components/SearchFormContainer';
+import Results from '@/components/Results';
+import { Result } from '@/components/ResultsTable';
+import { useSearchOperations } from '@/hooks/useSearchOperations';
 
-export const SearchInterface = () => {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchId, setSearchId] = useState<string | null>(null);
+interface SearchInterfaceProps {
+  initialSearch?: {
+    query: string;
+    country: string;
+    region: string;
+  };
+}
 
-  const handleSearch = async (query: string, country: string, region: string) => {
-    setIsLoading(true);
-    try {
-      const newSearchId = await performSearch(query, country, region);
-      setSearchId(newSearchId);
-      
-      toast({
-        title: "Search completed",
-        description: "Results have been fetched successfully",
-      });
-    } catch (error) {
-      console.error("Search error:", error);
-      toast({
-        title: "Search failed",
-        description: "Failed to complete search. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
+  const [results, setResults] = useState<Result[]>([]);
+  const { handleSearch, handleLoadMore, isSearching } = useSearchOperations(setResults);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleResults = async (newResults: Result[]) => {
+    console.log('Search results received:', newResults);
+  };
+
+  const handleSearchError = (error: Error) => {
+    console.error('Search error:', error);
+    setIsProcessing(false);
+  };
+
+  const handleSearchParamsChange = async (params: { query: string; country: string; region: string }) => {
+    setIsProcessing(true);
+    await handleSearch(params.query, params.country, params.region, '', 25);
+    setIsProcessing(false);
+  };
+
+  const handleNewSearch = () => {
+    window.location.reload();
   };
 
   return (
-    <div className="space-y-6">
-      <SearchForm onSearch={handleSearch} isLoading={isLoading} />
-      {searchId && <SearchResults searchId={searchId} />}
+    <div className="space-y-8">
+      <SearchFormContainer 
+        onResults={handleResults}
+        isProcessing={isProcessing}
+        setIsProcessing={setIsProcessing}
+        onError={handleSearchError}
+        onSearchParamsChange={handleSearchParamsChange}
+      />
+      
+      <Results 
+        results={results}
+        onExport={() => {}} 
+        onNewSearch={handleNewSearch}
+        hasMore={true}
+        onLoadMore={(page) => handleLoadMore('', '', '', page, (page + 1) * 25)}
+        isLoadingMore={false}
+        isAnalyzing={isSearching}
+        onResultUpdate={undefined}
+      />
     </div>
   );
 };
+
+export default SearchInterface;
+

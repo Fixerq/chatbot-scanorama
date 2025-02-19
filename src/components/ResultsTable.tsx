@@ -23,7 +23,7 @@ export interface Result {
   address?: string;
   placeId?: string;
   businessType?: string;
-  error?: string | null;
+  error?: string;
   status?: string;
   details?: {
     search_batch_id: string;
@@ -55,7 +55,7 @@ const ResultsTable = ({
 }: ResultsTableProps) => {
   useEffect(() => {
     console.log('ResultsTable render:', {
-      resultsCount: results?.length,
+      resultsLength: results?.length,
       firstResult: results?.[0],
       isProcessing: processing,
       isLoading

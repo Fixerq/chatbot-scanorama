@@ -1,7 +1,17 @@
-
-export const countries = [
-  { code: "US", name: "United States" },
-  { code: "CA", name: "Canada" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "AU", name: "Australia" },
+export const COUNTRIES = [
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Australia",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+  "Japan",
+  "Brazil",
+  "India",
+  "China",
+  "Singapore",
+  "Netherlands",
+  "Sweden"
 ];

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Search, Loader2 } from 'lucide-react';
@@ -10,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { countries } from '@/constants/countries';
-import { regions, getRegionsForCountry } from '@/constants/regions';
+import { COUNTRIES } from '@/constants/countries';
+import { getRegionsForCountry } from '@/constants/regions';
 
 interface SearchInputsProps {
   query: string;
@@ -55,9 +54,9 @@ const SearchInputs = ({
             <SelectValue placeholder="Select country" />
           </SelectTrigger>
           <SelectContent>
-            {countries.map((countryOption) => (
-              <SelectItem key={countryOption.code} value={countryOption.code}>
-                {countryOption.name}
+            {COUNTRIES.map((countryOption) => (
+              <SelectItem key={countryOption} value={countryOption}>
+                {countryOption}
               </SelectItem>
             ))}
           </SelectContent>

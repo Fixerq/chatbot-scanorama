@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React from 'react';
 import { TableRow } from "@/components/ui/table";
 import { Result } from '../ResultsTable';
 import ResultStatusCell from './ResultStatusCell';
@@ -14,7 +14,7 @@ interface TableRowProps {
   onRetry?: (url: string) => void;
 }
 
-const ResultTableRow = memo(({ result, onResultUpdate, onRetry }: TableRowProps) => {
+const ResultTableRow = ({ result, onResultUpdate, onRetry }: TableRowProps) => {
   const getErrorMessage = (result: Result): string | null => {
     return result.error || 
            result.details?.error || 
@@ -23,9 +23,7 @@ const ResultTableRow = memo(({ result, onResultUpdate, onRetry }: TableRowProps)
   };
 
   const getStatus = (result: Result): string => {
-    if (result.analysis_result?.status && result.analysis_result.status !== 'pending') {
-      return result.analysis_result.status;
-    }
+    if (result.analysis_result?.status) return result.analysis_result.status;
     const error = getErrorMessage(result);
     if (error) return 'error';
     if (result.status === 'analyzing') return 'analyzing';
@@ -34,8 +32,6 @@ const ResultTableRow = memo(({ result, onResultUpdate, onRetry }: TableRowProps)
 
   const error = getErrorMessage(result);
   const status = getStatus(result);
-
-  console.log('Rendering row for URL:', result.url, 'Status:', status, 'Analysis Result:', result.analysis_result);
 
   return (
     <TableRow className={error ? 'bg-red-50/10' : ''}>
@@ -49,7 +45,6 @@ const ResultTableRow = memo(({ result, onResultUpdate, onRetry }: TableRowProps)
         url={result.url}
         onAnalysisUpdate={(newAnalysis) => {
           if (onResultUpdate) {
-            console.log('Updating result from status cell:', result.url, newAnalysis);
             onResultUpdate({
               ...result,
               analysis_result: newAnalysis,
@@ -65,8 +60,6 @@ const ResultTableRow = memo(({ result, onResultUpdate, onRetry }: TableRowProps)
       />
     </TableRow>
   );
-});
-
-ResultTableRow.displayName = 'ResultTableRow';
+};
 
 export default ResultTableRow;

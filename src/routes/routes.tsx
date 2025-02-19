@@ -1,5 +1,6 @@
 
 import { createBrowserRouter } from "react-router-dom";
+import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import ResetPassword from "@/pages/ResetPassword";
 import Success from "@/pages/Success";
@@ -7,10 +8,9 @@ import AdminConsole from "@/pages/AdminConsole";
 import SalesPage from "@/pages/SalesPage";
 import RegisterAndOrder from "@/pages/RegisterAndOrder";
 import ProtectedRoute from "./ProtectedRoute";
+import { Navigate } from "react-router-dom";
 import Monitoring from "@/pages/Monitoring";
 import Test from "@/pages/Test";
-import SearchPage from "@/pages/SearchPage";
-import Dashboard from "@/pages/Dashboard";
 
 interface AppRoute {
   path: string;
@@ -24,20 +24,20 @@ const routes: AppRoute[] = [
     element: <SalesPage />,
   },
   {
+    path: "/dashboard",
+    element: (
+      <ProtectedRoute>
+        <Index />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/login",
     element: <Login />,
   },
   {
     path: "/reset-password",
     element: <ResetPassword />,
-  },
-  {
-    path: "/dashboard",
-    element: (
-      <ProtectedRoute>
-        <Dashboard />
-      </ProtectedRoute>
-    ),
   },
   {
     path: "/success",
@@ -75,15 +75,6 @@ const routes: AppRoute[] = [
     path: "/register-and-order",
     element: <RegisterAndOrder />,
   },
-  {
-    path: "/search",
-    element: (
-      <ProtectedRoute>
-        <SearchPage />
-      </ProtectedRoute>
-    ),
-  },
 ];
 
 export const router = createBrowserRouter(routes);
-
