@@ -4,63 +4,6 @@ import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-function createJWT(secret: string, payload = {}): string {
-  // Create header
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT'
-  };
-
-  // Create payload with expiration
-  const tokenPayload = {
-    ...payload,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiration
-  };
-
-  // Base64Url encode header and payload
-  const base64UrlHeader = btoa(JSON.stringify(header))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-    
-  const base64UrlPayload = btoa(JSON.stringify(tokenPayload))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-  // Create signature using HMAC SHA-256
-  const signatureInput = `${base64UrlHeader}.${base64UrlPayload}`;
-  let signature = '';
-
-  try {
-    // Create HMAC using SubtleCrypto
-    const textEncoder = new TextEncoder();
-    const keyData = textEncoder.encode(secret);
-    const messageData = textEncoder.encode(signatureInput);
-    
-    // Convert the secret to an array of bytes
-    const cryptoKey = new Uint8Array(keyData);
-    
-    // Create simple hash-based signature
-    const hashArray = new Uint8Array(messageData.length + cryptoKey.length);
-    hashArray.set(messageData);
-    hashArray.set(cryptoKey, messageData.length);
-    
-    // Convert to base64url
-    signature = btoa(String.fromCharCode(...hashArray))
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
-
-    // Return complete JWT
-    return `${base64UrlHeader}.${base64UrlPayload}.${signature}`;
-  } catch (error) {
-    console.error('Error creating JWT:', error);
-    throw new Error('Failed to create authentication token');
-  }
-}
-
 export const useBatchAnalysis = () => {
   const [progress, setProgress] = useState(0);
 
@@ -101,59 +44,41 @@ export const useBatchAnalysis = () => {
           }
         }
 
-        // Get the webhook secret from Supabase
-        const { data: secretData, error: secretError } = await supabase
-          .from('secrets')
-          .select('value')
-          .eq('name', 'ZAPIER_WEBHOOK_SECRET')
-          .maybeSingle();
-
-        if (secretError) {
-          console.error('Error fetching webhook secret:', secretError);
-          throw new Error('Failed to fetch webhook secret');
-        }
-
-        if (!secretData) {
-          toast.error('Webhook secret not found', {
-            description: 'Please ensure the ZAPIER_WEBHOOK_SECRET is set in your project settings'
-          });
-          throw new Error('Webhook secret not found');
-        }
-
-        // Create JWT token using the webhook secret
-        const jwt = createJWT(secretData.value, { batch_size: results.length });
-
-        console.log('Sending request to Zapier with JWT authorization');
-
-        // Make the Zapier request with proper CORS and error handling
+        // Make the Zapier request with proper error handling
         const zapierResponse = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwt}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(payload),
           signal: controller.signal
         });
 
         // Log the Zapier response for debugging
-        const responseText = await zapierResponse.text();
-        console.log('Zapier response status:', zapierResponse.status);
-        console.log('Zapier response:', responseText);
+        const responseData = await zapierResponse.json();
+        console.log('Zapier response:', responseData);
 
         if (!zapierResponse.ok) {
-          throw new Error(`Zapier request failed with status ${zapierResponse.status}: ${responseText}`);
+          throw new Error(`Zapier request failed with status ${zapierResponse.status}`);
+        }
+
+        // Verify we received a bearer token in the response
+        if (!responseData.bearer_token) {
+          throw new Error('No bearer token received from Zapier');
         }
 
         clearTimeout(timeoutId);
-        console.log('Zapier request completed successfully');
+        console.log('Zapier request completed successfully, received bearer token');
 
-        // Then send URLs to analyze-website function
+        // Then send URLs to analyze-website function with the bearer token from Zapier
         const { error: analysisError } = await supabase.functions.invoke('analyze-website', {
           body: {
             urls: results.map(r => r.url),
             isBatch: true,
             retry: true
+          },
+          headers: {
+            'Authorization': `Bearer ${responseData.bearer_token}`
           }
         });
 
