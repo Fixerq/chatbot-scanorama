@@ -44,9 +44,12 @@ export const useBatchAnalysis = () => {
           }
         }
 
-        // Get the secret from Supabase
-        const { data: { secret }, error: secretError } = await supabase
-          .rpc('get_webhook_secret');
+        // Get the webhook secret from Supabase
+        const { data: secretData, error: secretError } = await supabase
+          .from('secrets')
+          .select('value')
+          .eq('name', 'ZAPIER_WEBHOOK_SECRET')
+          .single();
 
         if (secretError) {
           console.error('Error fetching webhook secret:', secretError);
@@ -58,7 +61,7 @@ export const useBatchAnalysis = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${secret}`
+            'Authorization': `Bearer ${secretData.value}`
           },
           body: JSON.stringify(payload),
           signal: controller.signal,
