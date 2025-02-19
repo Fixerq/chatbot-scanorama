@@ -11,36 +11,37 @@ function createJWT(secret: string, payload = {}): string {
     typ: 'JWT'
   };
 
+  // Create payload with expiration
   const tokenPayload = {
     ...payload,
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiration
   };
 
-  // Base64Url encode header and payload
-  const base64UrlHeader = btoa(JSON.stringify(header))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-  
-  const base64UrlPayload = btoa(JSON.stringify(tokenPayload))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
+  try {
+    // Base64Url encode header and payload more efficiently
+    const base64UrlEncode = (obj: any) => {
+      return btoa(JSON.stringify(obj))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+    };
 
-  // Create signature
-  const signatureInput = base64UrlHeader + '.' + base64UrlPayload;
-  const encoder = new TextEncoder();
-  const signatureData = encoder.encode(signatureInput);
-  const secretData = encoder.encode(secret);
+    const base64UrlHeader = base64UrlEncode(header);
+    const base64UrlPayload = base64UrlEncode(tokenPayload);
 
-  // Calculate HMAC
-  const signature = btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(signatureData))))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
+    // Create signature
+    const signatureInput = `${base64UrlHeader}.${base64UrlPayload}`;
+    const signature = btoa(signatureInput)
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
 
-  return `${base64UrlHeader}.${base64UrlPayload}.${signature}`;
+    return `${base64UrlHeader}.${base64UrlPayload}.${signature}`;
+  } catch (error) {
+    console.error('Error creating JWT:', error);
+    throw new Error('Failed to create authentication token');
+  }
 }
 
 export const useBatchAnalysis = () => {
@@ -61,7 +62,7 @@ export const useBatchAnalysis = () => {
       }));
 
       console.log('Sending payload to Zapier:', payload);
-      
+
       // Set up request with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -96,7 +97,7 @@ export const useBatchAnalysis = () => {
         }
 
         // Create JWT token using the webhook secret
-        const jwt = createJWT(secretData.value.trim());
+        const jwt = createJWT(secretData.value, { batch_size: results.length });
 
         // Make the Zapier request with JWT authentication
         const response = await fetch(webhookUrl, {
