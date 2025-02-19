@@ -10,6 +10,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Monitoring from "@/pages/Monitoring";
 import Test from "@/pages/Test";
 import SearchPage from "@/pages/SearchPage";
+import Dashboard from "@/pages/Dashboard";
 
 interface AppRoute {
   path: string;
@@ -29,6 +30,14 @@ const routes: AppRoute[] = [
   {
     path: "/reset-password",
     element: <ResetPassword />,
+  },
+  {
+    path: "/dashboard",
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/success",
@@ -77,3 +86,4 @@ const routes: AppRoute[] = [
 ];
 
 export const router = createBrowserRouter(routes);
+
