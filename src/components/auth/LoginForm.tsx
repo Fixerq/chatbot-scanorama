@@ -33,6 +33,11 @@ export const LoginForm = ({ error }: LoginFormProps) => {
         navigate('/dashboard');
       } else if (event === 'SIGNED_OUT') {
         navigate('/login');
+      } else if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+        setLocalError('');
+        navigate('/login');
+      } else if (event === 'PASSWORD_RECOVERY') {
+        navigate('/reset-password');
       }
     });
 
@@ -40,12 +45,6 @@ export const LoginForm = ({ error }: LoginFormProps) => {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  const handleAuthError = (error: Error) => {
-    console.error('Auth error:', error);
-    setLocalError(error.message);
-    toast.error('Login failed. Please try again.');
-  };
 
   return (
     <div className="rounded-lg p-4">
@@ -98,7 +97,6 @@ export const LoginForm = ({ error }: LoginFormProps) => {
           },
         }}
         providers={[]}
-        onError={handleAuthError}
         view="sign_in"
         redirectTo={`${window.location.origin}/dashboard`}
         showLinks={false}
