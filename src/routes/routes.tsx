@@ -21,7 +21,7 @@ interface AppRoute {
 const routes: AppRoute[] = [
   {
     path: "/",
-    element: <SalesPage />,
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: "/dashboard",
