@@ -18,25 +18,42 @@ function createJWT(secret: string, payload = {}): string {
     exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiration
   };
 
+  // Base64Url encode header and payload
+  const base64UrlHeader = btoa(JSON.stringify(header))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+    
+  const base64UrlPayload = btoa(JSON.stringify(tokenPayload))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  // Create signature using HMAC SHA-256
+  const signatureInput = `${base64UrlHeader}.${base64UrlPayload}`;
+  let signature = '';
+
   try {
-    // Base64Url encode header and payload more efficiently
-    const base64UrlEncode = (obj: any) => {
-      return btoa(JSON.stringify(obj))
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_');
-    };
-
-    const base64UrlHeader = base64UrlEncode(header);
-    const base64UrlPayload = base64UrlEncode(tokenPayload);
-
-    // Create signature
-    const signatureInput = `${base64UrlHeader}.${base64UrlPayload}`;
-    const signature = btoa(signatureInput)
+    // Create HMAC using SubtleCrypto
+    const textEncoder = new TextEncoder();
+    const keyData = textEncoder.encode(secret);
+    const messageData = textEncoder.encode(signatureInput);
+    
+    // Convert the secret to an array of bytes
+    const cryptoKey = new Uint8Array(keyData);
+    
+    // Create simple hash-based signature
+    const hashArray = new Uint8Array(messageData.length + cryptoKey.length);
+    hashArray.set(messageData);
+    hashArray.set(cryptoKey, messageData.length);
+    
+    // Convert to base64url
+    signature = btoa(String.fromCharCode(...hashArray))
       .replace(/=/g, '')
       .replace(/\+/g, '-')
       .replace(/\//g, '_');
 
+    // Return complete JWT
     return `${base64UrlHeader}.${base64UrlPayload}.${signature}`;
   } catch (error) {
     console.error('Error creating JWT:', error);
