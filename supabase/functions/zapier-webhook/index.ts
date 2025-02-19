@@ -11,7 +11,7 @@ interface WebhookPayload {
   url: string;
   has_chatbot: boolean;
   chatbot_solutions: string[];
-  supplier?: string; // Added supplier field as optional
+  supplier?: string;
   error?: string;
 }
 
@@ -24,12 +24,25 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const webhookSecret = Deno.env.get('ZAPIER_WEBHOOK_SECRET') ?? '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     if (req.method !== 'POST') {
       return new Response('Method not allowed', { 
         status: 405,
         headers: corsHeaders 
+      });
+    }
+
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    
+    // Verify the webhook secret
+    if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
+      console.error('Invalid or missing webhook secret');
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: corsHeaders
       });
     }
 
@@ -51,7 +64,7 @@ serve(async (req) => {
         chatbot_solutions: payload.chatbot_solutions || [],
         error: payload.error,
         details: {
-          supplier: payload.supplier // Store supplier in details JSON field
+          supplier: payload.supplier
         },
         updated_at: new Date().toISOString()
       });
