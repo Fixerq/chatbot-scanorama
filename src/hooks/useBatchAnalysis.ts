@@ -61,7 +61,7 @@ export const useBatchAnalysis = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${secretData.value}`
+            'Authorization': `Bearer ${secretData.value.trim()}`
           },
           body: JSON.stringify(payload),
           signal: controller.signal,

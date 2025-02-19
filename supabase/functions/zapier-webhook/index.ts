@@ -34,15 +34,24 @@ serve(async (req) => {
       });
     }
 
-    // Get the authorization header
+    // Get the authorization header and validate it
     const authHeader = req.headers.get('authorization');
-    
-    // Verify the webhook secret
-    if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
-      console.error('Invalid or missing webhook secret');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Invalid authorization header format');
       return new Response('Unauthorized', {
         status: 401,
-        headers: corsHeaders
+        headers: { ...corsHeaders }
+      });
+    }
+
+    const providedToken = authHeader.split('Bearer ')[1];
+    
+    // Simple secret comparison - make sure the provided token matches our secret
+    if (providedToken !== webhookSecret) {
+      console.error('Invalid webhook secret');
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: { ...corsHeaders }
       });
     }
 
@@ -90,3 +99,4 @@ serve(async (req) => {
     );
   }
 });
+
