@@ -106,7 +106,9 @@ export const useBatchAnalysis = () => {
         // Create JWT token using the webhook secret
         const jwt = createJWT(secretData.value, { batch_size: results.length });
 
-        // First make the Zapier request
+        console.log('Sending request to Zapier with JWT authorization');
+
+        // Make the Zapier request with proper CORS and error handling
         const zapierResponse = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
@@ -114,12 +116,20 @@ export const useBatchAnalysis = () => {
             'Authorization': `Bearer ${jwt}`
           },
           body: JSON.stringify(payload),
-          signal: controller.signal,
-          mode: 'no-cors'
+          signal: controller.signal
         });
 
+        // Log the Zapier response for debugging
+        const responseText = await zapierResponse.text();
+        console.log('Zapier response status:', zapierResponse.status);
+        console.log('Zapier response:', responseText);
+
+        if (!zapierResponse.ok) {
+          throw new Error(`Zapier request failed with status ${zapierResponse.status}: ${responseText}`);
+        }
+
         clearTimeout(timeoutId);
-        console.log('Zapier request completed');
+        console.log('Zapier request completed successfully');
 
         // Then send URLs to analyze-website function
         const { error: analysisError } = await supabase.functions.invoke('analyze-website', {
@@ -191,4 +201,3 @@ export const useBatchAnalysis = () => {
 
   return { analyzeBatch, progress };
 };
-
