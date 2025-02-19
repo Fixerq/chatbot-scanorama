@@ -5,6 +5,7 @@ import Results from '@/components/Results';
 import { Result } from '@/components/ResultsTable';
 import { useSearchOperations } from '@/hooks/useSearchOperations';
 import { toast } from 'sonner';
+import { sendWebhookData } from '@/utils/webhookService';
 
 interface SearchInterfaceProps {
   initialSearch?: {
@@ -14,36 +15,27 @@ interface SearchInterfaceProps {
   };
 }
 
-const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/2694924/2wqea0g/';
-
 const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
   const [results, setResults] = useState<Result[]>([]);
   const { handleSearch, handleLoadMore, isSearching } = useSearchOperations(setResults);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const sendToZapier = async (results: Result[]) => {
-    console.log('Sending results to Zapier:', results);
+    console.log('Preparing results for Zapier:', results);
     
     try {
       const payload = results.map(result => ({
         business_name: result.details?.business_name || result.title || 'Unknown',
-        url: result.url
+        url: result.url,
+        timestamp: new Date().toISOString()
       }));
 
-      const response = await fetch(ZAPIER_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        mode: 'no-cors', // Required for Zapier webhooks
-        body: JSON.stringify(payload),
-      });
-
-      // Since we're using no-cors, we won't get a proper response status
+      await sendWebhookData(payload);
+      console.log('Webhook sent successfully');
       toast.success('Search results sent to Zapier');
     } catch (error) {
-      console.error('Error sending to Zapier:', error);
-      toast.error('Failed to send results to Zapier');
+      console.error('Failed to send webhook:', error);
+      toast.error('Failed to send results to Zapier. Please try again.');
     }
   };
 
@@ -52,6 +44,7 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
     if (newResults.length > 0) {
       await sendToZapier(newResults);
     }
+    setResults(newResults);
   };
 
   const handleSearchError = (error: Error) => {
@@ -94,4 +87,3 @@ const SearchInterface: React.FC<SearchInterfaceProps> = ({ initialSearch }) => {
 };
 
 export default SearchInterface;
-
