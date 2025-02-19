@@ -35,7 +35,9 @@ export interface Result {
     error?: string;
     [key: string]: any;
   };
-  analysis_result?: AnalysisResult;
+  analysis_result?: AnalysisResult & {
+    supplier?: string;
+  };
 }
 
 interface ResultsTableProps {

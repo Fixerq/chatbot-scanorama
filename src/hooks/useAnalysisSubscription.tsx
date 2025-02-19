@@ -7,7 +7,6 @@ import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Status } from '@/utils/types/search';
 import { toast } from 'sonner';
 
-// Type guard to check if the payload has the required properties
 const isValidAnalysisPayload = (
   payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>
 ): payload is RealtimePostgresChangesPayload<SimplifiedAnalysisResult> & { new: SimplifiedAnalysisResult } => {
@@ -43,15 +42,16 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
                     status: payload.new.status as Status,
                     lastChecked: payload.new.updated_at,
                     error: payload.new.error,
+                    supplier: payload.new.supplier
                   }
                 };
               }
               return newResults;
             });
             
-            // Show toast for new chatbot detections
             if (payload.new.has_chatbot) {
-              toast.success(`Chatbot detected on ${payload.new.url}`);
+              const supplier = payload.new.supplier ? ` (${payload.new.supplier})` : '';
+              toast.success(`Chatbot detected on ${payload.new.url}${supplier}`);
             }
           }
         }
