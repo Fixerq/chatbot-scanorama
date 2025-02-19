@@ -89,11 +89,18 @@ export const useBatchAnalysis = () => {
           .from('secrets')
           .select('value')
           .eq('name', 'ZAPIER_WEBHOOK_SECRET')
-          .single();
+          .maybeSingle();
 
         if (secretError) {
           console.error('Error fetching webhook secret:', secretError);
           throw new Error('Failed to fetch webhook secret');
+        }
+
+        if (!secretData) {
+          toast.error('Webhook secret not found', {
+            description: 'Please ensure the ZAPIER_WEBHOOK_SECRET is set in your project settings'
+          });
+          throw new Error('Webhook secret not found');
         }
 
         // Create JWT token using the webhook secret
