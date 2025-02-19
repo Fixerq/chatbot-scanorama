@@ -11,10 +11,9 @@ export const useBatchAnalysis = () => {
     console.log('Starting batch analysis for', results.length, 'URLs');
     
     try {
-      // Send data to Zapier webhook
       const webhookUrl = 'https://hooks.zapier.com/hooks/catch/2694924/2wqea0g/';
       
-      // Format the payload for Zapier
+      // Validate payload before sending
       const payload = results.map(result => ({
         url: result.url,
         business_name: result.title || result.details?.business_name || 'Untitled',
@@ -24,10 +23,28 @@ export const useBatchAnalysis = () => {
 
       console.log('Sending payload to Zapier:', payload);
       
+      // Set up request with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       try {
+        // First, update Supabase status to 'processing'
+        for (const result of results) {
+          const { error: dbError } = await supabase
+            .from('simplified_analysis_results')
+            .upsert({
+              url: result.url,
+              status: 'processing',
+              updated_at: new Date().toISOString()
+            });
+
+          if (dbError) {
+            console.error('Error updating initial status:', dbError);
+            throw new Error('Failed to update initial status');
+          }
+        }
+
+        // Make the Zapier request
         const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
@@ -35,37 +52,53 @@ export const useBatchAnalysis = () => {
           },
           body: JSON.stringify(payload),
           signal: controller.signal,
-          mode: 'no-cors' // Change to no-cors mode
+          mode: 'no-cors'
         });
 
         clearTimeout(timeoutId);
+        console.log('Zapier request completed:', response);
 
-        // Since we're using no-cors, we won't get a response we can parse
-        // Instead, we'll assume success if we get here
-        console.log('Zapier webhook called successfully');
-
-        // Update status in Supabase for each URL
+        // Update Supabase with 'pending' status
         for (const result of results) {
           const { error: dbError } = await supabase
             .from('simplified_analysis_results')
             .upsert({
               url: result.url,
-              status: 'pending', // Mark as pending since we can't confirm the webhook result
+              status: 'pending',
               updated_at: new Date().toISOString()
             });
 
           if (dbError) {
-            console.error('Error updating analysis results:', dbError);
-            throw dbError;
+            console.error('Error updating to pending status:', dbError);
+            throw new Error('Failed to update to pending status');
           }
         }
 
         toast.success('Analysis request sent successfully');
+        console.log('Batch analysis completed successfully');
+
       } catch (fetchError) {
+        console.error('Fetch error details:', fetchError);
+        
+        // Update status to 'error' for all URLs in the batch
+        await Promise.all(results.map(async (result) => {
+          const { error: dbError } = await supabase
+            .from('simplified_analysis_results')
+            .upsert({
+              url: result.url,
+              status: 'error',
+              error: fetchError.message || 'Unknown error occurred',
+              updated_at: new Date().toISOString()
+            });
+
+          if (dbError) {
+            console.error('Error updating error status:', dbError);
+          }
+        }));
+
         if (fetchError.name === 'AbortError') {
           throw new Error('Request timeout - please try again');
         }
-        console.error('Fetch error:', fetchError);
         throw new Error(`Failed to send to Zapier: ${fetchError.message}`);
       } finally {
         clearTimeout(timeoutId);
