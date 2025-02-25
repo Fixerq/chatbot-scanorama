@@ -29,12 +29,11 @@ export const useBatchAnalysis = () => {
       }
 
       // Send URLs to Zapier webhook
-      const zapierApiKey = '108625d5-66f3-4509-b639-fac38718350c';
       const zapierWebhookUrl = 'https://hooks.zapier.com/hooks/catch/15658111/3aksgxl/';
 
       console.log('Starting to send URLs to Zapier...');
 
-      // Send each URL to Zapier with detailed logging
+      // Send each URL to Zapier with detailed logging and proper error handling
       for (const [index, result] of results.entries()) {
         console.log(`Sending URL ${index + 1}/${results.length} to Zapier:`, result.url);
         
@@ -43,8 +42,8 @@ export const useBatchAnalysis = () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-API-Key': zapierApiKey
             },
+            mode: 'no-cors', // Add no-cors mode to handle CORS
             body: JSON.stringify({
               url: result.url,
               timestamp: new Date().toISOString(),
@@ -52,18 +51,23 @@ export const useBatchAnalysis = () => {
             })
           });
 
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Zapier API error for URL:', result.url, {
-              status: response.status,
-              statusText: response.statusText,
-              error: errorText
-            });
-            throw new Error(`Failed to send to Zapier: ${response.statusText} - ${errorText}`);
-          }
-
-          console.log(`Successfully sent URL ${result.url} to Zapier`);
+          // Since we're using no-cors, we can't access response status
+          // Instead, log the request was sent and update progress
+          console.log(`Request sent to Zapier for URL: ${result.url}`);
           setProgress((index + 1) / results.length * 100);
+
+          // Update Supabase with sent status
+          const { error: updateError } = await supabase
+            .from('simplified_analysis_results')
+            .upsert({
+              url: result.url,
+              status: 'sent_to_zapier',
+              updated_at: new Date().toISOString()
+            });
+
+          if (updateError) {
+            console.error('Error updating status after Zapier send:', updateError);
+          }
           
         } catch (error) {
           console.error('Network error sending to Zapier:', error);
@@ -76,11 +80,13 @@ export const useBatchAnalysis = () => {
               error: `Failed to send to Zapier: ${error.message}`,
               updated_at: new Date().toISOString()
             });
-          throw error;
+          
+          // Don't throw here - continue processing other URLs
+          toast.error(`Failed to send ${result.url} to Zapier. Will continue with remaining URLs.`);
         }
       }
 
-      toast.success('Analysis requests sent successfully');
+      toast.success('Analysis requests sent to Zapier successfully');
       console.log('Batch analysis completed successfully');
 
     } catch (error) {

@@ -28,9 +28,13 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
         (payload: RealtimePostgresChangesPayload<SimplifiedAnalysisResult>) => {
           console.log('Received analysis update:', payload);
           if (isValidAnalysisPayload(payload)) {
+            // Log every status change
+            console.log(`Status update for ${payload.new.url}: ${payload.new.status}`);
+
             setResults(prevResults => {
               const newResults = [...prevResults];
               const index = newResults.findIndex(r => r.url === payload.new.url);
+              
               if (index !== -1) {
                 newResults[index] = {
                   ...newResults[index],
@@ -49,16 +53,28 @@ export const useAnalysisSubscription = (setResults: React.Dispatch<React.SetStat
               return newResults;
             });
             
-            if (payload.new.has_chatbot) {
-              const supplier = payload.new.supplier ? ` (${payload.new.supplier})` : '';
-              toast.success(`Chatbot detected on ${payload.new.url}${supplier}`);
+            // Show different toasts based on status
+            if (payload.new.status === 'error') {
+              toast.error(`Analysis failed for ${payload.new.url}: ${payload.new.error}`);
+            } else if (payload.new.status === 'completed') {
+              if (payload.new.has_chatbot) {
+                const supplier = payload.new.supplier ? ` (${payload.new.supplier})` : '';
+                toast.success(`Chatbot detected on ${payload.new.url}${supplier}`);
+              } else {
+                toast.info(`No chatbot detected on ${payload.new.url}`);
+              }
+            } else if (payload.new.status === 'sent_to_zapier') {
+              toast.info(`Analysis request sent to Zapier for ${payload.new.url}`);
             }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up analysis subscription');
       supabase.removeChannel(channel);
     };
   }, [setResults]);
