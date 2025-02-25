@@ -28,10 +28,14 @@ export const useBatchAnalysis = () => {
         }
       }
 
-      // Send URLs to Zapier webhook
-      const zapierWebhookUrl = 'https://hooks.zapier.com/hooks/catch/15658111/3aksgxl/';
+      // Get the Zapier webhook URL from environment variable or use a default
+      const zapierWebhookUrl = import.meta.env.VITE_ZAPIER_WEBHOOK_URL;
+      
+      if (!zapierWebhookUrl) {
+        throw new Error('Zapier webhook URL is not configured. Please set VITE_ZAPIER_WEBHOOK_URL environment variable.');
+      }
 
-      console.log('Starting to send URLs to Zapier...');
+      console.log('Starting to send URLs to Zapier using webhook:', zapierWebhookUrl);
 
       // Send each URL to Zapier with detailed logging and proper error handling
       for (const [index, result] of results.entries()) {
