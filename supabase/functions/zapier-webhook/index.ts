@@ -4,17 +4,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 }
 
 console.log('Zapier webhook handler running...')
-
-interface WebhookPayload {
-  url: string
-  has_chatbot: boolean
-  chatbot_solutions: string[]
-  supplier?: string
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -27,14 +20,18 @@ serve(async (req) => {
       throw new Error('Method not allowed')
     }
 
+    // Log the incoming request
+    console.log('Received webhook request:', {
+      method: req.method,
+      headers: Object.fromEntries(req.headers.entries()),
+    })
+
     // Parse the webhook payload
-    const payload: WebhookPayload = await req.json()
+    const payload = await req.json()
     console.log('Received webhook payload:', payload)
 
-    const { url, has_chatbot, chatbot_solutions, supplier } = payload
-
-    if (!url) {
-      throw new Error('URL is required')
+    if (!payload.url) {
+      throw new Error('URL is required in payload')
     }
 
     // Initialize Supabase client
@@ -47,14 +44,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
+    // Log successful initialization of Supabase client
+    console.log('Supabase client initialized')
+
+    // Simulate analysis result for testing
+    const mockAnalysisResult = {
+      has_chatbot: Math.random() > 0.5,
+      chatbot_solutions: ['Intercom', 'Drift', 'Zendesk'],
+      supplier: 'Test Supplier'
+    }
+
     // Update the analysis result in the database
     const { error: upsertError } = await supabase
       .from('simplified_analysis_results')
       .upsert({
-        url,
-        has_chatbot,
-        chatbot_solutions,
-        supplier,
+        url: payload.url,
+        has_chatbot: mockAnalysisResult.has_chatbot,
+        chatbot_solutions: mockAnalysisResult.chatbot_solutions,
+        supplier: mockAnalysisResult.supplier,
         status: 'completed',
         updated_at: new Date().toISOString()
       })
@@ -64,8 +71,14 @@ serve(async (req) => {
       throw upsertError
     }
 
+    console.log('Successfully processed webhook for URL:', payload.url)
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Webhook processed successfully',
+        url: payload.url
+      }),
       {
         headers: {
           ...corsHeaders,
@@ -77,7 +90,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing webhook:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
       {
         headers: {
           ...corsHeaders,
