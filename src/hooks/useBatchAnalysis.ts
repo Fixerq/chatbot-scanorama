@@ -28,11 +28,11 @@ export const useBatchAnalysis = () => {
         }
       }
 
-      // Get the Zapier webhook URL from environment variable or use a default
+      // Get the Zapier webhook URL from environment variable
       const zapierWebhookUrl = import.meta.env.VITE_ZAPIER_WEBHOOK_URL;
       
       if (!zapierWebhookUrl) {
-        throw new Error('Zapier webhook URL is not configured. Please set VITE_ZAPIER_WEBHOOK_URL environment variable.');
+        throw new Error('Zapier webhook URL is not configured');
       }
 
       console.log('Starting to send URLs to Zapier using webhook:', zapierWebhookUrl);
@@ -42,21 +42,22 @@ export const useBatchAnalysis = () => {
         console.log(`Sending URL ${index + 1}/${results.length} to Zapier:`, result.url);
         
         try {
+          const batchId = Date.now().toString(); // Generate a unique batch ID
+          
           const response = await fetch(zapierWebhookUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            mode: 'no-cors', // Add no-cors mode to handle CORS
+            mode: 'no-cors', // Required for cross-origin requests
             body: JSON.stringify({
               url: result.url,
               timestamp: new Date().toISOString(),
-              batch_id: Date.now().toString()
+              batch_id: batchId 
             })
           });
 
           // Since we're using no-cors, we can't access response status
-          // Instead, log the request was sent and update progress
           console.log(`Request sent to Zapier for URL: ${result.url}`);
           setProgress((index + 1) / results.length * 100);
 
@@ -75,6 +76,7 @@ export const useBatchAnalysis = () => {
           
         } catch (error) {
           console.error('Network error sending to Zapier:', error);
+          
           // Update Supabase with error status
           await supabase
             .from('simplified_analysis_results')

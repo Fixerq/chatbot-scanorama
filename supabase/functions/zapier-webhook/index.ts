@@ -50,7 +50,7 @@ serve(async (req) => {
     // Simulate analysis result for testing
     const mockAnalysisResult = {
       has_chatbot: Math.random() > 0.5,
-      chatbot_solutions: ['Intercom', 'Drift', 'Zendesk'],
+      chatbot_solutions: ['Intercom', 'Drift'],
       supplier: 'Test Supplier'
     }
 
