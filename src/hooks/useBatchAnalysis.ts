@@ -27,38 +27,30 @@ export const useBatchAnalysis = () => {
         }
       }
 
-      // Send URLs to analyze-website function with proper error handling
-      const { error: analysisError } = await supabase.functions.invoke('analyze-website', {
-        body: {
-          urls: results.map(r => r.url),
-          isBatch: true,
-          retry: true
-        }
-      });
+      // Send URLs to Zapier webhook
+      const zapierApiKey = '108625d5-66f3-4509-b639-fac38718350c';
+      const zapierWebhookUrl = `https://hooks.zapier.com/hooks/catch/YOUR_HOOK_ID?api_key=${zapierApiKey}`;
 
-      if (analysisError) {
-        console.error('Error analyzing websites:', analysisError);
-        throw analysisError;
-      }
-
-      // Update Supabase with 'pending' status
+      // Send each URL to Zapier
       for (const result of results) {
-        const { error: dbError } = await supabase
-          .from('simplified_analysis_results')
-          .upsert({
-            url: result.url,
-            status: 'pending',
-            updated_at: new Date().toISOString()
-          });
+        const response = await fetch(zapierWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: result.url
+          })
+        });
 
-        if (dbError) {
-          console.error('Error updating to pending status:', dbError);
-          throw new Error('Failed to update to pending status');
+        if (!response.ok) {
+          console.error('Error sending to Zapier:', await response.text());
+          throw new Error('Failed to send to Zapier');
         }
       }
 
-      toast.success('Analysis request sent successfully');
-      console.log('Batch analysis completed successfully');
+      toast.success('Analysis requests sent successfully');
+      console.log('Batch analysis initiated successfully');
 
     } catch (error) {
       console.error('Failed to process websites:', error);
