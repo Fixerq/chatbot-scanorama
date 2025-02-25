@@ -29,7 +29,7 @@ export const useBatchAnalysis = () => {
 
       // Send URLs to Zapier webhook
       const zapierApiKey = '108625d5-66f3-4509-b639-fac38718350c';
-      const zapierWebhookUrl = `https://hooks.zapier.com/hooks/catch/YOUR_HOOK_ID?api_key=${zapierApiKey}`;
+      const zapierWebhookUrl = 'https://hooks.zapier.com/hooks/catch/15658111/3aksgxl/';
 
       // Send each URL to Zapier
       for (const result of results) {
