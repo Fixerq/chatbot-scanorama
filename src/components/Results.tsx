@@ -4,6 +4,7 @@ import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import EmptyResults from './results/EmptyResults';
+import LoadMoreButton from './LoadMoreButton';
 import {
   Pagination,
   PaginationContent,
@@ -17,9 +18,23 @@ interface ResultsProps {
   results?: Result[];
   onExport: () => void;
   onNewSearch: () => void;
+  hasMore?: boolean;
+  onLoadMore?: (page: number) => void;
+  isLoadingMore?: boolean;
+  isAnalyzing?: boolean;
+  onResultUpdate?: (updatedResult: Result) => void;
 }
 
-const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
+const Results = ({ 
+  results = [], 
+  onExport, 
+  onNewSearch, 
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
+  isAnalyzing = false,
+  onResultUpdate
+}: ResultsProps) => {
   // Filter out only results with error status
   const validResults = results.filter(r => 
     !r.status?.toLowerCase().includes('error analyzing url')
@@ -74,6 +89,9 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    if (onLoadMore && page > Math.ceil(filteredResults.length / resultsPerPage)) {
+      onLoadMore(page);
+    }
   };
 
   if (!validResults || validResults.length === 0) {
@@ -154,7 +172,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
         />
       </div>
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
-        <ResultsTable results={displayedResults} />
+        <ResultsTable results={displayedResults} onResultUpdate={onResultUpdate} />
       </div>
       
       {totalPages > 1 && (
@@ -206,6 +224,13 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
             )}
           </PaginationContent>
         </Pagination>
+      )}
+      
+      {hasMore && onLoadMore && (
+        <LoadMoreButton 
+          onLoadMore={() => onLoadMore(currentPage + 1)} 
+          isProcessing={isLoadingMore || isAnalyzing} 
+        />
       )}
     </div>
   );

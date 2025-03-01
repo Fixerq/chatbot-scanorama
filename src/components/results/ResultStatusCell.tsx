@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,17 @@ interface ResultStatusCellProps {
   technologies: string;
   lastChecked?: string;
   chatSolutions?: string[];
+  onResultUpdate?: () => void;
 }
 
-const ResultStatusCell = ({ status, hasChatbot, technologies, lastChecked, chatSolutions }: ResultStatusCellProps) => {
+const ResultStatusCell = ({ 
+  status, 
+  hasChatbot, 
+  technologies, 
+  lastChecked, 
+  chatSolutions,
+  onResultUpdate
+}: ResultStatusCellProps) => {
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
     if (!status) return 'secondary';
     if (status.toLowerCase().includes('error')) return 'destructive';
@@ -44,7 +53,7 @@ const ResultStatusCell = ({ status, hasChatbot, technologies, lastChecked, chatS
     <TableCell>
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger onClick={onResultUpdate}>
             <Badge 
               variant={getChatbotStatusColor(status, hasChatbot)}
               className="cursor-help"

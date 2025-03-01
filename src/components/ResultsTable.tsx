@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -23,9 +24,10 @@ export interface Result {
 
 interface ResultsTableProps {
   results: Result[];
+  onResultUpdate?: (updatedResult: Result) => void;
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) => {
   const formatInstalledTechnologies = (result: Result) => {
     if (!result.status) return 'Analyzing...';
     if (result.status.toLowerCase().includes('error')) return result.status;
@@ -62,6 +64,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                   technologies={technologies}
                   lastChecked={result.details?.lastChecked}
                   chatSolutions={result.details?.chatSolutions}
+                  onResultUpdate={onResultUpdate ? () => onResultUpdate(result) : undefined}
                 />
               </TableRow>
             );
