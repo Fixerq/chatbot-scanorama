@@ -1,9 +1,17 @@
+
 import React, { useState } from 'react';
 import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import EmptyResults from './results/EmptyResults';
-import LoadMoreButton from './LoadMoreButton';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "./ui/pagination";
 
 interface ResultsProps {
   results?: Result[];
@@ -19,8 +27,8 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
   const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
-  const [displayLimit, setDisplayLimit] = useState(25);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const resultsPerPage = 25;
 
   React.useEffect(() => {
     // Filter out error results whenever the results prop changes
@@ -28,6 +36,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
       !r.status?.toLowerCase().includes('error analyzing url')
     );
     setFilteredResults(newValidResults);
+    setCurrentPage(1); // Reset to first page when results change
   }, [results]);
 
   const handleFilter = (value: string) => {
@@ -41,6 +50,7 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     }
     
     setFilteredResults(filtered);
+    setCurrentPage(1); // Reset to first page when filter changes
   };
 
   const handleSort = (value: string) => {
@@ -62,12 +72,8 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
     setFilteredResults(sorted);
   };
 
-  const handleLoadMore = () => {
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      setDisplayLimit(prev => prev + 25);
-      setIsLoadingMore(false);
-    }, 500); // Simulate loading for better UX
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   if (!validResults || validResults.length === 0) {
@@ -76,8 +82,59 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
 
   const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
   const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
-  const displayedResults = filteredResults.slice(0, displayLimit);
-  const hasMore = displayLimit < filteredResults.length;
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
+  const startIndex = (currentPage - 1) * resultsPerPage;
+  const endIndex = Math.min(startIndex + resultsPerPage, filteredResults.length);
+  const displayedResults = filteredResults.slice(startIndex, endIndex);
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPageButtons = 5;
+    
+    if (totalPages <= maxPageButtons) {
+      // Show all pages if there are fewer than maxPageButtons
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+      
+      // Calculate range of pages to show around current page
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust if we're at the beginning or end
+      if (currentPage <= 2) {
+        endPage = Math.min(4, totalPages - 1);
+      } else if (currentPage >= totalPages - 1) {
+        startPage = Math.max(2, totalPages - 3);
+      }
+      
+      // Add ellipsis if needed
+      if (startPage > 2) {
+        pages.push('ellipsis-start');
+      }
+      
+      // Add middle pages
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // Add ellipsis if needed
+      if (endPage < totalPages - 1) {
+        pages.push('ellipsis-end');
+      }
+      
+      // Always show last page
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
 
   return (
     <div className="mt-12 space-y-6">
@@ -99,11 +156,56 @@ const Results = ({ results = [], onExport, onNewSearch }: ResultsProps) => {
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
         <ResultsTable results={displayedResults} />
       </div>
-      {hasMore && (
-        <LoadMoreButton 
-          onLoadMore={handleLoadMore}
-          isProcessing={isLoadingMore}
-        />
+      
+      {totalPages > 1 && (
+        <Pagination className="my-6">
+          <PaginationContent>
+            {currentPage > 1 && (
+              <PaginationItem>
+                <PaginationPrevious 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePageChange(currentPage - 1);
+                  }}
+                />
+              </PaginationItem>
+            )}
+            
+            {getPageNumbers().map((page, index) => (
+              typeof page === 'number' ? (
+                <PaginationItem key={index}>
+                  <PaginationLink 
+                    href="#"
+                    isActive={page === currentPage}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(page);
+                    }}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={page}>
+                  <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
+                </PaginationItem>
+              )
+            ))}
+            
+            {currentPage < totalPages && (
+              <PaginationItem>
+                <PaginationNext 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handlePageChange(currentPage + 1);
+                  }}
+                />
+              </PaginationItem>
+            )}
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );
