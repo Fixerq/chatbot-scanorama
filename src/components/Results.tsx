@@ -52,6 +52,9 @@ const Results = ({
     );
     setFilteredResults(newValidResults);
     setCurrentPage(1); // Reset to first page when results change
+    
+    console.log('Results component received results:', results);
+    console.log('Filtered results:', newValidResults);
   }, [results]);
 
   const handleFilter = (value: string) => {

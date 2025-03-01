@@ -29,6 +29,7 @@ const ResultStatusCell = ({
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
     if (!status) return 'secondary';
     if (status.toLowerCase().includes('error')) return 'destructive';
+    if (status === 'Processing...') return 'secondary';
     if (hasChatbot) return 'success';
     return 'secondary';
   };
@@ -38,14 +39,22 @@ const ResultStatusCell = ({
     if (lastChecked) {
       content.push(`Last checked: ${new Date(lastChecked).toLocaleString()}`);
     }
-    if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
+    
+    if (status === 'Processing...') {
+      content.push('Analysis in progress...');
+    } else if (status?.toLowerCase().includes('error')) {
+      content.push(`Error: ${status}`);
+    } else if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
       if (chatSolutions.length === 1) {
         content.push(`Using ${chatSolutions[0]} chatbot`);
       } else {
         content.push(`Primary: ${chatSolutions[0]}`);
         content.push(`Additional providers: ${chatSolutions.slice(1).join(', ')}`);
       }
+    } else if (status) {
+      content.push(`Status: ${status}`);
     }
+    
     return content.join('\n');
   };
 
@@ -53,12 +62,12 @@ const ResultStatusCell = ({
     <TableCell>
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger onClick={onResultUpdate}>
+          <TooltipTrigger onClick={onResultUpdate} className="cursor-help">
             <Badge 
               variant={getChatbotStatusColor(status, hasChatbot)}
-              className="cursor-help"
+              className={`cursor-help ${status === 'Processing...' ? 'animate-pulse' : ''}`}
             >
-              {technologies}
+              {technologies || 'Analyzing...'}
             </Badge>
           </TooltipTrigger>
           <TooltipContent className="max-w-[300px] whitespace-pre-line">

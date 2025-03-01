@@ -28,9 +28,12 @@ interface ResultsTableProps {
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) => {
+  console.log('ResultsTable received results:', results);
+
   const formatInstalledTechnologies = (result: Result) => {
     if (!result.status) return 'Analyzing...';
     if (result.status.toLowerCase().includes('error')) return result.status;
+    if (result.status === 'Processing...') return 'Processing...';
     
     const chatSolutions = result.details?.chatSolutions || [];
     if (chatSolutions.length === 0) return 'No chatbot detected';
@@ -50,25 +53,33 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results.map((result, index) => {
-            const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
-            const technologies = formatInstalledTechnologies(result);
-            
-            return (
-              <TableRow key={index}>
-                <ResultUrlCell url={result.url} />
-                <TableCell>{result.details?.title || 'N/A'}</TableCell>
-                <ResultStatusCell 
-                  status={result.status}
-                  hasChatbot={hasChatbot}
-                  technologies={technologies}
-                  lastChecked={result.details?.lastChecked}
-                  chatSolutions={result.details?.chatSolutions}
-                  onResultUpdate={onResultUpdate ? () => onResultUpdate(result) : undefined}
-                />
-              </TableRow>
-            );
-          })}
+          {results.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                No results to display
+              </TableCell>
+            </TableRow>
+          ) : (
+            results.map((result, index) => {
+              const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
+              const technologies = formatInstalledTechnologies(result);
+              
+              return (
+                <TableRow key={index}>
+                  <ResultUrlCell url={result.url} />
+                  <TableCell>{result.details?.title || 'N/A'}</TableCell>
+                  <ResultStatusCell 
+                    status={result.status}
+                    hasChatbot={hasChatbot}
+                    technologies={technologies}
+                    lastChecked={result.details?.lastChecked}
+                    chatSolutions={result.details?.chatSolutions}
+                    onResultUpdate={onResultUpdate ? () => onResultUpdate(result) : undefined}
+                  />
+                </TableRow>
+              );
+            })
+          )}
         </TableBody>
       </Table>
     </div>
