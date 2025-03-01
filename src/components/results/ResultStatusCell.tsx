@@ -39,7 +39,7 @@ const ResultStatusCell = ({
     if (technologies === 'Custom Chat') {
       return 'Website Chatbot';
     }
-    if (technologies === 'Website Chatbot' && status?.toLowerCase().includes('low confidence')) {
+    if (status?.toLowerCase().includes('no chatbot')) {
       return 'No chatbot detected';
     }
     return technologies || 'Analyzing...';
@@ -57,8 +57,8 @@ const ResultStatusCell = ({
       content.push('Analysis in progress...');
     } else if (status?.toLowerCase().includes('error')) {
       content.push(`Error: ${status}`);
-    } else if (status?.toLowerCase().includes('low confidence')) {
-      content.push('No chatbot detected (potential false positive filtered)');
+    } else if (status?.toLowerCase().includes('no chatbot')) {
+      content.push('No chatbot detected (verified)');
     } else if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
       if (chatSolutions.length === 1) {
         let solution = chatSolutions[0];

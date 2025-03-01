@@ -35,7 +35,7 @@ const Index = () => {
     ));
     
     try {
-      // Enhanced result update with deep analysis option
+      // Enhanced result update with deep verification option
       toast.info(`Re-analyzing ${updatedResult.url} with enhanced verification...`);
       
       // Re-analyze just the one result with enhanced verification

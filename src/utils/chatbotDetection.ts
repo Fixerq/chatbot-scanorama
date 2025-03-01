@@ -36,7 +36,8 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       body: { 
         urls: [formattedUrl],
         debug: true,  // Enable debugging in the edge function
-        verifyResults: true  // Add verification for results
+        verifyResults: true,  // Add verification for results
+        deepVerification: true  // Add deeper verification to reduce false positives
       }
     });
 
@@ -57,18 +58,23 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     if (Array.isArray(data) && data.length > 0) {
       const result = data[0];
       
-      // Add additional confidence check
-      if (result.confidence && result.confidence < 0.7) {
-        console.log(`Low confidence detection (${result.confidence}), marking as no chatbot`);
+      // Add stricter confidence check
+      if (!result.hasChatbot || (result.confidence && result.confidence < 0.8)) {
+        console.log(`No chatbot detected or low confidence detection (${result.confidence}), marking as no chatbot`);
         return {
-          status: 'No chatbot detected (low confidence)',
+          status: 'No chatbot detected',
           chatSolutions: [],
           lastChecked: new Date().toISOString()
         };
       }
       
-      // Map generic "Custom Chat" to more descriptive labels when possible
+      // Map generic "Custom Chat" to more descriptive labels
       let solutions = result.solutions || [];
+      
+      // Convert all "Custom Chat" instances to the more descriptive label
+      solutions = solutions.map(solution => 
+        solution === "Custom Chat" ? "Website Chatbot" : solution
+      );
       
       return {
         status: result.status || 'Analyzed',
