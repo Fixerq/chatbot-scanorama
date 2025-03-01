@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COUNTRIES } from '@/constants/countries';
+import { getRegionsForCountry } from '@/constants/regions';
 
 interface SearchInputsProps {
   query: string;
@@ -31,6 +33,19 @@ const SearchInputs = ({
   onRegionChange,
   isSearching,
 }: SearchInputsProps) => {
+  const [availableRegions, setAvailableRegions] = useState<string[]>([]);
+
+  // Update available regions when country changes
+  useEffect(() => {
+    const regions = getRegionsForCountry(country);
+    setAvailableRegions(regions);
+    
+    // Reset region selection if current region is not in the new country's regions
+    if (region && regions.length > 0 && !regions.includes(region)) {
+      onRegionChange('');
+    }
+  }, [country, region, onRegionChange]);
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
@@ -56,13 +71,28 @@ const SearchInputs = ({
         </Select>
       </div>
       <div className="flex gap-2 mb-8">
-        <Input
-          type="text"
-          placeholder="Enter state/region (optional)"
-          value={region}
-          onChange={(e) => onRegionChange(e.target.value)}
-          className="flex-1"
-        />
+        {availableRegions.length > 0 ? (
+          <Select value={region} onValueChange={onRegionChange}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select region/state" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableRegions.map((regionOption) => (
+                <SelectItem key={regionOption} value={regionOption}>
+                  {regionOption}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            type="text"
+            placeholder="Enter state/region (optional)"
+            value={region}
+            onChange={(e) => onRegionChange(e.target.value)}
+            className="flex-1"
+          />
+        )}
         <Button 
           type="submit" 
           disabled={isSearching || !query.trim()} 
