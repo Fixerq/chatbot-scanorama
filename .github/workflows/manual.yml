@@ -1,0 +1,8 @@
+# Check out the main branch
+git checkout main
+
+# Reset the main branch to the specific commit
+git reset --hard a3dd53d1acd71f79b58cbd9c57dc6aa2944dd26c
+
+# Force push the reset main branch to the remote repository
+git push origin main --force
