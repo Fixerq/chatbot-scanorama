@@ -37,7 +37,15 @@ export const useChatbotAnalysis = () => {
                              !response.status?.toLowerCase().includes('low confidence');
             
             // Filter out potential false positives
-            const validChatSolutions = hasChatbot ? response.chatSolutions : [];
+            let validChatSolutions = hasChatbot ? response.chatSolutions : [];
+            
+            // Format generic "Custom Chat" to be more descriptive
+            validChatSolutions = validChatSolutions.map(solution => {
+              if (solution === "Custom Chat") {
+                return "Website Chatbot";
+              }
+              return solution;
+            });
             
             return {
               ...result,

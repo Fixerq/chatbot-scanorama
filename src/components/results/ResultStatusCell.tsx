@@ -34,6 +34,17 @@ const ResultStatusCell = ({
     return 'secondary';
   };
 
+  // Format the display text to be more user-friendly
+  const getDisplayText = () => {
+    if (technologies === 'Custom Chat') {
+      return 'Website Chatbot';
+    }
+    if (technologies === 'Website Chatbot' && status?.toLowerCase().includes('low confidence')) {
+      return 'No chatbot detected';
+    }
+    return technologies || 'Analyzing...';
+  };
+
   // Improved tooltip content with verification status
   const formatTooltipContent = () => {
     const content = [];
@@ -50,10 +61,18 @@ const ResultStatusCell = ({
       content.push('No chatbot detected (potential false positive filtered)');
     } else if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
       if (chatSolutions.length === 1) {
-        content.push(`Detected ${chatSolutions[0]} chatbot`);
+        let solution = chatSolutions[0];
+        if (solution === "Website Chatbot" || solution === "Custom Chat") {
+          content.push(`Website has a custom chatbot solution`);
+        } else {
+          content.push(`Detected ${solution} chatbot`);
+        }
       } else {
-        content.push(`Primary: ${chatSolutions[0]}`);
-        content.push(`Additional providers: ${chatSolutions.slice(1).join(', ')}`);
+        const primary = chatSolutions[0] === "Custom Chat" ? "Website Chatbot" : chatSolutions[0];
+        content.push(`Primary: ${primary}`);
+        
+        const additional = chatSolutions.slice(1).map(s => s === "Custom Chat" ? "Website Chatbot" : s);
+        content.push(`Additional providers: ${additional.join(', ')}`);
       }
     } else if (status) {
       content.push(`Status: ${status}`);
@@ -64,14 +83,6 @@ const ResultStatusCell = ({
     }
     
     return content.join('\n');
-  };
-
-  // Updated display text to be more accurate
-  const getDisplayText = () => {
-    if (technologies === 'Custom Chat' && status?.toLowerCase().includes('low confidence')) {
-      return 'No chatbot detected';
-    }
-    return technologies || 'Analyzing...';
   };
 
   const handleClick = (e: React.MouseEvent) => {

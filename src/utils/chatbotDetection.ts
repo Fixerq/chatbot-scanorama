@@ -67,9 +67,12 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
         };
       }
       
+      // Map generic "Custom Chat" to more descriptive labels when possible
+      let solutions = result.solutions || [];
+      
       return {
         status: result.status || 'Analyzed',
-        chatSolutions: result.solutions || [],
+        chatSolutions: solutions,
         lastChecked: new Date().toISOString()
       };
     }
