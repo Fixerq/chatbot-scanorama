@@ -1,29 +1,67 @@
-export function normalizeUrl(url: string): string {
+
+/**
+ * Utilities for URL handling and normalization
+ */
+
+// Normalize URL for consistent processing
+export const normalizeUrl = (url: string): string => {
   try {
-    // Remove any trailing colons and slashes
-    let cleanUrl = url.trim().replace(/[:\/]+$/, '');
-    
-    // Add https:// if no protocol is specified
-    if (!cleanUrl.match(/^https?:\/\//i)) {
-      cleanUrl = `https://${cleanUrl}`;
+    // Add protocol if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
     }
     
-    // Parse URL to normalize it
-    const urlObj = new URL(cleanUrl);
+    const urlObj = new URL(url);
     
-    // Remove any extra colons from hostname
-    urlObj.hostname = urlObj.hostname.replace(/:/g, '');
+    // Remove trailing slash
+    let hostname = urlObj.hostname;
+    let pathname = urlObj.pathname;
     
-    // Remove hash
-    urlObj.hash = '';
+    // Remove www if present for consistency
+    if (hostname.startsWith('www.')) {
+      hostname = hostname.substring(4);
+    }
     
-    // Clean up double slashes (except after protocol)
-    let finalUrl = urlObj.toString().replace(/([^:]\/)\/+/g, '$1');
+    // Remove trailing slash from pathname if it's just a slash
+    if (pathname === '/') {
+      pathname = '';
+    }
     
-    console.log('Normalized URL:', finalUrl);
-    return finalUrl;
+    // Reconstruct URL with normalized hostname and pathname
+    return `${urlObj.protocol}//${hostname}${pathname}${urlObj.search}`;
   } catch (error) {
-    console.error('URL normalization error:', error);
-    throw new Error('Invalid URL format');
+    console.error(`Error normalizing URL ${url}:`, error);
+    return url; // Return original URL if normalization fails
   }
-}
+};
+
+// Extract domain from URL
+export const extractDomain = (url: string): string => {
+  try {
+    // Add protocol if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    
+    const urlObj = new URL(url);
+    return urlObj.hostname;
+  } catch (error) {
+    console.error(`Error extracting domain from URL ${url}:`, error);
+    return url; // Return original URL if extraction fails
+  }
+};
+
+// Check if URL is valid
+export const isValidUrl = (url: string): boolean => {
+  try {
+    // Add protocol if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    
+    new URL(url);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};

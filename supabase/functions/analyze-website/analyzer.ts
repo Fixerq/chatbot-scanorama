@@ -1,5 +1,5 @@
 
-import { CHAT_PATTERNS, FALSE_POSITIVE_DOMAINS } from './patterns';
+import { CHAT_PATTERNS, FALSE_POSITIVE_PATTERNS, FALSE_POSITIVE_DOMAINS } from './patterns';
 import { detectDynamicLoading, detectChatElements, detectMetaTags, detectWebSockets } from './utils/patternDetection';
 import { smartDetectChatbot } from './utils/smartDetection';
 

@@ -1,128 +1,71 @@
 
-export function detectDynamicLoading(html: string): boolean {
-  const dynamicPatterns = [
-    /window\.(onload|addEventListener).*chat/i,
-    /document\.(ready|addEventListener).*chat/i,
-    /loadChat|initChat|startChat|chatInit/i,
-    /chat.*widget.*load/i,
-    /load.*chat.*widget/i,
-    /init.*chat.*widget/i,
-    /chat.*messenger.*load/i,
-    /load.*chat.*messenger/i,
-    /init.*chat.*messenger/i,
-    /chat.*bot.*load/i,
-    /load.*chat.*bot/i,
-    /init.*chat.*bot/i,
-    // Enhanced patterns for dynamic loading
-    /window\.onload\s*=\s*function.*?\{.*?chat/is,
-    /\$\(document\)\.ready\(function.*?\{.*?chat/is,
-    /document\.addEventListener\(['"]DOMContentLoaded['"]/i,
-    /setTimeout\(.*?chat/i,
-    /new\s+ChatWidget|new\s+ChatBot|new\s+ChatInterface/i
+/**
+ * Utility functions for pattern-based detection of chat elements
+ */
+
+// Detect dynamic loading of scripts or chat elements
+export const detectDynamicLoading = (html: string): boolean => {
+  const dynamicLoadingPatterns = [
+    /loadChatWidget/i,
+    /initializeChat/i,
+    /loadChat/i,
+    /onload.*chat/i,
+    /widget\.load/i,
+    /load.*widget/i,
+    /async.*chat/i,
+    /defer.*chat/i,
+    /chatbot.*load/i,
+    /window\.addEventListener.*chat/i
   ];
   
-  return dynamicPatterns.some(pattern => pattern.test(html));
-}
+  return dynamicLoadingPatterns.some(pattern => pattern.test(html));
+};
 
-export function detectChatElements(html: string): boolean {
-  const elementPatterns = [
-    /<div[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
-    /<iframe[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
-    /<button[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
-    /<script[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
-    /<link[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
-    // Enhanced patterns for chat elements
-    /<input[^>]*(?:chat-input|message-input)[^>]*>/i,
-    /<textarea[^>]*(?:chat-input|message-input)[^>]*>/i,
-    /<div[^>]*(?:chat-container|chat-window|chat-widget|chat-box)[^>]*>/i,
-    /<div[^>]*(?:message-container|messages-list|chat-messages)[^>]*>/i,
-    /<button[^>]*(?:send-message|submit-chat|chat-send)[^>]*>/i,
-    /<div[^>]*(?:chat-header|chat-footer|chat-body)[^>]*>/i,
-    /<div[^>]*(?:chat-bubble|message-bubble|chat-message)[^>]*>/i
-  ];
-
-  return elementPatterns.some(pattern => pattern.test(html));
-}
-
-export function detectMetaTags(html: string): boolean {
-  const metaPatterns = [
-    /<meta[^>]*(?:chat|messenger|support|bot)[^>]*>/i,
-    /chat.*config/i,
-    /messenger.*config/i,
-    /bot.*config/i,
-    /chatbot.*config/i,
-    /chat.*settings/i,
-    /messenger.*settings/i,
-    /bot.*settings/i,
-    // Enhanced patterns for meta tags and configurations
-    /chatbot_?id|chat_?widget_?id|messenger_?id/i,
-    /chat_?app_?id|support_?widget_?id/i,
-    /chat.*configuration|chat.*settings|chat.*options/i,
-    /widget.*configuration|widget.*settings|widget.*options/i,
-    /chatSettings|chatOptions|chatConfig|widgetSettings/i,
-    /CHAT_API_KEY|CHAT_TOKEN|MESSENGER_TOKEN/i
-  ];
-
-  return metaPatterns.some(pattern => pattern.test(html));
-}
-
-export function detectWebSockets(html: string): boolean {
-  const wsPatterns = [
-    /new WebSocket.*chat/i,
-    /WebSocket.*messenger/i,
-    /ws.*chat/i,
-    /wss.*chat/i,
-    /socket.*chat/i,
-    /chat.*socket/i,
-    // Enhanced patterns for websockets
-    /socket\.io.*chat/i,
-    /io\.connect.*chat/i,
-    /pusher.*chat/i,
-    /firebase.*chat/i,
-    /signalr.*chat/i,
-    /socketUrl|socketEndpoint|wsUrl|wsEndpoint/i,
-    /chat.*connection|messenger.*connection/i,
-    /connection.*chat|connection.*messenger/i
-  ];
-
-  return wsPatterns.some(pattern => pattern.test(html));
-}
-
-// Additional verification methods
-
-export function detectChatFunctionality(html: string): boolean {
-  const functionalityPatterns = [
-    // Input fields for messaging
-    /<input[^>]*(?:message|chat|send)[^>]*>/i,
-    /<textarea[^>]*(?:message|chat)[^>]*>/i,
-    
-    // Send buttons
-    /<button[^>]*(?:send|submit)[^>]*>(?:.*?send|.*?submit|.*?chat)/i,
-    
-    // Message containers
-    /<div[^>]*(?:messages-container|chat-messages|message-list)[^>]*>/i,
-    
-    // Chat UI structure
-    /<div[^>]*(?:chat-header|chat-footer|chat-body)[^>]*>/i,
-    
-    // Message formatting
-    /<div[^>]*(?:message-bubble|chat-bubble|user-message|agent-message)[^>]*>/i
+// Detect common chat elements in HTML structure
+export const detectChatElements = (html: string): boolean => {
+  const chatElementPatterns = [
+    /<div[^>]*chat/i,
+    /<button[^>]*chat/i,
+    /<iframe[^>]*chat/i,
+    /<div[^>]*messenger/i,
+    /<div[^>]*support-widget/i,
+    /<div[^>]*customer-support/i,
+    /<button[^>]*talk-to-us/i,
+    /<div[^>]*livechat/i
   ];
   
-  return functionalityPatterns.some(pattern => pattern.test(html));
-}
+  return chatElementPatterns.some(pattern => pattern.test(html));
+};
 
-export function detectChatInitialization(html: string): boolean {
-  const initPatterns = [
-    /initChat|startChat|loadChat|setupChat|createChat/i,
-    /chat\.init|chat\.start|chat\.load|chat\.setup/i,
-    /new\s+Chat(?:Widget|Bot|Interface|App)/i,
-    /chat(?:Widget|Bot|Interface|App)\.init/i,
-    /widget\.init|widget\.start|widget\.load/i,
-    /messenger\.init|messenger\.start|messenger\.load/i,
-    /bot\.init|bot\.start|bot\.load/i,
-    /initMessenger|startMessenger|loadMessenger/i
+// Detect meta tags that might indicate chatbot presence
+export const detectMetaTags = (html: string): boolean => {
+  const metaTagPatterns = [
+    /<meta[^>]*chatbot/i,
+    /<meta[^>]*livechat/i,
+    /<meta[^>]*customer-support/i,
+    /<meta[^>]*messenger/i,
+    /<meta[^>]*intercom/i,
+    /<meta[^>]*drift/i,
+    /<meta[^>]*tawk/i,
+    /<meta[^>]*zendesk/i,
+    /<meta[^>]*crisp/i
   ];
   
-  return initPatterns.some(pattern => pattern.test(html));
-}
+  return metaTagPatterns.some(pattern => pattern.test(html));
+};
+
+// Detect websocket connections often used by chat widgets
+export const detectWebSockets = (html: string): boolean => {
+  const webSocketPatterns = [
+    /WebSocket/i,
+    /wss:\/\//i,
+    /ws:\/\//i,
+    /socket\.io/i,
+    /websocket/i,
+    /realtime/i,
+    /pusher/i,
+    /socket-connection/i
+  ];
+  
+  return webSocketPatterns.some(pattern => pattern.test(html));
+};

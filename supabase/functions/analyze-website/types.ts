@@ -1,14 +1,19 @@
-export interface ChatDetectionResult {
-  status: string;
-  chatSolutions: string[];
-  lastChecked: string;
+
+export interface AnalysisRequest {
+  urls: string[];
+  debug?: boolean;
+  verifyResults?: boolean;
+  deepVerification?: boolean;
+  smartDetection?: boolean;
+  confidenceThreshold?: number;
 }
 
-export interface RequestData {
+export interface ChatbotDetectionResponse {
   url: string;
+  status: string;
+  hasChatbot: boolean;
+  chatSolutions: string[];
+  confidence?: number;
+  verificationStatus?: string;
+  lastChecked?: string;
 }
-
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};

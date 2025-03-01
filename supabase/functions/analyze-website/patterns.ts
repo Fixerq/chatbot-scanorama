@@ -1,4 +1,5 @@
 
+// Define patterns for chatbot detection
 export const CHAT_PATTERNS = {
   'Intercom': [
     /intercom/i,
@@ -112,89 +113,6 @@ export const CHAT_PATTERNS = {
     /tidio-live-chat/i,
     /tidioChatCode/i
   ],
-  'LiveAgent': [
-    /ladesk\.com/i,
-    /liveagent/i,
-    /live-agent/i,
-    /liveagent-widget/i,
-    /liveagent-button/i
-  ],
-  'Pure Chat': [
-    /purechat/i,
-    /pure-chat/i,
-    /purechat-widget/i,
-    /purechat-messenger/i
-  ],
-  'Olark': [
-    /olark/i,
-    /olark-chat/i,
-    /olark-messenger/i,
-    /olark-widget/i,
-    /olark-loader/i
-  ],
-  'ManyChat': [
-    /manychat/i,
-    /manychat\.com/i,
-    /mc-widget/i,
-    /mc-messenger/i
-  ],
-  'MobileMonkey': [
-    /mobilemonkey/i,
-    /mobilemonkey\.com/i,
-    /mm-widget/i,
-    /mm-messenger/i,
-    /mm-chat/i
-  ],
-  'Chatlio': [
-    /chatlio/i,
-    /chatlio\.com/i,
-    /chatlio-widget/i
-  ],
-  'Help Scout': [
-    /helpscout/i,
-    /beacon-v2/i,
-    /beacon/i,
-    /beaconInit/i
-  ],
-  'LivePerson': [
-    /liveperson/i,
-    /lpcdn\.lpsnmedia\.net/i,
-    /lptag/i,
-    /lp-cdn/i
-  ],
-  'SnapEngage': [
-    /snapengage/i,
-    /snapengage\.com/i,
-    /snapabug/i
-  ],
-  'Bold360': [
-    /bold360/i,
-    /nanorep/i,
-    /bold360ai/i
-  ],
-  'Freshchat': [
-    /freshchat/i,
-    /freshworks\.com/i,
-    /freshchat-widget/i,
-    /fc_frame/i,
-    /fc_widget/i
-  ],
-  'Jivochat': [
-    /jivo/i,
-    /jivosite/i,
-    /jivochat/i,
-    /jivo_container/i
-  ],
-  'Userlike': [
-    /userlike/i,
-    /userlike\.cdn/i,
-    /userlikelib/i
-  ],
-  'Chaport': [
-    /chaport/i,
-    /chaport\.com/i,
-    /chaport-container/i
-  ],
   'Custom Chat': [
     /chat-widget/i,
     /chat-container/i,
@@ -222,79 +140,7 @@ export const CHAT_PATTERNS = {
     /chat-toggle/i,
     /chat-panel/i,
     /chat-bot/i,
-    /chatbot/i,
-    /chat_widget/i,
-    /chat_container/i,
-    /chat_button/i,
-    /chat_frame/i,
-    /chat_messenger/i,
-    /chat_popup/i,
-    /chat_window/i,
-    /chat_launcher/i,
-    /chat_trigger/i,
-    /chat_bubble/i,
-    /chat_icon/i,
-    /chat_header/i,
-    /chat_footer/i,
-    /chat_body/i,
-    /chat_input/i,
-    /chat_messages/i,
-    /chat_support/i,
-    /live_chat/i,
-    /chat_iframe/i,
-    /chat_overlay/i,
-    /chat_wrapper/i,
-    /chat_toggle/i,
-    /chat_panel/i,
-    /chat_bot/i,
-    /chatWidget/i,
-    /chatContainer/i,
-    /chatButton/i,
-    /chatFrame/i,
-    /chatMessenger/i,
-    /chatPopup/i,
-    /chatWindow/i,
-    /chatLauncher/i,
-    /chatTrigger/i,
-    /chatBubble/i,
-    /chatIcon/i,
-    /chatHeader/i,
-    /chatFooter/i,
-    /chatBody/i,
-    /chatInput/i,
-    /chatMessages/i,
-    /chatSupport/i,
-    /liveChat/i,
-    /chatIframe/i,
-    /chatOverlay/i,
-    /chatWrapper/i,
-    /chatToggle/i,
-    /chatPanel/i,
-    /chatBot/i,
-    /onlineChat/i,
-    /online-chat/i,
-    /online_chat/i,
-    /support-chat/i,
-    /supportChat/i,
-    /support_chat/i,
-    /customer-chat/i,
-    /customerChat/i,
-    /customer_chat/i,
-    /help-chat/i,
-    /helpChat/i,
-    /help_chat/i,
-    /chat-assistant/i,
-    /chatAssistant/i,
-    /chat_assistant/i,
-    /virtual-assistant/i,
-    /virtualAssistant/i,
-    /virtual_assistant/i,
-    /ai-chat/i,
-    /aiChat/i,
-    /ai_chat/i,
-    /bot-chat/i,
-    /botChat/i,
-    /bot_chat/i
+    /chatbot/i
   ]
 };
 
