@@ -15,6 +15,8 @@ interface ResultStatusCellProps {
   technologies: string;
   lastChecked?: string;
   chatSolutions?: string[];
+  confidence?: number;
+  verificationStatus?: string;
   onResultUpdate?: () => void;
 }
 
@@ -24,13 +26,24 @@ const ResultStatusCell = ({
   technologies, 
   lastChecked, 
   chatSolutions,
+  confidence,
+  verificationStatus,
   onResultUpdate
 }: ResultStatusCellProps) => {
-  const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean) => {
+  const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean, confidence?: number) => {
     if (!status) return 'secondary';
     if (status.toLowerCase().includes('error')) return 'destructive';
     if (status === 'Processing...') return 'secondary';
-    if (hasChatbot) return 'success';
+    if (hasChatbot) {
+      // If we have confidence data, use it to determine the color
+      if (confidence !== undefined) {
+        if (confidence >= 0.9) return 'success';
+        if (confidence >= 0.75) return 'success';
+        if (confidence >= 0.5) return 'warning';
+        return 'secondary';
+      }
+      return 'success';
+    }
     return 'secondary';
   };
 
@@ -43,6 +56,16 @@ const ResultStatusCell = ({
       return 'No chatbot detected';
     }
     return technologies || 'Analyzing...';
+  };
+
+  // Get confidence level text
+  const getConfidenceText = (confidence?: number) => {
+    if (confidence === undefined) return '';
+    if (confidence >= 0.9) return 'Very high confidence';
+    if (confidence >= 0.75) return 'High confidence';
+    if (confidence >= 0.5) return 'Medium confidence';
+    if (confidence >= 0.25) return 'Low confidence';
+    return 'Very low confidence';
   };
 
   // Improved tooltip content with verification status
@@ -60,6 +83,14 @@ const ResultStatusCell = ({
     } else if (status?.toLowerCase().includes('no chatbot')) {
       content.push('No chatbot detected (verified)');
     } else if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
+      if (confidence !== undefined) {
+        content.push(getConfidenceText(confidence));
+      }
+      
+      if (verificationStatus) {
+        content.push(`Verification: ${verificationStatus}`);
+      }
+      
       if (chatSolutions.length === 1) {
         let solution = chatSolutions[0];
         if (solution === "Website Chatbot" || solution === "Custom Chat") {
@@ -79,7 +110,7 @@ const ResultStatusCell = ({
     }
     
     if (onResultUpdate) {
-      content.push('Click to refresh analysis');
+      content.push('Click to refresh analysis with enhanced verification');
     }
     
     return content.join('\n');
@@ -90,7 +121,7 @@ const ResultStatusCell = ({
     e.stopPropagation();
     
     if (onResultUpdate) {
-      console.log('ResultStatusCell clicked, triggering update');
+      console.log('ResultStatusCell clicked, triggering update with enhanced verification');
       onResultUpdate();
     }
   };
@@ -105,7 +136,7 @@ const ResultStatusCell = ({
               className={`inline-block ${onResultUpdate ? 'cursor-pointer hover:opacity-80' : 'cursor-help'}`}
             >
               <Badge 
-                variant={getChatbotStatusColor(status, hasChatbot)}
+                variant={getChatbotStatusColor(status, hasChatbot, confidence)}
                 className={`${status === 'Processing...' ? 'animate-pulse' : ''} px-3 py-1`}
               >
                 {getDisplayText()}

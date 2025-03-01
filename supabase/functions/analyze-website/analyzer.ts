@@ -1,69 +1,162 @@
-import { CHAT_PATTERNS } from './patterns.ts';
-import { normalizeUrl } from './utils/urlUtils.ts';
-import { fetchWithRetry } from './utils/httpUtils.ts';
-import { 
-  detectDynamicLoading, 
-  detectChatElements, 
-  detectMetaTags, 
-  detectWebSockets 
-} from './utils/patternDetection.ts';
 
-export async function analyzeChatbot(url: string): Promise<string[]> {
-  console.log('Analyzing URL:', url);
+import { CHAT_PATTERNS, FALSE_POSITIVE_DOMAINS } from './patterns';
+import { detectDynamicLoading, detectChatElements, detectMetaTags, detectWebSockets } from './utils/patternDetection';
+import { smartDetectChatbot } from './utils/smartDetection';
+
+export interface AnalysisOptions {
+  debug?: boolean;
+  verifyResults?: boolean;
+  deepVerification?: boolean;
+  smartDetection?: boolean;
+  confidenceThreshold?: number;
+  checkFunctionality?: boolean;
+}
+
+export interface AnalysisResult {
+  url: string;
+  status: string;
+  hasChatbot: boolean;
+  solutions?: string[];
+  confidence?: number;
+  verificationStatus?: 'verified' | 'unverified' | 'failed';
+  matchedPatterns?: Record<string, number>;
+  lastChecked: string;
+}
+
+export const analyzeWebsite = async (
+  url: string, 
+  html: string, 
+  options: AnalysisOptions = {}
+): Promise<AnalysisResult> => {
+  const {
+    debug = false,
+    verifyResults = false,
+    deepVerification = false,
+    smartDetection = false,
+    confidenceThreshold = 0.5,
+    checkFunctionality = false
+  } = options;
   
   try {
-    const normalizedUrl = normalizeUrl(url);
-    console.log('Normalized URL:', normalizedUrl);
+    if (debug) console.log(`Analyzing ${url} with options:`, options);
     
-    const response = await fetchWithRetry(normalizedUrl);
-    const html = await response.text();
-    console.log('Successfully fetched HTML content');
+    // Check for known false positive domains first
+    const domain = new URL(url).hostname;
+    const isFalsePositiveDomain = FALSE_POSITIVE_DOMAINS.some(d => 
+      domain.includes(d) || domain === d
+    );
     
-    const detectedChatSolutions: string[] = [];
-
-    // Check for specific chat solutions
-    for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
-      if (patterns.some(pattern => {
-        const matches = pattern.test(html);
-        if (matches) {
-          console.log(`Detected ${solution} using pattern:`, pattern);
-        }
-        return matches;
-      })) {
-        if (!detectedChatSolutions.includes(solution)) {
-          detectedChatSolutions.push(solution);
-        }
+    if (isFalsePositiveDomain) {
+      if (debug) console.log(`${url} is a known false positive domain`);
+      return {
+        url,
+        status: 'No chatbot detected (known false positive site)',
+        hasChatbot: false,
+        solutions: [],
+        confidence: 0,
+        verificationStatus: 'verified',
+        lastChecked: new Date().toISOString()
+      };
+    }
+    
+    // Use enhanced smart detection if enabled
+    if (smartDetection) {
+      if (debug) console.log(`Using smart detection for ${url}`);
+      
+      const result = smartDetectChatbot(html, url);
+      
+      if (debug) {
+        console.log(`Smart detection result for ${url}:`, {
+          hasChatbot: result.hasChatbot,
+          solutions: result.solutions,
+          confidence: result.confidence,
+          verificationStatus: result.verificationStatus
+        });
+      }
+      
+      // Apply confidence threshold
+      const exceededThreshold = result.confidence >= (confidenceThreshold || 0.5);
+      const hasChatbot = result.hasChatbot && exceededThreshold;
+      
+      return {
+        url,
+        status: hasChatbot ? 'Chatbot detected' : 'No chatbot detected',
+        hasChatbot,
+        solutions: hasChatbot ? result.solutions : [],
+        confidence: result.confidence,
+        verificationStatus: result.verificationStatus,
+        matchedPatterns: debug ? result.matchedPatterns : undefined,
+        lastChecked: new Date().toISOString()
+      };
+    }
+    
+    // Legacy detection method if smartDetection is not enabled
+    const matchedSolutions: string[] = [];
+    
+    // Check for each chat solution
+    Object.entries(CHAT_PATTERNS).forEach(([solution, patterns]) => {
+      const isMatch = patterns.some(pattern => pattern.test(html));
+      if (isMatch) {
+        matchedSolutions.push(solution);
+      }
+    });
+    
+    // Legacy verification methods
+    const hasDynamicLoading = detectDynamicLoading(html);
+    const hasChatElements = detectChatElements(html);
+    const hasMetaTags = detectMetaTags(html);
+    const hasWebSockets = detectWebSockets(html);
+    
+    // Determine if a chatbot exists with legacy verification
+    let hasChatbot = matchedSolutions.length > 0;
+    
+    // Apply verification if requested
+    if (verifyResults) {
+      if (debug) console.log(`Applying verification for ${url}`);
+      
+      if (deepVerification) {
+        // Require stronger evidence for detection
+        hasChatbot = matchedSolutions.length > 0 && 
+                    (hasDynamicLoading || hasChatElements) &&
+                    (hasMetaTags || hasWebSockets);
+      } else {
+        // Basic verification
+        hasChatbot = matchedSolutions.length > 0 && 
+                    (hasDynamicLoading || hasChatElements || hasMetaTags || hasWebSockets);
       }
     }
-
-    // Check for dynamic loading patterns
-    if (detectDynamicLoading(html) && !detectedChatSolutions.includes('Custom Chat')) {
-      console.log('Detected dynamically loaded chat widget');
-      detectedChatSolutions.push('Custom Chat');
+    
+    const status = hasChatbot ? 'Chatbot detected' : 'No chatbot detected';
+    const solutions = hasChatbot ? matchedSolutions : [];
+    
+    if (debug) {
+      console.log(`Legacy detection result for ${url}:`, {
+        hasChatbot,
+        solutions,
+        dynamicLoading: hasDynamicLoading,
+        chatElements: hasChatElements,
+        metaTags: hasMetaTags,
+        webSockets: hasWebSockets
+      });
     }
-
-    // Check for common chat-related elements
-    if (detectChatElements(html) && !detectedChatSolutions.includes('Custom Chat')) {
-      console.log('Detected common chat elements');
-      detectedChatSolutions.push('Custom Chat');
-    }
-
-    // Check for chat-related meta tags and configurations
-    if (detectMetaTags(html) && !detectedChatSolutions.includes('Custom Chat')) {
-      console.log('Detected chat-related meta tags or configurations');
-      detectedChatSolutions.push('Custom Chat');
-    }
-
-    // Check for WebSocket connections related to chat
-    if (detectWebSockets(html) && !detectedChatSolutions.includes('Custom Chat')) {
-      console.log('Detected WebSocket-based chat');
-      detectedChatSolutions.push('Custom Chat');
-    }
-
-    console.log('Analysis complete. Detected solutions:', detectedChatSolutions);
-    return detectedChatSolutions;
+    
+    return {
+      url,
+      status,
+      hasChatbot,
+      solutions,
+      verificationStatus: hasChatbot ? 'verified' : 'unverified',
+      lastChecked: new Date().toISOString()
+    };
   } catch (error) {
-    console.error('Error analyzing website:', error);
-    throw error;
+    console.error(`Error analyzing ${url}:`, error);
+    return {
+      url,
+      status: 'Error during analysis',
+      hasChatbot: false,
+      solutions: [],
+      verificationStatus: 'failed',
+      lastChecked: new Date().toISOString()
+    };
   }
-}
+};

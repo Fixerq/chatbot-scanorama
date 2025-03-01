@@ -1,151 +1,107 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { CHAT_PATTERNS } from './patterns.ts';
-import { fetchWithRetry } from './utils/httpUtils.ts';
-import { normalizeUrl } from './utils/urlUtils.ts';
-import { 
-  detectDynamicLoading, 
-  detectChatElements, 
-  detectMetaTags, 
-  detectWebSockets 
-} from './utils/patternDetection.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { fetchWebsiteContent } from './utils/httpUtils.ts'
+import { normalizeUrl } from './utils/urlUtils.ts'
+import { analyzeWebsite, AnalysisOptions } from './analyzer.ts'
+import { getCachedResult, cacheResult } from './cache.ts'
 
+// CORS headers for browser requests
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Simple cache to avoid analyzing the same URL repeatedly in a short time
-const analysisCache = new Map();
-const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache
-
-async function analyzeSingleWebsite(url: string) {
-  console.log(`Analyzing website: ${url}`);
-  
-  try {
-    const normalizedUrl = normalizeUrl(url);
-    
-    // Check cache first
-    const cachedResult = analysisCache.get(normalizedUrl);
-    if (cachedResult && (Date.now() - cachedResult.timestamp) < CACHE_TTL) {
-      console.log(`Using cached result for ${normalizedUrl}`);
-      return cachedResult.result;
-    }
-    
-    // Fetch the website content
-    const response = await fetchWithRetry(normalizedUrl);
-    const html = await response.text();
-    
-    // Detect chatbot solutions
-    const detectedChatSolutions: string[] = [];
-    
-    // Check for specific chat solutions using patterns from patterns.ts
-    for (const [solution, patterns] of Object.entries(CHAT_PATTERNS)) {
-      for (const pattern of patterns) {
-        if (pattern.test(html)) {
-          if (!detectedChatSolutions.includes(solution)) {
-            console.log(`Detected ${solution} using pattern`);
-            detectedChatSolutions.push(solution);
-            break;
-          }
-        }
-      }
-    }
-    
-    // Check for dynamic loading patterns if no solution detected yet
-    if (detectedChatSolutions.length === 0 && detectDynamicLoading(html)) {
-      console.log('Detected dynamically loaded chat widget');
-      detectedChatSolutions.push('Custom Chat');
-    }
-    
-    // Check for common chat-related elements
-    if (detectedChatSolutions.length === 0 && detectChatElements(html)) {
-      console.log('Detected common chat elements');
-      detectedChatSolutions.push('Custom Chat');
-    }
-    
-    // Check for chat-related meta tags
-    if (detectedChatSolutions.length === 0 && detectMetaTags(html)) {
-      console.log('Detected chat-related meta tags');
-      detectedChatSolutions.push('Custom Chat');
-    }
-    
-    // Check for WebSocket connections
-    if (detectedChatSolutions.length === 0 && detectWebSockets(html)) {
-      console.log('Detected WebSocket-based chat');
-      detectedChatSolutions.push('Custom Chat');
-    }
-    
-    // Prepare the result
-    const result = {
-      url: normalizedUrl,
-      status: 'completed',
-      hasChatbot: detectedChatSolutions.length > 0,
-      solutions: detectedChatSolutions
-    };
-    
-    // Store in cache
-    analysisCache.set(normalizedUrl, {
-      timestamp: Date.now(),
-      result
-    });
-    
-    return result;
-  } catch (error) {
-    console.error(`Error analyzing ${url}:`, error);
-    return {
-      url,
-      status: 'error',
-      hasChatbot: false,
-      solutions: [],
-      error: error.message
-    };
-  }
 }
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { urls, debug = false } = await req.json();
-    
-    if (!urls || !Array.isArray(urls) || urls.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid request: No URLs provided' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    console.log(`Starting analysis for ${urls.length} URLs, isBatch: ${urls.length > 1}, retry: false`);
-    
-    // For single URL analysis
-    if (urls.length === 1) {
-      const result = await analyzeSingleWebsite(urls[0]);
-      
-      return new Response(
-        JSON.stringify([result]),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const { urls, debug = false, verifyResults = false, deepVerification = false, smartDetection = true, confidenceThreshold = 0.5, checkFunctionality = false } = await req.json()
+
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+      return new Response(JSON.stringify({ error: 'No URLs provided' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
+
+    // Limit to 10 URLs per request to prevent abuse
+    const limitedUrls = urls.slice(0, 10)
     
-    // For batch analysis
+    // Options for the analysis
+    const options: AnalysisOptions = {
+      debug,
+      verifyResults,
+      deepVerification,
+      smartDetection,
+      confidenceThreshold,
+      checkFunctionality
+    }
+
+    if (debug) console.log(`Processing ${limitedUrls.length} URLs with options:`, options)
+
     const results = await Promise.all(
-      urls.map(url => analyzeSingleWebsite(url))
-    );
-    
-    return new Response(
-      JSON.stringify(results),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      limitedUrls.map(async (url: string) => {
+        try {
+          const normalizedUrl = normalizeUrl(url)
+          
+          // Check if we have a cached result first
+          const cachedResult = await getCachedResult(normalizedUrl)
+          if (cachedResult && !debug) {
+            if (debug) console.log(`Using cached result for ${normalizedUrl}`)
+            return cachedResult
+          }
+
+          // Fetch the website content
+          const html = await fetchWebsiteContent(normalizedUrl)
+          
+          if (!html) {
+            return {
+              url: normalizedUrl,
+              status: 'Error fetching website content',
+              hasChatbot: false,
+              solutions: [],
+              lastChecked: new Date().toISOString()
+            }
+          }
+
+          // Analyze the website with the specified options
+          const result = await analyzeWebsite(normalizedUrl, html, options)
+          
+          // Cache the result for future use
+          await cacheResult(normalizedUrl, result)
+          
+          return result
+        } catch (error) {
+          console.error(`Error processing ${url}:`, error)
+          return {
+            url,
+            status: 'Error processing website',
+            hasChatbot: false,
+            solutions: [],
+            lastChecked: new Date().toISOString()
+          }
+        }
+      })
+    )
+
+    return new Response(JSON.stringify(results), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (error) {
-    console.error("Error processing request:", error);
-    
-    return new Response(
-      JSON.stringify({ error: `Analysis failed: ${error.message}` }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    console.error('Error:', error)
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
-});
+})

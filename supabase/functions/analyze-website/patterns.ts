@@ -1,3 +1,4 @@
+
 export const CHAT_PATTERNS = {
   'Intercom': [
     /intercom/i,
@@ -131,6 +132,69 @@ export const CHAT_PATTERNS = {
     /olark-widget/i,
     /olark-loader/i
   ],
+  'ManyChat': [
+    /manychat/i,
+    /manychat\.com/i,
+    /mc-widget/i,
+    /mc-messenger/i
+  ],
+  'MobileMonkey': [
+    /mobilemonkey/i,
+    /mobilemonkey\.com/i,
+    /mm-widget/i,
+    /mm-messenger/i,
+    /mm-chat/i
+  ],
+  'Chatlio': [
+    /chatlio/i,
+    /chatlio\.com/i,
+    /chatlio-widget/i
+  ],
+  'Help Scout': [
+    /helpscout/i,
+    /beacon-v2/i,
+    /beacon/i,
+    /beaconInit/i
+  ],
+  'LivePerson': [
+    /liveperson/i,
+    /lpcdn\.lpsnmedia\.net/i,
+    /lptag/i,
+    /lp-cdn/i
+  ],
+  'SnapEngage': [
+    /snapengage/i,
+    /snapengage\.com/i,
+    /snapabug/i
+  ],
+  'Bold360': [
+    /bold360/i,
+    /nanorep/i,
+    /bold360ai/i
+  ],
+  'Freshchat': [
+    /freshchat/i,
+    /freshworks\.com/i,
+    /freshchat-widget/i,
+    /fc_frame/i,
+    /fc_widget/i
+  ],
+  'Jivochat': [
+    /jivo/i,
+    /jivosite/i,
+    /jivochat/i,
+    /jivo_container/i
+  ],
+  'Userlike': [
+    /userlike/i,
+    /userlike\.cdn/i,
+    /userlikelib/i
+  ],
+  'Chaport': [
+    /chaport/i,
+    /chaport\.com/i,
+    /chaport-container/i
+  ],
   'Custom Chat': [
     /chat-widget/i,
     /chat-container/i,
@@ -233,3 +297,26 @@ export const CHAT_PATTERNS = {
     /bot_chat/i
   ]
 };
+
+// Add list of known false positive patterns
+export const FALSE_POSITIVE_PATTERNS = [
+  /chatgpt/i, // References to ChatGPT aren't chatbots
+  /chatham/i, // Chatham is a place not a chatbot
+  /chateau/i, // French for castle
+  /manhattan/i, // Manhattan contains "chat" but isn't a chatbot
+  /purchase/i, // Purchase contains "chat" but isn't a chatbot
+  /brochure/i, // Brochure can be confused with bot-related terms
+  /chapter/i, // Chapter contains "chat" but isn't a chatbot
+  /chart/i, // Chart contains "chat" but isn't a chatbot
+  /chattanooga/i, // City name, not a chatbot
+  /charlottesville/i // City name, not a chatbot
+];
+
+// Known false positive domains
+export const FALSE_POSITIVE_DOMAINS = [
+  'kentdentists.com',
+  'privategphealthcare.com',
+  'dentalcaredirect.co.uk',
+  'mydentist.co.uk',
+  'dentist-special.com'
+];

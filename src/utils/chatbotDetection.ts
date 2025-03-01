@@ -1,14 +1,34 @@
-
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatbotDetectionResponse } from '@/types/chatbot';
 import { toast } from 'sonner';
 
+// Known false positives that should be excluded
+const FALSE_POSITIVE_DOMAINS = [
+  'kentdentists.com',
+  'privategphealthcare.com',
+  'dentalcaredirect.co.uk',
+  'mydentist.co.uk',
+  'dentist-special.com'
+];
+
 const isValidUrl = (url: string): boolean => {
   try {
     new URL(url.startsWith('http') ? url : `https://${url}`);
     return true;
+  } catch {
+    return false;
+  }
+};
+
+// Check if a domain is in our false positives list
+const isKnownFalsePositive = (url: string): boolean => {
+  try {
+    const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+    return FALSE_POSITIVE_DOMAINS.some(falsePositive => 
+      domain.includes(falsePositive) || domain === falsePositive
+    );
   } catch {
     return false;
   }
@@ -27,17 +47,30 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       };
     }
     
+    // Check if this is a known false positive before even making the request
+    if (isKnownFalsePositive(url)) {
+      console.log('Known false positive site detected:', url);
+      return {
+        status: 'No chatbot detected (verified)',
+        chatSolutions: [],
+        lastChecked: new Date().toISOString()
+      };
+    }
+    
     // Format the URL properly if needed
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     console.log('Formatted URL for analysis:', formattedUrl);
     
-    // Call the Supabase edge function
+    // Call the Supabase edge function with enhanced verification options
     const { data, error } = await supabase.functions.invoke('analyze-website', {
       body: { 
         urls: [formattedUrl],
-        debug: true,  // Enable debugging in the edge function
-        verifyResults: true,  // Add verification for results
-        deepVerification: true  // Add deeper verification to reduce false positives
+        debug: true,
+        verifyResults: true,
+        deepVerification: true,
+        smartDetection: true, // Enable the new smart detection capabilities
+        confidenceThreshold: 0.75, // Only accept detections with high confidence
+        checkFunctionality: true // Verify if chat functionality actually exists
       }
     });
 
@@ -52,18 +85,22 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       };
     }
 
-    console.log('Analysis result from edge function:', data);
+    console.log('Analysis result from edge function with enhanced verification:', data);
 
     // Check if data is an array (new format) or object (old format)
     if (Array.isArray(data) && data.length > 0) {
       const result = data[0];
       
-      // Add stricter confidence check
-      if (!result.hasChatbot || (result.confidence && result.confidence < 0.8)) {
-        console.log(`No chatbot detected or low confidence detection (${result.confidence}), marking as no chatbot`);
+      // Enhanced confidence checking with more stringent requirements
+      if (!result.hasChatbot || 
+         (result.confidence && result.confidence < 0.75) || 
+         (result.verificationStatus === 'failed')) {
+        console.log(`No chatbot detected or verification failed (${result.confidence}), marking as no chatbot`);
         return {
           status: 'No chatbot detected',
           chatSolutions: [],
+          confidence: result.confidence || 0,
+          verificationStatus: result.verificationStatus || 'unknown',
           lastChecked: new Date().toISOString()
         };
       }
@@ -79,6 +116,8 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       return {
         status: result.status || 'Analyzed',
         chatSolutions: solutions,
+        confidence: result.confidence || 1,
+        verificationStatus: result.verificationStatus || 'verified',
         lastChecked: new Date().toISOString()
       };
     }
@@ -95,6 +134,8 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     return {
       status: data.status,
       chatSolutions: data.chatSolutions || [],
+      confidence: data.confidence || 0,
+      verificationStatus: data.verificationStatus || 'unknown',
       lastChecked: data.lastChecked || new Date().toISOString()
     };
   } catch (error) {

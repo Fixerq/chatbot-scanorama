@@ -19,6 +19,8 @@ export interface Result {
     description?: string;
     lastChecked?: string;
     chatSolutions?: string[];
+    confidence?: number;
+    verificationStatus?: string;
   };
 }
 
@@ -74,6 +76,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
                     technologies={technologies}
                     lastChecked={result.details?.lastChecked}
                     chatSolutions={result.details?.chatSolutions}
+                    confidence={result.details?.confidence}
+                    verificationStatus={result.details?.verificationStatus}
                     onResultUpdate={onResultUpdate ? () => onResultUpdate(result) : undefined}
                   />
                 </TableRow>
