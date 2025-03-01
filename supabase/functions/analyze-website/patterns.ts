@@ -113,7 +113,7 @@ export const CHAT_PATTERNS = {
     /tidio-live-chat/i,
     /tidioChatCode/i
   ],
-  'Custom Chat': [
+  'Website Chatbot': [
     /chat-widget/i,
     /chat-container/i,
     /chat-box/i,

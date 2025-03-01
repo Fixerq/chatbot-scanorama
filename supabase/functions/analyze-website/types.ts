@@ -1,19 +1,20 @@
 
-export interface AnalysisRequest {
-  urls: string[];
-  debug?: boolean;
-  verifyResults?: boolean;
-  deepVerification?: boolean;
-  smartDetection?: boolean;
-  confidenceThreshold?: number;
+export interface ChatbotDetectionRequest {
+  url: string;
+  options?: {
+    smartDetection?: boolean;
+    confidenceThreshold?: number;
+    debug?: boolean;
+  };
 }
 
 export interface ChatbotDetectionResponse {
   url: string;
   status: string;
   hasChatbot: boolean;
-  chatSolutions: string[];
+  chatSolutions?: string[];
   confidence?: number;
-  verificationStatus?: string;
-  lastChecked?: string;
+  verificationStatus?: 'verified' | 'unverified' | 'failed';
+  error?: string;
+  lastChecked: string;
 }

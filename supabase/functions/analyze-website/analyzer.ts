@@ -16,7 +16,7 @@ export interface AnalysisResult {
   url: string;
   status: string;
   hasChatbot: boolean;
-  solutions?: string[];
+  chatSolutions?: string[];
   confidence?: number;
   verificationStatus?: 'verified' | 'unverified' | 'failed';
   matchedPatterns?: Record<string, number>;
@@ -32,7 +32,7 @@ export const analyzeWebsite = async (
     debug = false,
     verifyResults = false,
     deepVerification = false,
-    smartDetection = false,
+    smartDetection = true,
     confidenceThreshold = 0.5,
     checkFunctionality = false
   } = options;
@@ -41,7 +41,13 @@ export const analyzeWebsite = async (
     if (debug) console.log(`Analyzing ${url} with options:`, options);
     
     // Check for known false positive domains first
-    const domain = new URL(url).hostname;
+    let domain = '';
+    try {
+      domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+    } catch (e) {
+      console.error(`Invalid URL: ${url}`);
+    }
+    
     const isFalsePositiveDomain = FALSE_POSITIVE_DOMAINS.some(d => 
       domain.includes(d) || domain === d
     );
@@ -52,7 +58,7 @@ export const analyzeWebsite = async (
         url,
         status: 'No chatbot detected (known false positive site)',
         hasChatbot: false,
-        solutions: [],
+        chatSolutions: [],
         confidence: 0,
         verificationStatus: 'verified',
         lastChecked: new Date().toISOString()
@@ -82,7 +88,7 @@ export const analyzeWebsite = async (
         url,
         status: hasChatbot ? 'Chatbot detected' : 'No chatbot detected',
         hasChatbot,
-        solutions: hasChatbot ? result.solutions : [],
+        chatSolutions: hasChatbot ? result.solutions : [],
         confidence: result.confidence,
         verificationStatus: result.verificationStatus,
         matchedPatterns: debug ? result.matchedPatterns : undefined,
@@ -127,12 +133,12 @@ export const analyzeWebsite = async (
     }
     
     const status = hasChatbot ? 'Chatbot detected' : 'No chatbot detected';
-    const solutions = hasChatbot ? matchedSolutions : [];
+    const chatSolutions = hasChatbot ? matchedSolutions : [];
     
     if (debug) {
       console.log(`Legacy detection result for ${url}:`, {
         hasChatbot,
-        solutions,
+        chatSolutions,
         dynamicLoading: hasDynamicLoading,
         chatElements: hasChatElements,
         metaTags: hasMetaTags,
@@ -144,7 +150,7 @@ export const analyzeWebsite = async (
       url,
       status,
       hasChatbot,
-      solutions,
+      chatSolutions,
       verificationStatus: hasChatbot ? 'verified' : 'unverified',
       lastChecked: new Date().toISOString()
     };
@@ -154,7 +160,7 @@ export const analyzeWebsite = async (
       url,
       status: 'Error during analysis',
       hasChatbot: false,
-      solutions: [],
+      chatSolutions: [],
       verificationStatus: 'failed',
       lastChecked: new Date().toISOString()
     };

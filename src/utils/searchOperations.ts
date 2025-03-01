@@ -10,6 +10,8 @@ export const enhanceSearchQuery = async (
   region: string
 ): Promise<string> => {
   try {
+    console.log('Enhancing search query with params:', { query, country, region });
+    
     const { data, error } = await supabase.functions.invoke('enhance-search', {
       body: { query, country, region }
     });
@@ -55,7 +57,7 @@ export const executeSearch = async (
       limit: resultsLimit
     });
 
-    // Pass region parameter along with country for more accurate location filtering
+    // Explicitly pass both country and region parameters for more accurate location filtering
     const searchResult = await performGoogleSearch(
       enhancedQuery,
       country,
@@ -102,8 +104,9 @@ export const loadMore = async (
   const startIndex = currentResults.length + 1;
   
   try {
-    console.log('Loading more results with startIndex:', startIndex);
-    // Pass the region parameter to the search function
+    console.log('Loading more results with startIndex:', startIndex, 'and region:', region);
+    
+    // Pass the region parameter to the search function for location-based filtering
     const searchResult = await performGoogleSearch(query, country, region, startIndex);
     
     if (!searchResult || !searchResult.results) {

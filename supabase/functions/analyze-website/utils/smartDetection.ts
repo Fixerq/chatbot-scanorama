@@ -10,7 +10,6 @@ interface DetectionResult {
 }
 
 // Check for actual chat functionality indicators in the HTML
-// Look for input fields, chat bubbles, message areas
 const hasActualChatFunctionality = (html: string): boolean => {
   const chatFunctionalityPatterns = [
     // Input areas typically found in chat interfaces
@@ -81,7 +80,7 @@ const hasChatUIElements = (html: string): boolean => {
   return chatUIPatterns.some(pattern => pattern.test(html));
 };
 
-// More comprehensive pattern matching against vendor-specific patterns
+// Match vendor-specific patterns
 const matchVendorPatterns = (html: string, url: string): {matches: Record<string, number>, hasMatch: boolean} => {
   const matches: Record<string, number> = {};
   let hasMatch = false;
@@ -114,8 +113,8 @@ const matchVendorPatterns = (html: string, url: string): {matches: Record<string
     });
     
     // Only consider it a match if we have enough pattern matches
-    // Be more strict for "Custom Chat" to avoid false positives
-    const requiredMatches = vendor === 'Custom Chat' ? falsePositiveThreshold : 1;
+    // Be more strict for "Website Chatbot" to avoid false positives
+    const requiredMatches = vendor === 'Website Chatbot' ? falsePositiveThreshold : 1;
     
     if (matchCount >= requiredMatches) {
       matches[vendor] = matchCount;
@@ -143,8 +142,8 @@ const calculateConfidence = (
   
   // More weight to specific vendor matches than generic ones
   if (vendorTypes > 0) {
-    // Penalize if the only match is "Custom Chat" with few pattern matches
-    if (vendorTypes === 1 && vendorMatches['Custom Chat'] && vendorMatches['Custom Chat'] < 3) {
+    // Penalize if the only match is "Website Chatbot" with few pattern matches
+    if (vendorTypes === 1 && vendorMatches['Website Chatbot'] && vendorMatches['Website Chatbot'] < 3) {
       score += 1; // Lower confidence for only generic matches
     } else {
       // Higher confidence for specific vendor matches

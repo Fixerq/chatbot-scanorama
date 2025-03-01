@@ -1,10 +1,10 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { fetchWebsiteContent } from './utils/httpUtils.ts';
-import { normalizeUrl } from './utils/urlUtils.ts';
-import { analyzeWebsite, AnalysisOptions } from './analyzer.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { fetchHtmlContent } from './utils/httpUtils';
+import { normalizeUrl, isValidUrl, sanitizeUrl } from './utils/urlUtils';
+import { analyzeWebsite } from './analyzer';
 
-// CORS headers for browser requests
+// Setup CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -17,87 +17,89 @@ serve(async (req) => {
   }
 
   try {
-    if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { urls, debug = false, verifyResults = false, deepVerification = false, smartDetection = true } = await req.json();
-
-    if (!urls || !Array.isArray(urls) || urls.length === 0) {
-      return new Response(JSON.stringify({ error: 'No URLs provided' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Limit to 10 URLs per request to prevent abuse
-    const limitedUrls = urls.slice(0, 10);
+    const { url } = await req.json();
     
-    // Options for the analysis
-    const options: AnalysisOptions = {
-      debug,
-      verifyResults,
-      deepVerification,
-      smartDetection
-    };
-
-    if (debug) console.log(`Processing ${limitedUrls.length} URLs with options:`, options);
-
-    const results = await Promise.all(
-      limitedUrls.map(async (url: string) => {
-        try {
-          const normalizedUrl = normalizeUrl(url);
-          
-          // Fetch the website content
-          const html = await fetchWebsiteContent(normalizedUrl);
-          
-          if (!html) {
-            return {
-              url: normalizedUrl,
-              status: 'Error fetching website content',
-              hasChatbot: false,
-              chatSolutions: [],
-              lastChecked: new Date().toISOString()
-            };
-          }
-
-          // Analyze the website with the specified options
-          const result = await analyzeWebsite(normalizedUrl, html, options);
-          
-          // Format the response for the client
-          return {
-            url: result.url,
-            status: result.status,
-            hasChatbot: result.hasChatbot,
-            chatSolutions: result.solutions || [],
-            confidence: result.confidence,
-            verificationStatus: result.verificationStatus,
-            lastChecked: result.lastChecked
-          };
-        } catch (error) {
-          console.error(`Error processing ${url}:`, error);
-          return {
-            url,
-            status: 'Error processing website',
-            hasChatbot: false,
-            chatSolutions: [],
-            lastChecked: new Date().toISOString()
-          };
+    if (!url) {
+      return new Response(
+        JSON.stringify({ error: 'URL is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      })
-    );
+      );
+    }
 
-    return new Response(JSON.stringify(results), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // Normalize and validate URL
+    const normalizedUrl = normalizeUrl(url);
+    if (!isValidUrl(normalizedUrl)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid URL format' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Sanitize the URL
+    const sanitizedUrl = sanitizeUrl(normalizedUrl);
+    console.log(`Analyzing website: ${sanitizedUrl}`);
+
+    try {
+      // Fetch the HTML content
+      const html = await fetchHtmlContent(sanitizedUrl);
+      
+      // Analyze the website content
+      const analysisResult = await analyzeWebsite(sanitizedUrl, html, {
+        debug: true,
+        smartDetection: true,
+        confidenceThreshold: 0.5
+      });
+
+      console.log(`Analysis result for ${sanitizedUrl}:`, analysisResult);
+
+      return new Response(
+        JSON.stringify({
+          url: sanitizedUrl,
+          status: analysisResult.status,
+          hasChatbot: analysisResult.hasChatbot,
+          chatSolutions: analysisResult.chatSolutions || [],
+          confidence: analysisResult.confidence,
+          verificationStatus: analysisResult.verificationStatus,
+          lastChecked: analysisResult.lastChecked
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } catch (fetchError) {
+      console.error(`Error fetching or analyzing ${sanitizedUrl}:`, fetchError);
+      
+      return new Response(
+        JSON.stringify({
+          url: sanitizedUrl,
+          status: 'Error: Could not analyze website',
+          hasChatbot: false,
+          chatSolutions: [],
+          error: fetchError.message,
+          lastChecked: new Date().toISOString()
+        }),
+        {
+          status: 200, // Still return 200 for client to handle
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Server error:', error);
+    
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });

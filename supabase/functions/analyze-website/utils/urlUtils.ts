@@ -1,67 +1,63 @@
 
-/**
- * Utilities for URL handling and normalization
- */
-
-// Normalize URL for consistent processing
-export const normalizeUrl = (url: string): string => {
-  try {
-    // Add protocol if missing
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = `https://${url}`;
-    }
-    
-    const urlObj = new URL(url);
-    
-    // Remove trailing slash
-    let hostname = urlObj.hostname;
-    let pathname = urlObj.pathname;
-    
-    // Remove www if present for consistency
-    if (hostname.startsWith('www.')) {
-      hostname = hostname.substring(4);
-    }
-    
-    // Remove trailing slash from pathname if it's just a slash
-    if (pathname === '/') {
-      pathname = '';
-    }
-    
-    // Reconstruct URL with normalized hostname and pathname
-    return `${urlObj.protocol}//${hostname}${pathname}${urlObj.search}`;
-  } catch (error) {
-    console.error(`Error normalizing URL ${url}:`, error);
-    return url; // Return original URL if normalization fails
+// Normalize URL by adding protocol if missing
+export function normalizeUrl(url: string): string {
+  if (!url) return '';
+  url = url.trim();
+  
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return `https://${url}`;
   }
-};
+  return url;
+}
 
 // Extract domain from URL
-export const extractDomain = (url: string): string => {
+export function extractDomain(url: string): string {
   try {
-    // Add protocol if missing
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = `https://${url}`;
-    }
-    
-    const urlObj = new URL(url);
+    const normalizedUrl = normalizeUrl(url);
+    const urlObj = new URL(normalizedUrl);
     return urlObj.hostname;
   } catch (error) {
-    console.error(`Error extracting domain from URL ${url}:`, error);
-    return url; // Return original URL if extraction fails
+    console.error('Error extracting domain:', error);
+    return '';
   }
-};
+}
 
 // Check if URL is valid
-export const isValidUrl = (url: string): boolean => {
+export function isValidUrl(url: string): boolean {
   try {
-    // Add protocol if missing
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = `https://${url}`;
-    }
-    
-    new URL(url);
+    const normalizedUrl = normalizeUrl(url);
+    new URL(normalizedUrl);
     return true;
   } catch (error) {
     return false;
   }
-};
+}
+
+// Sanitize URL to prevent common issues
+export function sanitizeUrl(url: string): string {
+  // Normalize the URL first
+  let sanitized = normalizeUrl(url);
+  
+  try {
+    // Parse URL to work with its components
+    const urlObj = new URL(sanitized);
+    
+    // Remove any fragments
+    urlObj.hash = '';
+    
+    // Ensure no sensitive or tracking parameters
+    const paramsToRemove = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'gclid'];
+    const params = new URLSearchParams(urlObj.search);
+    paramsToRemove.forEach(param => {
+      params.delete(param);
+    });
+    
+    // Update the URL search part
+    urlObj.search = params.toString();
+    
+    return urlObj.toString();
+  } catch (error) {
+    console.error('Error sanitizing URL:', error);
+    return sanitized;
+  }
+}
