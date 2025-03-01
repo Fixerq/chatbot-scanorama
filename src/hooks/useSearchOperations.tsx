@@ -19,6 +19,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     apiKey: string;
     resultsLimit: number;
   } | null>(null);
+  const [loadingPages, setLoadingPages] = useState<number[]>([]);
 
   const handleSearch = async (
     query: string,
@@ -68,8 +69,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         return;
       }
       
-      console.log('Analyzing websites for chatbots with enhanced verification...');
-      toast.info('Analyzing websites for chatbots with enhanced verification...');
+      console.log('Analyzing websites for chatbots with improved detection...');
+      toast.info('Analyzing websites for chatbots...');
       
       const analyzedResults = await analyzeChatbots(searchResult.newResults);
       
@@ -98,54 +99,82 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     }
   };
 
-  const handleLoadMore = async (
-    pageNumber?: number
-  ) => {
+  const handleLoadMore = async (pageNumber?: number) => {
     if (!lastSearchParams) {
       toast.error('No search parameters available. Please perform a search first.');
       return;
     }
     
+    // If no specific page is requested, load the next page
+    const targetPage = pageNumber || Math.ceil(results.currentResults.length / 25) + 1;
+    
+    // Check if we're already loading this page
+    if (loadingPages.includes(targetPage)) {
+      console.log(`Already loading page ${targetPage}, ignoring duplicate request`);
+      return;
+    }
+    
+    // Mark this page as loading
+    setLoadingPages(prev => [...prev, targetPage]);
+    setIsSearching(true);
+    
     try {
-      const { query, country, region, resultsLimit } = lastSearchParams;
+      const { query, country, region } = lastSearchParams;
       
       // Calculate how many results we need based on the requested page
       const resultsPerPage = 25;
-      const targetPage = pageNumber || Math.ceil(results.currentResults.length / resultsPerPage) + 1;
       const targetResultsCount = targetPage * resultsPerPage;
-      const additionalResultsNeeded = Math.max(0, targetResultsCount - results.currentResults.length);
+      const currentResultsCount = results.currentResults.length;
       
-      // Only proceed if we need more results
-      if (additionalResultsNeeded <= 0) {
-        console.log('No additional results needed for page:', targetPage);
+      console.log(`Loading more results for page ${targetPage}, currently have ${currentResultsCount} results, need ${targetResultsCount}`);
+      
+      if (currentResultsCount >= targetResultsCount) {
+        console.log(`Already have enough results for page ${targetPage}, no need to load more`);
+        setIsSearching(false);
+        setLoadingPages(prev => prev.filter(p => p !== targetPage));
         return;
       }
       
-      console.log(`Loading more results for page ${targetPage}, need ${additionalResultsNeeded} more results`);
-      
-      // Set a new limit based on how many additional results we need
-      const newLimit = results.currentResults.length + Math.max(10, additionalResultsNeeded);
+      toast.info(`Loading more results for page ${targetPage}...`);
       
       const moreResults = await loadMore(
         query,
         country,
         region,
         results.currentResults,
-        newLimit
+        targetResultsCount
       );
 
       if (moreResults?.newResults.length) {
+        console.log(`Loaded ${moreResults.newResults.length} new results, analyzing...`);
         const analyzedNewResults = await analyzeChatbots(moreResults.newResults);
-        const updatedResults = [...results.currentResults, ...analyzedNewResults];
         
-        updateResults(updatedResults, moreResults.hasMore);
-        toast.success(`Loaded and analyzed ${analyzedNewResults.length} more results`);
+        // Combine existing results with new ones, ensuring no duplicates
+        const allUrls = new Set(results.currentResults.map(r => r.url.toLowerCase()));
+        const uniqueNewResults = analyzedNewResults.filter(r => !allUrls.has(r.url.toLowerCase()));
+        
+        if (uniqueNewResults.length > 0) {
+          const updatedResults = [...results.currentResults, ...uniqueNewResults];
+          updateResults(updatedResults, moreResults.hasMore);
+          console.log(`Added ${uniqueNewResults.length} unique new results, total now ${updatedResults.length}`);
+          toast.success(`Loaded ${uniqueNewResults.length} more results`);
+        } else {
+          console.log('No new unique results found');
+          toast.info('No more new results found');
+          updateResults(results.currentResults, false);
+        }
       } else {
-        toast.info('No more new results found');
+        console.log('No more results available');
+        toast.info('No more results available');
+        updateResults(results.currentResults, false);
       }
     } catch (error) {
       console.error('Load more error:', error);
       toast.error('Failed to load more results');
+    } finally {
+      setIsSearching(false);
+      // Remove this page from loading pages
+      setLoadingPages(prev => prev.filter(p => p !== targetPage));
     }
   };
 
@@ -157,5 +186,6 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     isSearching,
     handleSearch,
     handleLoadMore,
+    loadingPages
   };
 };

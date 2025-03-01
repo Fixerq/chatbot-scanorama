@@ -55,7 +55,7 @@ export const executeSearch = async (
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
     // Add more specific terms to the query to find businesses more likely to have chatbots
-    const chatbotTerms = "website live chat customer service support chatbot";
+    const chatbotTerms = "website online live chat customer service support chatbot contact";
     const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
 
     console.log('Starting search with params:', {
@@ -89,7 +89,10 @@ export const executeSearch = async (
 
     // Filter out duplicates while keeping existing results
     const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
-    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url.toLowerCase()));
+    const newResults = searchResult.results.filter(result => {
+      const lowerUrl = result.url.toLowerCase();
+      return !existingUrls.has(lowerUrl);
+    });
 
     console.log(`Found ${newResults.length} new results after filtering duplicates`);
 
@@ -109,19 +112,28 @@ export const loadMore = async (
   country: string,
   region: string,
   currentResults: Result[],
-  newLimit: number
+  targetResultCount: number
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
-  const startIndex = currentResults.length;
-  
   try {
-    console.log('Loading more results with startIndex:', startIndex, 'and region:', region);
+    const startIndex = currentResults.length;
+    console.log(`Loading more results with startIndex: ${startIndex}, target: ${targetResultCount}`);
     
     // Add chatbot-specific terms to improve results
-    const chatbotTerms = "website live chat customer service support chatbot";
+    const chatbotTerms = "website online live chat customer service support chatbot contact";
     const enhancedQuery = `${query} ${chatbotTerms}`;
     
-    // Pass the region parameter to the search function for location-based filtering
-    const searchResult = await performGoogleSearch(enhancedQuery, country, region, startIndex);
+    // Calculate the maximum number of results we need
+    const maxNeededResults = Math.max(30, targetResultCount - startIndex);
+    
+    // First attempt
+    let searchResult = await performGoogleSearch(enhancedQuery, country, region, startIndex);
+    
+    // Retry with a different starting index if we didn't get results
+    if (!searchResult?.results || searchResult.results.length === 0) {
+      console.log('No results in first attempt, trying with adjusted parameters');
+      // Try with a different starting index
+      searchResult = await performGoogleSearch(enhancedQuery, country, region, Math.max(0, startIndex - 5));
+    }
     
     if (!searchResult || !searchResult.results) {
       console.log('No more results found');
@@ -139,8 +151,9 @@ export const loadMore = async (
 
     console.log(`Loaded ${searchResult.results.length} results, ${newResults.length} new after filtering duplicates`);
     
-    // Only report hasMore if we actually found new results
-    const hasMore = searchResult.hasMore && newResults.length > 0;
+    // Only report hasMore if we actually found new results and haven't met our target count
+    const reachedTargetCount = currentResults.length + newResults.length >= targetResultCount;
+    const hasMore = searchResult.hasMore && (!reachedTargetCount);
     
     return {
       newResults,

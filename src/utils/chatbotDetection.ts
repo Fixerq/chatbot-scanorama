@@ -61,82 +61,98 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
     console.log('Formatted URL for analysis:', formattedUrl);
     
-    // Call the Supabase edge function with enhanced verification options
-    const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: { 
-        urls: [formattedUrl],
-        debug: true,
-        verifyResults: true,
-        deepVerification: true,
-        smartDetection: true,
-        confidenceThreshold: 0.3,
-        checkFunctionality: true
-      }
-    });
+    // Call the Supabase edge function with enhanced verification options and retry mechanism
+    const maxRetries = 2;
+    let lastError = null;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`Retry attempt ${attempt} for ${url}`);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retry
+        }
+        
+        const { data, error } = await supabase.functions.invoke('analyze-website', {
+          body: { 
+            urls: [formattedUrl],
+            debug: true,
+            verifyResults: true,
+            deepVerification: true,
+            smartDetection: true,
+            confidenceThreshold: 0.25, // Lower threshold for better recall
+            checkFunctionality: true,
+            retryFailures: true
+          }
+        });
 
-    if (error) {
-      console.error('Error analyzing website:', error);
-      toast.error('Error analyzing website: ' + error.message);
-      
-      return {
-        status: 'Error analyzing URL',
-        chatSolutions: [],
-        lastChecked: new Date().toISOString()
-      };
-    }
+        if (error) {
+          console.error(`Error analyzing website (attempt ${attempt + 1}):`, error);
+          lastError = error;
+          continue; // Try again
+        }
 
-    console.log('Analysis result from edge function with enhanced verification:', data);
+        console.log('Analysis result from edge function with enhanced verification:', data);
 
-    // Check if data is an array (new format) or object (old format)
-    if (Array.isArray(data) && data.length > 0) {
-      const result = data[0];
-      
-      // Even more lenient confidence checking
-      if (!result.hasChatbot || 
-         (result.confidence && result.confidence < 0.3) || 
-         (result.verificationStatus === 'failed')) {
-        console.log(`No chatbot detected or verification failed (${result.confidence}), marking as no chatbot`);
+        // Check if data is an array (new format) or object (old format)
+        if (Array.isArray(data) && data.length > 0) {
+          const result = data[0];
+          
+          // More permissive confidence checking
+          if (!result.hasChatbot || 
+             (result.confidence !== undefined && result.confidence < 0.25) || 
+             (result.verificationStatus === 'failed')) {
+            console.log(`No chatbot detected or verification failed (${result.confidence}), marking as no chatbot`);
+            return {
+              status: 'No chatbot detected',
+              chatSolutions: [],
+              confidence: result.confidence || 0,
+              verificationStatus: result.verificationStatus || 'unknown',
+              lastChecked: new Date().toISOString()
+            };
+          }
+          
+          // Map generic "Custom Chat" to more descriptive labels
+          let solutions = result.solutions || [];
+          
+          // Convert all "Custom Chat" instances to the more descriptive label
+          solutions = solutions.map(solution => 
+            solution === "Custom Chat" ? "Website Chatbot" : solution
+          );
+          
+          return {
+            status: result.status || 'Analyzed',
+            chatSolutions: solutions,
+            confidence: result.confidence || 1,
+            verificationStatus: result.verificationStatus || 'verified',
+            lastChecked: new Date().toISOString()
+          };
+        }
+        
+        if (!data || !data.status) {
+          console.warn('Edge function returned incomplete data');
+          continue; // Try again
+        }
+        
         return {
-          status: 'No chatbot detected',
-          chatSolutions: [],
-          confidence: result.confidence || 0,
-          verificationStatus: result.verificationStatus || 'unknown',
-          lastChecked: new Date().toISOString()
+          status: data.status,
+          chatSolutions: data.chatSolutions || [],
+          confidence: data.confidence || 0,
+          verificationStatus: data.verificationStatus || 'unknown',
+          lastChecked: data.lastChecked || new Date().toISOString()
         };
+      } catch (attemptError) {
+        console.error(`Error in attempt ${attempt + 1}:`, attemptError);
+        lastError = attemptError;
       }
-      
-      // Map generic "Custom Chat" to more descriptive labels
-      let solutions = result.solutions || [];
-      
-      // Convert all "Custom Chat" instances to the more descriptive label
-      solutions = solutions.map(solution => 
-        solution === "Custom Chat" ? "Website Chatbot" : solution
-      );
-      
-      return {
-        status: result.status || 'Analyzed',
-        chatSolutions: solutions,
-        confidence: result.confidence || 1,
-        verificationStatus: result.verificationStatus || 'verified',
-        lastChecked: new Date().toISOString()
-      };
     }
     
-    if (!data || !data.status) {
-      console.warn('Edge function returned incomplete data');
-      return {
-        status: 'Analysis completed with no results',
-        chatSolutions: [],
-        lastChecked: new Date().toISOString()
-      };
-    }
-    
+    // If all retries failed, return error
+    console.error('All retry attempts failed in detectChatbot:', lastError);
+    toast.error('Failed to analyze website after multiple attempts');
     return {
-      status: data.status,
-      chatSolutions: data.chatSolutions || [],
-      confidence: data.confidence || 0,
-      verificationStatus: data.verificationStatus || 'unknown',
-      lastChecked: data.lastChecked || new Date().toISOString()
+      status: 'Error analyzing URL after retries',
+      chatSolutions: [],
+      lastChecked: new Date().toISOString()
     };
   } catch (error) {
     console.error('Error in detectChatbot:', error);

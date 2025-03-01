@@ -31,7 +31,8 @@ const SearchFormContainer = ({
     results,
     isSearching,
     handleSearch,
-    handleLoadMore
+    handleLoadMore,
+    loadingPages
   } = useSearchOperations(onResults);
 
   const onSubmit = () => {
@@ -48,6 +49,12 @@ const SearchFormContainer = ({
 
   const onLoadMore = (pageNumber?: number) => {
     const nextPage = pageNumber || searchState.currentPage + 1;
+    
+    // Prevent duplicate loading
+    if (loadingPages?.includes(nextPage)) {
+      console.log(`Already loading page ${nextPage}, ignoring duplicate request`);
+      return;
+    }
     
     setIsProcessing(true);
     console.log('Loading more results, page:', nextPage);

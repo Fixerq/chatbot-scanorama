@@ -9,6 +9,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { toast } from 'sonner';
 
 interface ResultsPaginationProps {
   currentPage: number;
@@ -26,18 +27,20 @@ const ResultsPagination = ({
   onLoadMore
 }: ResultsPaginationProps) => {
   const handlePageChange = (page: number) => {
-    // First, notify the parent component of the page change
-    onPageChange(page);
+    if (page === currentPage) return;
     
-    // If we're trying to go to a page that would need more results to be loaded
-    const resultsPerPage = 25; // Standard page size
-    const neededResults = page * resultsPerPage;
+    const isForwardNavigation = page > currentPage;
     
-    // If we need to load more results and the onLoadMore function exists
-    if (hasMoreResults && onLoadMore && page > currentPage) {
-      console.log(`Loading more results for page ${page}`);
+    // Check if we need to load more results for forward navigation
+    if (isForwardNavigation && hasMoreResults && onLoadMore && page > Math.ceil(totalPages * 0.75)) {
+      console.log(`Loading more results for future pages (${page})`);
+      // Load more results before changing the page to ensure they're available
       onLoadMore(page);
+      toast.info("Loading more results for this page...");
     }
+    
+    // Always notify the parent component of the page change
+    onPageChange(page);
   };
 
   const renderPageLinks = () => {
@@ -70,7 +73,9 @@ const ResultsPagination = ({
       }
       
       // Always show last page
-      pageNumbers.push(totalPages);
+      if (totalPages > 1) {
+        pageNumbers.push(totalPages);
+      }
     }
     
     return pageNumbers.map((page, index) => {
@@ -87,6 +92,7 @@ const ResultsPagination = ({
           <PaginationLink
             onClick={() => handlePageChange(page as number)}
             isActive={currentPage === page}
+            className={currentPage === page ? "pointer-events-none" : ""}
           >
             {page}
           </PaginationLink>
