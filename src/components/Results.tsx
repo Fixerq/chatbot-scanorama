@@ -92,12 +92,9 @@ const Results = ({
         <ResultsPagination
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={(page) => {
-            handlePageChange(page);
-            if (onLoadMore && page > Math.ceil(validResults.length / 25)) {
-              onLoadMore(page);
-            }
-          }}
+          onPageChange={handlePageChange}
+          hasMoreResults={hasMore}
+          onLoadMore={onLoadMore}
         />
       )}
       

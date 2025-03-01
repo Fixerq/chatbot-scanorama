@@ -12,6 +12,7 @@ import { useChatbotAnalysis } from '@/hooks/useChatbotAnalysis';
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [newSearchTrigger, setNewSearchTrigger] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [searchPerformed, setSearchPerformed] = useState(false);
@@ -102,6 +103,39 @@ const Index = () => {
     setIsProcessing(processing);
   }, []);
 
+  const handleLoadMore = useCallback((page: number) => {
+    console.log('Load more triggered for page:', page);
+    setIsLoadingMore(true);
+    
+    // We need a small delay to allow the UI to update with loading state
+    setTimeout(() => {
+      const searchFormContainer = document.querySelector('#search-form-container');
+      if (searchFormContainer) {
+        const loadMoreButton = searchFormContainer.querySelector('button');
+        if (loadMoreButton) {
+          console.log('Automatically clicking load more button');
+          loadMoreButton.click();
+        } else {
+          console.log('Load more button not found');
+        }
+      } else {
+        console.log('Search form container not found');
+      }
+      
+      // Set timeout to reset loading state if it takes too long
+      setTimeout(() => {
+        setIsLoadingMore(false);
+      }, 30000);
+    }, 100);
+  }, []);
+
+  // Reset loading more state when processing state changes
+  useEffect(() => {
+    if (!isProcessing && isLoadingMore) {
+      setIsLoadingMore(false);
+    }
+  }, [isProcessing, isLoadingMore]);
+
   return (
     <div className="min-h-screen bg-black">
       <NavigationBar />
@@ -110,13 +144,15 @@ const Index = () => {
         <div className="mb-4">
           <UserStatusCheck />
         </div>
-        <SearchFormContainer 
-          onResults={handleSetResults}
-          onHasMoreChange={handleSetMoreInfo}
-          isProcessing={isProcessing}
-          setIsProcessing={handleSetProcessing}
-          triggerNewSearch={newSearchTrigger}
-        />
+        <div id="search-form-container">
+          <SearchFormContainer 
+            onResults={handleSetResults}
+            onHasMoreChange={handleSetMoreInfo}
+            isProcessing={isProcessing}
+            setIsProcessing={handleSetProcessing}
+            triggerNewSearch={newSearchTrigger}
+          />
+        </div>
         
         {/* Only show Results component when a search has been performed */}
         {searchPerformed && (
@@ -126,6 +162,8 @@ const Index = () => {
             onNewSearch={handleNewSearch}
             onResultUpdate={handleResultUpdate}
             hasMore={hasMore}
+            onLoadMore={handleLoadMore}
+            isLoadingMore={isLoadingMore}
             isAnalyzing={isProcessing}
           />
         )}

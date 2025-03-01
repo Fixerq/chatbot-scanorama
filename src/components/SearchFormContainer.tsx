@@ -46,25 +46,17 @@ const SearchFormContainer = ({
     );
   };
 
-  const onLoadMore = () => {
-    const nextPage = searchState.currentPage + 1;
-    const newLimit = searchState.resultsLimit + 10;
+  const onLoadMore = (pageNumber?: number) => {
+    const nextPage = pageNumber || searchState.currentPage + 1;
     
     setIsProcessing(true);
     console.log('Loading more results, page:', nextPage);
     
     updateSearchState({ 
-      currentPage: nextPage,
-      resultsLimit: newLimit 
+      currentPage: nextPage
     });
 
-    handleLoadMore(
-      searchState.query,
-      searchState.country,
-      searchState.region,
-      nextPage,
-      newLimit
-    );
+    handleLoadMore(nextPage);
   };
 
   React.useEffect(() => {

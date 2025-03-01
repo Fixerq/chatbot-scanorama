@@ -14,13 +14,32 @@ interface ResultsPaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  hasMoreResults?: boolean;
+  onLoadMore?: (page: number) => void;
 }
 
 const ResultsPagination = ({ 
   currentPage, 
   totalPages, 
-  onPageChange 
+  onPageChange,
+  hasMoreResults,
+  onLoadMore
 }: ResultsPaginationProps) => {
+  const handlePageChange = (page: number) => {
+    // First, notify the parent component of the page change
+    onPageChange(page);
+    
+    // If we're trying to go to a page that would need more results to be loaded
+    const resultsPerPage = 25; // Standard page size
+    const neededResults = page * resultsPerPage;
+    
+    // If we need to load more results and the onLoadMore function exists
+    if (hasMoreResults && onLoadMore && page > currentPage) {
+      console.log(`Loading more results for page ${page}`);
+      onLoadMore(page);
+    }
+  };
+
   const renderPageLinks = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
@@ -66,7 +85,7 @@ const ResultsPagination = ({
       return (
         <PaginationItem key={page}>
           <PaginationLink
-            onClick={() => onPageChange(page as number)}
+            onClick={() => handlePageChange(page as number)}
             isActive={currentPage === page}
           >
             {page}
@@ -81,7 +100,7 @@ const ResultsPagination = ({
       <PaginationContent>
         {currentPage > 1 && (
           <PaginationItem>
-            <PaginationPrevious onClick={() => onPageChange(currentPage - 1)} />
+            <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} />
           </PaginationItem>
         )}
         
@@ -89,7 +108,7 @@ const ResultsPagination = ({
         
         {currentPage < totalPages && (
           <PaginationItem>
-            <PaginationNext onClick={() => onPageChange(currentPage + 1)} />
+            <PaginationNext onClick={() => handlePageChange(currentPage + 1)} />
           </PaginationItem>
         )}
       </PaginationContent>

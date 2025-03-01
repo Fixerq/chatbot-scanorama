@@ -12,6 +12,13 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   const { validateSearchParams } = useSearchValidation();
   const { analyzeChatbots } = useChatbotAnalysis();
   const [hasMore, setHasMore] = useState(false);
+  const [lastSearchParams, setLastSearchParams] = useState<{
+    query: string;
+    country: string;
+    region: string;
+    apiKey: string;
+    resultsLimit: number;
+  } | null>(null);
 
   const handleSearch = async (
     query: string,
@@ -23,6 +30,15 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     if (!validateSearchParams(query, country)) return;
 
     setIsSearching(true);
+    
+    // Save the search parameters for later use in pagination
+    setLastSearchParams({
+      query,
+      country,
+      region,
+      apiKey,
+      resultsLimit
+    });
     
     try {
       console.log('Starting search process with params:', { query, country, region });
@@ -83,14 +99,33 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   };
 
   const handleLoadMore = async (
-    query: string,
-    country: string,
-    region: string,
-    currentPage: number,
-    newLimit: number
+    pageNumber?: number
   ) => {
+    if (!lastSearchParams) {
+      toast.error('No search parameters available. Please perform a search first.');
+      return;
+    }
+    
     try {
-      console.log('Loading more results for page:', currentPage);
+      const { query, country, region, resultsLimit } = lastSearchParams;
+      
+      // Calculate how many results we need based on the requested page
+      const resultsPerPage = 25;
+      const targetPage = pageNumber || Math.ceil(results.currentResults.length / resultsPerPage) + 1;
+      const targetResultsCount = targetPage * resultsPerPage;
+      const additionalResultsNeeded = Math.max(0, targetResultsCount - results.currentResults.length);
+      
+      // Only proceed if we need more results
+      if (additionalResultsNeeded <= 0) {
+        console.log('No additional results needed for page:', targetPage);
+        return;
+      }
+      
+      console.log(`Loading more results for page ${targetPage}, need ${additionalResultsNeeded} more results`);
+      
+      // Set a new limit based on how many additional results we need
+      const newLimit = results.currentResults.length + Math.max(10, additionalResultsNeeded);
+      
       const moreResults = await loadMore(
         query,
         country,
