@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { FirecrawlService } from '../utils/firecrawl';
 import { Result } from '@/components/ResultsTable';
