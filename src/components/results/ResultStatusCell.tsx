@@ -39,7 +39,7 @@ const ResultStatusCell = ({
       if (confidence !== undefined) {
         if (confidence >= 0.9) return 'success';
         if (confidence >= 0.75) return 'success';
-        if (confidence >= 0.5) return 'warning';
+        if (confidence >= 0.5) return 'secondary'; // Changed from 'warning' to 'secondary'
         return 'secondary';
       }
       return 'success';
