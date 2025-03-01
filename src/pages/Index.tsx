@@ -12,6 +12,7 @@ const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [newSearchTrigger, setNewSearchTrigger] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
   const handleNewSearch = useCallback(() => {
     setResults([]);
@@ -43,13 +44,23 @@ const Index = () => {
 
   // Debug log when results change
   useEffect(() => {
-    console.log('Results updated:', results);
-    setIsProcessing(false);
+    console.log('Results updated in Index component:', { 
+      count: results.length, 
+      hasResults: results.length > 0,
+      isProcessing
+    });
+    
+    // Don't turn off processing here - it should be controlled by the search operation's completion
   }, [results]);
 
   const handleSetResults = useCallback((newResults: Result[]) => {
-    console.log('Setting new results:', newResults);
+    console.log('Setting new results in Index:', newResults.length);
     setResults(newResults);
+  }, []);
+
+  const handleSetMoreInfo = useCallback((hasMoreResults: boolean) => {
+    console.log('Setting hasMore status:', hasMoreResults);
+    setHasMore(hasMoreResults);
   }, []);
 
   const handleSetProcessing = useCallback((processing: boolean) => {
@@ -67,6 +78,7 @@ const Index = () => {
         </div>
         <SearchFormContainer 
           onResults={handleSetResults}
+          onHasMoreChange={handleSetMoreInfo}
           isProcessing={isProcessing}
           setIsProcessing={handleSetProcessing}
           triggerNewSearch={newSearchTrigger}
@@ -76,7 +88,7 @@ const Index = () => {
           onExport={() => {}} 
           onNewSearch={handleNewSearch}
           onResultUpdate={handleResultUpdate}
-          hasMore={false}
+          hasMore={hasMore}
           isAnalyzing={isProcessing}
         />
       </div>

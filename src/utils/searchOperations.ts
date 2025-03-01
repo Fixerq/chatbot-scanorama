@@ -60,12 +60,18 @@ export const executeSearch = async (
       region
     );
 
-    if (!searchResult || !searchResult.results) {
+    if (!searchResult) {
       console.error('No search results returned');
-      return null;
+      return { newResults: [], hasMore: false };
     }
 
-    console.log('Search results received:', searchResult.results);
+    console.log('Search results received:', searchResult.results?.length || 0);
+
+    // Check if we have any results
+    if (!searchResult.results || searchResult.results.length === 0) {
+      console.log('Search returned empty results array');
+      return { newResults: [], hasMore: false };
+    }
 
     // Filter out duplicates while keeping existing results
     const existingUrls = new Set(currentResults.map(r => r.url));
@@ -98,8 +104,8 @@ export const loadMore = async (
     const searchResult = await performGoogleSearch(query, country, region, startIndex);
     
     if (!searchResult || !searchResult.results) {
-      console.error('No more results found');
-      return null;
+      console.log('No more results found');
+      return { newResults: [], hasMore: false };
     }
 
     // Filter out duplicates

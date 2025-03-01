@@ -37,9 +37,12 @@ export const performGoogleSearch = async (
 
     console.log('Raw response from Edge Function:', data);
 
-    if (!data.results || !Array.isArray(data.results)) {
-      console.error('Invalid response format:', data);
-      return null;
+    if (!data || !data.results || !Array.isArray(data.results)) {
+      console.error('Invalid response format or empty results:', data);
+      return {
+        results: [],
+        hasMore: false
+      };
     }
 
     // Map the results to the expected format
@@ -49,13 +52,14 @@ export const performGoogleSearch = async (
         url: result.url,
         status: 'Ready for analysis',
         details: {
-          title: result.details?.title || '',
-          description: result.details?.description || '',
+          title: result.details?.title || result.title || '',
+          description: result.details?.description || result.description || '',
           lastChecked: new Date().toISOString()
         }
       }));
 
-    console.log('Formatted results:', formattedResults);
+    console.log('Formatted results count:', formattedResults.length);
+    console.log('Sample formatted result:', formattedResults[0]);
 
     return {
       results: formattedResults,

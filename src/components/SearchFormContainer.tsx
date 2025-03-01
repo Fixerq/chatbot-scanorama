@@ -8,6 +8,7 @@ import { useSearchOperations } from '@/hooks/useSearchOperations';
 
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
+  onHasMoreChange?: (hasMore: boolean) => void;
   isProcessing: boolean;
   setIsProcessing: (processing: boolean) => void;
   triggerNewSearch?: boolean;
@@ -15,6 +16,7 @@ interface SearchFormContainerProps {
 
 const SearchFormContainer = ({ 
   onResults, 
+  onHasMoreChange,
   isProcessing, 
   setIsProcessing, 
   triggerNewSearch 
@@ -71,6 +73,17 @@ const SearchFormContainer = ({
       console.log('Search form reset triggered');
     }
   }, [triggerNewSearch, resetSearch]);
+
+  React.useEffect(() => {
+    if (onHasMoreChange) {
+      onHasMoreChange(results.hasMore);
+    }
+    
+    if (!isSearching && isProcessing) {
+      console.log('Search completed, setting isProcessing to false');
+      setIsProcessing(false);
+    }
+  }, [results.hasMore, isSearching, isProcessing, onHasMoreChange, setIsProcessing]);
 
   return (
     <div className="space-y-4">

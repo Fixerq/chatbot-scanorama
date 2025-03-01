@@ -37,7 +37,8 @@ const Results = ({
 }: ResultsProps) => {
   console.log("Results component received:", { 
     resultsCount: results?.length, 
-    isAnalyzing 
+    isAnalyzing,
+    hasResults: results && results.length > 0
   });
   
   // Filter out only results with error status

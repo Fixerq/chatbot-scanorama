@@ -5,11 +5,13 @@ import { toast } from 'sonner';
 import { useSearchResults } from './useSearchResults';
 import { useSearchValidation } from './useSearchValidation';
 import { useChatbotAnalysis } from './useChatbotAnalysis';
+import { useState } from 'react';
 
 export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   const { results, isSearching, setIsSearching, updateResults } = useSearchResults(onResults);
   const { validateSearchParams } = useSearchValidation();
   const { analyzeChatbots } = useChatbotAnalysis();
+  const [hasMore, setHasMore] = useState(false);
 
   const handleSearch = async (
     query: string,
@@ -41,12 +43,21 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         return;
       }
 
-      console.log('Search returned results, analyzing chatbots...');
+      console.log('Search returned results count:', searchResult.newResults.length);
+      setHasMore(searchResult.hasMore);
+      
+      if (searchResult.newResults.length === 0) {
+        toast.info('No results found. Try different search terms.');
+        updateResults([], false);
+        return;
+      }
+      
+      console.log('Analyzing websites for chatbots...');
       toast.info('Analyzing websites for chatbots...');
       
       const analyzedResults = await analyzeChatbots(searchResult.newResults);
       
-      console.log('Analysis complete:', analyzedResults);
+      console.log('Analysis complete. Results count:', analyzedResults.length);
       updateResults(analyzedResults, searchResult.hasMore);
       
       if (analyzedResults.length > 0) {
@@ -96,7 +107,10 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
   };
 
   return {
-    results,
+    results: { 
+      currentResults: results.currentResults, 
+      hasMore: results.hasMore || hasMore 
+    },
     isSearching,
     handleSearch,
     handleLoadMore,
