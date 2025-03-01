@@ -30,20 +30,33 @@ const Index = () => {
     // Find the result and mark it as reanalyzing
     setResults(prev => prev.map(result => 
       result.url === updatedResult.url ? 
-        { ...result, status: 'Processing...' } : 
+        { ...result, status: 'Processing...', details: { ...result.details, chatSolutions: [] } } : 
         result
     ));
     
     try {
-      // Re-analyze just the one result
-      const reanalyzed = await analyzeChatbots([{...updatedResult, status: 'Processing...'}]);
+      // Enhanced result update with deep analysis option
+      toast.info(`Re-analyzing ${updatedResult.url} with enhanced verification...`);
+      
+      // Re-analyze just the one result with enhanced verification
+      const reanalyzed = await analyzeChatbots([{
+        ...updatedResult, 
+        status: 'Processing...', 
+        details: { ...updatedResult.details, chatSolutions: [] }
+      }]);
       
       if (reanalyzed && reanalyzed.length > 0) {
         // Update the result in the results array
         setResults(prev => prev.map(result => 
           result.url === updatedResult.url ? reanalyzed[0] : result
         ));
-        toast.success('Analysis refreshed');
+        
+        const hasChatbot = reanalyzed[0].details?.chatSolutions && reanalyzed[0].details.chatSolutions.length > 0;
+        if (hasChatbot) {
+          toast.success('Analysis refreshed: Chatbot detected');
+        } else {
+          toast.success('Analysis refreshed: No chatbot detected');
+        }
       } else {
         // Handle error case
         setResults(prev => prev.map(result => 

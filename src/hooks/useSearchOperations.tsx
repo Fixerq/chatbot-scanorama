@@ -52,8 +52,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         return;
       }
       
-      console.log('Analyzing websites for chatbots...');
-      toast.info('Analyzing websites for chatbots...');
+      console.log('Analyzing websites for chatbots with enhanced verification...');
+      toast.info('Analyzing websites for chatbots with enhanced verification...');
       
       const analyzedResults = await analyzeChatbots(searchResult.newResults);
       
@@ -61,7 +61,15 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       updateResults(analyzedResults, searchResult.hasMore);
       
       if (analyzedResults.length > 0) {
-        toast.success(`Found and analyzed ${analyzedResults.length} results`);
+        const chatbotCount = analyzedResults.filter(r => 
+          r.details?.chatSolutions && r.details.chatSolutions.length > 0
+        ).length;
+        
+        if (chatbotCount > 0) {
+          toast.success(`Found ${chatbotCount} websites with chatbots out of ${analyzedResults.length} results`);
+        } else {
+          toast.info(`Analyzed ${analyzedResults.length} websites, no chatbots detected`);
+        }
       } else {
         toast.info('No results found. Try different search terms.');
       }

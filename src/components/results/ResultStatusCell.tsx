@@ -34,8 +34,10 @@ const ResultStatusCell = ({
     return 'secondary';
   };
 
+  // Improved tooltip content with verification status
   const formatTooltipContent = () => {
     const content = [];
+    
     if (lastChecked) {
       content.push(`Last checked: ${new Date(lastChecked).toLocaleString()}`);
     }
@@ -44,9 +46,11 @@ const ResultStatusCell = ({
       content.push('Analysis in progress...');
     } else if (status?.toLowerCase().includes('error')) {
       content.push(`Error: ${status}`);
+    } else if (status?.toLowerCase().includes('low confidence')) {
+      content.push('No chatbot detected (potential false positive filtered)');
     } else if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
       if (chatSolutions.length === 1) {
-        content.push(`Using ${chatSolutions[0]} chatbot`);
+        content.push(`Detected ${chatSolutions[0]} chatbot`);
       } else {
         content.push(`Primary: ${chatSolutions[0]}`);
         content.push(`Additional providers: ${chatSolutions.slice(1).join(', ')}`);
@@ -60,6 +64,14 @@ const ResultStatusCell = ({
     }
     
     return content.join('\n');
+  };
+
+  // Updated display text to be more accurate
+  const getDisplayText = () => {
+    if (technologies === 'Custom Chat' && status?.toLowerCase().includes('low confidence')) {
+      return 'No chatbot detected';
+    }
+    return technologies || 'Analyzing...';
   };
 
   const handleClick = (e: React.MouseEvent) => {
@@ -85,7 +97,7 @@ const ResultStatusCell = ({
                 variant={getChatbotStatusColor(status, hasChatbot)}
                 className={`${status === 'Processing...' ? 'animate-pulse' : ''} px-3 py-1`}
               >
-                {technologies || 'Analyzing...'}
+                {getDisplayText()}
               </Badge>
             </div>
           </TooltipTrigger>

@@ -35,7 +35,8 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     const { data, error } = await supabase.functions.invoke('analyze-website', {
       body: { 
         urls: [formattedUrl],
-        debug: true  // Enable debugging in the edge function
+        debug: true,  // Enable debugging in the edge function
+        verifyResults: true  // Add verification for results
       }
     });
 
@@ -55,6 +56,16 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     // Check if data is an array (new format) or object (old format)
     if (Array.isArray(data) && data.length > 0) {
       const result = data[0];
+      
+      // Add additional confidence check
+      if (result.confidence && result.confidence < 0.7) {
+        console.log(`Low confidence detection (${result.confidence}), marking as no chatbot`);
+        return {
+          status: 'No chatbot detected (low confidence)',
+          chatSolutions: [],
+          lastChecked: new Date().toISOString()
+        };
+      }
       
       return {
         status: result.status || 'Analyzed',

@@ -31,7 +31,13 @@ export const useChatbotAnalysis = () => {
             // Log detailed response for debugging
             console.log(`Analysis response for ${result.url}:`, response);
             
-            const hasChatbot = response.chatSolutions && response.chatSolutions.length > 0;
+            // Improved logic for determining if a chatbot exists
+            const hasChatbot = response.chatSolutions && 
+                             response.chatSolutions.length > 0 && 
+                             !response.status?.toLowerCase().includes('low confidence');
+            
+            // Filter out potential false positives
+            const validChatSolutions = hasChatbot ? response.chatSolutions : [];
             
             return {
               ...result,
@@ -39,7 +45,7 @@ export const useChatbotAnalysis = () => {
               details: {
                 ...result.details,
                 title: result.details?.title || 'Business Name',
-                chatSolutions: response.chatSolutions || [],
+                chatSolutions: validChatSolutions || [],
                 lastChecked: response.lastChecked || new Date().toISOString()
               }
             };
