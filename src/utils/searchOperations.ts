@@ -13,7 +13,13 @@ export const enhanceSearchQuery = async (
     console.log('Enhancing search query with params:', { query, country, region });
     
     const { data, error } = await supabase.functions.invoke('enhance-search', {
-      body: { query, country, region }
+      body: { 
+        query, 
+        country, 
+        region,
+        industry: 'all', // Add industry context to improve results
+        businessType: 'local', // Focus on local businesses
+      }
     });
 
     if (error || !data?.enhancedQuery) {
@@ -49,9 +55,14 @@ export const executeSearch = async (
   try {
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
+    // Add specific terms to the query to find businesses more likely to have chatbots
+    const chatbotTerms = "website live chat support";
+    const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
+
     console.log('Starting search with params:', {
       originalQuery: query,
       enhancedQuery,
+      finalQuery,
       country,
       region,
       limit: resultsLimit
@@ -59,7 +70,7 @@ export const executeSearch = async (
 
     // Pass both country and region parameters for more accurate location filtering
     const searchResult = await performGoogleSearch(
-      enhancedQuery,
+      finalQuery,
       country,
       region
     );

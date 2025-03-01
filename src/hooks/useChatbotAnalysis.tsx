@@ -68,11 +68,11 @@ export const useChatbotAnalysis = () => {
             // Log detailed response for debugging
             console.log(`Smart analysis response for ${result.url}:`, response);
             
-            // Enhanced verification with confidence check
+            // Enhanced verification with more lenient confidence check
             const hasChatbot = response.chatSolutions && 
                              response.chatSolutions.length > 0 && 
                              !response.status?.toLowerCase().includes('no chatbot') &&
-                             (response.confidence === undefined || response.confidence >= 0.75) &&
+                             (response.confidence === undefined || response.confidence >= 0.5) && // Lowered from 0.75
                              (response.verificationStatus === undefined || 
                               response.verificationStatus === 'verified');
             
@@ -111,11 +111,11 @@ export const useChatbotAnalysis = () => {
       
       console.log('Analysis completed with enhanced detection. Results:', analyzedResults.length);
       
-      // Check if any results have chatbots with high confidence
+      // Check if any results have chatbots with medium or higher confidence
       const chatbotCount = analyzedResults.filter(r => 
         r.details?.chatSolutions && 
         r.details.chatSolutions.length > 0 &&
-        (r.details.confidence === undefined || r.details.confidence >= 0.75)
+        (r.details.confidence === undefined || r.details.confidence >= 0.5) // Lowered from 0.75
       ).length;
       
       if (chatbotCount > 0) {
