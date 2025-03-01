@@ -1,8 +1,9 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { analyzeWebsite, analyzeBatch } from './analyzer';
 import { fetchHtmlContent } from './utils/httpUtils';
 import { normalizeUrl, isValidUrl, sanitizeUrl } from './utils/urlUtils';
-import { analyzeWebsite } from './analyzer';
+import { AnalysisOptions, BatchAnalysisRequest } from './types';
 
 // Setup CORS headers
 const corsHeaders = {
@@ -17,9 +18,50 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const { urls, url, debug = false, verifyResults = true, deepVerification = false, smartDetection = true, confidenceThreshold = 0.5 } = await req.json();
     
-    if (!url) {
+    // Options for analysis
+    const options: AnalysisOptions = {
+      debug,
+      verifyResults,
+      deepVerification,
+      smartDetection,
+      confidenceThreshold: Number(confidenceThreshold) || 0.5
+    };
+
+    // Handle batch analysis
+    if (urls && Array.isArray(urls) && urls.length > 0) {
+      console.log(`Batch analyzing ${urls.length} URLs`);
+      
+      const validUrls = urls
+        .filter(u => u && isValidUrl(normalizeUrl(u)))
+        .map(u => sanitizeUrl(normalizeUrl(u)));
+      
+      if (validUrls.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No valid URLs provided' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      const results = await analyzeBatch(validUrls, options);
+      
+      return new Response(
+        JSON.stringify(results),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    // Handle single URL analysis
+    const targetUrl = url || (urls && urls[0]);
+    
+    if (!targetUrl) {
       return new Response(
         JSON.stringify({ error: 'URL is required' }),
         {
@@ -30,7 +72,7 @@ serve(async (req) => {
     }
 
     // Normalize and validate URL
-    const normalizedUrl = normalizeUrl(url);
+    const normalizedUrl = normalizeUrl(targetUrl);
     if (!isValidUrl(normalizedUrl)) {
       return new Response(
         JSON.stringify({ error: 'Invalid URL format' }),
@@ -46,35 +88,20 @@ serve(async (req) => {
     console.log(`Analyzing website: ${sanitizedUrl}`);
 
     try {
-      // Fetch the HTML content
-      const html = await fetchHtmlContent(sanitizedUrl);
-      
-      // Analyze the website content
-      const analysisResult = await analyzeWebsite(sanitizedUrl, html, {
-        debug: true,
-        smartDetection: true,
-        confidenceThreshold: 0.5
-      });
+      // Analyze the website
+      const analysisResult = await analyzeWebsite(sanitizedUrl, undefined, options);
 
       console.log(`Analysis result for ${sanitizedUrl}:`, analysisResult);
 
       return new Response(
-        JSON.stringify({
-          url: sanitizedUrl,
-          status: analysisResult.status,
-          hasChatbot: analysisResult.hasChatbot,
-          chatSolutions: analysisResult.chatSolutions || [],
-          confidence: analysisResult.confidence,
-          verificationStatus: analysisResult.verificationStatus,
-          lastChecked: analysisResult.lastChecked
-        }),
+        JSON.stringify(analysisResult),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } catch (fetchError) {
-      console.error(`Error fetching or analyzing ${sanitizedUrl}:`, fetchError);
+      console.error(`Error analyzing ${sanitizedUrl}:`, fetchError);
       
       return new Response(
         JSON.stringify({
@@ -82,7 +109,7 @@ serve(async (req) => {
           status: 'Error: Could not analyze website',
           hasChatbot: false,
           chatSolutions: [],
-          error: fetchError.message,
+          error: fetchError instanceof Error ? fetchError.message : String(fetchError),
           lastChecked: new Date().toISOString()
         }),
         {

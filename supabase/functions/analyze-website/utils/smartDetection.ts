@@ -1,268 +1,126 @@
 
-import { CHAT_PATTERNS, FALSE_POSITIVE_PATTERNS, FALSE_POSITIVE_DOMAINS } from '../patterns';
+/**
+ * Advanced chatbot detection utilizing heuristics and AI techniques
+ */
 
-interface DetectionResult {
-  hasChatbot: boolean;
-  solutions: string[];
-  matchedPatterns: Record<string, number>;
+// Signs that indicate a high likelihood of chatbot presence
+const HIGH_CONFIDENCE_INDICATORS = [
+  /<div[^>]*\blivechat\b/i,
+  /<div[^>]*\bchat-?bot\b/i,
+  /<div[^>]*\bchatbot\b/i,
+  /<div[^>]*\bchat-?(window|widget|box|container)\b/i,
+  /chat-?bot\s*is\s*(typing|thinking)/i,
+  /start\s*live\s*chat/i,
+  /chat\s*with\s*(us|expert|agent|team|support)/i
+];
+
+// Keywords often associated with chatbots but require additional verification
+const CHATBOT_KEYWORDS = [
+  'assistance',
+  'automated',
+  'bot',
+  'chat',
+  'conversation',
+  'help',
+  'instant',
+  'live',
+  'message',
+  'question',
+  'response',
+  'service',
+  'support'
+];
+
+/**
+ * Performs smart detection of chatbots beyond simple pattern matching
+ */
+export function performSmartDetection(html: string): {
+  isLikelyChatbot: boolean;
   confidence: number;
-  verificationStatus: 'verified' | 'unverified' | 'failed';
-}
-
-// Check for actual chat functionality indicators in the HTML
-const hasActualChatFunctionality = (html: string): boolean => {
-  const chatFunctionalityPatterns = [
-    // Input areas typically found in chat interfaces
-    /<input[^>]*(?:message|chat|send)[^>]*>/i,
-    /<textarea[^>]*(?:message|chat)[^>]*>/i,
-    
-    // Send buttons in chat interfaces
-    /<button[^>]*(?:send|submit)[^>]*>(?:.*?send|.*?submit|.*?chat)/i,
-    
-    // Message bubbles or containers
-    /<div[^>]*(?:message-bubble|message-container|chat-bubble|chat-message)[^>]*>/i,
-    
-    // Typical chat interface structure
-    /<div[^>]*(?:chat-header|chat-footer|chat-body|messages-container)[^>]*>/i,
-    
-    // Chat avatar or user icon patterns
-    /<(?:img|div)[^>]*(?:avatar|user-icon|chat-icon)[^>]*>/i
-  ];
-  
-  return chatFunctionalityPatterns.some(pattern => pattern.test(html));
-};
-
-// Check for chat initialization code in JavaScript
-const hasChatInitialization = (html: string): boolean => {
-  const chatInitPatterns = [
-    // Common chat initialization patterns
-    /(?:init|initialize|load|start)(?:Chat|Messenger|Bot|Support)/i,
-    /chat(?:Widget|Bot|Support|Agent|App)\.(?:init|load|start)/i,
-    /new\s+Chat(?:Widget|Bot|Interface|App)/i,
-    /(?:chat|messenger|support|widget)\.(?:init|initialize|start|load)/i,
-    
-    // Event listeners for chat interfaces
-    /addEventListener\(['"](load|DOMContentLoaded)['"],\s*function.*?chat/i
-  ];
-  
-  return chatInitPatterns.some(pattern => pattern.test(html));
-};
-
-// Check for chat configuration objects
-const hasChatConfiguration = (html: string): boolean => {
-  const chatConfigPatterns = [
-    // Chat configuration objects
-    /(?:chat|messenger|bot|widget)Config\s*=/i,
-    /(?:chat|messenger|bot|widget)Settings\s*=/i,
-    /(?:chat|messenger|bot|widget)Options\s*=/i,
-    /window\.(?:chat|messenger|bot|widget)(?:Config|Settings|Options)\s*=/i,
-    
-    // JSON-like configuration objects
-    /{[^}]*(?:chatbot|widgetId|agentId|supportId)[^}]*}/i
-  ];
-  
-  return chatConfigPatterns.some(pattern => pattern.test(html));
-};
-
-// Inspect for chat UI elements
-const hasChatUIElements = (html: string): boolean => {
-  const chatUIPatterns = [
-    // Chat UI containers
-    /<div[^>]*(?:chat-container|chat-widget|chat-window|chat-panel|chat-box|messenger-container)[^>]*>/i,
-    
-    // Chat buttons or launchers
-    /<(?:button|div|a)[^>]*(?:chat-button|chat-launcher|chat-icon|chat-trigger|open-chat)[^>]*>/i,
-    
-    // Chat iframe or embedded interfaces
-    /<iframe[^>]*(?:chat|messenger|support)[^>]*>/i
-  ];
-  
-  return chatUIPatterns.some(pattern => pattern.test(html));
-};
-
-// Match vendor-specific patterns
-const matchVendorPatterns = (html: string, url: string): {matches: Record<string, number>, hasMatch: boolean} => {
-  const matches: Record<string, number> = {};
-  let hasMatch = false;
-  
-  // Check domain against known false positives
-  const domain = new URL(url).hostname;
-  const isFalsePositiveDomain = FALSE_POSITIVE_DOMAINS.some(d => 
-    domain.includes(d) || domain === d
-  );
-  
-  if (isFalsePositiveDomain) {
-    return { matches: {}, hasMatch: false };
+  indicators: string[];
+} {
+  if (!html) {
+    return { isLikelyChatbot: false, confidence: 0, indicators: [] };
   }
   
-  // Check content against known false positive patterns
-  const contentHasFalsePositivePattern = FALSE_POSITIVE_PATTERNS.some(pattern => 
+  // Search for high confidence indicators
+  const highConfidenceMatches = HIGH_CONFIDENCE_INDICATORS.some(pattern => 
     pattern.test(html)
   );
   
-  // If we find too many false positive indicators, be more conservative
-  const falsePositiveThreshold = contentHasFalsePositivePattern ? 3 : 2;
+  // Count keyword occurrences
+  const keywordCounts = CHATBOT_KEYWORDS.reduce((counts, keyword) => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+    const matches = html.match(regex);
+    counts[keyword] = matches ? matches.length : 0;
+    return counts;
+  }, {} as Record<string, number>);
   
-  Object.entries(CHAT_PATTERNS).forEach(([vendor, patterns]) => {
-    // Count how many patterns match
-    let matchCount = 0;
-    patterns.forEach(pattern => {
-      if (pattern.test(html)) {
-        matchCount++;
-      }
-    });
-    
-    // Only consider it a match if we have enough pattern matches
-    // Be more strict for "Website Chatbot" to avoid false positives
-    const requiredMatches = vendor === 'Website Chatbot' ? falsePositiveThreshold : 1;
-    
-    if (matchCount >= requiredMatches) {
-      matches[vendor] = matchCount;
-      hasMatch = true;
-    }
-  });
+  // Calculate total keyword density
+  const totalKeywords = Object.values(keywordCounts).reduce((sum, count) => sum + count, 0);
+  const textLength = html.length;
+  const keywordDensity = textLength > 0 ? totalKeywords / (textLength / 1000) : 0;
   
-  return { matches, hasMatch };
-};
+  // Identify chat elements in the DOM
+  const chatElements = [
+    html.includes('chat-window'),
+    html.includes('chat-container'),
+    html.includes('chat-widget'),
+    html.includes('livechat'),
+    html.includes('bot-container')
+  ].filter(Boolean).length;
+  
+  // Determine if chatbot is likely present
+  const isLikelyChatbot = highConfidenceMatches || 
+    (keywordDensity > 1.5 && chatElements >= 1) ||
+    chatElements >= 2;
+  
+  // Calculate confidence score
+  let confidence = 0;
+  if (highConfidenceMatches) {
+    confidence = 0.9; // High confidence if direct indicators are found
+  } else if (chatElements >= 2) {
+    confidence = 0.8; // Multiple chat elements suggest a chatbot
+  } else if (chatElements === 1 && keywordDensity > 1.5) {
+    confidence = 0.7; // One chat element with high keyword density
+  } else if (keywordDensity > 2) {
+    confidence = 0.6; // Very high keyword density alone
+  } else if (keywordDensity > 1) {
+    confidence = 0.4; // Moderate keyword density
+  }
+  
+  // Collect indicators for the result
+  const indicators = [];
+  if (highConfidenceMatches) indicators.push('High confidence patterns');
+  if (chatElements > 0) indicators.push(`${chatElements} chat UI elements`);
+  if (keywordDensity > 0.8) indicators.push(`Keyword density: ${keywordDensity.toFixed(2)}`);
+  
+  return {
+    isLikelyChatbot,
+    confidence,
+    indicators
+  };
+}
 
-// Calculate confidence based on multiple factors
-const calculateConfidence = (
-  vendorMatches: Record<string, number>,
-  hasChat: boolean,
-  hasInit: boolean,
-  hasConfig: boolean,
-  hasUI: boolean
-): number => {
-  let score = 0;
-  const maxScore = 10;
+/**
+ * Checks if a URL is likely to be a false positive based on domain/content
+ */
+export function isFalsePositive(url: string, html: string): boolean {
+  // List of domains known to trigger false positives
+  const falsePositiveDomains = [
+    'example.com',
+    'test.com',
+    'dentist',
+    'dental'
+  ];
   
-  // Vendor-specific patterns (0-4 points)
-  const totalVendorMatches = Object.values(vendorMatches).reduce((sum, count) => sum + count, 0);
-  const vendorTypes = Object.keys(vendorMatches).length;
+  // Check domain against known false positives
+  const domainMatch = falsePositiveDomains.some(domain => url.includes(domain));
   
-  // More weight to specific vendor matches than generic ones
-  if (vendorTypes > 0) {
-    // Penalize if the only match is "Website Chatbot" with few pattern matches
-    if (vendorTypes === 1 && vendorMatches['Website Chatbot'] && vendorMatches['Website Chatbot'] < 3) {
-      score += 1; // Lower confidence for only generic matches
-    } else {
-      // Higher confidence for specific vendor matches
-      score += Math.min(4, totalVendorMatches / 2);
-    }
-  }
+  // Check HTML content for indicators that this is a dental or healthcare site
+  // but not actually having a chatbot
+  const isDentalSite = /dental|dentist|orthodont/i.test(html) && 
+    !/(chat.*now|start.*chat|live.*chat)/i.test(html);
   
-  // Chat functionality (0-2 points)
-  if (hasChat) {
-    score += 2;
-  }
-  
-  // Initialization code (0-1.5 points)
-  if (hasInit) {
-    score += 1.5;
-  }
-  
-  // Configuration (0-1.5 points)
-  if (hasConfig) {
-    score += 1.5;
-  }
-  
-  // UI elements (0-1 point)
-  if (hasUI) {
-    score += 1;
-  }
-  
-  // Normalize to 0-1 range
-  return Math.min(score / maxScore, 1);
-};
-
-// Determine if it's a false positive
-const isFalsePositive = (html: string, url: string): boolean => {
-  try {
-    // Check domain against known false positives
-    const domain = new URL(url).hostname;
-    if (FALSE_POSITIVE_DOMAINS.some(d => domain.includes(d) || domain === d)) {
-      return true;
-    }
-    
-    // Check if content has too many false positive indicators
-    const falsePositiveMatches = FALSE_POSITIVE_PATTERNS.filter(pattern => pattern.test(html)).length;
-    if (falsePositiveMatches >= 2) {
-      return true;
-    }
-    
-    return false;
-  } catch (e) {
-    console.error('Error checking for false positives:', e);
-    return false;
-  }
-};
-
-export const smartDetectChatbot = (html: string, url: string): DetectionResult => {
-  try {
-    // Quick check for false positives
-    if (isFalsePositive(html, url)) {
-      return {
-        hasChatbot: false,
-        solutions: [],
-        matchedPatterns: {},
-        confidence: 0,
-        verificationStatus: 'verified'
-      };
-    }
-    
-    // Match against vendor-specific patterns
-    const { matches, hasMatch } = matchVendorPatterns(html, url);
-    
-    // Check for actual chat functionality
-    const hasChatFunctionality = hasActualChatFunctionality(html);
-    
-    // Check for chat initialization code
-    const hasInitCode = hasChatInitialization(html);
-    
-    // Check for chat configuration
-    const hasConfigObj = hasChatConfiguration(html);
-    
-    // Check for chat UI elements
-    const hasUiElements = hasChatUIElements(html);
-    
-    // Calculate confidence score
-    const confidence = calculateConfidence(
-      matches,
-      hasChatFunctionality,
-      hasInitCode,
-      hasConfigObj,
-      hasUiElements
-    );
-    
-    // Determine verification status
-    let verificationStatus: 'verified' | 'unverified' | 'failed' = 'unverified';
-    if (confidence >= 0.75) {
-      verificationStatus = 'verified';
-    } else if (confidence < 0.3) {
-      verificationStatus = 'failed';
-    }
-    
-    // Determine chat solutions based on matches
-    let solutions: string[] = [];
-    if (confidence >= 0.5) {
-      solutions = Object.keys(matches).sort((a, b) => matches[b] - matches[a]);
-    }
-    
-    return {
-      hasChatbot: confidence >= 0.5 && solutions.length > 0,
-      solutions,
-      matchedPatterns: matches,
-      confidence,
-      verificationStatus
-    };
-  } catch (e) {
-    console.error('Error in smart chatbot detection:', e);
-    return {
-      hasChatbot: false,
-      solutions: [],
-      matchedPatterns: {},
-      confidence: 0,
-      verificationStatus: 'failed'
-    };
-  }
-};
+  return domainMatch || isDentalSite;
+}

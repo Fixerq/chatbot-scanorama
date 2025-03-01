@@ -1,168 +1,146 @@
 
-// Define patterns for chatbot detection
-export const CHAT_PATTERNS = {
+/**
+ * Chatbot detection patterns for various chat platforms and solutions
+ */
+
+// Common chatbot platforms
+export const CHATBOT_PATTERNS = {
   'Intercom': [
     /intercom/i,
-    /widget\.intercom\.io/i,
     /intercomcdn/i,
     /intercom-frame/i,
     /intercom-container/i,
-    /intercom-messenger/i,
-    /intercom-launcher/i,
-    /intercom-notifications/i
+    /intercom\.com\/messenger/i
   ],
   'Drift': [
-    /drift\.com/i,
+    /drift/i,
+    /driftt/i,
     /js\.driftt\.com/i,
     /drift-frame/i,
-    /driftt/i,
-    /drift-widget/i,
-    /drift-conductor-url/i,
-    /drift-iframe-controller/i,
-    /drift-chat/i
+    /driftt\.com/i
   ],
-  'Zendesk': [
+  'Zendesk Chat': [
     /zopim/i,
     /zendesk/i,
-    /zdassets\.com/i,
-    /zd-message/i,
+    /zdassets/i,
     /zd-chat/i,
     /zdchat/i,
-    /web_widget/i,
-    /zopim\.com/i,
-    /zopim2/i,
-    /zopim-chat/i
+    /static\.zdassets\.com/i,
+    /ekr\.zdassets\.com/i
   ],
   'Crisp': [
-    /crisp\.chat/i,
-    /client\.crisp\.chat/i,
+    /crisp/i,
     /crisp-client/i,
-    /crispWebsiteId/i,
-    /crisp-widget/i,
-    /crisp-box/i,
-    /crisp-container/i,
-    /CRISP_WEBSITE_ID/i
+    /client\.crisp\.chat/i,
+    /crisp-widget/i
   ],
   'LiveChat': [
     /livechat/i,
-    /livechatinc\.com/i,
-    /LiveChatWidget/i,
-    /lc_settings/i,
-    /__lc/i,
-    /livechat-compact/i,
-    /livechat-floating/i,
-    /livechat-frame/i
+    /livechatinc/i,
+    /cdn\.livechatinc\.com/i,
+    /livechat-widget/i
   ],
   'Tawk.to': [
+    /tawk/i,
     /tawk\.to/i,
     /embed\.tawk\.to/i,
-    /tawkto/i,
-    /Tawk_API/i,
-    /tawk-messenger/i,
-    /tawk-chat/i,
-    /tawk-iframe/i
+    /tawk-widget/i
   ],
-  'HubSpot': [
+  'HubSpot Chat': [
     /hubspot/i,
     /js\.hs-scripts\.com/i,
-    /HubSpotConversations/i,
-    /hubspot-messages-iframe/i,
-    /hs-chat/i,
-    /conversations-widget/i,
-    /hubspot-conversations-iframe/i,
-    /hubspot-messaging/i,
-    /hs-messaging/i,
-    /hs-messenger/i
-  ],
-  'Facebook Messenger': [
-    /facebook\.com\/customer_chat/i,
-    /connect\.facebook\.net.*\/sdk\/xfbml\.customerchat/i,
-    /fb-messenger-widget/i,
-    /fb-customerchat/i,
-    /FacebookMessenger/i,
-    /messenger-checkbox/i,
-    /messenger-widget/i,
-    /fb-messenger/i,
-    /facebook-messenger/i
-  ],
-  'WhatsApp': [
-    /wa\.me/i,
-    /whatsapp/i,
-    /api\.whatsapp\.com/i,
-    /whatsapp-widget/i,
-    /whatsapp-button/i,
-    /whatsapp-chat/i,
-    /whatsapp-floating/i,
-    /whatsapp-popup/i
-  ],
-  'Gist': [
-    /getgist\.com/i,
-    /gist\.build/i,
-    /gist-/i,
-    /gist\.js/i,
-    /gist-embed/i,
-    /gist-widget/i,
-    /gist-chat/i,
-    /gist-messenger/i
+    /js\.hsforms\.net/i,
+    /js\.usemessages\.com/i,
+    /hubspot-messages-iframe/i
   ],
   'Tidio': [
     /tidio/i,
     /tidiochat/i,
-    /tidiomobile/i,
-    /tidio-chat/i,
-    /tidio-live-chat/i,
-    /tidioChatCode/i
+    /code\.tidio\.co/i,
+    /tidio-chat/i
+  ],
+  'LivePerson': [
+    /liveperson/i,
+    /lpcdn/i,
+    /lptag/i,
+    /liveperson\.net/i
+  ],
+  'Olark': [
+    /olark/i,
+    /olark-frame/i,
+    /static\.olark\.com/i
+  ],
+  'Freshchat': [
+    /freshchat/i,
+    /wchat\.freshchat\.com/i,
+    /freshbots/i,
+    /freshworks/i
+  ],
+  'ChatBot': [
+    /chatbot/i,
+    /chatbotui/i,
+    /chatbot-container/i
+  ],
+  'ManyChat': [
+    /manychat/i,
+    /mc\.manychat\.com/i
+  ],
+  'Chaport': [
+    /chaport/i,
+    /chaport-container/i,
+    /app\.chaport\.com/i
+  ],
+  'Jivochat': [
+    /jivo/i,
+    /jivosite/i,
+    /jivo_container/i,
+    /cdn\.jivochat\.com/i,
+    /jivosite\.com/i
+  ],
+  'Facebook Messenger Chat': [
+    /fb-messenger/i,
+    /facebook\.com\/plugins\/customerchat/i,
+    /messenger-plugin/i,
+    /facebook-jssdk/i,
+    /fb-customerchat/i,
+    /\.facebook\.com\/v[\d.]+\/plugins\/customerchat/i
   ],
   'Website Chatbot': [
-    /chat-widget/i,
-    /chat-container/i,
-    /chat-box/i,
-    /messenger-widget/i,
-    /chat-frame/i,
-    /chat-button/i,
-    /chat-messenger/i,
-    /chat-popup/i,
     /chat-window/i,
-    /chat-launcher/i,
-    /chat-trigger/i,
-    /chat-bubble/i,
-    /chat-icon/i,
-    /chat-header/i,
-    /chat-footer/i,
-    /chat-body/i,
-    /chat-input/i,
-    /chat-messages/i,
-    /chat-support/i,
-    /live-chat/i,
-    /chat-iframe/i,
-    /chat-overlay/i,
-    /chat-wrapper/i,
-    /chat-toggle/i,
-    /chat-panel/i,
+    /chatwidget/i,
     /chat-bot/i,
-    /chatbot/i
+    /chat-container/i,
+    /chat-bubble/i,
+    /bot-avatar/i,
+    /chat-?bot/i,
+    /support-?chat/i,
+    /live-?chat/i,
+    /chat-?support/i,
+    /chat-?widget/i
   ]
 };
 
-// Add list of known false positive patterns
-export const FALSE_POSITIVE_PATTERNS = [
-  /chatgpt/i, // References to ChatGPT aren't chatbots
-  /chatham/i, // Chatham is a place not a chatbot
-  /chateau/i, // French for castle
-  /manhattan/i, // Manhattan contains "chat" but isn't a chatbot
-  /purchase/i, // Purchase contains "chat" but isn't a chatbot
-  /brochure/i, // Brochure can be confused with bot-related terms
-  /chapter/i, // Chapter contains "chat" but isn't a chatbot
-  /chart/i, // Chart contains "chat" but isn't a chatbot
-  /chattanooga/i, // City name, not a chatbot
-  /charlottesville/i // City name, not a chatbot
+// Count total patterns for confidence calculation
+export const TOTAL_PATTERNS = Object.values(CHATBOT_PATTERNS)
+  .reduce((sum, patterns) => sum + patterns.length, 0);
+
+// Check if text contains an invitation to chat
+export const CHAT_INVITATION_PATTERNS = [
+  /chat\s+with\s+us/i,
+  /start\s+a\s+chat/i,
+  /live\s+chat/i,
+  /chat\s+now/i,
+  /chat\s+support/i,
+  /message\s+us/i,
+  /talk\s+to\s+us/i,
+  /get\s+in\s+touch/i
 ];
 
-// Known false positive domains
-export const FALSE_POSITIVE_DOMAINS = [
-  'kentdentists.com',
-  'privategphealthcare.com',
-  'dentalcaredirect.co.uk',
-  'mydentist.co.uk',
-  'dentist-special.com'
-];
+// Functions to interact with the patterns
+export function getAllPatterns(): Record<string, RegExp[]> {
+  return CHATBOT_PATTERNS;
+}
+
+export function getPatternsByProvider(provider: string): RegExp[] | undefined {
+  return CHATBOT_PATTERNS[provider];
+}

@@ -1,52 +1,68 @@
 
-// Utility functions for pattern-based detection
+/**
+ * Pattern detection utilities for chatbot analysis
+ */
 
-// Detect if the website uses dynamic loading of scripts that could be chat-related
-export const detectDynamicLoading = (html: string): boolean => {
-  const dynamicLoadingPatterns = [
-    /dynamically\s+load(?:ed|ing)?\s+(?:chat|support|widget)/i,
-    /loadScript\(\s*['"](?:.*chat|.*messenger|.*support)/i,
-    /document\.createElement\(['"]script['"]\)[^}]+(?:chat|support|messenger)/i,
-    /window\.addEventListener\(['"]load['"],[^}]+(?:chat|support|messenger)/i
-  ];
+/**
+ * Searches for specific patterns in the HTML content
+ */
+export function findPatternMatches(html: string, patterns: RegExp[]): string[] {
+  if (!html || !patterns || patterns.length === 0) {
+    return [];
+  }
   
-  return dynamicLoadingPatterns.some(pattern => pattern.test(html));
-};
+  // Convert HTML to lowercase for case-insensitive matching
+  const lowerHtml = html.toLowerCase();
+  
+  // Find all matches
+  const matches: string[] = [];
+  
+  for (const pattern of patterns) {
+    const match = lowerHtml.match(pattern);
+    if (match) {
+      matches.push(match[0]);
+    }
+  }
+  
+  return matches;
+}
 
-// Detect if the website has HTML elements commonly used for chat interfaces
-export const detectChatElements = (html: string): boolean => {
-  const chatElementPatterns = [
-    /<div[^>]*(?:chat-container|chat-widget|chat-window|chatbox|chat-frame|chat-button)/i,
-    /<div[^>]*(?:class|id)=["'](?:.*chat.*|.*support.*|.*messenger.*)["']/i,
-    /<iframe[^>]*(?:chat|support|messenger|widget)/i,
-    /<button[^>]*(?:chat|support|help|contact)/i
-  ];
+/**
+ * Detects chatbot solutions based on HTML content
+ */
+export function detectChatbotSolutions(html: string, patternMap: Record<string, RegExp[]>): string[] {
+  if (!html) {
+    return [];
+  }
   
-  return chatElementPatterns.some(pattern => pattern.test(html));
-};
+  const detectedSolutions: string[] = [];
+  
+  for (const [solution, patterns] of Object.entries(patternMap)) {
+    const matches = findPatternMatches(html, patterns);
+    if (matches.length > 0) {
+      detectedSolutions.push(solution);
+    }
+  }
+  
+  return detectedSolutions;
+}
 
-// Detect if the website has meta tags that might indicate a chat solution
-export const detectMetaTags = (html: string): boolean => {
-  const metaTagPatterns = [
-    /<meta[^>]*content=["'].*(?:chat|support|messenger).*["']/i,
-    /<meta[^>]*name=["'](?:chat|support|messenger).*["']/i,
-    /<meta[^>]*property=["'].*:(?:chat|messenger).*["']/i
-  ];
+/**
+ * Calculate confidence score based on the number and strength of matches
+ */
+export function calculateConfidenceScore(matches: string[], totalPatterns: number): number {
+  if (matches.length === 0 || totalPatterns === 0) {
+    return 0;
+  }
   
-  return metaTagPatterns.some(pattern => pattern.test(html));
-};
-
-// Detect if the website uses WebSockets (common for real-time chat)
-export const detectWebSockets = (html: string): boolean => {
-  const webSocketPatterns = [
-    /WebSocket\(/i,
-    /new\s+WebSocket/i,
-    /\.connect\(\s*["']wss?:/i,
-    /socket\.io/i,
-    /pusher/i,
-    /firebase/i,
-    /SignalR/i
-  ];
+  // Calculate base score based on match ratio
+  const baseScore = matches.length / Math.min(totalPatterns, 10);
   
-  return webSocketPatterns.some(pattern => pattern.test(html));
-};
+  // Apply diminishing returns for more than 3 matches
+  const diminishedScore = matches.length <= 3 
+    ? baseScore 
+    : 0.6 + (0.4 * (matches.length - 3) / 7);
+  
+  // Ensure score is between 0 and 1
+  return Math.min(Math.max(diminishedScore, 0), 1);
+}

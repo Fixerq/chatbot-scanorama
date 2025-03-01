@@ -1,74 +1,77 @@
 
-// Simple in-memory cache implementation
+/**
+ * Simple cache implementation for website analysis results
+ */
+
 interface CacheEntry {
-  data: any;
+  url: string;
+  result: any;
+  timestamp: number;
   expiresAt: number;
 }
 
-class SimpleCache {
-  private cache: Map<string, CacheEntry> = new Map();
-  private readonly defaultTtl: number; // Time to live in milliseconds
+// In-memory cache to reduce repeated analysis of the same sites
+const analysisCache = new Map<string, CacheEntry>();
 
-  constructor(defaultTtlMinutes = 60) {
-    this.defaultTtl = defaultTtlMinutes * 60 * 1000;
-    
-    // Setup periodic cleanup of expired entries
-    setInterval(() => this.cleanup(), 5 * 60 * 1000); // Cleanup every 5 minutes
+// Cache expiration in milliseconds (default: 24 hours)
+const DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+/**
+ * Get cached analysis result if it exists and is not expired
+ */
+export function getCachedResult(url: string): any | null {
+  const entry = analysisCache.get(url);
+  
+  if (!entry) {
+    return null;
   }
-
-  get(key: string): any {
-    const entry = this.cache.get(key);
-    
-    if (!entry) {
-      return null;
-    }
-
-    // Check if entry has expired
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return null;
-    }
-    
-    return entry.data;
+  
+  // Check if cache has expired
+  if (Date.now() > entry.expiresAt) {
+    analysisCache.delete(url);
+    return null;
   }
+  
+  return entry.result;
+}
 
-  set(key: string, data: any, ttlMinutes?: number): void {
-    const ttl = (ttlMinutes || this.defaultTtl / 60000) * 60 * 1000;
-    const expiresAt = Date.now() + ttl;
-    
-    this.cache.set(key, { data, expiresAt });
-  }
+/**
+ * Store analysis result in cache
+ */
+export function cacheResult(url: string, result: any, ttl: number = DEFAULT_CACHE_TTL): void {
+  const timestamp = Date.now();
+  const expiresAt = timestamp + ttl;
+  
+  analysisCache.set(url, {
+    url,
+    result,
+    timestamp,
+    expiresAt
+  });
+}
 
-  delete(key: string): void {
-    this.cache.delete(key);
-  }
-
-  has(key: string): boolean {
-    const entry = this.cache.get(key);
-    
-    if (!entry) {
-      return false;
-    }
-
-    // Check if entry has expired
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return false;
-    }
-    
-    return true;
-  }
-
-  cleanup(): void {
-    const now = Date.now();
-    
-    for (const [key, entry] of this.cache.entries()) {
-      if (now > entry.expiresAt) {
-        this.cache.delete(key);
-      }
-    }
+/**
+ * Clear all cached results or for a specific URL
+ */
+export function clearCache(url?: string): void {
+  if (url) {
+    analysisCache.delete(url);
+  } else {
+    analysisCache.clear();
   }
 }
 
-// Create and export a singleton instance
-export const cache = new SimpleCache();
+/**
+ * Get cache statistics
+ */
+export function getCacheStats(): { size: number, entries: { url: string, age: number }[] } {
+  const entries = Array.from(analysisCache.entries()).map(([url, entry]) => ({
+    url,
+    age: Math.floor((Date.now() - entry.timestamp) / 1000) // Age in seconds
+  }));
+  
+  return {
+    size: analysisCache.size,
+    entries
+  };
+}

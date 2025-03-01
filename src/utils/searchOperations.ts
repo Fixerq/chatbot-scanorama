@@ -57,7 +57,7 @@ export const executeSearch = async (
       limit: resultsLimit
     });
 
-    // Explicitly pass both country and region parameters for more accurate location filtering
+    // Pass both country and region parameters for more accurate location filtering
     const searchResult = await performGoogleSearch(
       enhancedQuery,
       country,
