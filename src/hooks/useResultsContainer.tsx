@@ -1,0 +1,91 @@
+
+import { useState, useEffect } from 'react';
+import { Result } from '@/components/ResultsTable';
+
+export const useResultsContainer = (results: Result[] = []) => {
+  // Filter out only results with error status
+  const validResults = results?.filter(r => 
+    r && !r.status?.toLowerCase().includes('error analyzing url')
+  ) || [];
+  
+  const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
+  const [filterValue, setFilterValue] = useState('all');
+  const [sortValue, setSortValue] = useState('name');
+  const [currentPage, setCurrentPage] = useState(1);
+  const resultsPerPage = 25;
+
+  // Update filtered results when the input results change
+  useEffect(() => {
+    console.log('Processing results:', validResults);
+    setFilteredResults(validResults);
+    setCurrentPage(1); // Reset to first page when results change
+  }, [validResults]);
+
+  // Apply filters when filter value changes
+  useEffect(() => {
+    let filtered = [...validResults];
+    
+    if (filterValue === 'chatbot') {
+      filtered = filtered.filter(r => r.details?.chatSolutions?.length > 0);
+    } else if (filterValue === 'no-chatbot') {
+      filtered = filtered.filter(r => !r.details?.chatSolutions?.length);
+    }
+    
+    setFilteredResults(filtered);
+    setCurrentPage(1); // Reset to first page when filter changes
+  }, [filterValue, validResults]);
+
+  const handleFilter = (value: string) => {
+    console.log('Applying filter:', value);
+    setFilterValue(value);
+  };
+
+  const handleSort = (value: string) => {
+    console.log('Applying sort:', value);
+    setSortValue(value);
+    let sorted = [...filteredResults];
+    
+    switch (value) {
+      case 'name':
+        sorted.sort((a, b) => (a.details?.title || '').localeCompare(b.details?.title || ''));
+        break;
+      case 'url':
+        sorted.sort((a, b) => a.url.localeCompare(b.url));
+        break;
+      case 'status':
+        sorted.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+        break;
+    }
+    
+    setFilteredResults(sorted);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
+  const startIndex = (currentPage - 1) * resultsPerPage;
+  const endIndex = Math.min(startIndex + resultsPerPage, filteredResults.length);
+  const displayedResults = filteredResults.slice(startIndex, endIndex);
+
+  // Calculate chatbot counts
+  const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
+
+  return {
+    validResults,
+    filteredResults,
+    displayedResults,
+    filterValue,
+    sortValue,
+    currentPage,
+    totalPages,
+    chatbotCount,
+    handleFilter,
+    handleSort,
+    handlePageChange
+  };
+};
+
+export default useResultsContainer;
