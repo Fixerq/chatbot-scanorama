@@ -1,7 +1,9 @@
+
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatbotDetectionResponse } from '@/types/chatbot';
+import { toast } from 'sonner';
 
 const isValidUrl = (url: string): boolean => {
   try {
@@ -16,21 +18,46 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
   try {
     console.log('Analyzing URL:', url);
     
+    if (!url || url.trim() === '') {
+      console.error('Empty URL provided to detectChatbot');
+      return {
+        status: 'Error: Empty URL',
+        chatSolutions: [],
+        lastChecked: new Date().toISOString()
+      };
+    }
+    
     const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: { url }
+      body: { urls: [url] }  // Make sure we're sending an array of URLs
     });
 
     if (error) {
       console.error('Error analyzing website:', error);
-      throw error;
+      
+      // Show toast for visible errors
+      toast.error('Error analyzing website: ' + error.message);
+      
+      return {
+        status: 'Error analyzing URL',
+        chatSolutions: [],
+        lastChecked: new Date().toISOString()
+      };
     }
 
     console.log('Analysis result:', data);
+
+    if (!data || !data.status) {
+      return {
+        status: 'Analysis completed with no results',
+        chatSolutions: [],
+        lastChecked: new Date().toISOString()
+      };
+    }
     
     return {
       status: data.status,
       chatSolutions: data.chatSolutions || [],
-      lastChecked: data.lastChecked
+      lastChecked: data.lastChecked || new Date().toISOString()
     };
   } catch (error) {
     console.error('Error in detectChatbot:', error);

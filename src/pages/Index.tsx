@@ -84,6 +84,7 @@ const Index = () => {
           setIsProcessing={handleSetProcessing}
           triggerNewSearch={newSearchTrigger}
         />
+        
         {/* Only show Results component when a search has been performed */}
         {searchPerformed && (
           <Results 

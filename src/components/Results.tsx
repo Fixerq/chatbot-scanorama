@@ -49,12 +49,17 @@ const Results = ({
     handlePageChange
   } = useResultsContainer(results);
 
-  // If we're currently analyzing and there are no valid results yet, show the analyzing state
-  if (isAnalyzing && !validResults.length) {
+  // Debug log for validResults
+  console.log("Valid results count:", validResults?.length);
+
+  // Show analyzing state when we're analyzing and either:
+  // 1. There are no results at all, or
+  // 2. We have results but they're still being processed
+  if (isAnalyzing && (results.length === 0 || results.every(r => r.status === 'Processing...'))) {
     return <ResultsAnalyzingState />;
   }
 
-  // If there are no valid results after filtering out errors and we're not analyzing
+  // If there are no valid results after filtering and we're not analyzing
   if (!isAnalyzing && (!validResults || validResults.length === 0)) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }

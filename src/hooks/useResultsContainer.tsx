@@ -3,8 +3,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { Result } from '@/components/ResultsTable';
 
 export const useResultsContainer = (results: Result[] = []) => {
-  // Filter out only results with error status
+  // Filter out results with error status
   const validResults = useMemo(() => {
+    console.log('Computing validResults from', results?.length || 0, 'results');
     return results?.filter(r => 
       r && !r.status?.toLowerCase().includes('error analyzing url')
     ) || [];
@@ -29,11 +30,11 @@ export const useResultsContainer = (results: Result[] = []) => {
     
     setFilteredResults(filtered);
     
-    // Only reset to first page when results change, not on every render
-    if (results.length !== validResults.length) {
+    // Reset to first page when filter changes or results length changes significantly
+    if (currentPage > 1 && (filtered.length === 0 || filtered.length / resultsPerPage < currentPage)) {
       setCurrentPage(1);
     }
-  }, [validResults, filterValue]);
+  }, [validResults, filterValue, currentPage, resultsPerPage]);
 
   const handleFilter = (value: string) => {
     console.log('Applying filter:', value);

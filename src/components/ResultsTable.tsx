@@ -28,7 +28,7 @@ interface ResultsTableProps {
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) => {
-  console.log('ResultsTable received results:', results);
+  console.log('ResultsTable received results:', results?.length);
 
   const formatInstalledTechnologies = (result: Result) => {
     if (!result.status) return 'Analyzing...';
