@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Result } from './ResultsTable';
 import { useSearchState } from '../hooks/useSearchState';
@@ -8,10 +9,16 @@ import { useSearchOperations } from '@/hooks/useSearchOperations';
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
   isProcessing: boolean;
-  triggerNewSearch?: boolean; // Changed from onNewSearch?: () => void to boolean
+  setIsProcessing: (processing: boolean) => void;
+  triggerNewSearch?: boolean;
 }
 
-const SearchFormContainer = ({ onResults, isProcessing, triggerNewSearch }: SearchFormContainerProps) => {
+const SearchFormContainer = ({ 
+  onResults, 
+  isProcessing, 
+  setIsProcessing, 
+  triggerNewSearch 
+}: SearchFormContainerProps) => {
   const {
     searchState,
     updateSearchState,
@@ -26,6 +33,8 @@ const SearchFormContainer = ({ onResults, isProcessing, triggerNewSearch }: Sear
   } = useSearchOperations(onResults);
 
   const onSubmit = () => {
+    setIsProcessing(true);
+    console.log('Search form submitted with:', searchState);
     handleSearch(
       searchState.query,
       searchState.country,
@@ -38,6 +47,9 @@ const SearchFormContainer = ({ onResults, isProcessing, triggerNewSearch }: Sear
   const onLoadMore = () => {
     const nextPage = searchState.currentPage + 1;
     const newLimit = searchState.resultsLimit + 10;
+    
+    setIsProcessing(true);
+    console.log('Loading more results, page:', nextPage);
     
     updateSearchState({ 
       currentPage: nextPage,
@@ -56,6 +68,7 @@ const SearchFormContainer = ({ onResults, isProcessing, triggerNewSearch }: Sear
   React.useEffect(() => {
     if (triggerNewSearch) {
       resetSearch();
+      console.log('Search form reset triggered');
     }
   }, [triggerNewSearch, resetSearch]);
 

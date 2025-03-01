@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
@@ -35,43 +35,50 @@ const Results = ({
   isAnalyzing = false,
   onResultUpdate
 }: ResultsProps) => {
+  console.log("Results component received:", { 
+    resultsCount: results?.length, 
+    isAnalyzing 
+  });
+  
   // Filter out only results with error status
-  const validResults = results.filter(r => 
-    !r.status?.toLowerCase().includes('error analyzing url')
-  );
+  const validResults = results?.filter(r => 
+    r && !r.status?.toLowerCase().includes('error analyzing url')
+  ) || [];
+  
   const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 25;
 
-  React.useEffect(() => {
-    // Filter out error results whenever the results prop changes
-    const newValidResults = results.filter(r => 
-      !r.status?.toLowerCase().includes('error analyzing url')
-    );
-    setFilteredResults(newValidResults);
+  // Update filtered results when the input results change
+  useEffect(() => {
+    console.log('Processing results:', validResults);
+    setFilteredResults(validResults);
     setCurrentPage(1); // Reset to first page when results change
-    
-    console.log('Results component received results:', results);
-    console.log('Filtered results:', newValidResults);
-  }, [results]);
+  }, [validResults]);
 
-  const handleFilter = (value: string) => {
-    setFilterValue(value);
+  // Apply filters when filter value changes
+  useEffect(() => {
     let filtered = [...validResults];
     
-    if (value === 'chatbot') {
+    if (filterValue === 'chatbot') {
       filtered = filtered.filter(r => r.details?.chatSolutions?.length > 0);
-    } else if (value === 'no-chatbot') {
+    } else if (filterValue === 'no-chatbot') {
       filtered = filtered.filter(r => !r.details?.chatSolutions?.length);
     }
     
     setFilteredResults(filtered);
     setCurrentPage(1); // Reset to first page when filter changes
+  }, [filterValue, validResults]);
+
+  const handleFilter = (value: string) => {
+    console.log('Applying filter:', value);
+    setFilterValue(value);
   };
 
   const handleSort = (value: string) => {
+    console.log('Applying sort:', value);
     setSortValue(value);
     let sorted = [...filteredResults];
     
@@ -97,12 +104,26 @@ const Results = ({
     }
   };
 
+  // If we're currently analyzing or there are no results yet
+  if (isAnalyzing && validResults.length === 0) {
+    return (
+      <div className="mt-12 p-8 rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10 text-center">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-cyan-500/20 rounded w-3/4 mx-auto"></div>
+          <div className="h-4 bg-cyan-500/20 rounded w-1/2 mx-auto"></div>
+          <div className="h-4 bg-cyan-500/20 rounded w-5/6 mx-auto"></div>
+        </div>
+        <p className="text-cyan-100 mt-4">Searching and analyzing websites...</p>
+      </div>
+    );
+  }
+
+  // If there are no valid results after filtering out errors
   if (!validResults || validResults.length === 0) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
   const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
-  const noChatbotCount = validResults.filter(r => !r.details?.chatSolutions?.length).length;
   
   // Calculate pagination
   const totalPages = Math.ceil(filteredResults.length / resultsPerPage);
@@ -151,7 +172,9 @@ const Results = ({
       }
       
       // Always show last page
-      pages.push(totalPages);
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
     }
     
     return pages;
@@ -175,7 +198,10 @@ const Results = ({
         />
       </div>
       <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
-        <ResultsTable results={displayedResults} onResultUpdate={onResultUpdate} />
+        <ResultsTable 
+          results={displayedResults} 
+          onResultUpdate={onResultUpdate}
+        />
       </div>
       
       {totalPages > 1 && (
@@ -208,7 +234,7 @@ const Results = ({
                   </PaginationLink>
                 </PaginationItem>
               ) : (
-                <PaginationItem key={page}>
+                <PaginationItem key={`${page}-${index}`}>
                   <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
                 </PaginationItem>
               )

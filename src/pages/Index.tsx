@@ -16,6 +16,7 @@ const Index = () => {
   const handleNewSearch = useCallback(() => {
     setResults([]);
     setNewSearchTrigger(prev => !prev);
+    console.log('New search triggered');
   }, []);
 
   const handleResultUpdate = (updatedResult: Result) => {
@@ -43,7 +44,18 @@ const Index = () => {
   // Debug log when results change
   useEffect(() => {
     console.log('Results updated:', results);
+    setIsProcessing(false);
   }, [results]);
+
+  const handleSetResults = useCallback((newResults: Result[]) => {
+    console.log('Setting new results:', newResults);
+    setResults(newResults);
+  }, []);
+
+  const handleSetProcessing = useCallback((processing: boolean) => {
+    console.log('Setting processing state:', processing);
+    setIsProcessing(processing);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black">
@@ -54,8 +66,9 @@ const Index = () => {
           <UserStatusCheck />
         </div>
         <SearchFormContainer 
-          onResults={setResults}
+          onResults={handleSetResults}
           isProcessing={isProcessing}
+          setIsProcessing={handleSetProcessing}
           triggerNewSearch={newSearchTrigger}
         />
         <Results 

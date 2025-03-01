@@ -43,37 +43,45 @@ export const executeSearch = async (
   resultsLimit: number,
   currentResults: Result[]
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
-  const enhancedQuery = await enhanceSearchQuery(query, country, region);
+  try {
+    const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
-  console.log('Starting search with params:', {
-    originalQuery: query,
-    enhancedQuery,
-    country,
-    region,
-    limit: resultsLimit
-  });
+    console.log('Starting search with params:', {
+      originalQuery: query,
+      enhancedQuery,
+      country,
+      region,
+      limit: resultsLimit
+    });
 
-  const searchResult = await performGoogleSearch(
-    enhancedQuery,
-    country,
-    region
-  );
+    const searchResult = await performGoogleSearch(
+      enhancedQuery,
+      country,
+      region
+    );
 
-  if (!searchResult || !searchResult.results) {
-    console.error('No search results returned');
+    if (!searchResult || !searchResult.results) {
+      console.error('No search results returned');
+      return null;
+    }
+
+    console.log('Search results received:', searchResult.results);
+
+    // Filter out duplicates while keeping existing results
+    const existingUrls = new Set(currentResults.map(r => r.url));
+    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+
+    console.log(`Found ${newResults.length} new results`);
+
+    return {
+      newResults,
+      hasMore: searchResult.hasMore
+    };
+  } catch (error) {
+    console.error('Search execution error:', error);
+    toast.error('Failed to perform search. Please try again.');
     return null;
   }
-
-  // Filter out duplicates while keeping existing results
-  const existingUrls = new Set(currentResults.map(r => r.url));
-  const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
-
-  console.log(`Found ${newResults.length} new results`);
-
-  return {
-    newResults,
-    hasMore: searchResult.hasMore
-  };
 };
 
 export const loadMore = async (
@@ -84,18 +92,29 @@ export const loadMore = async (
   newLimit: number
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   const startIndex = currentResults.length + 1;
-  const searchResult = await performGoogleSearch(query, country, region, startIndex);
   
-  if (!searchResult || !searchResult.results) {
+  try {
+    console.log('Loading more results with startIndex:', startIndex);
+    const searchResult = await performGoogleSearch(query, country, region, startIndex);
+    
+    if (!searchResult || !searchResult.results) {
+      console.error('No more results found');
+      return null;
+    }
+
+    // Filter out duplicates
+    const existingUrls = new Set(currentResults.map(r => r.url));
+    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+
+    console.log(`Loaded ${newResults.length} additional results`);
+    
+    return {
+      newResults,
+      hasMore: searchResult.hasMore
+    };
+  } catch (error) {
+    console.error('Load more error:', error);
+    toast.error('Failed to load more results');
     return null;
   }
-
-  // Filter out duplicates
-  const existingUrls = new Set(currentResults.map(r => r.url));
-  const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
-
-  return {
-    newResults,
-    hasMore: searchResult.hasMore
-  };
 };

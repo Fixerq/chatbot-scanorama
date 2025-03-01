@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { executeSearch, loadMore } from '@/utils/searchOperations';
 import { toast } from 'sonner';
@@ -22,6 +23,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     setIsSearching(true);
     
     try {
+      console.log('Starting search process with params:', { query, country, region });
+      
       const searchResult = await executeSearch(
         query,
         country,
@@ -32,18 +35,29 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       );
 
       if (!searchResult) {
-        toast.error('Search failed. Please try again.');
+        console.error('Search returned no results');
+        toast.error('Search failed or returned no results. Please try different terms.');
+        updateResults([], false);
         return;
       }
 
+      console.log('Search returned results, analyzing chatbots...');
       toast.info('Analyzing websites for chatbots...');
+      
       const analyzedResults = await analyzeChatbots(searchResult.newResults);
       
+      console.log('Analysis complete:', analyzedResults);
       updateResults(analyzedResults, searchResult.hasMore);
-      toast.success(`Found and analyzed ${analyzedResults.length} results`);
+      
+      if (analyzedResults.length > 0) {
+        toast.success(`Found and analyzed ${analyzedResults.length} results`);
+      } else {
+        toast.info('No results found. Try different search terms.');
+      }
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Search failed. Please try again.');
+      updateResults([], false);
     } finally {
       setIsSearching(false);
     }
@@ -57,6 +71,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     newLimit: number
   ) => {
     try {
+      console.log('Loading more results for page:', currentPage);
       const moreResults = await loadMore(
         query,
         country,

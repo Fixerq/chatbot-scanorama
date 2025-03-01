@@ -53,7 +53,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {results.length === 0 ? (
+          {!results || results.length === 0 ? (
             <TableRow>
               <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
                 No results to display
@@ -65,7 +65,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
               const technologies = formatInstalledTechnologies(result);
               
               return (
-                <TableRow key={index}>
+                <TableRow key={`${result.url}-${index}`}>
                   <ResultUrlCell url={result.url} />
                   <TableCell>{result.details?.title || 'N/A'}</TableCell>
                   <ResultStatusCell 

@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -46,7 +47,7 @@ export const performGoogleSearch = async (
       .filter((result: any) => result && result.url) // Only include results with URLs
       .map((result: any) => ({
         url: result.url,
-        status: 'Ready',
+        status: 'Ready for analysis',
         details: {
           title: result.details?.title || '',
           description: result.details?.description || '',

@@ -55,20 +55,39 @@ const ResultStatusCell = ({
       content.push(`Status: ${status}`);
     }
     
+    if (onResultUpdate) {
+      content.push('Click to refresh analysis');
+    }
+    
     return content.join('\n');
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onResultUpdate) {
+      console.log('ResultStatusCell clicked, triggering update');
+      onResultUpdate();
+    }
   };
 
   return (
     <TableCell>
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger onClick={onResultUpdate} className="cursor-help">
-            <Badge 
-              variant={getChatbotStatusColor(status, hasChatbot)}
-              className={`cursor-help ${status === 'Processing...' ? 'animate-pulse' : ''}`}
+          <TooltipTrigger asChild>
+            <div 
+              onClick={handleClick} 
+              className={`inline-block ${onResultUpdate ? 'cursor-pointer' : 'cursor-help'}`}
             >
-              {technologies || 'Analyzing...'}
-            </Badge>
+              <Badge 
+                variant={getChatbotStatusColor(status, hasChatbot)}
+                className={status === 'Processing...' ? 'animate-pulse' : ''}
+              >
+                {technologies || 'Analyzing...'}
+              </Badge>
+            </div>
           </TooltipTrigger>
           <TooltipContent className="max-w-[300px] whitespace-pre-line">
             <p>{formatTooltipContent()}</p>
