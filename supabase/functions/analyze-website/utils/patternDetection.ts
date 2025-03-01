@@ -1,68 +1,105 @@
 
-/**
- * Pattern detection utilities for chatbot analysis
- */
+import { PatternMatchResult } from '../types.ts';
 
 /**
- * Searches for specific patterns in the HTML content
+ * Detects chatbot solutions based on HTML patterns
  */
-export function findPatternMatches(html: string, patterns: RegExp[]): string[] {
-  if (!html || !patterns || patterns.length === 0) {
+export function detectChatbotSolutions(
+  html: string,
+  patterns: Record<string, RegExp[]>
+): string[] {
+  if (!html || typeof html !== 'string') {
     return [];
   }
+
+  const solutions: string[] = [];
   
-  // Convert HTML to lowercase for case-insensitive matching
-  const lowerHtml = html.toLowerCase();
+  // Check each solution's patterns against the HTML
+  for (const [solution, solutionPatterns] of Object.entries(patterns)) {
+    const matchesPattern = solutionPatterns.some(pattern => pattern.test(html));
+    
+    if (matchesPattern) {
+      solutions.push(solution);
+    }
+  }
   
-  // Find all matches
+  return solutions;
+}
+
+/**
+ * Performs detailed pattern matching and returns matches with confidence
+ */
+export function analyzePatternMatches(
+  html: string,
+  patterns: Record<string, RegExp[]>
+): PatternMatchResult {
+  if (!html || typeof html !== 'string') {
+    return {
+      matches: [],
+      matchedPatterns: {},
+      confidence: 0
+    };
+  }
+  
   const matches: string[] = [];
+  const matchedPatterns: Record<string, string[]> = {};
   
-  for (const pattern of patterns) {
-    const match = lowerHtml.match(pattern);
-    if (match) {
-      matches.push(match[0]);
+  // Track total pattern count for confidence calculation
+  let totalPatterns = 0;
+  let matchedPatternCount = 0;
+  
+  // Check each solution's patterns against the HTML
+  for (const [solution, solutionPatterns] of Object.entries(patterns)) {
+    const solutionMatches: string[] = [];
+    
+    totalPatterns += solutionPatterns.length;
+    
+    // Test each pattern
+    for (const pattern of solutionPatterns) {
+      if (pattern.test(html)) {
+        // Extract the actual match for inspection
+        const matchText = html.match(pattern)?.[0] || '';
+        if (matchText) {
+          solutionMatches.push(matchText);
+          matchedPatternCount++;
+        }
+      }
+    }
+    
+    // If we found matches for this solution
+    if (solutionMatches.length > 0) {
+      matches.push(solution);
+      matchedPatterns[solution] = solutionMatches;
     }
   }
   
-  return matches;
+  // Calculate confidence based on the ratio of matching patterns
+  const confidence = calculateConfidenceScore(matches, totalPatterns);
+  
+  return {
+    matches,
+    matchedPatterns,
+    confidence
+  };
 }
 
 /**
- * Detects chatbot solutions based on HTML content
+ * Calculates a confidence score based on the number of matching patterns
  */
-export function detectChatbotSolutions(html: string, patternMap: Record<string, RegExp[]>): string[] {
-  if (!html) {
-    return [];
-  }
-  
-  const detectedSolutions: string[] = [];
-  
-  for (const [solution, patterns] of Object.entries(patternMap)) {
-    const matches = findPatternMatches(html, patterns);
-    if (matches.length > 0) {
-      detectedSolutions.push(solution);
-    }
-  }
-  
-  return detectedSolutions;
-}
-
-/**
- * Calculate confidence score based on the number and strength of matches
- */
-export function calculateConfidenceScore(matches: string[], totalPatterns: number): number {
+export function calculateConfidenceScore(
+  matches: string[],
+  totalPatterns: number
+): number {
   if (matches.length === 0 || totalPatterns === 0) {
     return 0;
   }
   
-  // Calculate base score based on match ratio
-  const baseScore = matches.length / Math.min(totalPatterns, 10);
+  // Weight based on number of matching solutions
+  const solutionWeight = Math.min(matches.length / 3, 1); // Cap at 1
   
-  // Apply diminishing returns for more than 3 matches
-  const diminishedScore = matches.length <= 3 
-    ? baseScore 
-    : 0.6 + (0.4 * (matches.length - 3) / 7);
+  // Base confidence starting at 0.6
+  const baseConfidence = 0.6;
   
-  // Ensure score is between 0 and 1
-  return Math.min(Math.max(diminishedScore, 0), 1);
+  // Adjust confidence based on solution count
+  return baseConfidence + (0.4 * solutionWeight);
 }

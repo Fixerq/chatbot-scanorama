@@ -1,11 +1,11 @@
 
-import { fetchHtmlContent } from './utils/httpUtils';
-import { normalizeUrl, sanitizeUrl, isValidUrl } from './utils/urlUtils';
-import { CHATBOT_PATTERNS, TOTAL_PATTERNS, CHAT_INVITATION_PATTERNS } from './patterns';
-import { detectChatbotSolutions, calculateConfidenceScore } from './utils/patternDetection';
-import { performSmartDetection, isFalsePositive } from './utils/smartDetection';
-import { getCachedResult, cacheResult } from './cache';
-import { AnalysisResult, AnalysisOptions } from './types';
+import { fetchHtmlContent } from './utils/httpUtils.ts';
+import { normalizeUrl, sanitizeUrl, isValidUrl } from './utils/urlUtils.ts';
+import { CHATBOT_PATTERNS, TOTAL_PATTERNS, CHAT_INVITATION_PATTERNS } from './patterns.ts';
+import { detectChatbotSolutions, calculateConfidenceScore } from './utils/patternDetection.ts';
+import { performSmartDetection, isFalsePositive } from './utils/smartDetection.ts';
+import { getCachedResult, cacheResult } from './cache.ts';
+import { AnalysisResult, AnalysisOptions } from './types.ts';
 
 /**
  * Analyzes a website to detect the presence of chatbots

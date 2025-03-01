@@ -1,9 +1,8 @@
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { analyzeWebsite, analyzeBatch } from './analyzer';
-import { fetchHtmlContent } from './utils/httpUtils';
-import { normalizeUrl, isValidUrl, sanitizeUrl } from './utils/urlUtils';
-import { AnalysisOptions, BatchAnalysisRequest } from './types';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { analyzeWebsite, analyzeBatch } from "./analyzer.ts";
+import { normalizeUrl, isValidUrl, sanitizeUrl } from "./utils/urlUtils.ts";
+import { AnalysisOptions, BatchAnalysisRequest } from "./types.ts";
 
 // Setup CORS headers
 const corsHeaders = {
@@ -26,7 +25,8 @@ serve(async (req) => {
       verifyResults,
       deepVerification,
       smartDetection,
-      confidenceThreshold: Number(confidenceThreshold) || 0.5
+      confidenceThreshold: Number(confidenceThreshold) || 0.5,
+      checkFunctionality: true
     };
 
     // Handle batch analysis

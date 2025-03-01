@@ -1,77 +1,83 @@
 
 /**
- * Simple cache implementation for website analysis results
+ * Simple in-memory cache for analysis results
  */
 
-interface CacheEntry {
-  url: string;
-  result: any;
-  timestamp: number;
-  expiresAt: number;
-}
+import { AnalysisResult } from './types.ts';
 
-// In-memory cache to reduce repeated analysis of the same sites
-const analysisCache = new Map<string, CacheEntry>();
+// Cache of analysis results to avoid redundant processing
+const resultCache: Map<string, { result: AnalysisResult; timestamp: number }> = new Map();
 
-// Cache expiration in milliseconds (default: 24 hours)
-const DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
+// Cache expiration time in milliseconds (1 hour)
+const CACHE_EXPIRATION = 60 * 60 * 1000;
 
 /**
- * Get cached analysis result if it exists and is not expired
+ * Retrieves a cached analysis result if available and not expired
  */
-export function getCachedResult(url: string): any | null {
-  const entry = analysisCache.get(url);
+export function getCachedResult(url: string): AnalysisResult | null {
+  // Normalize the URL for consistent cache keys
+  const normalizedUrl = url.toLowerCase().trim();
   
-  if (!entry) {
+  const cachedEntry = resultCache.get(normalizedUrl);
+  
+  if (!cachedEntry) {
     return null;
   }
   
-  // Check if cache has expired
-  if (Date.now() > entry.expiresAt) {
-    analysisCache.delete(url);
+  const { result, timestamp } = cachedEntry;
+  const currentTime = Date.now();
+  
+  // Check if the cache entry has expired
+  if (currentTime - timestamp > CACHE_EXPIRATION) {
+    // Remove expired entry
+    resultCache.delete(normalizedUrl);
     return null;
   }
   
-  return entry.result;
+  return result;
 }
 
 /**
- * Store analysis result in cache
+ * Caches an analysis result for future use
  */
-export function cacheResult(url: string, result: any, ttl: number = DEFAULT_CACHE_TTL): void {
-  const timestamp = Date.now();
-  const expiresAt = timestamp + ttl;
+export function cacheResult(url: string, result: AnalysisResult): void {
+  // Normalize the URL for consistent cache keys
+  const normalizedUrl = url.toLowerCase().trim();
   
-  analysisCache.set(url, {
-    url,
+  // Add the result to the cache with the current timestamp
+  resultCache.set(normalizedUrl, {
     result,
-    timestamp,
-    expiresAt
+    timestamp: Date.now()
   });
-}
-
-/**
- * Clear all cached results or for a specific URL
- */
-export function clearCache(url?: string): void {
-  if (url) {
-    analysisCache.delete(url);
-  } else {
-    analysisCache.clear();
+  
+  // Cleanup old entries if the cache gets too large
+  if (resultCache.size > 1000) {
+    cleanupCache();
   }
 }
 
 /**
- * Get cache statistics
+ * Cleans up old or expired cache entries
  */
-export function getCacheStats(): { size: number, entries: { url: string, age: number }[] } {
-  const entries = Array.from(analysisCache.entries()).map(([url, entry]) => ({
-    url,
-    age: Math.floor((Date.now() - entry.timestamp) / 1000) // Age in seconds
-  }));
+function cleanupCache(): void {
+  const currentTime = Date.now();
   
-  return {
-    size: analysisCache.size,
-    entries
-  };
+  // Find and remove expired entries
+  for (const [url, { timestamp }] of resultCache.entries()) {
+    if (currentTime - timestamp > CACHE_EXPIRATION) {
+      resultCache.delete(url);
+    }
+  }
+  
+  // If the cache is still too large, remove the oldest entries
+  if (resultCache.size > 500) {
+    const entries = [...resultCache.entries()];
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    
+    // Remove the oldest half of entries
+    const entriesToRemove = entries.slice(0, Math.floor(entries.length / 2));
+    for (const [url] of entriesToRemove) {
+      resultCache.delete(url);
+    }
+  }
 }

@@ -1,126 +1,146 @@
 
 /**
- * Advanced chatbot detection utilizing heuristics and AI techniques
+ * Advanced detection of chatbots using heuristics and AI-like pattern recognition
  */
 
-// Signs that indicate a high likelihood of chatbot presence
-const HIGH_CONFIDENCE_INDICATORS = [
-  /<div[^>]*\blivechat\b/i,
-  /<div[^>]*\bchat-?bot\b/i,
-  /<div[^>]*\bchatbot\b/i,
-  /<div[^>]*\bchat-?(window|widget|box|container)\b/i,
-  /chat-?bot\s*is\s*(typing|thinking)/i,
-  /start\s*live\s*chat/i,
-  /chat\s*with\s*(us|expert|agent|team|support)/i
+// Common chat-related keywords
+const CHAT_KEYWORDS = [
+  'chat', 'message', 'support', 'help', 'assistant', 'bot', 'ai', 
+  'conversation', 'talk', 'agent', 'live help', 'contact us'
 ];
 
-// Keywords often associated with chatbots but require additional verification
-const CHATBOT_KEYWORDS = [
-  'assistance',
-  'automated',
-  'bot',
-  'chat',
-  'conversation',
-  'help',
-  'instant',
-  'live',
-  'message',
-  'question',
-  'response',
-  'service',
-  'support'
+// Chat interaction patterns often found in HTML/JS
+const CHAT_INTERACTION_PATTERNS = [
+  /chat[-_]?widget/i,
+  /chat[-_]?bot/i,
+  /chat[-_]?window/i,
+  /chat[-_]?bubble/i,
+  /livechat/i,
+  /live[-_]?chat/i,
+  /messenger/i,
+  /chat[-_]?icon/i,
+  /support[-_]?chat/i,
+  /chat[-_]?container/i,
+  /chat[-_]?frame/i,
+  /chat[-_]?launcher/i,
+  /chat[-_]?button/i,
+];
+
+// Chat functionality indicators in JavaScript
+const JS_CHAT_INDICATORS = [
+  /initChat/i,
+  /loadChat/i,
+  /startChat/i,
+  /openChat/i,
+  /chat\.init/i,
+  /chat\.open/i,
+  /ChatWindow/i,
+  /ChatWidget/i,
+  /ChatBot/i,
+  /bot\.init/i,
+  /chat\.show/i,
+  /showChat/i,
+];
+
+// Known false positive domains
+const FALSE_POSITIVE_DOMAINS = [
+  'kentdentists.com',
+  'privategphealthcare.com',
+  'dentalcaredirect.co.uk',
+  'mydentist.co.uk',
+  'dentist-special.com'
 ];
 
 /**
- * Performs smart detection of chatbots beyond simple pattern matching
+ * Check if a URL is in the false positive list
  */
-export function performSmartDetection(html: string): {
-  isLikelyChatbot: boolean;
-  confidence: number;
-  indicators: string[];
-} {
-  if (!html) {
-    return { isLikelyChatbot: false, confidence: 0, indicators: [] };
+export function isFalsePositive(url: string, html: string): boolean {
+  try {
+    // Check domain against known false positives
+    const domain = new URL(url).hostname;
+    const isFalseDomain = FALSE_POSITIVE_DOMAINS.some(falseDomain => 
+      domain.includes(falseDomain) || domain === falseDomain
+    );
+    
+    if (isFalseDomain) {
+      return true;
+    }
+    
+    // Additional checks could be added here
+    
+    return false;
+  } catch {
+    return false;
   }
-  
-  // Search for high confidence indicators
-  const highConfidenceMatches = HIGH_CONFIDENCE_INDICATORS.some(pattern => 
-    pattern.test(html)
-  );
-  
-  // Count keyword occurrences
-  const keywordCounts = CHATBOT_KEYWORDS.reduce((counts, keyword) => {
-    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-    const matches = html.match(regex);
-    counts[keyword] = matches ? matches.length : 0;
-    return counts;
-  }, {} as Record<string, number>);
-  
-  // Calculate total keyword density
-  const totalKeywords = Object.values(keywordCounts).reduce((sum, count) => sum + count, 0);
-  const textLength = html.length;
-  const keywordDensity = textLength > 0 ? totalKeywords / (textLength / 1000) : 0;
-  
-  // Identify chat elements in the DOM
-  const chatElements = [
-    html.includes('chat-window'),
-    html.includes('chat-container'),
-    html.includes('chat-widget'),
-    html.includes('livechat'),
-    html.includes('bot-container')
-  ].filter(Boolean).length;
-  
-  // Determine if chatbot is likely present
-  const isLikelyChatbot = highConfidenceMatches || 
-    (keywordDensity > 1.5 && chatElements >= 1) ||
-    chatElements >= 2;
-  
-  // Calculate confidence score
-  let confidence = 0;
-  if (highConfidenceMatches) {
-    confidence = 0.9; // High confidence if direct indicators are found
-  } else if (chatElements >= 2) {
-    confidence = 0.8; // Multiple chat elements suggest a chatbot
-  } else if (chatElements === 1 && keywordDensity > 1.5) {
-    confidence = 0.7; // One chat element with high keyword density
-  } else if (keywordDensity > 2) {
-    confidence = 0.6; // Very high keyword density alone
-  } else if (keywordDensity > 1) {
-    confidence = 0.4; // Moderate keyword density
-  }
-  
-  // Collect indicators for the result
-  const indicators = [];
-  if (highConfidenceMatches) indicators.push('High confidence patterns');
-  if (chatElements > 0) indicators.push(`${chatElements} chat UI elements`);
-  if (keywordDensity > 0.8) indicators.push(`Keyword density: ${keywordDensity.toFixed(2)}`);
-  
-  return {
-    isLikelyChatbot,
-    confidence,
-    indicators
-  };
 }
 
 /**
- * Checks if a URL is likely to be a false positive based on domain/content
+ * Performs smart detection of chatbot presence using multiple heuristics
  */
-export function isFalsePositive(url: string, html: string): boolean {
-  // List of domains known to trigger false positives
-  const falsePositiveDomains = [
-    'example.com',
-    'test.com',
-    'dentist',
-    'dental'
-  ];
+export function performSmartDetection(html: string): { 
+  isLikelyChatbot: boolean; 
+  confidence: number;
+  indicators: string[];
+} {
+  if (!html || typeof html !== 'string') {
+    return { isLikelyChatbot: false, confidence: 0, indicators: [] };
+  }
   
-  // Check domain against known false positives
-  const domainMatch = falsePositiveDomains.some(domain => url.includes(domain));
+  const indicators: string[] = [];
+  let score = 0;
   
-  // Check HTML content for indicators that this is a dental or healthcare site
-  // but not actually having a chatbot
-  const isDentalSite = /dental|dentist|orthodont/i.test(html) && 
-    !/(chat.*now|start.*chat|live.*chat)/i.test(html);
+  // Check for chat-related HTML elements
+  const chatElements = CHAT_INTERACTION_PATTERNS.filter(pattern => pattern.test(html));
+  if (chatElements.length > 0) {
+    indicators.push(`Found ${chatElements.length} chat-related HTML elements`);
+    score += Math.min(chatElements.length * 0.15, 0.45); // Cap at 0.45
+  }
   
-  return domainMatch || isDentalSite;
+  // Check for chat keywords in visible text
+  const lowercaseHtml = html.toLowerCase();
+  const foundKeywords = CHAT_KEYWORDS.filter(keyword => 
+    lowercaseHtml.includes(keyword.toLowerCase())
+  );
+  
+  if (foundKeywords.length > 0) {
+    indicators.push(`Found ${foundKeywords.length} chat-related keywords`);
+    score += Math.min(foundKeywords.length * 0.05, 0.25); // Cap at 0.25
+  }
+  
+  // Check for chat functionality in JavaScript
+  const jsIndicators = JS_CHAT_INDICATORS.filter(pattern => pattern.test(html));
+  if (jsIndicators.length > 0) {
+    indicators.push(`Found ${jsIndicators.length} chat-related JavaScript functions`);
+    score += Math.min(jsIndicators.length * 0.1, 0.3); // Cap at 0.3
+  }
+  
+  // Look for chat interaction elements like textareas, input fields with chat-related attributes
+  const hasChatInput = /<(input|textarea)[^>]+(chat|message)[^>]+(type=["']text["']|placeholder)/i.test(html);
+  if (hasChatInput) {
+    indicators.push('Found chat input field');
+    score += 0.2;
+  }
+  
+  // Check for chat invitation texts
+  const chatInvitation = /chat\s+with\s+us|start\s+a\s+chat|live\s+chat|chat\s+now|message\s+us/i.test(html);
+  if (chatInvitation) {
+    indicators.push('Found chat invitation text');
+    score += 0.15;
+  }
+  
+  // Look for common chatbot UI elements
+  const hasChatUI = /<div[^>]+(chat-message|message-bubble|chat-bubble|bot-message|user-message)[^>]*>/i.test(html);
+  if (hasChatUI) {
+    indicators.push('Found chatbot UI elements');
+    score += 0.25;
+  }
+  
+  // Normalize score to a confidence value between 0 and 1
+  const confidence = Math.min(score, 1);
+  
+  return {
+    isLikelyChatbot: confidence >= 0.5,
+    confidence,
+    indicators
+  };
 }
