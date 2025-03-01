@@ -52,6 +52,17 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
 
     console.log('Analysis result from edge function:', data);
 
+    // Check if data is an array (new format) or object (old format)
+    if (Array.isArray(data) && data.length > 0) {
+      const result = data[0];
+      
+      return {
+        status: result.status || 'Analyzed',
+        chatSolutions: result.solutions || [],
+        lastChecked: new Date().toISOString()
+      };
+    }
+    
     if (!data || !data.status) {
       console.warn('Edge function returned incomplete data');
       return {

@@ -1,3 +1,4 @@
+
 export function detectDynamicLoading(html: string): boolean {
   const dynamicPatterns = [
     /window\.(onload|addEventListener).*chat/i,

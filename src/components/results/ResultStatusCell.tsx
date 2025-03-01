@@ -79,11 +79,11 @@ const ResultStatusCell = ({
           <TooltipTrigger asChild>
             <div 
               onClick={handleClick} 
-              className={`inline-block ${onResultUpdate ? 'cursor-pointer' : 'cursor-help'}`}
+              className={`inline-block ${onResultUpdate ? 'cursor-pointer hover:opacity-80' : 'cursor-help'}`}
             >
               <Badge 
                 variant={getChatbotStatusColor(status, hasChatbot)}
-                className={status === 'Processing...' ? 'animate-pulse' : ''}
+                className={`${status === 'Processing...' ? 'animate-pulse' : ''} px-3 py-1`}
               >
                 {technologies || 'Analyzing...'}
               </Badge>
