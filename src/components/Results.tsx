@@ -49,13 +49,13 @@ const Results = ({
     handlePageChange
   } = useResultsContainer(results);
 
-  // If we're currently analyzing or there are no results yet
-  if (isAnalyzing && validResults.length === 0) {
+  // If we're currently analyzing and there are no valid results yet, show the analyzing state
+  if (isAnalyzing && !validResults.length) {
     return <ResultsAnalyzingState />;
   }
 
-  // If there are no valid results after filtering out errors
-  if (!validResults || validResults.length === 0) {
+  // If there are no valid results after filtering out errors and we're not analyzing
+  if (!isAnalyzing && (!validResults || validResults.length === 0)) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 

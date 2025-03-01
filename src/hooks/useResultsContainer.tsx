@@ -1,28 +1,24 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Result } from '@/components/ResultsTable';
 
 export const useResultsContainer = (results: Result[] = []) => {
   // Filter out only results with error status
-  const validResults = results?.filter(r => 
-    r && !r.status?.toLowerCase().includes('error analyzing url')
-  ) || [];
+  const validResults = useMemo(() => {
+    return results?.filter(r => 
+      r && !r.status?.toLowerCase().includes('error analyzing url')
+    ) || [];
+  }, [results]);
   
-  const [filteredResults, setFilteredResults] = useState<Result[]>(validResults);
+  const [filteredResults, setFilteredResults] = useState<Result[]>([]);
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
   const [currentPage, setCurrentPage] = useState(1);
   const resultsPerPage = 25;
 
-  // Update filtered results when the input results change
+  // Update filtered results when the input results change or filter changes
   useEffect(() => {
-    console.log('Processing results:', validResults);
-    setFilteredResults(validResults);
-    setCurrentPage(1); // Reset to first page when results change
-  }, [validResults]);
-
-  // Apply filters when filter value changes
-  useEffect(() => {
+    console.log('Processing results in useResultsContainer:', validResults.length);
     let filtered = [...validResults];
     
     if (filterValue === 'chatbot') {
@@ -32,12 +28,17 @@ export const useResultsContainer = (results: Result[] = []) => {
     }
     
     setFilteredResults(filtered);
-    setCurrentPage(1); // Reset to first page when filter changes
-  }, [filterValue, validResults]);
+    
+    // Only reset to first page when results change, not on every render
+    if (results.length !== validResults.length) {
+      setCurrentPage(1);
+    }
+  }, [validResults, filterValue]);
 
   const handleFilter = (value: string) => {
     console.log('Applying filter:', value);
     setFilterValue(value);
+    setCurrentPage(1); // Reset to first page when filter changes
   };
 
   const handleSort = (value: string) => {
