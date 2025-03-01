@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
@@ -31,6 +32,7 @@ serve(async (req) => {
       throw new Error('Google API key is not configured');
     }
 
+    // Format the location query to include both country and region when available
     let locationQuery = query;
     if (region && country) {
       locationQuery = `${query} ${region} ${country}`;

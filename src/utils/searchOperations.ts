@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +55,7 @@ export const executeSearch = async (
       limit: resultsLimit
     });
 
+    // Pass region parameter along with country for more accurate location filtering
     const searchResult = await performGoogleSearch(
       enhancedQuery,
       country,
@@ -101,6 +103,7 @@ export const loadMore = async (
   
   try {
     console.log('Loading more results with startIndex:', startIndex);
+    // Pass the region parameter to the search function
     const searchResult = await performGoogleSearch(query, country, region, startIndex);
     
     if (!searchResult || !searchResult.results) {
