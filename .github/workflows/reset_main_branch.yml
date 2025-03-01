@@ -1,0 +1,43 @@
+name: Reset Main Branch to Specific Commit
+on:
+  workflow_dispatch:
+    inputs:
+      commit_hash:
+        description: 'Commit hash to reset to'
+        required: true
+        default: 'a3dd53d1acd71f79b58cbd9c57dc6aa2944dd26c'
+
+jobs:
+  reset-main-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        ref: main
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Git
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+    
+    - name: Create backup before reset
+      run: |
+        export DATE=$(date +"%Y-%m-%d-%H%M%S")
+        git branch backup-before-reset-$DATE
+        git push origin backup-before-reset-$DATE
+      
+    - name: Reset main branch
+      run: |
+        echo "Resetting main branch to commit ${{ github.event.inputs.commit_hash }}..."
+        git reset --hard ${{ github.event.inputs.commit_hash }}
+        git push origin main --force
+      
+    - name: Verify reset
+      run: |
+        echo "Main branch is now at:"
+        git log -1 --oneline
