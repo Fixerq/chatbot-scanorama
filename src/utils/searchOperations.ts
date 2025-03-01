@@ -1,4 +1,3 @@
-
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,8 +54,8 @@ export const executeSearch = async (
   try {
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
-    // Add specific terms to the query to find businesses more likely to have chatbots
-    const chatbotTerms = "website live chat support";
+    // Add more specific terms to the query to find businesses more likely to have chatbots
+    const chatbotTerms = "website live chat customer service support chatbot";
     const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
 
     console.log('Starting search with params:', {
@@ -89,14 +88,14 @@ export const executeSearch = async (
     }
 
     // Filter out duplicates while keeping existing results
-    const existingUrls = new Set(currentResults.map(r => r.url));
-    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+    const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
+    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url.toLowerCase()));
 
-    console.log(`Found ${newResults.length} new results`);
+    console.log(`Found ${newResults.length} new results after filtering duplicates`);
 
     return {
       newResults,
-      hasMore: searchResult.hasMore
+      hasMore: searchResult.hasMore && newResults.length > 0
     };
   } catch (error) {
     console.error('Search execution error:', error);
@@ -112,28 +111,40 @@ export const loadMore = async (
   currentResults: Result[],
   newLimit: number
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
-  const startIndex = currentResults.length + 1;
+  const startIndex = currentResults.length;
   
   try {
     console.log('Loading more results with startIndex:', startIndex, 'and region:', region);
     
+    // Add chatbot-specific terms to improve results
+    const chatbotTerms = "website live chat customer service support chatbot";
+    const enhancedQuery = `${query} ${chatbotTerms}`;
+    
     // Pass the region parameter to the search function for location-based filtering
-    const searchResult = await performGoogleSearch(query, country, region, startIndex);
+    const searchResult = await performGoogleSearch(enhancedQuery, country, region, startIndex);
     
     if (!searchResult || !searchResult.results) {
       console.log('No more results found');
       return { newResults: [], hasMore: false };
     }
 
-    // Filter out duplicates
-    const existingUrls = new Set(currentResults.map(r => r.url));
-    const newResults = searchResult.results.filter(result => !existingUrls.has(result.url));
+    // Create a Set of existing URLs (in lowercase for case-insensitive comparison)
+    const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
+    
+    // Filter out duplicates using case-insensitive comparison
+    const newResults = searchResult.results.filter(result => {
+      const lowerCaseUrl = result.url.toLowerCase();
+      return !existingUrls.has(lowerCaseUrl);
+    });
 
-    console.log(`Loaded ${newResults.length} additional results`);
+    console.log(`Loaded ${searchResult.results.length} results, ${newResults.length} new after filtering duplicates`);
+    
+    // Only report hasMore if we actually found new results
+    const hasMore = searchResult.hasMore && newResults.length > 0;
     
     return {
       newResults,
-      hasMore: searchResult.hasMore
+      hasMore
     };
   } catch (error) {
     console.error('Load more error:', error);

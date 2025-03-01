@@ -26,7 +26,9 @@ export const performGoogleSearch = async (
         query,
         country,
         region,
-        startIndex: startIndex || 0
+        startIndex: startIndex || 0,
+        limit: 10, // Ensure we're requesting a consistent amount of results
+        include_details: true // Request additional details for better verification
       }
     });
 
@@ -45,7 +47,7 @@ export const performGoogleSearch = async (
       };
     }
 
-    // Map the results to the expected format
+    // Map the results to the expected format and ensure there are no undefined entries
     const formattedResults = data.results
       .filter((result: any) => result && result.url) // Only include results with URLs
       .map((result: any) => ({

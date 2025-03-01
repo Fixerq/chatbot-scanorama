@@ -1,4 +1,3 @@
-
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,9 +68,9 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
         debug: true,
         verifyResults: true,
         deepVerification: true,
-        smartDetection: true, // Enable the new smart detection capabilities
-        confidenceThreshold: 0.5, // Lowered from 0.75 to improve detection rates
-        checkFunctionality: true // Verify if chat functionality actually exists
+        smartDetection: true,
+        confidenceThreshold: 0.3,
+        checkFunctionality: true
       }
     });
 
@@ -92,9 +91,9 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     if (Array.isArray(data) && data.length > 0) {
       const result = data[0];
       
-      // More lenient confidence checking
+      // Even more lenient confidence checking
       if (!result.hasChatbot || 
-         (result.confidence && result.confidence < 0.5) || // Lowered from 0.75
+         (result.confidence && result.confidence < 0.3) || 
          (result.verificationStatus === 'failed')) {
         console.log(`No chatbot detected or verification failed (${result.confidence}), marking as no chatbot`);
         return {
