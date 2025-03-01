@@ -1,33 +1,27 @@
 name: Create Backup Branch
-
 on:
   push:
     branches:
       - main
-
 jobs:
   create-backup-branch:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-
+      with:
+        fetch-depth: 0
     - name: Set up Git
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-
-    - name: Check current branch
-      run: git branch -a
-
     - name: Create backup branch
       run: |
         echo "Creating backup branch..."
-        git checkout -b backup-2025-03-01
-        git push origin backup-2025-03-01
+        export DATE=$(date +"%Y-%m-%d")
+        git checkout -b backup-$DATE
+        git push origin backup-$DATE
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Verify branch creation
-      run: git branch -a
