@@ -27,14 +27,20 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       };
     }
     
+    // Format the URL properly if needed
+    const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+    console.log('Formatted URL for analysis:', formattedUrl);
+    
+    // Call the Supabase edge function
     const { data, error } = await supabase.functions.invoke('analyze-website', {
-      body: { urls: [url] }  // Make sure we're sending an array of URLs
+      body: { 
+        urls: [formattedUrl],
+        debug: true  // Enable debugging in the edge function
+      }
     });
 
     if (error) {
       console.error('Error analyzing website:', error);
-      
-      // Show toast for visible errors
       toast.error('Error analyzing website: ' + error.message);
       
       return {
@@ -44,9 +50,10 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       };
     }
 
-    console.log('Analysis result:', data);
+    console.log('Analysis result from edge function:', data);
 
     if (!data || !data.status) {
+      console.warn('Edge function returned incomplete data');
       return {
         status: 'Analysis completed with no results',
         chatSolutions: [],
@@ -61,6 +68,7 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     };
   } catch (error) {
     console.error('Error in detectChatbot:', error);
+    toast.error('Failed to analyze website: ' + (error instanceof Error ? error.message : 'Unknown error'));
     return {
       status: 'Error analyzing URL',
       chatSolutions: [],

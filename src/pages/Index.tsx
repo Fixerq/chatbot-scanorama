@@ -7,6 +7,7 @@ import Results from '@/components/Results';
 import { Result } from '@/components/ResultsTable';
 import { UserStatusCheck } from '@/components/UserStatusCheck';
 import { toast } from 'sonner';
+import { useChatbotAnalysis } from '@/hooks/useChatbotAnalysis';
 
 const Index = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -14,6 +15,7 @@ const Index = () => {
   const [newSearchTrigger, setNewSearchTrigger] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const { analyzeChatbots } = useChatbotAnalysis();
 
   const handleNewSearch = useCallback(() => {
     setResults([]);
@@ -22,26 +24,44 @@ const Index = () => {
     console.log('New search triggered');
   }, []);
 
-  const handleResultUpdate = (updatedResult: Result) => {
+  const handleResultUpdate = async (updatedResult: Result) => {
     console.log('Triggering result update for:', updatedResult);
     
-    // Find the result and reanalyze it
+    // Find the result and mark it as reanalyzing
     setResults(prev => prev.map(result => 
       result.url === updatedResult.url ? 
         { ...result, status: 'Processing...' } : 
         result
     ));
     
-    // Here you would call your analysis function again
-    // For now, let's just update the status after a delay to simulate
-    setTimeout(() => {
+    try {
+      // Re-analyze just the one result
+      const reanalyzed = await analyzeChatbots([{...updatedResult, status: 'Processing...'}]);
+      
+      if (reanalyzed && reanalyzed.length > 0) {
+        // Update the result in the results array
+        setResults(prev => prev.map(result => 
+          result.url === updatedResult.url ? reanalyzed[0] : result
+        ));
+        toast.success('Analysis refreshed');
+      } else {
+        // Handle error case
+        setResults(prev => prev.map(result => 
+          result.url === updatedResult.url ? 
+            { ...result, status: 'Analysis failed' } : 
+            result
+        ));
+        toast.error('Failed to refresh analysis');
+      }
+    } catch (error) {
+      console.error('Error during result update:', error);
       setResults(prev => prev.map(result => 
         result.url === updatedResult.url ? 
-          { ...result, status: 'Analyzed' } : 
+          { ...result, status: 'Error during analysis' } : 
           result
       ));
-      toast.success('Analysis refreshed');
-    }, 1500);
+      toast.error('Error refreshing analysis');
+    }
   };
 
   // Debug log when results change
