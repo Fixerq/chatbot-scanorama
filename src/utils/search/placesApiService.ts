@@ -50,11 +50,8 @@ export const performGoogleSearch = async (
           include_details: true,
           client_timestamp: requestTimestamp
         },
-        options: {
-          // Longer timeout for API calls that might take time
-          headers: {
-            'Prefer': 'wait=30', // Extend timeout to 30 seconds
-          }
+        headers: {
+          'Prefer': 'wait=30', // Extend timeout to 30 seconds
         }
       });
 
