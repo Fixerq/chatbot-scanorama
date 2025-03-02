@@ -1,6 +1,6 @@
 
 import { Result } from '@/components/ResultsTable';
-import { executeSearch, loadMore } from '@/utils/searchOperations';
+import { executeSearch, loadMore } from '@/utils/search/operations';
 import { toast } from 'sonner';
 import { useSearchResults } from './useSearchResults';
 import { useSearchValidation } from './useSearchValidation';
