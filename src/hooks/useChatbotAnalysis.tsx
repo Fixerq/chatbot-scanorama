@@ -1,28 +1,7 @@
-
 import { Result } from '@/components/ResultsTable';
-import { detectChatbot } from '@/utils/chatbotDetection';
+import { detectChatbot, isKnownFalsePositive, FALSE_POSITIVE_DOMAINS } from '@/utils/chatbot';
 import { ChatbotDetectionResponse } from '@/types/chatbot';
 import { toast } from 'sonner';
-
-// Known false positive domains
-const FALSE_POSITIVE_DOMAINS = [
-  'kentdentists.com',
-  'privategphealthcare.com',
-  'dentalcaredirect.co.uk',
-  'mydentist.co.uk',
-  'dentist-special.com'
-];
-
-const isKnownFalsePositive = (url: string): boolean => {
-  try {
-    const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
-    return FALSE_POSITIVE_DOMAINS.some(falsePositive => 
-      domain.includes(falsePositive) || domain === falsePositive
-    );
-  } catch {
-    return false;
-  }
-};
 
 export const useChatbotAnalysis = () => {
   const analyzeChatbots = async (results: Result[]): Promise<Result[]> => {
