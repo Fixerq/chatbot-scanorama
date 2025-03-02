@@ -89,6 +89,24 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
     return retryCount < maxRetries - 1;
   }
   
+  // Handle 400 Bad Request errors specifically - check the payload format
+  if (data.status === 'bad_request' || data.error?.includes('400')) {
+    console.log('Bad request (400) error, checking what went wrong...');
+    
+    // If it mentions maxResultSizePerType, this is a formatting issue with the API
+    if (data.details?.includes('maxResultSizePerType')) {
+      toast.error('API request formatting error.', {
+        description: 'Please try again with different search terms.',
+        duration: 5000
+      });
+      return false; // Specific error that we can't retry
+    }
+    
+    // For other 400 errors, try a simplified request
+    console.log('Retrying with simplified request payload');
+    return retryCount < maxRetries - 1;
+  }
+  
   // If we have more retries left, try again with exponential backoff
   if (retryCount < maxRetries - 1) {
     console.log(`Got API error, retrying with exponential backoff... (attempt ${retryCount + 1} of ${maxRetries})`);

@@ -17,6 +17,7 @@ interface ResultsPaginationProps {
   onPageChange: (page: number) => void;
   hasMoreResults?: boolean;
   onLoadMore?: (page: number) => void;
+  isLoading?: boolean; // Add loading state
 }
 
 const ResultsPagination = ({ 
@@ -24,10 +25,11 @@ const ResultsPagination = ({
   totalPages, 
   onPageChange,
   hasMoreResults,
-  onLoadMore
+  onLoadMore,
+  isLoading = false
 }: ResultsPaginationProps) => {
   const handlePageChange = (page: number) => {
-    if (page === currentPage) return;
+    if (page === currentPage || isLoading) return;
     
     const isForwardNavigation = page > currentPage;
     
@@ -92,7 +94,7 @@ const ResultsPagination = ({
           <PaginationLink
             onClick={() => handlePageChange(page as number)}
             isActive={currentPage === page}
-            className={currentPage === page ? "pointer-events-none" : ""}
+            className={currentPage === page || isLoading ? "pointer-events-none" : ""}
           >
             {page}
           </PaginationLink>
@@ -106,7 +108,10 @@ const ResultsPagination = ({
       <PaginationContent>
         {currentPage > 1 && (
           <PaginationItem>
-            <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} />
+            <PaginationPrevious 
+              onClick={() => handlePageChange(currentPage - 1)} 
+              className={isLoading ? "opacity-50 pointer-events-none" : ""}
+            />
           </PaginationItem>
         )}
         
@@ -114,7 +119,10 @@ const ResultsPagination = ({
         
         {currentPage < totalPages && (
           <PaginationItem>
-            <PaginationNext onClick={() => handlePageChange(currentPage + 1)} />
+            <PaginationNext 
+              onClick={() => handlePageChange(currentPage + 1)} 
+              className={isLoading ? "opacity-50 pointer-events-none" : ""}
+            />
           </PaginationItem>
         )}
       </PaginationContent>

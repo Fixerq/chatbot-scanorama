@@ -1,341 +1,288 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createClient } from '@supabase/supabase-js';
 
-// Define CORS headers for browser compatibility
+// Set up CORS headers for the Edge Function
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, prefer, range',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json'
 };
 
-interface SearchOptions {
-  query: string;
-  country?: string;
-  region?: string;
-  startIndex?: number;
-  limit?: number;
-  include_details?: boolean;
-  pageToken?: string;
-  client_timestamp?: string;
+// Set up the Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Set up the Google Places API key
+const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY') ?? '';
+
+// Cache settings
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Helper function to get cached results
+async function getCachedResults(cacheKey: string) {
+  const { data, error } = await supabase
+    .from('cached_places')
+    .select('*')
+    .eq('cache_key', cacheKey)
+    .gt('expires_at', new Date().toISOString())
+    .limit(1)
+    .single();
+  
+  if (error || !data) {
+    return null;
+  }
+  
+  return data.results;
 }
 
-interface SearchResponse {
-  results: any[];
-  hasMore: boolean;
-  nextPageToken?: string;
-  error?: string;
-  details?: any;
+// Helper function to cache results
+async function cacheResults(cacheKey: string, results: any) {
+  const expiresAt = new Date(Date.now() + CACHE_DURATION_MS).toISOString();
+  
+  const { error } = await supabase
+    .from('cached_places')
+    .upsert({
+      cache_key: cacheKey,
+      results,
+      expires_at: expiresAt
+    }, { onConflict: 'cache_key' });
+  
+  if (error) {
+    console.error('Error caching results:', error);
+  }
 }
 
-// Country code mapping for Places API regionCode parameter
-const countryCodeMap: Record<string, string> = {
-  'United States': 'US',
-  'United Kingdom': 'GB',
-  'Canada': 'CA',
-  'Australia': 'AU',
-  'Germany': 'DE',
-  'France': 'FR',
-  'Italy': 'IT',
-  'Spain': 'ES',
-  'Netherlands': 'NL',
-  'Brazil': 'BR',
-  'Mexico': 'MX',
-  'Japan': 'JP',
-  'China': 'CN',
-  'India': 'IN',
-  'Singapore': 'SG',
-  // Add more as needed
-};
-
-serve(async (req) => {
+// The request handler
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: corsHeaders,
-      status: 204,
-    });
+    return new Response(null, { headers: corsHeaders });
   }
-
+  
+  // Reject non-POST requests
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { headers: corsHeaders, status: 405 }
+    );
+  }
+  
   try {
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Get Google API key
-    const { data: secretData } = await supabase
-      .from('secrets')
-      .select('value')
-      .eq('name', 'GOOGLE_PLACES_API_KEY')
-      .single();
-
-    if (!secretData || !secretData.value) {
-      console.error('Google Places API key not found in secrets table');
-      return new Response(
-        JSON.stringify({
-          error: 'API key not found',
-          details: 'Google Places API key missing from configuration',
-          status: 'config_error',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      );
-    }
-
-    const GOOGLE_API_KEY = secretData.value;
-    
     // Parse the request body
-    const options: SearchOptions = await req.json();
-    const { 
-      query, 
-      country = '', 
-      region = '', 
-      startIndex = 0, 
-      limit = 20, 
-      pageToken, 
-      client_timestamp 
-    } = options;
-
-    // Validate required parameters
+    const options = await req.json();
+    const { query, country, region, limit = 20, pageToken, client_timestamp } = options;
+    
+    console.log('Received request with options:', {
+      query,
+      country,
+      region,
+      limit,
+      hasPageToken: !!pageToken,
+      client_timestamp
+    });
+    
+    // Check for required parameters
     if (!query) {
       return new Response(
-        JSON.stringify({
-          error: 'Missing required parameter',
-          details: 'Query parameter is required',
-          status: 'validation_error',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
+        JSON.stringify({ error: 'Missing required parameter: query' }),
+        { headers: corsHeaders, status: 400 }
       );
     }
-
-    console.log(`Processing search request for: ${query} ${country}, country: ${country}, region: ${region || 'not specified'}`);
-    if (pageToken) {
-      console.log(`Using pageToken for pagination: ${pageToken}`);
+    
+    // Check for Google Places API key
+    if (!GOOGLE_API_KEY) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Google Places API key not configured',
+          status: 'config_error' 
+        }),
+        { headers: corsHeaders, status: 500 }
+      );
     }
-
-    // Check cache first if no pageToken (pagination requests shouldn't use cache)
-    if (!pageToken) {
-      const cacheKey = `${query}_${country}_${region}`.toLowerCase().replace(/\s+/g, '_');
-      const { data: cachedData } = await supabase
-        .from('cached_places')
-        .select('*')
-        .eq('search_batch_id', cacheKey)
-        .order('last_accessed', { ascending: false })
-        .limit(1);
-
-      if (cachedData && cachedData.length > 0) {
-        const cacheEntry = cachedData[0];
-        const cacheAge = new Date().getTime() - new Date(cacheEntry.last_accessed).getTime();
-        const cacheValidHours = 24; // Cache valid for 24 hours
-        
-        if (cacheAge < cacheValidHours * 60 * 60 * 1000) {
-          console.log(`Using cached results for "${query}" from ${new Date(cacheEntry.last_accessed).toISOString()}`);
-          
-          // Update the access timestamp
-          await supabase
-            .from('cached_places')
-            .update({ last_accessed: new Date().toISOString() })
-            .eq('id', cacheEntry.id);
-          
-          return new Response(
-            JSON.stringify({
-              results: cacheEntry.place_data.results || [],
-              hasMore: !!cacheEntry.place_data.nextPageToken,
-              nextPageToken: cacheEntry.place_data.nextPageToken || null,
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
-        } else {
-          console.log(`Cache expired for "${query}", fetching fresh results`);
-        }
+    
+    // Try to get cached results if no pageToken (we can't cache paginated results)
+    const cacheKey = !pageToken ? `${query}_${country}_${region}_${limit}` : null;
+    if (cacheKey) {
+      const cachedResults = await getCachedResults(cacheKey);
+      if (cachedResults) {
+        console.log('Returning cached results for:', cacheKey);
+        return new Response(
+          JSON.stringify(cachedResults),
+          { headers: corsHeaders }
+        );
       }
     }
-
-    // Construct Places API search request
-    const placesApiUrl = 'https://places.googleapis.com/v1/places:searchText';
-
-    // Determine the country code for regionCode parameter
-    let regionCode = '';
-    if (country && country.length === 2) {
-      // If country is already a 2-letter code, use it directly
-      regionCode = country.toUpperCase();
-    } else if (country && countryCodeMap[country]) {
-      // If country is a full name with a mapping, use the mapped code
-      regionCode = countryCodeMap[country];
-    }
-
-    // Build the request body for the Places API
+    
+    // Build the Places API URL
+    const apiUrl = 'https://places.googleapis.com/v1/places:searchText';
+    
+    // Prepare the request body for the Google Places API
     const requestBody: any = {
       textQuery: query,
       maxResultCount: limit,
-      languageCode: "en"
+      languageCode: "en",
+      includedTypes: ["restaurant", "store", "shopping_mall", "food", "bank", "cafe", 
+                        "hospital", "school", "university", "hotel", "local_business"]
     };
-
-    // Add region code if available
-    if (regionCode) {
-      requestBody.regionCode = regionCode;
+    
+    // Add regionCode if we have a valid country code
+    if (country && country.length === 2) {
+      requestBody.regionCode = country.toUpperCase();
+    } else if (country && country.length > 2) {
+      // Try to map country name to code (simplified version)
+      const countryMap: Record<string, string> = {
+        'united states': 'US',
+        'usa': 'US',
+        'united kingdom': 'GB',
+        'uk': 'GB',
+        'canada': 'CA',
+        'australia': 'AU',
+        'germany': 'DE',
+        'france': 'FR',
+        'italy': 'IT',
+        'spain': 'ES',
+        'japan': 'JP',
+        'china': 'CN',
+        'india': 'IN',
+        'brazil': 'BR',
+      };
+      
+      const code = countryMap[country.toLowerCase()];
+      if (code) {
+        requestBody.regionCode = code;
+      }
     }
-
-    // Add pagination token if available
+    
+    // Include region in text query if provided
+    if (region && region.trim()) {
+      requestBody.textQuery = `${requestBody.textQuery} ${region}`;
+    }
+    
+    // Add pageToken if available
     if (pageToken) {
       requestBody.pageToken = pageToken;
     }
-
-    // Include comprehensive field masks for detailed results
-    requestBody.includedTypes = ["business"];
-    requestBody.strictTypeFiltering = false;
-    requestBody.languageCode = "en";
     
-    // Include detailed field masks
-    requestBody.locationBias = {
-      rectangle: {
-        low: { latitude: -90, longitude: -180 },
-        high: { latitude: 90, longitude: 180 }
-      }
-    };
+    // Define the fields we want to get back to reduce payload size
+    const fieldMask = "places.id,places.displayName,places.formattedAddress,places.websiteUri," +
+                       "places.phoneNumbers,places.regularOpeningHours,places.primaryType," +
+                       "places.types,places.rating,places.userRatingCount";
     
-    // Request specific fields
-    requestBody.fieldMask = "places.displayName,places.formattedAddress,places.websiteUri,places.internationalPhoneNumber," +
-                            "places.rating,places.userRatingCount,places.photos,places.businessStatus,places.priceLevel," +
-                            "places.regularOpeningHours,places.types,places.addressComponents,places.id,places.plusCode," +
-                            "places.location,places.shortFormattedAddress,places.primaryType";
-
-    console.log('Sending Places API request with body:', JSON.stringify(requestBody, null, 2));
-
-    // Make the request to Google Places API
-    const response = await fetch(placesApiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': requestBody.fieldMask,
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    // Parse the response
-    const responseData = await response.json();
-
-    // Handle errors from Places API
-    if (!response.ok) {
-      console.error('Google Places API error:', response.status, responseData);
-      console.log('Request body that caused error:', JSON.stringify(requestBody, null, 2));
+    console.log('Sending request to Google Places API:', JSON.stringify(requestBody));
+    
+    // Make the request to the Google Places API
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_API_KEY,
+          'X-Goog-FieldMask': fieldMask
+        },
+        body: JSON.stringify(requestBody)
+      });
       
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('Google Places API error:', response.status, JSON.stringify(responseData).slice(0, 500));
+        
+        return new Response(
+          JSON.stringify({
+            error: `Google Places API error (${response.status}): ${JSON.stringify(responseData).slice(0, 1000)}`,
+            details: responseData?.error?.message || 'Unknown error',
+            status: 'api_error',
+            requestInfo: {
+              url: apiUrl,
+              body: requestBody,
+              fieldMask
+            }
+          }),
+          { 
+            headers: corsHeaders,
+            status: 500
+          }
+        );
+      }
+      
+      console.log('Google Places API response:', JSON.stringify(responseData).slice(0, 300) + '...');
+      
+      // Define the results array
+      let results: any[] = [];
+      
+      // Process the places from the response
+      if (responseData.places && Array.isArray(responseData.places)) {
+        results = responseData.places.map((place: any) => {
+          const websiteUri = place.websiteUri || 'https://example.com/no-website';
+          
+          return {
+            url: websiteUri,
+            title: place.displayName?.text || 'Unknown',
+            description: place.formattedAddress || 'No address available',
+            details: {
+              title: place.displayName?.text || 'Unknown',
+              description: place.formattedAddress || 'No address available',
+              phone: place.phoneNumbers?.[0] || null,
+              type: place.primaryType || (place.types?.[0] || 'business'),
+              rating: place.rating || null,
+              reviewCount: place.userRatingCount || 0,
+              openingHours: place.regularOpeningHours?.periods || null,
+              placeId: place.id
+            }
+          };
+        });
+      }
+      
+      // Prepare the response data
+      const response_data = {
+        results,
+        hasMore: !!responseData.nextPageToken,
+        nextPageToken: responseData.nextPageToken || null
+      };
+      
+      // Cache the results if cacheKey is available (non-paginated requests)
+      if (cacheKey) {
+        await cacheResults(cacheKey, response_data);
+      }
+      
+      // Return the response
+      return new Response(
+        JSON.stringify(response_data),
+        { headers: corsHeaders }
+      );
+    } catch (apiError) {
+      console.error('Error calling Google Places API:', apiError);
       return new Response(
         JSON.stringify({
-          error: `Google Places API error (${response.status})`,
-          details: responseData?.error?.message || 'Unknown error',
+          error: 'Google Places API call failed',
+          details: apiError.message,
           status: 'api_error',
-          rawResponse: responseData,
-          requestBody: requestBody
+          requestBody
         }),
         { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: corsHeaders,
           status: 500
         }
       );
     }
-
-    // Process the results and transform them to our application format
-    const results = (responseData.places || []).map((place: any) => {
-      // Get the website URL if available
-      const websiteUrl = place.websiteUri || 'https://example.com/no-website';
-      
-      // Extract the business name
-      const title = place.displayName?.text || '';
-      
-      // Create a description from the address and other details
-      const addressParts = [
-        place.formattedAddress,
-        place.internationalPhoneNumber
-      ].filter(Boolean);
-      
-      const description = addressParts.join(' • ');
-      
-      // Create a consistent result object
-      return {
-        url: websiteUrl,
-        details: {
-          title,
-          description,
-          placeId: place.id,
-          location: place.location,
-          rating: place.rating,
-          reviewCount: place.userRatingCount,
-          phone: place.internationalPhoneNumber,
-          address: place.formattedAddress,
-          businessType: place.primaryType || (place.types && place.types.length > 0 ? place.types[0] : ''),
-          photoReference: place.photos && place.photos.length > 0 ? place.photos[0].name : null,
-          openingHours: place.regularOpeningHours,
-          lastChecked: new Date().toISOString(),
-          priceLevel: place.priceLevel
-        }
-      };
-    });
-
-    // Prepare the response data
-    const response_data: SearchResponse = {
-      results,
-      hasMore: !!responseData.nextPageToken,
-      nextPageToken: responseData.nextPageToken || null
-    };
-
-    // Store the results in the cache for future use (only initial searches, not paginated ones)
-    if (!pageToken) {
-      const cacheKey = `${query}_${country}_${region}`.toLowerCase().replace(/\s+/g, '_');
-      
-      try {
-        await supabase
-          .from('cached_places')
-          .upsert({
-            place_id: cacheKey,
-            business_name: query,
-            place_data: {
-              results: response_data.results,
-              nextPageToken: response_data.nextPageToken,
-              query,
-              country,
-              region
-            },
-            search_batch_id: cacheKey,
-            last_accessed: new Date().toISOString()
-          });
-        
-        console.log(`Cached search results for "${query}"`);
-      } catch (cacheError) {
-        console.error('Error storing results in cache:', cacheError);
-        // Continue even if caching fails
-      }
-    }
-
-    // Return the final response
-    return new Response(
-      JSON.stringify(response_data),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    );
   } catch (error) {
-    console.error('Search-places function error:', error);
+    console.error('Detailed error info:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
         details: error.message,
-        stack: error.stack
+        name: error.name,
+        status: 'server_error'
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: corsHeaders,
         status: 500
       }
     );
