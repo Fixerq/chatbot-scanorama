@@ -37,8 +37,13 @@ const ResultsPagination = ({
     if (isForwardNavigation && hasMoreResults && onLoadMore && page > Math.ceil(totalPages * 0.75)) {
       console.log(`Loading more results for future pages (${page})`);
       // Load more results before changing the page to ensure they're available
-      onLoadMore(page);
-      toast.info("Loading more results for this page...");
+      try {
+        onLoadMore(page);
+        toast.info("Loading additional results for pagination...");
+      } catch (error) {
+        console.error('Error triggering load more:', error);
+        toast.error('Failed to load additional results');
+      }
     }
     
     // Always notify the parent component of the page change
@@ -94,7 +99,7 @@ const ResultsPagination = ({
           <PaginationLink
             onClick={() => handlePageChange(page as number)}
             isActive={currentPage === page}
-            className={currentPage === page || isLoading ? "pointer-events-none" : ""}
+            className={`${currentPage === page ? "pointer-events-none" : ""} ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
           >
             {page}
           </PaginationLink>
