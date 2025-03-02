@@ -2,7 +2,7 @@
 // Follow this example to create a Supabase Edge function
 // https://developers.supabase.com/docs/guides/functions
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const PLACES_API_URL = 'https://places.googleapis.com/v1/places:searchText'
