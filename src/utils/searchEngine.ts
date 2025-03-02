@@ -66,41 +66,13 @@ export const performGoogleSearch = async (
         };
       }
       
-      data = fallbackResponse.data;
+      // Use the fallback data instead of trying to reassign the const 'data'
+      return processSearchResults(fallbackResponse.data);
     }
 
     console.log('Raw response from Edge Function:', data);
 
-    if (!data || !data.results || !Array.isArray(data.results)) {
-      console.error('Invalid response format or empty results:', data);
-      return {
-        results: [],
-        hasMore: false
-      };
-    }
-
-    // Map the results to the expected format and ensure there are no undefined entries
-    const formattedResults = data.results
-      .filter((result: any) => result && result.url) // Only include results with URLs
-      .map((result: any) => ({
-        url: result.url,
-        status: 'Ready for analysis',
-        details: {
-          title: result.details?.title || result.title || '',
-          description: result.details?.description || result.description || '',
-          lastChecked: new Date().toISOString()
-        }
-      }));
-
-    console.log('Formatted results count:', formattedResults.length);
-    if (formattedResults.length > 0) {
-      console.log('Sample formatted result:', formattedResults[0]);
-    }
-
-    return {
-      results: formattedResults,
-      hasMore: data.hasMore || false
-    };
+    return processSearchResults(data);
   } catch (error) {
     console.error('Places search error:', error);
     // Return empty results instead of null to avoid breaking the UI
@@ -110,3 +82,37 @@ export const performGoogleSearch = async (
     };
   }
 };
+
+// Helper function to process search results
+const processSearchResults = (data: any): PlacesResult => {
+  if (!data || !data.results || !Array.isArray(data.results)) {
+    console.error('Invalid response format or empty results:', data);
+    return {
+      results: [],
+      hasMore: false
+    };
+  }
+
+  // Map the results to the expected format and ensure there are no undefined entries
+  const formattedResults = data.results
+    .filter((result: any) => result && result.url) // Only include results with URLs
+    .map((result: any) => ({
+      url: result.url,
+      status: 'Ready for analysis',
+      details: {
+        title: result.details?.title || result.title || '',
+        description: result.details?.description || result.description || '',
+        lastChecked: new Date().toISOString()
+      }
+    }));
+
+  console.log('Formatted results count:', formattedResults.length);
+  if (formattedResults.length > 0) {
+    console.log('Sample formatted result:', formattedResults[0]);
+  }
+
+  return {
+    results: formattedResults,
+    hasMore: data.hasMore || false
+  };
+}
