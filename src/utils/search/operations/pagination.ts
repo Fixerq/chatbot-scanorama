@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from '../index';
 import { toast } from 'sonner';
@@ -87,8 +88,8 @@ export const loadMore = async (
 
     console.log(`Loaded ${searchResult.results.length} results, ${newResults.length} new after filtering duplicates`);
     
-    // Only report hasMore if we actually found new results and the API indicates there are more
-    const hasMore = searchResult.hasMore;
+    // Determine if there are more results available
+    const hasMore = !!searchResult.nextPageToken; // Use the presence of nextPageToken to determine if more results are available
     
     return {
       newResults,

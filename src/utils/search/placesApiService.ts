@@ -57,15 +57,18 @@ export const performGoogleSearch = async (
         requestBody.pageToken = pageToken;
       }
 
+      console.log('Sending request to Edge Function with body:', JSON.stringify(requestBody, null, 2));
+
       // Attempt to call the edge function with increased timeout
       const { data, error } = await supabase.functions.invoke('search-places', {
         body: requestBody,
         headers: {
-          'Prefer': 'wait=30', // Extend timeout to 30 seconds
+          'Prefer': 'return=representation, count=exact',
         }
       });
 
       if (error) {
+        console.error('Edge function error:', error);
         const shouldRetry = handleSearchError(error, retryCount, maxRetries);
         if (shouldRetry) {
           retryCount++;
@@ -76,6 +79,7 @@ export const performGoogleSearch = async (
 
       // Check for errors in the response
       if (data?.error) {
+        console.error('Data error from Edge Function:', data.error, data.details || 'No details provided');
         const shouldRetry = handleDataError(data, retryCount, maxRetries);
         if (shouldRetry) {
           retryCount++;
@@ -96,7 +100,14 @@ export const performGoogleSearch = async (
         };
       }
       
-      return processSearchResults(data);
+      // Process the results and store nextPageToken if available
+      const processedResults = processSearchResults(data);
+      if (data.nextPageToken) {
+        console.log('Received page token for pagination:', data.nextPageToken);
+        processedResults.nextPageToken = data.nextPageToken;
+      }
+      
+      return processedResults;
     } catch (error) {
       console.error('Places search error:', error);
       retryCount++;
