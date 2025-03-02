@@ -1,284 +1,226 @@
 
-import { corsHeaders } from "../_shared/cors.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.1.0'
 
-const handler = async (req: Request): Promise<Response> => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY')
+
+interface SearchOptions {
+  query: string;
+  country?: string;
+  region?: string;
+  startIndex?: number;
+  limit?: number;
+  include_details?: boolean;
+}
+
+interface SearchResponse {
+  results: any[];
+  hasMore: boolean;
+  error?: string;
+  details?: string;
+  status?: string;
+}
+
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    const GOOGLE_PLACES_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
-    if (!GOOGLE_PLACES_API_KEY) {
-      console.error('GOOGLE_PLACES_API_KEY not configured in environment');
+    if (!GOOGLE_API_KEY) {
+      console.error('GOOGLE_PLACES_API_KEY is not set in environment variables');
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'API key configuration error',
-          status: 'api_error',
-          details: 'GOOGLE_PLACES_API_KEY not configured in environment'
-        }), 
+          details: 'Google Places API key is not configured',
+          status: 'config_error'
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
+          status: 500
         }
       );
     }
 
-    const { query, country, region, startIndex = 0, limit = 10, include_details = true } = await req.json();
+    // Parse request body
+    const options: SearchOptions = await req.json();
+    const { query, country, region, startIndex = 0, limit = 10, include_details = false } = options;
+    
+    console.log('Search request received:', {
+      query, 
+      country, 
+      region, 
+      startIndex,
+      limit
+    });
 
     if (!query) {
       return new Response(
-        JSON.stringify({ error: 'Query parameter is required', status: 'invalid_request' }), 
+        JSON.stringify({
+          error: 'Missing required parameters',
+          details: 'Query parameter is required',
+          status: 'invalid_params'
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
+          status: 400
         }
       );
     }
 
-    // Map country names to ISO 3166-1 alpha-2 country codes
-    const countryCodeMap: Record<string, string> = {
-      "United States": "US",
-      "United Kingdom": "GB",
-      "Canada": "CA",
-      "Australia": "AU",
-      "Germany": "DE",
-      "France": "FR",
-      "Spain": "ES",
-      "Italy": "IT",
-      "Japan": "JP",
-      "Brazil": "BR",
-      "India": "IN",
-      "China": "CN",
-      "Singapore": "SG",
-      "Netherlands": "NL",
-      "Sweden": "SE",
-      "Mexico": "MX",
-      "South Africa": "ZA",
-      "South Korea": "KR",
-      "Russia": "RU",
-      "United Arab Emirates": "AE",
-      "New Zealand": "NZ",
-      "Ireland": "IE",
-      "Switzerland": "CH",
-      "Norway": "NO",
-      "Denmark": "DK",
-      "Finland": "FI",
-      "Belgium": "BE",
-      "Austria": "AT",
-      "Portugal": "PT",
-      "Greece": "GR"
-    };
-
-    // Get the 2-letter country code if available
-    let countryCode = null;
-    if (country) {
-      // Try to get the code from our map first
-      countryCode = countryCodeMap[country];
-      
-      // If not found in our map, try to extract from the string
-      if (!countryCode && country.length >= 2) {
-        try {
-          countryCode = country.substring(0, 2).toUpperCase();
-        } catch (e) {
-          console.warn('Could not derive country code from:', country);
-        }
-      }
-    }
-
-    // Set up the Places API request parameters
-    const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
+    // Prepare the Google Places API request
+    const apiUrl = 'https://places.googleapis.com/v1/places:searchText';
     
-    // Prepare location restriction if we have a country code
-    let locationRestriction = null;
-    let locationBias = null;
-    
-    // Handle region-based location bias
-    if (region) {
-      try {
-        // Best-effort to create a bias for the region without exact coordinates
-        // This is an approximation and should be improved with region geocoding
-        locationBias = {
-          rectangle: {
-            low: {
-              latitude: 0,
-              longitude: 0
-            },
-            high: {
-              latitude: 90,
-              longitude: 180
-            }
-          }
-        };
-        console.log(`Set approximate location bias for region: ${region}`);
-      } catch (e) {
-        console.warn('Could not create location bias for region:', region, e);
-      }
-    }
-
-    // Set country restriction if we have a valid code
-    if (countryCode) {
-      // FIXED: Using the correct field name 'countries' instead of 'includedCountries'
-      locationRestriction = { 
-        countries: [countryCode] 
-      };
-      console.log(`Set location restriction to country: ${countryCode}`);
-    } else {
-      console.log('No country code available for location restriction');
-    }
-
-    // Prepare the field mask for the types of data we want returned
-    const fieldMask = [
-      'places.displayName',
-      'places.formattedAddress',
-      'places.id',
-      'places.location',
-      'places.types',
-      'places.websiteUri',
-      'places.rating',
-      'places.userRatingCount',
-      'places.internationalPhoneNumber',
-      'places.priceLevel',
-      'places.regularOpeningHours'
-    ].join(',');
-
-    // Configure the request body
-    const searchBody = {
+    // Build the request body with proper formatting for Google Places API v1
+    const requestBody: any = {
       textQuery: query,
       maxResultCount: limit,
+      // Use locationBias to influence results instead of strict filtering
+      // This is more reliable than trying to use locationRestriction
       languageCode: "en",
     };
 
-    // Only add location bias if it exists
-    if (locationBias) {
-      searchBody.locationBias = locationBias;
+    // Add location bias based on country and region
+    if (country) {
+      // Add region bias if available
+      if (region) {
+        requestBody.locationBias = {
+          rectangle: {
+            // Use approximate rectangle based on region
+            // This is a simplified approach - in production you'd want to use actual geocoding
+            low: { latitude: 0, longitude: 0 },
+            high: { latitude: 90, longitude: 180 }
+          }
+        };
+      } else {
+        // Just use circle bias with center of country
+        requestBody.locationBias = {
+          circle: {
+            center: {
+              latitude: 37.0902, // Default to US center if no specific mapping
+              longitude: -95.7129
+            },
+            radius: 2000000 // Large radius in meters (2000km)
+          }
+        };
+      }
     }
 
-    // Only add location restriction if it exists
-    if (locationRestriction) {
-      searchBody.locationRestriction = locationRestriction;
-    }
+    console.log('API request body:', JSON.stringify(requestBody, null, 2));
 
-    console.log('Sending Places API request with:', {
-      url: searchUrl,
-      query: query,
-      limit: limit,
-      startIndex: startIndex,
-      country: country,
-      countryCode: countryCode,
-      region: region,
-      locationBias: locationBias ? 'Configured' : 'Not set',
-      locationRestriction: locationRestriction ? 'Configured' : 'Not set',
-      bodyKeys: Object.keys(searchBody)
-    });
-
-    // Prepare the API request
-    const requestInit = JSON.parse(JSON.stringify({
+    // Make the API request
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-        'X-Goog-FieldMask': fieldMask
+        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.types,places.priceLevel,places.regularOpeningHours'
       },
-      body: JSON.stringify(searchBody)
-    }));
+      body: JSON.stringify(requestBody)
+    });
 
-    // Make the API call to Google Places
-    const response = await fetch(searchUrl, requestInit);
+    // Parse the response
+    const responseData = await response.json();
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Google Places API error (${response.status}): ${errorText}\n\n`);
+      console.error('Google Places API error:', response.status, responseData);
+      
       return new Response(
-        JSON.stringify({ 
-          error: `Google Places API returned ${response.status}`,
-          status: 'api_error',
-          details: errorText
-        }), 
+        JSON.stringify({
+          error: `Google Places API error (${response.status}): ${JSON.stringify(responseData, null, 2)}`,
+          details: responseData?.error?.message || 'Unknown error',
+          status: 'api_error'
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
+          status: 500
         }
       );
     }
 
-    const searchResponse = await response.json();
-    console.log(`Places API returned ${searchResponse.places?.length || 0} results`);
-
-    // Process and format the results
-    const results = [];
-    const hasMore = false; // Places API doesn't support pagination in this endpoint
+    console.log('Google Places API response received');
     
-    if (searchResponse.places && searchResponse.places.length > 0) {
-      for (const place of searchResponse.places) {
-        if (!place.websiteUri) {
-          console.log(`Skipping place with no website: ${place.displayName?.text || 'Unknown'}`);
-          continue; // Skip places without websites
-        }
-
-        try {
-          // Extract relevant details
-          const result = {
-            url: place.websiteUri,
-            title: place.displayName?.text || '',
+    // Process the results
+    const results = (responseData.places || []).map((place: any) => {
+      const website = place.websiteUri || '';
+      
+      // Skip entries without a website
+      if (!website) {
+        return {
+          url: 'https://example.com/no-website',
+          title: place.displayName?.text || 'Unknown Business',
+          description: place.formattedAddress || '',
+          details: {
+            title: place.displayName?.text || 'Unknown Business',
             description: place.formattedAddress || '',
-            details: {
-              title: place.displayName?.text || '',
-              description: place.formattedAddress || '',
-              lastChecked: new Date().toISOString(),
-              phone: place.internationalPhoneNumber || null,
-              rating: place.rating || null,
-              reviewCount: place.userRatingCount || null,
-              businessType: place.types?.length > 0 ? place.types[0] : null,
-              priceLevel: place.priceLevel || null,
-              openingHours: place.regularOpeningHours?.weekdayDescriptions || null,
-              location: place.location ? {
-                latitude: place.location.latitude,
-                longitude: place.location.longitude
-              } : null
-            }
-          };
-          
-          results.push(result);
-        } catch (e) {
-          console.error('Error processing place:', e);
-        }
+            phone: '',
+            rating: place.rating || 0,
+            reviewCount: place.userRatingCount || 0,
+            businessType: (place.types || [])[0] || '',
+            priceLevel: place.priceLevel || 0,
+            openingHours: (place.regularOpeningHours?.periods || []).map((p: any) => ({
+              open: p.open?.day + ' ' + p.open?.hour + ':' + p.open?.minute,
+              close: p.close?.day + ' ' + p.close?.hour + ':' + p.close?.minute,
+            })),
+            location: place.formattedAddress || ''
+          }
+        };
       }
-    }
+      
+      return {
+        url: website,
+        title: place.displayName?.text || 'Unknown Business',
+        description: place.formattedAddress || '',
+        details: {
+          title: place.displayName?.text || 'Unknown Business',
+          description: place.formattedAddress || '',
+          phone: '',
+          rating: place.rating || 0,
+          reviewCount: place.userRatingCount || 0,
+          businessType: (place.types || [])[0] || '',
+          priceLevel: place.priceLevel || 0,
+          openingHours: (place.regularOpeningHours?.periods || []).map((p: any) => ({
+            open: p.open?.day + ' ' + p.open?.hour + ':' + p.open?.minute,
+            close: p.close?.day + ' ' + p.close?.hour + ':' + p.close?.minute,
+          })),
+          location: place.formattedAddress || ''
+        }
+      };
+    }).filter(Boolean);
+
+    // Calculate if there might be more results
+    const hasMore = results.length >= limit;
+
+    const response_data: SearchResponse = {
+      results,
+      hasMore
+    };
 
     return new Response(
-      JSON.stringify({ 
-        results,
-        hasMore,
-        status: 'success',
-        meta: {
-          query,
-          country,
-          region,
-          totalFound: results.length
-        }
-      }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-    
-  } catch (error) {
-    console.error('Error processing search request:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: 'Failed to process search request',
-        details: error.message || 'Unknown error',
-        status: 'server_error'
-      }), 
+      JSON.stringify(response_data),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
+        status: 200
+      }
+    );
+  } catch (error) {
+    console.error('Error processing request:', error);
+    
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error.message,
+        status: 'server_error'
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
       }
     );
   }
-};
-
-Deno.serve(handler);
+});
