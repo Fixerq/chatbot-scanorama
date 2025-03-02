@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -120,23 +121,32 @@ export const loadMore = async (
     
     // Add chatbot-specific terms to improve results
     const chatbotTerms = "website online live chat customer service support chatbot contact";
-    const enhancedQuery = `${query} ${chatbotTerms}`;
+    const enhancedQuery = await enhanceSearchQuery(query, country, region);
+    const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
     
     // Calculate the maximum number of results we need
-    const maxNeededResults = Math.max(30, targetResultCount - startIndex);
+    const maxNeededResults = Math.max(50, targetResultCount - startIndex);
     
     // First attempt
-    let searchResult = await performGoogleSearch(enhancedQuery, country, region, startIndex);
+    let searchResult = await performGoogleSearch(finalQuery, country, region, startIndex);
     
-    // Retry with a different starting index if we didn't get results
+    // If first attempt fails, try with different parameters
     if (!searchResult?.results || searchResult.results.length === 0) {
       console.log('No results in first attempt, trying with adjusted parameters');
-      // Try with a different starting index
-      searchResult = await performGoogleSearch(enhancedQuery, country, region, Math.max(0, startIndex - 5));
+      
+      // Try with a different query formulation
+      const alternateQuery = `${query} chatbot customer service`;
+      searchResult = await performGoogleSearch(alternateQuery, country, region, Math.max(0, startIndex - 10));
+      
+      // If that still fails, try one more approach
+      if (!searchResult?.results || searchResult.results.length === 0) {
+        console.log('Second attempt failed, trying with more generic search');
+        searchResult = await performGoogleSearch(query, country, region, 0);
+      }
     }
     
     if (!searchResult || !searchResult.results) {
-      console.log('No more results found');
+      console.log('No more results found after multiple attempts');
       return { newResults: [], hasMore: false };
     }
 

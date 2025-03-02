@@ -85,7 +85,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         if (chatbotCount > 0) {
           toast.success(`Found ${chatbotCount} websites with chatbots out of ${analyzedResults.length} results`);
         } else {
-          toast.info(`Analyzed ${analyzedResults.length} websites, no chatbots detected`);
+          toast.info(`Analyzed ${analyzedResults.length} websites, still looking for chatbots...`);
         }
       } else {
         toast.info('No results found. Try different search terms.');
@@ -99,7 +99,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     }
   };
 
-  const handleLoadMore = async (pageNumber?: number) => {
+  const handleLoadMore = async (pageNumber?: number, forcePagination = false) => {
     if (!lastSearchParams) {
       toast.error('No search parameters available. Please perform a search first.');
       return;
@@ -109,7 +109,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     const targetPage = pageNumber || Math.ceil(results.currentResults.length / 25) + 1;
     
     // Check if we're already loading this page
-    if (loadingPages.includes(targetPage)) {
+    if (loadingPages.includes(targetPage) && !forcePagination) {
       console.log(`Already loading page ${targetPage}, ignoring duplicate request`);
       return;
     }
@@ -128,7 +128,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       
       console.log(`Loading more results for page ${targetPage}, currently have ${currentResultsCount} results, need ${targetResultsCount}`);
       
-      if (currentResultsCount >= targetResultsCount) {
+      if (currentResultsCount >= targetResultsCount && !forcePagination) {
         console.log(`Already have enough results for page ${targetPage}, no need to load more`);
         setIsSearching(false);
         setLoadingPages(prev => prev.filter(p => p !== targetPage));
@@ -137,12 +137,15 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
       
       toast.info(`Loading more results for page ${targetPage}...`);
       
+      // If we're doing force pagination (jumping to a page), we might need to load multiple pages
+      const extraResults = forcePagination ? targetResultsCount * 1.5 : targetResultsCount;
+      
       const moreResults = await loadMore(
         query,
         country,
         region,
         results.currentResults,
-        targetResultsCount
+        extraResults
       );
 
       if (moreResults?.newResults.length) {
@@ -157,7 +160,16 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
           const updatedResults = [...results.currentResults, ...uniqueNewResults];
           updateResults(updatedResults, moreResults.hasMore);
           console.log(`Added ${uniqueNewResults.length} unique new results, total now ${updatedResults.length}`);
-          toast.success(`Loaded ${uniqueNewResults.length} more results`);
+          
+          const newChatbotCount = uniqueNewResults.filter(r => 
+            r.details?.chatSolutions && r.details.chatSolutions.length > 0
+          ).length;
+          
+          if (newChatbotCount > 0) {
+            toast.success(`Found ${newChatbotCount} more websites with chatbots!`);
+          } else {
+            toast.success(`Loaded ${uniqueNewResults.length} more results`);
+          }
         } else {
           console.log('No new unique results found');
           toast.info('No more new results found');

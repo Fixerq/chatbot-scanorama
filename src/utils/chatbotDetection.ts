@@ -1,10 +1,11 @@
+
 import Papa from 'papaparse';
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatbotDetectionResponse } from '@/types/chatbot';
 import { toast } from 'sonner';
 
-// Known false positives that should be excluded
+// Known false positive domains
 const FALSE_POSITIVE_DOMAINS = [
   'kentdentists.com',
   'privategphealthcare.com',
@@ -62,7 +63,7 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
     console.log('Formatted URL for analysis:', formattedUrl);
     
     // Call the Supabase edge function with enhanced verification options and retry mechanism
-    const maxRetries = 2;
+    const maxRetries = 3;
     let lastError = null;
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -79,9 +80,10 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
             verifyResults: true,
             deepVerification: true,
             smartDetection: true,
-            confidenceThreshold: 0.25, // Lower threshold for better recall
+            confidenceThreshold: 0.15, // Further lowered threshold for better recall
             checkFunctionality: true,
-            retryFailures: true
+            retryFailures: true,
+            timeout: 15000 // Increased timeout for more thorough analysis
           }
         });
 
@@ -97,9 +99,9 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
         if (Array.isArray(data) && data.length > 0) {
           const result = data[0];
           
-          // More permissive confidence checking
+          // More permissive confidence checking with very low threshold
           if (!result.hasChatbot || 
-             (result.confidence !== undefined && result.confidence < 0.25) || 
+             (result.confidence !== undefined && result.confidence < 0.15) || 
              (result.verificationStatus === 'failed')) {
             console.log(`No chatbot detected or verification failed (${result.confidence}), marking as no chatbot`);
             return {
@@ -111,8 +113,18 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
             };
           }
           
-          // Map generic "Custom Chat" to more descriptive labels
-          let solutions = result.solutions || [];
+          // Include all possible chat solutions with more permissive detection
+          let solutions = result.solutions || result.chatSolutions || [];
+          
+          // Always ensure we have a valid array
+          if (!Array.isArray(solutions)) {
+            solutions = [];
+          }
+          
+          // If we have indicators but no specific solutions, add a generic solution
+          if (solutions.length === 0 && result.indicators && result.indicators.length > 0) {
+            solutions.push("Website Chatbot");
+          }
           
           // Convert all "Custom Chat" instances to the more descriptive label
           solutions = solutions.map(solution => 
@@ -120,7 +132,7 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
           );
           
           return {
-            status: result.status || 'Analyzed',
+            status: result.status || 'Chatbot detected',
             chatSolutions: solutions,
             confidence: result.confidence || 1,
             verificationStatus: result.verificationStatus || 'verified',
@@ -133,8 +145,11 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
           continue; // Try again
         }
         
+        // Handle the original data format
+        const hasChatbot = data.chatSolutions && data.chatSolutions.length > 0;
+        
         return {
-          status: data.status,
+          status: hasChatbot ? 'Chatbot detected' : 'No chatbot detected',
           chatSolutions: data.chatSolutions || [],
           confidence: data.confidence || 0,
           verificationStatus: data.verificationStatus || 'unknown',

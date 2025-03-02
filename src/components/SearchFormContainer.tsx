@@ -56,14 +56,18 @@ const SearchFormContainer = ({
       return;
     }
     
+    // If a page number is specified, it means we're jumping to a specific page
+    // and may need to load multiple pages of data
+    const forcePagination = pageNumber !== undefined && pageNumber > searchState.currentPage + 1;
+    
     setIsProcessing(true);
-    console.log('Loading more results, page:', nextPage);
+    console.log(`Loading more results for page ${nextPage}, forcePagination: ${forcePagination}`);
     
     updateSearchState({ 
       currentPage: nextPage
     });
 
-    handleLoadMore(nextPage);
+    handleLoadMore(nextPage, forcePagination);
   };
 
   React.useEffect(() => {
