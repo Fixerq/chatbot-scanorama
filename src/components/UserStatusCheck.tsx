@@ -1,3 +1,4 @@
+
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useEffect, useState } from 'react';
 import { Alert } from './ui/alert';
@@ -42,15 +43,7 @@ export const UserStatusCheck = () => {
     checkAdminStatus();
   }, [session, supabase]);
 
-  if (isLoading) {
-    return <Loader2 className="h-4 w-4 animate-spin" />;
-  }
-
-  return (
-    <div className="space-y-2">
-      <Alert variant={isAdmin ? "destructive" : "default"}>
-        User Role: {isAdmin ? 'Admin' : 'Regular User'}
-      </Alert>
-    </div>
-  );
-};
+  // We're still performing the admin check in the background,
+  // but we're not showing anything to the user anymore
+  return null;
+}
