@@ -21,9 +21,18 @@ export const performGoogleSearch = async (
       startIndex
     });
 
+    // Create a more reliable search query by adding the region/country if not already in query
+    let enhancedQuery = query;
+    if (region && !query.toLowerCase().includes(region.toLowerCase())) {
+      enhancedQuery = `${query} ${region}`;
+    }
+    if (country && !query.toLowerCase().includes(country.toLowerCase())) {
+      enhancedQuery = `${enhancedQuery} ${country}`;
+    }
+
     const { data, error } = await supabase.functions.invoke('search-places', {
       body: {
-        query,
+        query: enhancedQuery,
         country,
         region,
         startIndex: startIndex || 0,
@@ -34,7 +43,30 @@ export const performGoogleSearch = async (
 
     if (error) {
       console.error('Places search error:', error);
-      return null;
+      
+      // Attempt a second search with a simplified query if there was an error
+      console.log('Attempting fallback search with simplified parameters...');
+      const fallbackQuery = query.split(' ')[0]; // Use just the first word of the query
+      
+      const fallbackResponse = await supabase.functions.invoke('search-places', {
+        body: {
+          query: fallbackQuery,
+          country,
+          startIndex: 0,
+          limit: 10,
+          include_details: true
+        }
+      });
+      
+      if (fallbackResponse.error) {
+        console.error('Fallback search also failed:', fallbackResponse.error);
+        return {
+          results: [],
+          hasMore: false
+        };
+      }
+      
+      data = fallbackResponse.data;
     }
 
     console.log('Raw response from Edge Function:', data);
@@ -61,7 +93,9 @@ export const performGoogleSearch = async (
       }));
 
     console.log('Formatted results count:', formattedResults.length);
-    console.log('Sample formatted result:', formattedResults[0]);
+    if (formattedResults.length > 0) {
+      console.log('Sample formatted result:', formattedResults[0]);
+    }
 
     return {
       results: formattedResults,
@@ -69,6 +103,10 @@ export const performGoogleSearch = async (
     };
   } catch (error) {
     console.error('Places search error:', error);
-    return null;
+    // Return empty results instead of null to avoid breaking the UI
+    return {
+      results: [],
+      hasMore: false
+    };
   }
 };

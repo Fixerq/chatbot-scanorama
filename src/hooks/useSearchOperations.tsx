@@ -44,7 +44,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     try {
       console.log('Starting search process with params:', { query, country, region });
       
-      const searchResult = await executeSearch(
+      // First try with the specified region
+      let searchResult = await executeSearch(
         query,
         country,
         region,
@@ -52,6 +53,19 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         resultsLimit,
         []
       );
+
+      // If no results with the specified region, try without region
+      if (!searchResult || searchResult.newResults.length === 0) {
+        console.log('No results found with region. Trying without region...');
+        searchResult = await executeSearch(
+          query,
+          country,
+          '', // Empty region
+          apiKey,
+          resultsLimit,
+          []
+        );
+      }
 
       if (!searchResult) {
         console.error('Search returned no results');

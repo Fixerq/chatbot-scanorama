@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Result } from './ResultsTable';
 import { useSearchState } from '../hooks/useSearchState';
 import SearchForm from './SearchForm';
@@ -40,10 +40,14 @@ const SearchFormContainer = ({
     // Clear any previous results first to avoid showing old results during a new search
     onResults([]);
     console.log('Search form submitted with:', searchState);
+    
+    // Ensure region is properly formatted
+    const formattedRegion = searchState.region ? searchState.region.trim() : '';
+    
     handleSearch(
       searchState.query,
       searchState.country,
-      searchState.region,
+      formattedRegion,
       searchState.apiKey,
       searchState.resultsLimit
     );

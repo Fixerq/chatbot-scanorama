@@ -11,6 +11,10 @@ export const enhanceSearchQuery = async (
   try {
     console.log('Enhancing search query with params:', { query, country, region });
     
+    // For quick testing, if the API call fails, return a reasonable enhanced query
+    // This serves as a fallback to prevent search failures
+    const fallbackEnhancedQuery = `${query} in ${region || ''} ${country}`.trim();
+    
     const { data, error } = await supabase.functions.invoke('enhance-search', {
       body: { 
         query, 
@@ -24,7 +28,7 @@ export const enhanceSearchQuery = async (
     if (error || !data?.enhancedQuery) {
       console.error('Error enhancing search query:', error);
       toast.error('Failed to enhance search query, using original query');
-      return query;
+      return fallbackEnhancedQuery;
     }
 
     console.log('Original query:', query);
@@ -32,14 +36,14 @@ export const enhanceSearchQuery = async (
     
     if (!data.enhancedQuery || data.enhancedQuery.length < 3) {
       console.log('Enhanced query too short, using original');
-      return query;
+      return fallbackEnhancedQuery;
     }
 
     return data.enhancedQuery;
   } catch (error) {
     console.error('Error calling enhance-search function:', error);
     toast.error('Failed to enhance search query, using original query');
-    return query;
+    return `${query} in ${region || ''} ${country}`.trim();
   }
 };
 
@@ -88,27 +92,39 @@ export const executeSearch = async (
       
       // Try a more generic search as fallback
       console.log('Attempting fallback search with just the original query...');
-      const fallbackResult = await performGoogleSearch(query, country, region);
       
-      if (!fallbackResult?.results || fallbackResult.results.length === 0) {
-        return { newResults: [], hasMore: false };
+      // Try a series of increasingly simpler searches
+      const fallbackQueries = [
+        query, // Original query
+        `${query} services`, // Add services
+        query.split(' ')[0] // Just first word
+      ];
+      
+      for (const fallbackQuery of fallbackQueries) {
+        console.log(`Trying fallback search with: "${fallbackQuery}"`);
+        const fallbackResult = await performGoogleSearch(fallbackQuery, country, region);
+        
+        if (fallbackResult?.results && fallbackResult.results.length > 0) {
+          console.log(`Fallback search found ${fallbackResult.results.length} results`);
+          
+          // Filter out duplicates while keeping existing results
+          const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
+          const newResults = fallbackResult.results.filter(result => {
+            const lowerUrl = result.url.toLowerCase();
+            return !existingUrls.has(lowerUrl);
+          });
+          
+          console.log(`Found ${newResults.length} new results after filtering duplicates`);
+          
+          return {
+            newResults,
+            hasMore: fallbackResult.hasMore && newResults.length > 0
+          };
+        }
       }
       
-      console.log(`Fallback search found ${fallbackResult.results.length} results`);
-      
-      // Filter out duplicates while keeping existing results
-      const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
-      const newResults = fallbackResult.results.filter(result => {
-        const lowerUrl = result.url.toLowerCase();
-        return !existingUrls.has(lowerUrl);
-      });
-      
-      console.log(`Found ${newResults.length} new results after filtering duplicates`);
-      
-      return {
-        newResults,
-        hasMore: fallbackResult.hasMore && newResults.length > 0
-      };
+      // If all fallbacks failed, return empty results
+      return { newResults: [], hasMore: false };
     }
 
     // Process "No website" placeholders
@@ -144,7 +160,7 @@ export const executeSearch = async (
   } catch (error) {
     console.error('Search execution error:', error);
     toast.error('Failed to perform search. Please try again.');
-    return null;
+    return { newResults: [], hasMore: false };
   }
 };
 
