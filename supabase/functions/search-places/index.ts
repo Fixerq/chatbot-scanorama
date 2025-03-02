@@ -1,5 +1,6 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 
 // Set up CORS headers for the Edge Function
 const corsHeaders = {
@@ -55,7 +56,7 @@ async function cacheResults(cacheKey: string, results: any) {
 }
 
 // The request handler
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -122,9 +123,7 @@ Deno.serve(async (req) => {
     const requestBody: any = {
       textQuery: query,
       maxResultCount: limit,
-      languageCode: "en",
-      includedTypes: ["restaurant", "store", "shopping_mall", "food", "bank", "cafe", 
-                        "hospital", "school", "university", "hotel", "local_business"]
+      languageCode: "en"
     };
     
     // Add regionCode if we have a valid country code
