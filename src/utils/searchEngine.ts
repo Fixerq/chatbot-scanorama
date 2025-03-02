@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 interface PlacesResult {
   results: Result[];
   hasMore: boolean;
+  nextPageToken?: string;
 }
 
 export const performGoogleSearch = async (
@@ -58,7 +59,7 @@ export const performGoogleSearch = async (
           country,
           region,
           startIndex: startIndex || 0,
-          limit: 10, // Ensure we're requesting a consistent amount of results
+          limit: 20, // Increased from 10 to 20 for more results
           include_details: true, // Request additional details for better verification
           client_timestamp: requestTimestamp // Pass timestamp to correlate logs
         }
@@ -204,7 +205,8 @@ const processSearchResults = (data: any): PlacesResult => {
         priceLevel: result.details?.priceLevel,
         openingHours: result.details?.openingHours,
         location: result.details?.location,
-        photoReference: result.details?.photoReference
+        photoReference: result.details?.photoReference,
+        placeId: result.details?.placeId
       }
     }));
 
@@ -215,6 +217,7 @@ const processSearchResults = (data: any): PlacesResult => {
 
   return {
     results: formattedResults,
-    hasMore: data.hasMore || false
+    hasMore: data.hasMore || false,
+    nextPageToken: data.nextPageToken
   };
 }
