@@ -16,6 +16,12 @@ export const enhanceSearchQuery = async (
     // This serves as a fallback to prevent search failures
     const fallbackEnhancedQuery = `${query} in ${region || ''} ${country}`.trim();
     
+    // If query is too short, just return the fallback enhanced query
+    if (query.length < 3) {
+      console.log('Query too short, using fallback enhanced query');
+      return fallbackEnhancedQuery;
+    }
+    
     const { data, error } = await supabase.functions.invoke('enhance-search', {
       body: { 
         query, 
@@ -28,7 +34,8 @@ export const enhanceSearchQuery = async (
 
     if (error || !data?.enhancedQuery) {
       console.error('Error enhancing search query:', error);
-      toast.error('Failed to enhance search query, using original query');
+      // Don't show a toast here to avoid too many notifications
+      console.log('Using fallback enhanced query:', fallbackEnhancedQuery);
       return fallbackEnhancedQuery;
     }
 
@@ -36,15 +43,17 @@ export const enhanceSearchQuery = async (
     console.log('Enhanced query:', data.enhancedQuery);
     
     if (!data.enhancedQuery || data.enhancedQuery.length < 3) {
-      console.log('Enhanced query too short, using original');
+      console.log('Enhanced query too short, using fallback');
       return fallbackEnhancedQuery;
     }
 
     return data.enhancedQuery;
   } catch (error) {
     console.error('Error calling enhance-search function:', error);
-    toast.error('Failed to enhance search query, using original query');
-    return `${query} in ${region || ''} ${country}`.trim();
+    // Create a reasonable fallback query
+    const fallbackQuery = `${query} in ${region || ''} ${country}`.trim();
+    console.log('Using fallback query due to error:', fallbackQuery);
+    return fallbackQuery;
   }
 };
 
@@ -57,6 +66,19 @@ export const executeSearch = async (
   currentResults: Result[]
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   try {
+    // Add some validation for search parameters
+    if (!query || query.trim().length < 2) {
+      console.error('Search query too short');
+      toast.error('Search query too short. Please provide a more specific search term.');
+      return { newResults: [], hasMore: false };
+    }
+    
+    if (!country) {
+      console.error('Country not specified');
+      toast.error('Please select a country for your search.');
+      return { newResults: [], hasMore: false };
+    }
+
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
     // Add more specific terms to the query to find businesses more likely to have chatbots
@@ -98,12 +120,20 @@ export const executeSearch = async (
       const fallbackQueries = [
         query, // Original query
         `${query} in ${region || ''} ${country}`.trim(), // Structured query with location
-        `${query} services`, // Add services
-        query.split(' ')[0] // Just first word
-      ];
+        `${query} services in ${country}`, // Add services
+        `${query} business in ${country}`, // Try with business term
+        region ? `${query} in ${region}` : null, // Just region if available
+        query.split(' ')[0] + ` in ${country}` // Just first word with country
+      ].filter(Boolean); // Remove any null entries
       
       for (const fallbackQuery of fallbackQueries) {
         console.log(`Trying fallback search with: "${fallbackQuery}"`);
+        
+        // Show a toast to inform the user about the retry
+        if (fallbackQuery === fallbackQueries[0]) {
+          toast.info('No results found with initial search. Trying alternative search terms...');
+        }
+        
         const fallbackResult = await performGoogleSearch(fallbackQuery, country, region);
         
         if (fallbackResult?.results && fallbackResult.results.length > 0) {
@@ -118,14 +148,18 @@ export const executeSearch = async (
           
           console.log(`Found ${newResults.length} new results after filtering duplicates`);
           
-          return {
-            newResults,
-            hasMore: fallbackResult.hasMore && newResults.length > 0
-          };
+          if (newResults.length > 0) {
+            toast.success(`Found ${newResults.length} results with modified search criteria`);
+            return {
+              newResults,
+              hasMore: fallbackResult.hasMore && newResults.length > 0
+            };
+          }
         }
       }
       
       // If all fallbacks failed, return empty results
+      toast.error('No results found. Please try different search terms or locations.');
       return { newResults: [], hasMore: false };
     }
 
@@ -155,13 +189,19 @@ export const executeSearch = async (
 
     console.log(`Found ${newResults.length} new results after filtering duplicates`);
 
+    if (newResults.length === 0) {
+      toast.info('No new results found. Try different search terms or locations.');
+    } else {
+      toast.success(`Found ${newResults.length} new results to analyze`);
+    }
+
     return {
       newResults,
       hasMore: searchResult.hasMore && newResults.length > 0
     };
   } catch (error) {
     console.error('Search execution error:', error);
-    toast.error('Failed to perform search. Please try again.');
+    toast.error('Failed to perform search. Please try again with different terms.');
     return { newResults: [], hasMore: false };
   }
 };

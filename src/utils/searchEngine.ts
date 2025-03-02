@@ -60,8 +60,8 @@ export const performGoogleSearch = async (
           region,
           startIndex: startIndex || 0,
           limit: 20, // Maximum allowed by Places API v1
-          include_details: true, // Request additional details for better verification
-          client_timestamp: requestTimestamp // Pass timestamp to correlate logs
+          include_details: true,
+          client_timestamp: requestTimestamp
         }
       });
 
@@ -150,6 +150,15 @@ export const performGoogleSearch = async (
       
       // Log count of results
       console.log(`Received ${data?.results?.length || 0} results from API`);
+      
+      // Check if data is empty or malformed
+      if (!data || !data.results || !Array.isArray(data.results) || data.results.length === 0) {
+        console.log("Search returned no results");
+        return {
+          results: [],
+          hasMore: false
+        };
+      }
       
       return processSearchResults(data);
     } catch (error) {
