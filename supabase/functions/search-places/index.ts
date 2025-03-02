@@ -1,349 +1,284 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-interface SearchRequest {
-  query: string;
-  country: string;
-  region: string;
-  startIndex?: number;
-  limit?: number;
-  include_details?: boolean;
-}
-
-interface LocationCoordinates {
-  latitude: number;
-  longitude: number;
-}
-
-// Country code mapping for common countries
-const COUNTRY_CODES: Record<string, string> = {
-  "United States": "US",
-  "United Kingdom": "GB",
-  "Canada": "CA",
-  "Australia": "AU",
-  "Germany": "DE",
-  "France": "FR",
-  "Spain": "ES",
-  "Italy": "IT",
-  "Japan": "JP",
-  "Brazil": "BR",
-  "India": "IN",
-  "China": "CN",
-  "Singapore": "SG",
-  "Netherlands": "NL",
-  "Sweden": "SE"
-};
-
-// Rough center points for regions to improve search accuracy
-const REGION_CENTERS: Record<string, LocationCoordinates> = {
-  // US States
-  "California": { latitude: 36.7783, longitude: -119.4179 },
-  "New York": { latitude: 40.7128, longitude: -74.0060 },
-  "Texas": { latitude: 31.9686, longitude: -99.9018 },
-  // UK
-  "England": { latitude: 52.3555, longitude: -1.1743 },
-  "Scotland": { latitude: 56.4907, longitude: -4.2026 },
-  // Add more as needed
-};
-
-serve(async (req) => {
+const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the Google Places API key from environment variables
     const GOOGLE_PLACES_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
-    
     if (!GOOGLE_PLACES_API_KEY) {
-      console.error('Missing Google Places API key');
+      console.error('GOOGLE_PLACES_API_KEY not configured in environment');
       return new Response(
         JSON.stringify({ 
-          error: 'Server configuration error: Missing API key',
-          detail: 'The GOOGLE_PLACES_API_KEY environment variable is not set'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          error: 'API key configuration error',
+          status: 'api_error',
+          details: 'GOOGLE_PLACES_API_KEY not configured in environment'
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
       );
     }
 
-    // Validate request body exists
-    if (req.body === null) {
-      console.error('Request body is missing');
-      return new Response(
-        JSON.stringify({ error: 'Request body is missing' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    // Parse request body with error handling
-    let requestData: SearchRequest;
-    try {
-      requestData = await req.json();
-    } catch (e) {
-      console.error('Error parsing request body:', e);
-      return new Response(
-        JSON.stringify({ error: 'Invalid request format', details: e.message }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    const { query, country, region, startIndex = 0, limit = 10, include_details = false } = requestData;
+    const { query, country, region, startIndex = 0, limit = 10, include_details = true } = await req.json();
 
     if (!query) {
-      console.error('Missing required parameter: query');
       return new Response(
-        JSON.stringify({ error: 'Missing required parameter: query' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ error: 'Query parameter is required', status: 'invalid_request' }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
       );
     }
 
-    console.log(`Searching for: "${query}" in ${region || ''} ${country || ''}, startIndex: ${startIndex}`);
+    // Map country names to ISO 3166-1 alpha-2 country codes
+    const countryCodeMap: Record<string, string> = {
+      "United States": "US",
+      "United Kingdom": "GB",
+      "Canada": "CA",
+      "Australia": "AU",
+      "Germany": "DE",
+      "France": "FR",
+      "Spain": "ES",
+      "Italy": "IT",
+      "Japan": "JP",
+      "Brazil": "BR",
+      "India": "IN",
+      "China": "CN",
+      "Singapore": "SG",
+      "Netherlands": "NL",
+      "Sweden": "SE",
+      "Mexico": "MX",
+      "South Africa": "ZA",
+      "South Korea": "KR",
+      "Russia": "RU",
+      "United Arab Emirates": "AE",
+      "New Zealand": "NZ",
+      "Ireland": "IE",
+      "Switzerland": "CH",
+      "Norway": "NO",
+      "Denmark": "DK",
+      "Finland": "FI",
+      "Belgium": "BE",
+      "Austria": "AT",
+      "Portugal": "PT",
+      "Greece": "GR"
+    };
 
-    // URL for the Google Places API Text Search endpoint
-    const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
-
-    // Build location bias and restriction based on country and region
-    let locationBias = {};
-    let locationRestriction = {};
-
+    // Get the 2-letter country code if available
+    let countryCode = null;
     if (country) {
-      // Get country code from mapping or attempt to derive it
-      let countryCode = COUNTRY_CODES[country];
+      // Try to get the code from our map first
+      countryCode = countryCodeMap[country];
       
-      if (!countryCode && country) {
-        // Fallback: try to extract country code (not reliable for all countries)
+      // If not found in our map, try to extract from the string
+      if (!countryCode && country.length >= 2) {
         try {
           countryCode = country.substring(0, 2).toUpperCase();
-          console.log(`Using derived country code: ${countryCode} for ${country}`);
         } catch (e) {
           console.warn('Could not derive country code from:', country);
         }
       }
+    }
 
-      // Set country restriction if we have a valid code
-      if (countryCode) {
-        // FIXED: Using the correct field name 'countries' instead of 'includedCountries'
-        locationRestriction = { 
-          countries: [countryCode] 
-        };
-        console.log(`Set location restriction to country: ${countryCode}`);
-      } else {
-        // Fallback to global search with a wide rectangle
-        locationRestriction = {
+    // Set up the Places API request parameters
+    const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
+    
+    // Prepare location restriction if we have a country code
+    let locationRestriction = null;
+    let locationBias = null;
+    
+    // Handle region-based location bias
+    if (region) {
+      try {
+        // Best-effort to create a bias for the region without exact coordinates
+        // This is an approximation and should be improved with region geocoding
+        locationBias = {
           rectangle: {
-            low: { latitude: -90, longitude: -180 },
-            high: { latitude: 90, longitude: 180 }
+            low: {
+              latitude: 0,
+              longitude: 0
+            },
+            high: {
+              latitude: 90,
+              longitude: 180
+            }
           }
         };
-        console.log('Using global location restriction (no valid country code)');
-      }
-
-      // If region is provided, add region bias
-      if (region) {
-        // Try to get center coordinates for this region
-        const regionCenter = REGION_CENTERS[region];
-        
-        if (regionCenter) {
-          locationBias = {
-            circle: {
-              center: regionCenter,
-              radius: 50000.0 // 50km radius
-            }
-          };
-          console.log(`Using predefined center for ${region}: ${JSON.stringify(regionCenter)}`);
-        } else {
-          // If no predefined center, use general bias (less accurate)
-          locationBias = {
-            rectangle: {
-              low: { latitude: -90, longitude: -180 },
-              high: { latitude: 90, longitude: 180 }
-            }
-          };
-          console.log(`No predefined center for ${region}, using global bias`);
-        }
+        console.log(`Set approximate location bias for region: ${region}`);
+      } catch (e) {
+        console.warn('Could not create location bias for region:', region, e);
       }
     }
 
-    // Request body for the Places API
+    // Set country restriction if we have a valid code
+    if (countryCode) {
+      // FIXED: Using the correct field name 'countries' instead of 'includedCountries'
+      locationRestriction = { 
+        countries: [countryCode] 
+      };
+      console.log(`Set location restriction to country: ${countryCode}`);
+    } else {
+      console.log('No country code available for location restriction');
+    }
+
+    // Prepare the field mask for the types of data we want returned
+    const fieldMask = [
+      'places.displayName',
+      'places.formattedAddress',
+      'places.id',
+      'places.location',
+      'places.types',
+      'places.websiteUri',
+      'places.rating',
+      'places.userRatingCount',
+      'places.internationalPhoneNumber',
+      'places.priceLevel',
+      'places.regularOpeningHours'
+    ].join(',');
+
+    // Configure the request body
     const searchBody = {
       textQuery: query,
-      locationBias: Object.keys(locationBias).length > 0 ? locationBias : undefined,
-      locationRestriction: Object.keys(locationRestriction).length > 0 ? locationRestriction : undefined,
       maxResultCount: limit,
-      languageCode: "en"
+      languageCode: "en",
     };
 
-    // Define the fields we want to retrieve
-    const fieldMask = include_details 
-      ? "places.displayName,places.formattedAddress,places.websiteUri,places.id,places.location,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.regularOpeningHours,places.priceLevel,places.types,places.photos"
-      : "places.displayName,places.formattedAddress,places.websiteUri,places.id";
+    // Only add location bias if it exists
+    if (locationBias) {
+      searchBody.locationBias = locationBias;
+    }
 
-    console.log('Search request:', JSON.stringify({
+    // Only add location restriction if it exists
+    if (locationRestriction) {
+      searchBody.locationRestriction = locationRestriction;
+    }
+
+    console.log('Sending Places API request with:', {
       url: searchUrl,
+      query: query,
+      limit: limit,
+      startIndex: startIndex,
+      country: country,
+      countryCode: countryCode,
+      region: region,
+      locationBias: locationBias ? 'Configured' : 'Not set',
+      locationRestriction: locationRestriction ? 'Configured' : 'Not set',
+      bodyKeys: Object.keys(searchBody)
+    });
+
+    // Prepare the API request
+    const requestInit = JSON.parse(JSON.stringify({
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': 'API_KEY_EXISTS: ' + (GOOGLE_PLACES_API_KEY ? 'Yes' : 'No'),
+        'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
         'X-Goog-FieldMask': fieldMask
       },
-      body: searchBody
+      body: JSON.stringify(searchBody)
     }));
 
     // Make the API call to Google Places
-    let response;
-    try {
-      response = await fetch(searchUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': fieldMask,
-        },
-        body: JSON.stringify(searchBody)
-      });
-    } catch (fetchError) {
-      console.error('Network error during Google Places API call:', fetchError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Network error connecting to Google Places API', 
-          details: fetchError.message,
-          status: 'connection_error'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
-      );
-    }
-
-    // Handle API response
-    if (!response.ok) {
-      let errorText;
-      let errorData;
-      
-      try {
-        errorText = await response.text();
-        try {
-          // Try to parse as JSON if possible
-          errorData = JSON.parse(errorText);
-        } catch (e) {
-          // Not JSON, use as text
-          errorData = { message: errorText };
-        }
-      } catch (e) {
-        errorText = 'Could not read error response';
-        errorData = { message: errorText };
-      }
-      
-      console.error(`Google Places API error (${response.status}): ${errorText}`);
-      
-      // Provide more details about the error
-      return new Response(
-        JSON.stringify({ 
-          error: `Google Places API error: ${response.status}`, 
-          details: errorData,
-          request: {
-            query,
-            country,
-            region
-          },
-          status: 'api_error'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
-      );
-    }
-
-    // Parse successful response
-    let data;
-    try {
-      data = await response.json();
-    } catch (parseError) {
-      console.error('Error parsing Google Places API response:', parseError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Error parsing Google Places API response', 
-          details: parseError.message
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
+    const response = await fetch(searchUrl, requestInit);
     
-    console.log(`Received ${data.places?.length || 0} places from Google API`);
-
-    // Check for valid data structure
-    if (!data.places || !Array.isArray(data.places)) {
-      console.warn('Google Places API returned an unexpected format:', data);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Google Places API error (${response.status}): ${errorText}\n\n`);
       return new Response(
         JSON.stringify({ 
-          error: 'Invalid response format from Google Places API',
-          details: 'The "places" property is missing or not an array',
-          rawResponse: data
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          error: `Google Places API returned ${response.status}`,
+          status: 'api_error',
+          details: errorText
+        }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
       );
     }
 
-    // Process the results
-    const results = data.places
-      .filter(place => !!place.websiteUri)  // Only include places with websites
-      .map(place => {
-        console.log(`Processing place: ${place.displayName?.text || 'Unknown'}`);
-        
-        // Extract the basic information
-        const result = {
-          url: place.websiteUri,
-          title: place.displayName?.text || 'Business Name Not Available',
-          description: place.formattedAddress || '',
-          details: {
-            title: place.displayName?.text || 'Business Name Not Available',
-            description: place.formattedAddress || '',
-            lastChecked: new Date().toISOString(),
-          }
-        };
+    const searchResponse = await response.json();
+    console.log(`Places API returned ${searchResponse.places?.length || 0} results`);
 
-        // Add additional details if requested
-        if (include_details) {
-          result.details = {
-            ...result.details,
-            phone: place.nationalPhoneNumber,
-            rating: place.rating,
-            reviewCount: place.userRatingCount,
-            businessType: place.types?.[0] || '',
-            priceLevel: place.priceLevel,
-            location: place.location ? `${place.location.latitude},${place.location.longitude}` : null,
-            openingHours: place.regularOpeningHours?.periods?.map(period => ({
-              open: period.open?.day + ':' + period.open?.hour + ':' + period.open?.minute,
-              close: period.close?.day + ':' + period.close?.hour + ':' + period.close?.minute,
-            })) || []
-          };
+    // Process and format the results
+    const results = [];
+    const hasMore = false; // Places API doesn't support pagination in this endpoint
+    
+    if (searchResponse.places && searchResponse.places.length > 0) {
+      for (const place of searchResponse.places) {
+        if (!place.websiteUri) {
+          console.log(`Skipping place with no website: ${place.displayName?.text || 'Unknown'}`);
+          continue; // Skip places without websites
         }
 
-        return result;
-      });
-
-    // Check if there are more results available (pagination token)
-    const hasMore = !!data.nextPageToken;
+        try {
+          // Extract relevant details
+          const result = {
+            url: place.websiteUri,
+            title: place.displayName?.text || '',
+            description: place.formattedAddress || '',
+            details: {
+              title: place.displayName?.text || '',
+              description: place.formattedAddress || '',
+              lastChecked: new Date().toISOString(),
+              phone: place.internationalPhoneNumber || null,
+              rating: place.rating || null,
+              reviewCount: place.userRatingCount || null,
+              businessType: place.types?.length > 0 ? place.types[0] : null,
+              priceLevel: place.priceLevel || null,
+              openingHours: place.regularOpeningHours?.weekdayDescriptions || null,
+              location: place.location ? {
+                latitude: place.location.latitude,
+                longitude: place.location.longitude
+              } : null
+            }
+          };
+          
+          results.push(result);
+        } catch (e) {
+          console.error('Error processing place:', e);
+        }
+      }
+    }
 
     return new Response(
       JSON.stringify({ 
-        results, 
+        results,
         hasMore,
-        totalResults: results.length,
-        nextPageToken: data.nextPageToken
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        status: 'success',
+        meta: {
+          query,
+          country,
+          region,
+          totalFound: results.length
+        }
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
+    
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('Error processing search request:', error);
+    
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error', 
-        details: error.message,
-        stack: error.stack
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        error: 'Failed to process search request',
+        details: error.message || 'Unknown error',
+        status: 'server_error'
+      }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
     );
   }
-});
+};
+
+Deno.serve(handler);
