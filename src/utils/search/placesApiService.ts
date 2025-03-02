@@ -46,15 +46,18 @@ export const performGoogleSearch = async (
         query: enhancedQuery,
         country,
         region,
-        startIndex: startIndex || 0,
         limit: 20, // Maximum allowed by Places API
         include_details: true,
         client_timestamp: requestTimestamp
       };
       
-      // Add pageToken if available for pagination
+      // Add pageToken if available for pagination - this is critical for token-based pagination
       if (pageToken) {
         requestBody.pageToken = pageToken;
+        console.log('Including pageToken in request:', pageToken);
+      } else if (startIndex && startIndex > 0) {
+        // Only use startIndex if no pageToken is available (legacy option)
+        requestBody.startIndex = startIndex;
       }
 
       console.log('Sending request to Edge Function with body:', JSON.stringify(requestBody, null, 2));

@@ -1,6 +1,6 @@
 
 import { Result } from '@/components/ResultsTable';
-import { performGoogleSearch } from '../index';
+import { performGoogleSearch } from '../placesApiService';
 import { toast } from 'sonner';
 import { enhanceSearchQuery } from './enhancer';
 
