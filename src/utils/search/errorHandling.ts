@@ -71,6 +71,23 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
     console.log(`Server error, retrying with exponential backoff...`);
     return retryCount < maxRetries - 1; // Should retry for server errors
   }
+
+  // Check for Google API specific errors
+  if (data.error?.includes('Google Places API error')) {
+    console.log('Google Places API error, checking if we should retry...');
+    
+    // For INVALID_ARGUMENT errors, no retry
+    if (data.details?.error?.status === 'INVALID_ARGUMENT') {
+      toast.error('Invalid search parameters.', {
+        description: 'Please modify your search criteria and try again.',
+        duration: 5000
+      });
+      return false;
+    }
+    
+    // For other Google API errors, retry a few times
+    return retryCount < maxRetries - 1;
+  }
   
   // If we have more retries left, try again with exponential backoff
   if (retryCount < maxRetries - 1) {
