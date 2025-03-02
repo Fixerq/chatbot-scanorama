@@ -71,8 +71,8 @@ export const performGoogleSearch = async (
     }
 
     console.log('Raw response from Edge Function:', data);
-
     return processSearchResults(data);
+    
   } catch (error) {
     console.error('Places search error:', error);
     // Return empty results instead of null to avoid breaking the UI
@@ -102,7 +102,11 @@ const processSearchResults = (data: any): PlacesResult => {
       details: {
         title: result.details?.title || result.title || '',
         description: result.details?.description || result.description || '',
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
+        // Include additional details if available
+        phone: result.details?.phone,
+        rating: result.details?.rating,
+        reviewCount: result.details?.reviewCount
       }
     }));
 
