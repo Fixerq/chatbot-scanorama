@@ -10,7 +10,8 @@ export const performGoogleSearch = async (
   query: string,
   country: string,
   region: string,
-  startIndex?: number
+  startIndex?: number,
+  pageToken?: string
 ): Promise<PlacesResult | null> => {
   let retryCount = 0;
   const { maxRetries, baseRetryDelay } = RETRY_CONFIG;
@@ -22,6 +23,7 @@ export const performGoogleSearch = async (
         country,
         region,
         startIndex,
+        pageToken,
         retryAttempt: retryCount
       });
 
@@ -39,17 +41,25 @@ export const performGoogleSearch = async (
       // Add timestamp to help correlate client and server logs
       const requestTimestamp = logRequestTimestamp();
 
+      // Prepare the request body
+      const requestBody: any = {
+        query: enhancedQuery,
+        country,
+        region,
+        startIndex: startIndex || 0,
+        limit: 20, // Maximum allowed by Places API
+        include_details: true,
+        client_timestamp: requestTimestamp
+      };
+      
+      // Add pageToken if available for pagination
+      if (pageToken) {
+        requestBody.pageToken = pageToken;
+      }
+
       // Attempt to call the edge function with increased timeout
       const { data, error } = await supabase.functions.invoke('search-places', {
-        body: {
-          query: enhancedQuery,
-          country,
-          region,
-          startIndex: startIndex || 0,
-          limit: 20, // Maximum allowed by Places API
-          include_details: true,
-          client_timestamp: requestTimestamp
-        },
+        body: requestBody,
         headers: {
           'Prefer': 'wait=30', // Extend timeout to 30 seconds
         }

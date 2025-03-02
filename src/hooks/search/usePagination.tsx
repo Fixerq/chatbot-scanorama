@@ -95,7 +95,10 @@ export const usePagination = (
         } else {
           console.log('No new unique results found');
           toast.info('No more new results found');
-          updateResults(currentResults, false);
+          
+          // Even if no new results were found, we should respect the hasMore flag
+          // from the API to continue showing the Load More button if appropriate
+          updateResults(currentResults, moreResults.hasMore);
         }
       } else {
         console.log('No more results available');
