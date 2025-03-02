@@ -37,6 +37,9 @@ export const performGoogleSearch = async (
         enhancedQuery = `${enhancedQuery} ${country}`;
       }
 
+      // Log the enhanced query for debugging
+      console.log('Using enhanced search query:', enhancedQuery);
+
       // Attempt to call the edge function
       const { data, error } = await supabase.functions.invoke('search-places', {
         body: {
@@ -61,16 +64,48 @@ export const performGoogleSearch = async (
 
         // If we get a non-200 error, retry after a delay
         if (retryCount < maxRetries - 1) {
-          console.log(`Got error, retrying in ${retryDelay}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
+          console.log(`Got error, retrying in ${retryDelay * (retryCount + 1)}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
           retryCount++;
-          await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
+          await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
           continue;
         }
         
         // All retries failed
-        toast.error('Search service is currently unavailable. Please try again later.', { 
-          description: 'Our team has been notified of the issue.'
-        });
+        if (error.message.includes('API key')) {
+          toast.error('Google Places API key is missing or invalid. Please check your configuration.', { 
+            description: 'Contact your administrator to resolve this issue.'
+          });
+        } else {
+          toast.error('Search service is currently unavailable.', { 
+            description: 'Please try again later.'
+          });
+        }
+        return null;
+      }
+
+      // Check for errors in the response
+      if (data?.error) {
+        console.error('Places search API error:', data.error);
+        console.error('Error details:', data.details || 'No details provided');
+        
+        // If we have more retries left, try again
+        if (retryCount < maxRetries - 1) {
+          console.log(`Got API error, retrying in ${retryDelay * (retryCount + 1)}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
+          continue;
+        }
+        
+        // All retries failed with API errors
+        if (data.status === 'api_error') {
+          toast.error('Error from Google Places API.', { 
+            description: 'Please check your search terms and try again.'
+          });
+        } else {
+          toast.error('Search service encountered an error.', { 
+            description: 'Please try again later.'
+          });
+        }
         return null;
       }
 
@@ -81,11 +116,12 @@ export const performGoogleSearch = async (
       retryCount++;
       
       if (retryCount < maxRetries) {
-        console.log(`Retrying search in ${retryDelay}ms... (attempt ${retryCount} of ${maxRetries})`);
+        console.log(`Retrying search in ${retryDelay * retryCount}ms... (attempt ${retryCount} of ${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
       } else {
         // All retries failed
-        toast.error('Search service encountered an error. Please try again later.');
+        console.error('Search failed after maximum retries');
+        toast.error('Search failed. Please try again later.');
         return null;
       }
     }
