@@ -105,7 +105,15 @@ serve(async (req) => {
       ? "places.displayName,places.formattedAddress,places.websiteUri,places.id,places.location,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.regularOpeningHours,places.priceLevel,places.primaryType,places.photos"
       : "places.displayName,places.formattedAddress,places.websiteUri,places.id";
 
-    console.log('Search request:', JSON.stringify(searchBody));
+    console.log('Search request:', JSON.stringify({
+      url: searchUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': 'API_KEY_EXISTS: ' + (GOOGLE_PLACES_API_KEY ? 'Yes' : 'No'),
+        'X-Goog-FieldMask': fieldMask
+      },
+      body: searchBody
+    }));
 
     // Make the API call to Google Places
     const response = await fetch(searchUrl, {
@@ -114,7 +122,6 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
         'X-Goog-FieldMask': fieldMask,
-        ...corsHeaders
       },
       body: JSON.stringify(searchBody)
     });
@@ -122,10 +129,17 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Google Places API error (${response.status}): ${errorText}`);
+      
+      // Provide more details about the error
       return new Response(
         JSON.stringify({ 
           error: `Google Places API error: ${response.status}`, 
-          details: errorText 
+          details: errorText,
+          request: {
+            url: searchUrl,
+            body: searchBody,
+            hasApiKey: !!GOOGLE_PLACES_API_KEY
+          }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
       );
@@ -136,6 +150,11 @@ serve(async (req) => {
 
     // Process the results
     const results = data.places?.map(place => {
+      const hasWebsite = !!place.websiteUri;
+      const isBusinessType = true; // Simplified for this example
+      
+      console.log(`Place ${place.displayName?.text}: hasWebsite=${hasWebsite}, isBusinessType=${isBusinessType}`);
+      
       // Extract the basic information
       const result = {
         url: place.websiteUri || 'https://example.com/no-website',
@@ -183,7 +202,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: error.stack
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

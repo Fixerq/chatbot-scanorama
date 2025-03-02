@@ -1,6 +1,7 @@
 
 import { Result } from '@/components/ResultsTable';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface PlacesResult {
   results: Result[];
@@ -13,81 +14,112 @@ export const performGoogleSearch = async (
   region: string,
   startIndex?: number
 ): Promise<PlacesResult | null> => {
-  try {
-    console.log('Performing Places search with params:', {
-      query,
-      country,
-      region,
-      startIndex
-    });
-
-    // Create a more reliable search query by adding the region/country if not already in query
-    let enhancedQuery = query;
-    if (region && !query.toLowerCase().includes(region.toLowerCase())) {
-      enhancedQuery = `${query} ${region}`;
-    }
-    if (country && !query.toLowerCase().includes(country.toLowerCase())) {
-      enhancedQuery = `${enhancedQuery} ${country}`;
-    }
-
-    const { data, error } = await supabase.functions.invoke('search-places', {
-      body: {
-        query: enhancedQuery,
+  let retryCount = 0;
+  const maxRetries = 3;
+  const retryDelay = 1000; // 1 second
+  
+  while (retryCount < maxRetries) {
+    try {
+      console.log('Performing Places search with params:', {
+        query,
         country,
         region,
-        startIndex: startIndex || 0,
-        limit: 10, // Ensure we're requesting a consistent amount of results
-        include_details: true // Request additional details for better verification
-      }
-    });
-
-    if (error) {
-      console.error('Places search error:', error);
-      
-      // Log more detailed error information
-      console.error('Error details:', {
-        message: error.message,
-        code: error.code,
-        statusCode: error.status
+        startIndex,
+        retryAttempt: retryCount
       });
-      
-      // Attempt a second search with a simplified query if there was an error
-      console.log('Attempting fallback search with simplified parameters...');
-      const fallbackQuery = query.split(' ')[0]; // Use just the first word of the query
-      
-      const fallbackResponse = await supabase.functions.invoke('search-places', {
+
+      // Create a more reliable search query by adding the region/country if not already in query
+      let enhancedQuery = query;
+      if (region && !query.toLowerCase().includes(region.toLowerCase())) {
+        enhancedQuery = `${query} ${region}`;
+      }
+      if (country && !query.toLowerCase().includes(country.toLowerCase())) {
+        enhancedQuery = `${enhancedQuery} ${country}`;
+      }
+
+      const { data, error } = await supabase.functions.invoke('search-places', {
         body: {
-          query: fallbackQuery,
+          query: enhancedQuery,
           country,
-          startIndex: 0,
-          limit: 10,
-          include_details: true
+          region,
+          startIndex: startIndex || 0,
+          limit: 10, // Ensure we're requesting a consistent amount of results
+          include_details: true // Request additional details for better verification
         }
       });
+
+      if (error) {
+        console.error('Places search error:', error);
+        
+        // Log more detailed error information
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          statusCode: error.status
+        });
+
+        // If we get a 502 error, retry after a delay
+        if (error.status === 502 && retryCount < maxRetries - 1) {
+          console.log(`Got 502 error, retrying in ${retryDelay}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
+          continue;
+        }
+        
+        // If we reached max retries or it's not a 502 error, try a fallback approach
+        console.log('Attempting fallback search with simplified parameters...');
+        const fallbackQuery = query.split(' ')[0]; // Use just the first word of the query
+        
+        const fallbackResponse = await supabase.functions.invoke('search-places', {
+          body: {
+            query: fallbackQuery,
+            country,
+            startIndex: 0,
+            limit: 10,
+            include_details: true
+          }
+        });
+        
+        if (fallbackResponse.error) {
+          console.error('Fallback search also failed:', fallbackResponse.error);
+          toast.error('Search service is currently unavailable, please try again later');
+          return {
+            results: [],
+            hasMore: false
+          };
+        }
+        
+        // Use the fallback data instead of trying to reassign the const 'data'
+        return processSearchResults(fallbackResponse.data);
+      }
+
+      console.log('Raw response from Edge Function:', data);
+      return processSearchResults(data);
       
-      if (fallbackResponse.error) {
-        console.error('Fallback search also failed:', fallbackResponse.error);
+    } catch (error) {
+      console.error('Places search error:', error);
+      retryCount++;
+      
+      if (retryCount < maxRetries) {
+        console.log(`Retrying search in ${retryDelay}ms... (attempt ${retryCount} of ${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
+      } else {
+        // Return empty results instead of null to avoid breaking the UI
+        toast.error('Search service encountered an error, please try again later');
         return {
           results: [],
           hasMore: false
         };
       }
-      
-      // Use the fallback data instead of trying to reassign the const 'data'
-      return processSearchResults(fallbackResponse.data);
     }
-
-    console.log('Raw response from Edge Function:', data);
-    return processSearchResults(data);
-    
-  } catch (error) {
-    console.error('Places search error:', error);
-    // Return empty results instead of null to avoid breaking the UI
-    return {
-      results: [],
-      hasMore: false
-    };
   }
+  
+  // If we've exhausted all retries, return empty results
+  console.error('Search failed after maximum retries');
+  return {
+    results: [],
+    hasMore: false
+  };
 };
 
 // Helper function to process search results
