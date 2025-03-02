@@ -1,6 +1,5 @@
-
 import { Result } from '@/components/ResultsTable';
-import { performGoogleSearch } from './searchEngine';
+import { performGoogleSearch } from './search';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
