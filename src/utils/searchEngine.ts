@@ -77,7 +77,7 @@ export const performGoogleSearch = async (
           });
         } else {
           toast.error('Search service is currently unavailable.', { 
-            description: 'Please try again later.'
+            description: 'Please try again later or try a different search.'
           });
         }
         return null;
@@ -99,11 +99,11 @@ export const performGoogleSearch = async (
         // All retries failed with API errors
         if (data.status === 'api_error') {
           toast.error('Error from Google Places API.', { 
-            description: 'Please check your search terms and try again.'
+            description: 'Please check your search terms and try again with a more specific location.'
           });
         } else {
           toast.error('Search service encountered an error.', { 
-            description: 'Please try again later.'
+            description: 'Please try again later or modify your search.'
           });
         }
         return null;
@@ -121,7 +121,7 @@ export const performGoogleSearch = async (
       } else {
         // All retries failed
         console.error('Search failed after maximum retries');
-        toast.error('Search failed. Please try again later.');
+        toast.error('Search failed. Please try again later or refine your search criteria.');
         return null;
       }
     }

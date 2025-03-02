@@ -1,3 +1,4 @@
+
 export const COUNTRIES = [
   "United States",
   "United Kingdom",
@@ -13,5 +14,20 @@ export const COUNTRIES = [
   "China",
   "Singapore",
   "Netherlands",
-  "Sweden"
+  "Sweden",
+  "Mexico",
+  "South Africa",
+  "South Korea",
+  "Russia",
+  "United Arab Emirates",
+  "New Zealand",
+  "Ireland",
+  "Switzerland",
+  "Norway",
+  "Denmark",
+  "Finland",
+  "Belgium",
+  "Austria",
+  "Portugal",
+  "Greece"
 ];

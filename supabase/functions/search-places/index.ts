@@ -128,8 +128,9 @@ serve(async (req) => {
 
       // Set country restriction if we have a valid code
       if (countryCode) {
+        // FIXED: Using the correct field name 'countries' instead of 'includedCountries'
         locationRestriction = { 
-          includedCountries: [countryCode] 
+          countries: [countryCode] 
         };
         console.log(`Set location restriction to country: ${countryCode}`);
       } else {
@@ -190,7 +191,7 @@ serve(async (req) => {
         'X-Goog-Api-Key': 'API_KEY_EXISTS: ' + (GOOGLE_PLACES_API_KEY ? 'Yes' : 'No'),
         'X-Goog-FieldMask': fieldMask
       },
-      body: JSON.stringify(searchBody)
+      body: searchBody
     }));
 
     // Make the API call to Google Places
