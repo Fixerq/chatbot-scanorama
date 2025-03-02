@@ -16,7 +16,7 @@ export const performGoogleSearch = async (
 ): Promise<PlacesResult | null> => {
   let retryCount = 0;
   const maxRetries = 3;
-  const retryDelay = 1000; // 1 second
+  const baseRetryDelay = 1000; // 1 second
   
   while (retryCount < maxRetries) {
     try {
@@ -40,6 +40,13 @@ export const performGoogleSearch = async (
       // Log the enhanced query for debugging
       console.log('Using enhanced search query:', enhancedQuery);
 
+      // Calculate exponential backoff delay if we're retrying
+      const retryDelay = retryCount > 0 ? baseRetryDelay * Math.pow(2, retryCount - 1) : 0;
+      if (retryCount > 0) {
+        console.log(`Retry attempt ${retryCount} with delay ${retryDelay}ms`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
+
       // Attempt to call the edge function
       const { data, error } = await supabase.functions.invoke('search-places', {
         body: {
@@ -62,11 +69,19 @@ export const performGoogleSearch = async (
           statusCode: error.status
         });
 
-        // If we get a non-200 error, retry after a delay
+        // Check for rate limiting
+        if (error.status === 429) {
+          const retryAfter = data?.retryAfter || (retryCount + 1) * 10;
+          console.log(`Rate limited, retrying after ${retryAfter}s...`);
+          toast.error(`API rate limit reached. Retrying in ${retryAfter}s...`);
+          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+          continue;
+        }
+
+        // If we get a non-200 error, retry after a delay with exponential backoff
         if (retryCount < maxRetries - 1) {
-          console.log(`Got error, retrying in ${retryDelay * (retryCount + 1)}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
+          console.log(`Got error, retrying with exponential backoff... (attempt ${retryCount + 1} of ${maxRetries})`);
           retryCount++;
-          await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
           continue;
         }
         
@@ -88,11 +103,19 @@ export const performGoogleSearch = async (
         console.error('Places search API error:', data.error);
         console.error('Error details:', data.details || 'No details provided');
         
-        // If we have more retries left, try again
+        // Check for rate limiting
+        if (data.status === 'rate_limited') {
+          const retryAfter = data.retryAfter || (retryCount + 1) * 10;
+          console.log(`Rate limited, retrying after ${retryAfter}s...`);
+          toast.error(`API rate limit reached. Retrying in ${retryAfter}s...`);
+          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+          continue;
+        }
+        
+        // If we have more retries left, try again with exponential backoff
         if (retryCount < maxRetries - 1) {
-          console.log(`Got API error, retrying in ${retryDelay * (retryCount + 1)}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
+          console.log(`Got API error, retrying with exponential backoff... (attempt ${retryCount + 1} of ${maxRetries})`);
           retryCount++;
-          await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
           continue;
         }
         
@@ -100,6 +123,10 @@ export const performGoogleSearch = async (
         if (data.status === 'api_error') {
           toast.error('Error from Google Places API.', { 
             description: 'Please check your search terms and try again with a more specific location.'
+          });
+        } else if (data.status === 'config_error') {
+          toast.error('Google Places API configuration error.', {
+            description: 'Please ensure your API key is set up correctly in the Supabase Edge Function settings.'
           });
         } else {
           toast.error('Search service encountered an error.', { 
@@ -115,9 +142,12 @@ export const performGoogleSearch = async (
       console.error('Places search error:', error);
       retryCount++;
       
+      // Use exponential backoff for retries
+      const exponentialDelay = baseRetryDelay * Math.pow(2, retryCount - 1);
+      
       if (retryCount < maxRetries) {
-        console.log(`Retrying search in ${retryDelay * retryCount}ms... (attempt ${retryCount} of ${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
+        console.log(`Retrying search in ${exponentialDelay}ms... (attempt ${retryCount} of ${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, exponentialDelay));
       } else {
         // All retries failed
         console.error('Search failed after maximum retries');
@@ -160,7 +190,8 @@ const processSearchResults = (data: any): PlacesResult => {
         businessType: result.details?.businessType,
         priceLevel: result.details?.priceLevel,
         openingHours: result.details?.openingHours,
-        location: result.details?.location
+        location: result.details?.location,
+        photoReference: result.details?.photoReference
       }
     }));
 

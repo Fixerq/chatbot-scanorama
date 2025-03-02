@@ -25,6 +25,56 @@ interface SearchResponse {
   status?: string;
 }
 
+// Country code mappings for the Google Places API
+const COUNTRY_CODES: Record<string, string> = {
+  "United States": "US",
+  "United Kingdom": "GB",
+  "Canada": "CA",
+  "Australia": "AU",
+  "Germany": "DE",
+  "France": "FR",
+  "Spain": "ES",
+  "Italy": "IT",
+  "Japan": "JP",
+  "Brazil": "BR",
+  "India": "IN",
+  "China": "CN",
+  "Singapore": "SG",
+  "Netherlands": "NL",
+  "Sweden": "SE",
+  "Mexico": "MX",
+  "South Africa": "ZA",
+  "South Korea": "KR",
+  "Russia": "RU",
+  "United Arab Emirates": "AE",
+  "New Zealand": "NZ",
+  "Ireland": "IE",
+  "Switzerland": "CH",
+  "Norway": "NO",
+  "Denmark": "DK",
+  "Finland": "FI",
+  "Belgium": "BE",
+  "Austria": "AT",
+  "Portugal": "PT",
+  "Greece": "GR"
+};
+
+// Map for approximate region center coordinates
+// This is a simplified approach. In a production app, you might want to use a geocoding service.
+const REGION_COORDINATES: Record<string, { latitude: number; longitude: number }> = {
+  // US States (major ones)
+  "California": { latitude: 36.7783, longitude: -119.4179 },
+  "New York": { latitude: 40.7128, longitude: -74.0060 },
+  "Texas": { latitude: 31.9686, longitude: -99.9018 },
+  "Florida": { latitude: 27.6648, longitude: -81.5158 },
+  // UK
+  "England": { latitude: 52.3555, longitude: -1.1743 },
+  "Scotland": { latitude: 56.4907, longitude: -4.2026 },
+  "Wales": { latitude: 52.1307, longitude: -3.7837 },
+  // Default fallback
+  "default": { latitude: 0, longitude: 0 }
+};
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -80,59 +130,76 @@ Deno.serve(async (req) => {
     const requestBody: any = {
       textQuery: query,
       maxResultCount: limit,
-      // Use locationBias to influence results instead of strict filtering
-      // This is more reliable than trying to use locationRestriction
       languageCode: "en",
     };
 
-    // Add location bias based on country and region
-    if (country) {
-      // Add region bias if available
-      if (region) {
-        requestBody.locationBias = {
-          rectangle: {
-            // Use approximate rectangle based on region
-            // This is a simplified approach - in production you'd want to use actual geocoding
-            low: { latitude: 0, longitude: 0 },
-            high: { latitude: 90, longitude: 180 }
-          }
-        };
-      } else {
-        // Just use circle bias with center of country
+    // Add region code for country-level filtering if available
+    if (country && COUNTRY_CODES[country]) {
+      requestBody.regionCode = COUNTRY_CODES[country];
+      console.log(`Using region code ${requestBody.regionCode} for country ${country}`);
+    }
+
+    // Add location bias based on region and country
+    if (region) {
+      const regionCoords = REGION_COORDINATES[region] || REGION_COORDINATES.default;
+      
+      // If we have specific coordinates for this region, use a circle bias
+      if (regionCoords !== REGION_COORDINATES.default) {
         requestBody.locationBias = {
           circle: {
             center: {
-              latitude: 37.0902, // Default to US center if no specific mapping
-              longitude: -95.7129
+              latitude: regionCoords.latitude,
+              longitude: regionCoords.longitude
             },
-            radius: 2000000 // Large radius in meters (2000km)
+            radius: 50000 // 50km radius to cover most metropolitan areas
           }
         };
+        console.log(`Using location bias with region coordinates: ${JSON.stringify(regionCoords)}`);
       }
     }
 
     console.log('API request body:', JSON.stringify(requestBody, null, 2));
 
-    // Make the API request
+    // Make the API request with expanded field mask
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.types,places.priceLevel,places.regularOpeningHours'
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.types,places.priceLevel,places.regularOpeningHours,places.photos,places.internationalPhoneNumber'
       },
       body: JSON.stringify(requestBody)
     });
 
+    // Handle rate limiting explicitly
+    if (response.status === 429) {
+      console.error('Rate limit exceeded on Google Places API');
+      const retryAfter = response.headers.get('Retry-After') || '60';
+      
+      return new Response(
+        JSON.stringify({
+          error: 'Rate limit exceeded',
+          details: `Please retry after ${retryAfter} seconds`,
+          status: 'rate_limited',
+          retryAfter: parseInt(retryAfter, 10)
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429
+        }
+      );
+    }
+
     // Parse the response
     const responseData = await response.json();
+    console.log('Google Places API response status:', response.status);
     
     if (!response.ok) {
       console.error('Google Places API error:', response.status, responseData);
       
       return new Response(
         JSON.stringify({
-          error: `Google Places API error (${response.status}): ${JSON.stringify(responseData, null, 2)}`,
+          error: `Google Places API error (${response.status})`,
           details: responseData?.error?.message || 'Unknown error',
           status: 'api_error'
         }),
@@ -145,9 +212,10 @@ Deno.serve(async (req) => {
 
     console.log('Google Places API response received');
     
-    // Process the results
+    // Process the results with enhanced details
     const results = (responseData.places || []).map((place: any) => {
       const website = place.websiteUri || '';
+      const phoneNumber = place.internationalPhoneNumber || '';
       
       // Skip entries without a website
       if (!website) {
@@ -158,16 +226,14 @@ Deno.serve(async (req) => {
           details: {
             title: place.displayName?.text || 'Unknown Business',
             description: place.formattedAddress || '',
-            phone: '',
+            phone: phoneNumber,
             rating: place.rating || 0,
             reviewCount: place.userRatingCount || 0,
             businessType: (place.types || [])[0] || '',
             priceLevel: place.priceLevel || 0,
-            openingHours: (place.regularOpeningHours?.periods || []).map((p: any) => ({
-              open: p.open?.day + ' ' + p.open?.hour + ':' + p.open?.minute,
-              close: p.close?.day + ' ' + p.close?.hour + ':' + p.close?.minute,
-            })),
-            location: place.formattedAddress || ''
+            openingHours: processOpeningHours(place.regularOpeningHours),
+            location: place.formattedAddress || '',
+            photoReference: place.photos?.[0]?.name || ''
           }
         };
       }
@@ -179,19 +245,36 @@ Deno.serve(async (req) => {
         details: {
           title: place.displayName?.text || 'Unknown Business',
           description: place.formattedAddress || '',
-          phone: '',
+          phone: phoneNumber,
           rating: place.rating || 0,
           reviewCount: place.userRatingCount || 0,
           businessType: (place.types || [])[0] || '',
           priceLevel: place.priceLevel || 0,
-          openingHours: (place.regularOpeningHours?.periods || []).map((p: any) => ({
-            open: p.open?.day + ' ' + p.open?.hour + ':' + p.open?.minute,
-            close: p.close?.day + ' ' + p.close?.hour + ':' + p.close?.minute,
-          })),
-          location: place.formattedAddress || ''
+          openingHours: processOpeningHours(place.regularOpeningHours),
+          location: place.formattedAddress || '',
+          photoReference: place.photos?.[0]?.name || ''
         }
       };
     }).filter(Boolean);
+
+    // Helper function to process opening hours in a more readable format
+    function processOpeningHours(openingHours: any) {
+      if (!openingHours || !openingHours.periods) return [];
+      
+      return openingHours.periods.map((p: any) => {
+        if (!p.open || !p.close) return null;
+        
+        // Convert day numbers to day names
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const openDay = days[p.open.day] || `Day ${p.open.day}`;
+        const closeDay = days[p.close.day] || `Day ${p.close.day}`;
+        
+        return {
+          open: `${openDay} ${p.open.hour || 0}:${p.open.minute || '00'}`,
+          close: `${closeDay} ${p.close.hour || 0}:${p.close.minute || '00'}`
+        };
+      }).filter(Boolean);
+    }
 
     // Calculate if there might be more results
     const hasMore = results.length >= limit;
