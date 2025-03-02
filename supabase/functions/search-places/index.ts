@@ -81,6 +81,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   
+  const startTime = Date.now();
+  console.log(`[${new Date().toISOString()}] Search-places function invoked`);
+  
   try {
     if (!GOOGLE_API_KEY) {
       console.error('GOOGLE_PLACES_API_KEY is not set in environment variables');
@@ -101,7 +104,7 @@ Deno.serve(async (req) => {
     const options: SearchOptions = await req.json();
     const { query, country, region, startIndex = 0, limit = 10, include_details = false } = options;
     
-    console.log('Search request received:', {
+    console.log('[REQUEST] Search request received:', {
       query, 
       country, 
       region, 
@@ -136,7 +139,7 @@ Deno.serve(async (req) => {
     // Add region code for country-level filtering if available
     if (country && COUNTRY_CODES[country]) {
       requestBody.regionCode = COUNTRY_CODES[country];
-      console.log(`Using region code ${requestBody.regionCode} for country ${country}`);
+      console.log(`[CONFIG] Using region code ${requestBody.regionCode} for country ${country}`);
     }
 
     // Add location bias based on region and country
@@ -154,26 +157,46 @@ Deno.serve(async (req) => {
             radius: 50000 // 50km radius to cover most metropolitan areas
           }
         };
-        console.log(`Using location bias with region coordinates: ${JSON.stringify(regionCoords)}`);
+        console.log(`[CONFIG] Using location bias with region coordinates: ${JSON.stringify(regionCoords)}`);
+      } else {
+        console.log(`[CONFIG] No specific coordinates found for region: ${region}, using default bias`);
       }
     }
 
-    console.log('API request body:', JSON.stringify(requestBody, null, 2));
+    console.log('[API] Request body:', JSON.stringify(requestBody, null, 2));
+
+    // Define comprehensive field mask for more detailed results
+    const fieldMask = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,' +
+                      'places.rating,places.userRatingCount,places.types,places.priceLevel,' + 
+                      'places.regularOpeningHours,places.photos,places.internationalPhoneNumber,' +
+                      'places.businessStatus';
+    
+    console.log('[API] Using field mask:', fieldMask);
 
     // Make the API request with expanded field mask
+    const requestStartTime = Date.now();
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.types,places.priceLevel,places.regularOpeningHours,places.photos,places.internationalPhoneNumber'
+        'X-Goog-FieldMask': fieldMask
       },
       body: JSON.stringify(requestBody)
     });
+    const requestDuration = Date.now() - requestStartTime;
+    console.log(`[API] Request completed in ${requestDuration}ms with status: ${response.status}`);
+    
+    // Log response headers for debugging rate limits
+    const headers: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    console.log('[API] Response headers:', JSON.stringify(headers, null, 2));
 
     // Handle rate limiting explicitly
     if (response.status === 429) {
-      console.error('Rate limit exceeded on Google Places API');
+      console.error('[ERROR] Rate limit exceeded on Google Places API');
       const retryAfter = response.headers.get('Retry-After') || '60';
       
       return new Response(
@@ -192,10 +215,10 @@ Deno.serve(async (req) => {
 
     // Parse the response
     const responseData = await response.json();
-    console.log('Google Places API response status:', response.status);
+    console.log('[API] Full response data:', JSON.stringify(responseData, null, 2));
     
     if (!response.ok) {
-      console.error('Google Places API error:', response.status, responseData);
+      console.error('[ERROR] Google Places API error:', response.status, responseData);
       
       return new Response(
         JSON.stringify({
@@ -210,15 +233,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Google Places API response received');
+    console.log(`[PROCESSING] Found ${responseData.places?.length || 0} places in response`);
     
     // Process the results with enhanced details
-    const results = (responseData.places || []).map((place: any) => {
+    const results = (responseData.places || []).map((place: any, index: number) => {
       const website = place.websiteUri || '';
       const phoneNumber = place.internationalPhoneNumber || '';
       
+      console.log(`[PROCESSING] Processing place ${index + 1}: ${place.displayName?.text || 'Unknown'}`);
+      
       // Skip entries without a website
       if (!website) {
+        console.log(`[PROCESSING] No website for place: ${place.displayName?.text || 'Unknown'}`);
         return {
           url: 'https://example.com/no-website',
           title: place.displayName?.text || 'Unknown Business',
@@ -278,11 +304,20 @@ Deno.serve(async (req) => {
 
     // Calculate if there might be more results
     const hasMore = results.length >= limit;
+    console.log(`[RESULT] Processed ${results.length} results, hasMore=${hasMore}`);
+    
+    // Log a sample result for debugging
+    if (results.length > 0) {
+      console.log('[RESULT] Sample result:', JSON.stringify(results[0], null, 2));
+    }
 
     const response_data: SearchResponse = {
       results,
       hasMore
     };
+
+    const totalDuration = Date.now() - startTime;
+    console.log(`[TIMING] Total function execution time: ${totalDuration}ms`);
 
     return new Response(
       JSON.stringify(response_data),
@@ -292,7 +327,8 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('[ERROR] Exception in request processing:', error);
+    console.error('[ERROR] Stack trace:', error.stack);
     
     return new Response(
       JSON.stringify({
@@ -307,3 +343,4 @@ Deno.serve(async (req) => {
     );
   }
 });
+

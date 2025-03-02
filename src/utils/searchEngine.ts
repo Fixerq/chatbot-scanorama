@@ -47,6 +47,10 @@ export const performGoogleSearch = async (
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
 
+      // Add timestamp to help correlate client and server logs
+      const requestTimestamp = new Date().toISOString();
+      console.log(`Request timestamp: ${requestTimestamp}`);
+
       // Attempt to call the edge function
       const { data, error } = await supabase.functions.invoke('search-places', {
         body: {
@@ -55,7 +59,8 @@ export const performGoogleSearch = async (
           region,
           startIndex: startIndex || 0,
           limit: 10, // Ensure we're requesting a consistent amount of results
-          include_details: true // Request additional details for better verification
+          include_details: true, // Request additional details for better verification
+          client_timestamp: requestTimestamp // Pass timestamp to correlate logs
         }
       });
 
@@ -137,6 +142,14 @@ export const performGoogleSearch = async (
       }
 
       console.log('Raw response from Edge Function:', data);
+      
+      // Log response size
+      const responseSize = JSON.stringify(data).length;
+      console.log(`Response size: ${responseSize} bytes`);
+      
+      // Log count of results
+      console.log(`Received ${data?.results?.length || 0} results from API`);
+      
       return processSearchResults(data);
     } catch (error) {
       console.error('Places search error:', error);
