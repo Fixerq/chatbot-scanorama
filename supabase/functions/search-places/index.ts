@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { corsHeaders } from "../_shared/cors.ts";
 
 // Enhanced coordinates for all US states
@@ -98,6 +99,10 @@ function sanitizeQuery(query: string): string {
   
   return result;
 }
+
+// Create a Supabase client using the environment variables
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 serve(async (req) => {
   // Handle CORS
