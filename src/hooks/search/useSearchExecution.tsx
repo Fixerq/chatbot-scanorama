@@ -31,9 +31,13 @@ export const useSearchExecution = (updateResults: (results: Result[], hasMore: b
         []
       );
 
-      // If no results with the specified region, try without region
+      // If no results or error with the specified region, try without region
       if (!searchResult || searchResult.newResults.length === 0) {
         console.log('No results found with region. Trying without region...');
+        
+        // Show a toast to inform the user we're trying another approach
+        toast.info('No results found with specific region. Trying a broader search...');
+        
         searchResult = await executeSearch(
           query,
           country,
@@ -45,8 +49,10 @@ export const useSearchExecution = (updateResults: (results: Result[], hasMore: b
       }
 
       if (!searchResult) {
-        console.error('Search returned no results');
-        toast.error('Search failed or returned no results. Please try different terms.');
+        console.error('Search returned no results or encountered an error');
+        toast.error('Search service is currently unavailable. Please try again later or try a different search.', {
+          duration: 5000
+        });
         updateResults([], false);
         return;
       }
@@ -54,7 +60,7 @@ export const useSearchExecution = (updateResults: (results: Result[], hasMore: b
       console.log('Search returned results count:', searchResult.newResults.length);
       
       if (searchResult.newResults.length === 0) {
-        toast.info('No results found. Try different search terms.');
+        toast.info('No results found. Try different search terms or locations.');
         updateResults([], false);
         return;
       }
@@ -82,7 +88,9 @@ export const useSearchExecution = (updateResults: (results: Result[], hasMore: b
       }
     } catch (error) {
       console.error('Search error:', error);
-      toast.error('Search failed. Please try again.');
+      toast.error('Search service is currently unavailable. Please try again later or try a different search.', {
+        duration: 5000
+      });
       updateResults([], false);
     } finally {
       setIsSearching(false);

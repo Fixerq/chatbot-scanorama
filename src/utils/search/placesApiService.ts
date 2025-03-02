@@ -39,7 +39,7 @@ export const performGoogleSearch = async (
       // Add timestamp to help correlate client and server logs
       const requestTimestamp = logRequestTimestamp();
 
-      // Attempt to call the edge function
+      // Attempt to call the edge function with increased timeout
       const { data, error } = await supabase.functions.invoke('search-places', {
         body: {
           query: enhancedQuery,
@@ -49,6 +49,12 @@ export const performGoogleSearch = async (
           limit: 20, // Maximum allowed by Places API v1
           include_details: true,
           client_timestamp: requestTimestamp
+        },
+        options: {
+          // Longer timeout for API calls that might take time
+          headers: {
+            'Prefer': 'wait=30', // Extend timeout to 30 seconds
+          }
         }
       });
 

@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from '../index';
 import { toast } from 'sonner';
@@ -46,7 +47,32 @@ export const executeSearch = async (
 
     if (!searchResult) {
       console.error('No search results returned');
-      return { newResults: [], hasMore: false };
+      
+      // Instead of immediately returning empty results, try a fallback
+      console.log('Attempting simplified fallback search...');
+      
+      // Try with just the plain query and country
+      const fallbackResult = await performGoogleSearch(
+        query,
+        country,
+        ''  // Empty region for broader search
+      );
+      
+      if (!fallbackResult) {
+        console.error('Fallback search also failed');
+        return { newResults: [], hasMore: false };
+      }
+      
+      console.log('Fallback search returned:', fallbackResult.results?.length || 0, 'results');
+      
+      if (!fallbackResult.results || fallbackResult.results.length === 0) {
+        return { newResults: [], hasMore: false };
+      }
+      
+      return {
+        newResults: fallbackResult.results,
+        hasMore: fallbackResult.hasMore
+      };
     }
 
     console.log('Search results received:', searchResult.results?.length || 0);
@@ -76,7 +102,7 @@ export const executeSearch = async (
           toast.info('No results found with initial search. Trying alternative search terms...');
         }
         
-        const fallbackResult = await performGoogleSearch(fallbackQuery, country, region);
+        const fallbackResult = await performGoogleSearch(fallbackQuery, country, '');
         
         if (fallbackResult?.results && fallbackResult.results.length > 0) {
           console.log(`Fallback search found ${fallbackResult.results.length} results`);
@@ -101,7 +127,9 @@ export const executeSearch = async (
       }
       
       // If all fallbacks failed, return empty results
-      toast.error('No results found. Please try different search terms or locations.');
+      toast.error('No results found. Please try different search terms or locations.', {
+        duration: 5000
+      });
       return { newResults: [], hasMore: false };
     }
 
@@ -143,7 +171,10 @@ export const executeSearch = async (
     };
   } catch (error) {
     console.error('Search execution error:', error);
-    toast.error('Failed to perform search. Please try again with different terms.');
+    toast.error('Search service is currently unavailable.', {
+      description: 'Please try again later or try different search terms.',
+      duration: 5000
+    });
     return { newResults: [], hasMore: false };
   }
 };
