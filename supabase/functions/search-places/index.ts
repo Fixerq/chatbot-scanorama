@@ -1,10 +1,8 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const GOOGLE_API_KEY = Deno.env.get('Google API');
-const RADIUS_MILES = 20;
-const METERS_PER_MILE = 1609.34;
-const MAX_RESULTS = 20; // Increased from 10 to 20
+const MAX_RESULTS = 50; // Increased from 20 to allow more results
+const DEFAULT_RADIUS_MILES = 50; // Increased from 20 miles
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,61 +14,93 @@ interface SearchRequest {
   country: string;
   region: string;
   startIndex?: number;
+  limit?: number;
+  include_details?: boolean;
 }
 
+// Basic mapping of regions to approximate coordinates for better location biasing
+const regionCoordinates: Record<string, { lat: number; lng: number }> = {
+  // US states
+  "Delaware": { lat: 39.0, lng: -75.5 },
+  "California": { lat: 36.7, lng: -119.4 },
+  "New York": { lat: 43.0, lng: -75.0 },
+  "Texas": { lat: 31.0, lng: -100.0 },
+  "Florida": { lat: 27.8, lng: -81.5 },
+  // Add more as needed
+};
+
+// Get coordinates for location biasing
+const getLocationBias = (country: string, region: string) => {
+  if (region && regionCoordinates[region]) {
+    return regionCoordinates[region];
+  }
+  
+  // Default coordinates (US centered)
+  return { lat: 37.0902, lng: -95.7129 };
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, country, region } = await req.json() as SearchRequest;
-    console.log('Received search request:', { query, country, region });
+    const { query, country, region, startIndex = 0, limit = 25, include_details = false } = await req.json() as SearchRequest;
+    console.log('Received search request:', { query, country, region, startIndex, limit });
 
     if (!GOOGLE_API_KEY) {
       console.error('Google API key not found');
       throw new Error('Google API key is not configured');
     }
 
-    // Format the location query to include both country and region when available
+    // Improve query with business-specific terms for better results
     let locationQuery = query;
     if (region && country) {
-      locationQuery = `${query} ${region} ${country}`;
+      locationQuery = `${query} in ${region}, ${country}`;
     } else if (country) {
-      locationQuery = `${query} ${country}`;
+      locationQuery = `${query} in ${country}`;
     }
     
-    console.log('Using search query:', locationQuery);
+    // Add business-specific terms for certain queries
+    if (query.toLowerCase().includes('plumber')) {
+      locationQuery += ' plumbing services contractors business';
+    } else if (query.toLowerCase().includes('electrician')) {
+      locationQuery += ' electrical services contractors business';
+    }
+    
+    console.log('Using enhanced search query:', locationQuery);
 
-    // Convert radius to meters for Places API
-    const radiusMeters = Math.round(RADIUS_MILES * METERS_PER_MILE);
-
-    // Search for businesses using Places Text Search
-    const searchParams = new URLSearchParams({
-      query: locationQuery,
-      key: GOOGLE_API_KEY,
-    });
+    // Get location bias coordinates based on region
+    const locationBias = getLocationBias(country, region);
+    const radiusMeters = DEFAULT_RADIUS_MILES * 1609.34;
+    
+    // For smaller regions like Delaware, increase search radius
+    const adjustedRadius = region && ['Delaware', 'Rhode Island', 'Connecticut'].includes(region)
+      ? radiusMeters * 1.5  // 50% larger radius for small states
+      : radiusMeters;
 
     const searchUrl = `https://places.googleapis.com/v1/places:searchText`;
-    console.log('Making Places API request to:', searchUrl);
-    console.log('Search query:', locationQuery);
+    console.log('Making Places API request with location bias:', { lat: locationBias.lat, lng: locationBias.lng, radius: adjustedRadius });
 
     const searchResponse = await fetch(searchUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.types',
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.types,places.businessStatus',
       },
       body: JSON.stringify({
         textQuery: locationQuery,
         maxResultCount: MAX_RESULTS,
         locationBias: {
           circle: {
-            center: { latitude: 0, longitude: 0 },
-            radius: radiusMeters,
+            center: { latitude: locationBias.lat, longitude: locationBias.lng },
+            radius: adjustedRadius,
           },
         },
+        // Include a language restriction for better results
+        languageCode: "en",
       })
     });
     
@@ -104,33 +134,69 @@ serve(async (req) => {
       );
     }
 
-    // Filter and format results
-    const results = searchData.places
+    // Process results with less restrictive filtering
+    let results = searchData.places
       .filter((place: any) => {
-        // Only include results with websites and that are businesses
-        const hasWebsite = !!place.websiteUri;
+        // Include places without websites initially (more results)
         const isBusinessType = place.types?.some((type: string) => 
-          ['establishment', 'business', 'store', 'service'].includes(type)
+          ['establishment', 'business', 'store', 'service', 'plumber', 'electrician', 
+           'contractor', 'professional', 'point_of_interest', 'local_business'].includes(type)
         );
         
-        console.log(`Place ${place.displayName?.text}: hasWebsite=${hasWebsite}, isBusinessType=${isBusinessType}`);
-        return hasWebsite && isBusinessType;
+        // Include all businesses, but log what we're filtering
+        const hasWebsite = !!place.websiteUri;
+        
+        console.log(`Place ${place.displayName?.text}: hasWebsite=${hasWebsite}, isBusinessType=${isBusinessType}, types=${place.types?.join(',')}`);
+        
+        // Return true if it's a business, even without website
+        return isBusinessType;
       })
       .map((place: any) => ({
-        url: place.websiteUri,
+        url: place.websiteUri || '',
         details: {
           title: place.displayName?.text || '',
           description: place.formattedAddress || '',
-          lastChecked: new Date().toISOString()
+          lastChecked: new Date().toISOString(),
+          // Include more details if requested
+          ...(include_details ? {
+            placeId: place.id,
+            types: place.types,
+            hasWebsite: !!place.websiteUri
+          } : {})
         }
       }));
 
-    console.log(`Found ${results.length} businesses with websites out of ${searchData.places.length} total places`);
+    console.log(`Found ${results.length} businesses (with or without websites) out of ${searchData.places.length} total places`);
+    
+    // Now filter for websites only if we have plenty of results, otherwise keep no-website results
+    const websiteResults = results.filter((place: any) => place.url);
+    
+    if (websiteResults.length > 10) {
+      // If we have enough results with websites, filter out the ones without
+      results = websiteResults;
+      console.log(`Filtered to ${results.length} businesses with websites`);
+    } else {
+      // Keep all results but add a note for those without websites
+      results = results.map((result: any) => ({
+        ...result,
+        url: result.url || 'https://example.com/no-website',
+        details: {
+          ...result.details,
+          noWebsite: !result.url
+        }
+      }));
+      console.log(`Kept all ${results.length} businesses, some without websites`);
+    }
+
+    // Handle pagination
+    const paginatedResults = startIndex > 0 
+      ? results.slice(startIndex, startIndex + limit)
+      : results.slice(0, limit);
 
     return new Response(
       JSON.stringify({
-        results,
-        hasMore: searchData.places.length >= MAX_RESULTS
+        results: paginatedResults,
+        hasMore: results.length > (startIndex + paginatedResults.length)
       }),
       { 
         headers: { 

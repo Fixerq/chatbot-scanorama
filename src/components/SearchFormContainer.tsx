@@ -37,6 +37,8 @@ const SearchFormContainer = ({
 
   const onSubmit = () => {
     setIsProcessing(true);
+    // Clear any previous results first to avoid showing old results during a new search
+    onResults([]);
     console.log('Search form submitted with:', searchState);
     handleSearch(
       searchState.query,

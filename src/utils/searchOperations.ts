@@ -1,4 +1,3 @@
-
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +55,8 @@ export const executeSearch = async (
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
     // Add more specific terms to the query to find businesses more likely to have chatbots
-    const chatbotTerms = "website online live chat customer service support chatbot contact";
+    // but don't overdo it to ensure we get good location-specific results
+    const chatbotTerms = "website customer service support contact";
     const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
 
     console.log('Starting search with params:', {
@@ -85,14 +85,54 @@ export const executeSearch = async (
     // Check if we have any results
     if (!searchResult.results || searchResult.results.length === 0) {
       console.log('Search returned empty results array');
-      return { newResults: [], hasMore: false };
+      
+      // Try a more generic search as fallback
+      console.log('Attempting fallback search with just the original query...');
+      const fallbackResult = await performGoogleSearch(query, country, region);
+      
+      if (!fallbackResult?.results || fallbackResult.results.length === 0) {
+        return { newResults: [], hasMore: false };
+      }
+      
+      console.log(`Fallback search found ${fallbackResult.results.length} results`);
+      
+      // Filter out duplicates while keeping existing results
+      const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
+      const newResults = fallbackResult.results.filter(result => {
+        const lowerUrl = result.url.toLowerCase();
+        return !existingUrls.has(lowerUrl);
+      });
+      
+      console.log(`Found ${newResults.length} new results after filtering duplicates`);
+      
+      return {
+        newResults,
+        hasMore: fallbackResult.hasMore && newResults.length > 0
+      };
     }
+
+    // Process "No website" placeholders
+    const processedResults = searchResult.results.map(result => {
+      if (result.url === 'https://example.com/no-website') {
+        // For business listings without websites, create a modified entry
+        // that still shows up but is clearly marked
+        return {
+          ...result,
+          details: {
+            ...result.details,
+            title: `${result.details?.title || ''} (No website)`,
+            description: `${result.details?.description || ''} - This business was found in search but has no website.`,
+          }
+        };
+      }
+      return result;
+    });
 
     // Filter out duplicates while keeping existing results
     const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
-    const newResults = searchResult.results.filter(result => {
+    const newResults = processedResults.filter(result => {
       const lowerUrl = result.url.toLowerCase();
-      return !existingUrls.has(lowerUrl);
+      return !existingUrls.has(lowerUrl) && lowerUrl !== 'https://example.com/no-website';
     });
 
     console.log(`Found ${newResults.length} new results after filtering duplicates`);
@@ -119,29 +159,29 @@ export const loadMore = async (
     const startIndex = currentResults.length;
     console.log(`Loading more results with startIndex: ${startIndex}, target: ${targetResultCount}`);
     
-    // Add chatbot-specific terms to improve results
-    const chatbotTerms = "website online live chat customer service support chatbot contact";
+    // Add chatbot-specific terms to improve results, but keep it lightweight
+    const chatbotTerms = "website customer service support contact";
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
     const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
     
     // Calculate the maximum number of results we need
     const maxNeededResults = Math.max(50, targetResultCount - startIndex);
     
-    // First attempt
+    // First attempt with primary search
     let searchResult = await performGoogleSearch(finalQuery, country, region, startIndex);
     
-    // If first attempt fails, try with different parameters
+    // If first attempt returns no results, try different approaches
     if (!searchResult?.results || searchResult.results.length === 0) {
       console.log('No results in first attempt, trying with adjusted parameters');
       
-      // Try with a different query formulation
-      const alternateQuery = `${query} chatbot customer service`;
+      // Try with a slightly different query formulation (more direct geography)
+      const alternateQuery = `${query} in ${region || ''} ${country}`;
       searchResult = await performGoogleSearch(alternateQuery, country, region, Math.max(0, startIndex - 10));
       
-      // If that still fails, try one more approach
+      // If that still fails, try one more approach with just the category
       if (!searchResult?.results || searchResult.results.length === 0) {
         console.log('Second attempt failed, trying with more generic search');
-        searchResult = await performGoogleSearch(query, country, region, 0);
+        searchResult = await performGoogleSearch(query, country, '', 0);
       }
     }
     
@@ -150,13 +190,28 @@ export const loadMore = async (
       return { newResults: [], hasMore: false };
     }
 
+    // Process "No website" placeholders
+    const processedResults = searchResult.results.map(result => {
+      if (result.url === 'https://example.com/no-website') {
+        return {
+          ...result,
+          details: {
+            ...result.details,
+            title: `${result.details?.title || ''} (No website)`,
+            description: `${result.details?.description || ''} - This business was found in search but has no website.`,
+          }
+        };
+      }
+      return result;
+    });
+
     // Create a Set of existing URLs (in lowercase for case-insensitive comparison)
     const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
     
     // Filter out duplicates using case-insensitive comparison
-    const newResults = searchResult.results.filter(result => {
+    const newResults = processedResults.filter(result => {
       const lowerCaseUrl = result.url.toLowerCase();
-      return !existingUrls.has(lowerCaseUrl);
+      return !existingUrls.has(lowerCaseUrl) && lowerCaseUrl !== 'https://example.com/no-website';
     });
 
     console.log(`Loaded ${searchResult.results.length} results, ${newResults.length} new after filtering duplicates`);
