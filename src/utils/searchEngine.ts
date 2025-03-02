@@ -44,6 +44,13 @@ export const performGoogleSearch = async (
     if (error) {
       console.error('Places search error:', error);
       
+      // Log more detailed error information
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        statusCode: error.status
+      });
+      
       // Attempt a second search with a simplified query if there was an error
       console.log('Attempting fallback search with simplified parameters...');
       const fallbackQuery = query.split(' ')[0]; // Use just the first word of the query
@@ -106,7 +113,11 @@ const processSearchResults = (data: any): PlacesResult => {
         // Include additional details if available
         phone: result.details?.phone,
         rating: result.details?.rating,
-        reviewCount: result.details?.reviewCount
+        reviewCount: result.details?.reviewCount,
+        businessType: result.details?.businessType,
+        priceLevel: result.details?.priceLevel,
+        openingHours: result.details?.openingHours,
+        location: result.details?.location
       }
     }));
 
