@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from './searchEngine';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,7 +61,7 @@ export const executeSearch = async (
 
     // Add more specific terms to the query to find businesses more likely to have chatbots
     // but don't overdo it to ensure we get good location-specific results
-    const chatbotTerms = "website customer service support contact";
+    const chatbotTerms = "website customer service";
     const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
 
     console.log('Starting search with params:', {
@@ -96,6 +97,7 @@ export const executeSearch = async (
       // Try a series of increasingly simpler searches
       const fallbackQueries = [
         query, // Original query
+        `${query} in ${region || ''} ${country}`.trim(), // Structured query with location
         `${query} services`, // Add services
         query.split(' ')[0] // Just first word
       ];

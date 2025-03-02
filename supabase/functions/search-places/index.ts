@@ -1,399 +1,355 @@
 
-import { createClient } from '@supabase/supabase-js'
-import { corsHeaders } from '../_shared/cors.ts'
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
-interface SearchRequest {
-  query: string;
-  country: string;
-  region?: string;
-  startIndex?: number;
-  limit?: number;
-  include_details?: boolean;
-  client_timestamp?: string;
-}
-
-// Enhanced coordinates map with all US states and more countries
+// Enhanced coordinates for all US states
 const REGION_COORDINATES: Record<string, { lat: number; lng: number }> = {
-  // United States - all states
-  "Alabama": { lat: 32.7794, lng: -86.8287 },
-  "Alaska": { lat: 64.0685, lng: -152.2782 },
-  "Arizona": { lat: 34.2744, lng: -111.6602 },
-  "Arkansas": { lat: 34.8938, lng: -92.4426 },
-  "California": { lat: 36.7783, lng: -119.4179 },
-  "Colorado": { lat: 39.5501, lng: -105.7821 },
-  "Connecticut": { lat: 41.6032, lng: -73.0877 },
-  "Delaware": { lat: 38.9896, lng: -75.5050 },
-  "Florida": { lat: 27.9944, lng: -81.7603 },
-  "Georgia": { lat: 32.6415, lng: -83.4426 },
-  "Hawaii": { lat: 20.2927, lng: -156.3737 },
-  "Idaho": { lat: 44.0682, lng: -114.7420 },
-  "Illinois": { lat: 40.0417, lng: -89.1965 },
-  "Indiana": { lat: 39.8942, lng: -86.2816 },
-  "Iowa": { lat: 42.0751, lng: -93.4960 },
-  "Kansas": { lat: 38.4937, lng: -98.3804 },
-  "Kentucky": { lat: 37.5347, lng: -85.3021 },
-  "Louisiana": { lat: 31.0689, lng: -91.9968 },
-  "Maine": { lat: 45.3695, lng: -69.2428 },
-  "Maryland": { lat: 39.0550, lng: -76.7909 },
-  "Massachusetts": { lat: 42.2596, lng: -71.8083 },
-  "Michigan": { lat: 44.3467, lng: -85.4102 },
-  "Minnesota": { lat: 46.2807, lng: -94.3053 },
-  "Mississippi": { lat: 32.7364, lng: -89.6678 },
-  "Missouri": { lat: 38.3566, lng: -92.4580 },
-  "Montana": { lat: 47.0527, lng: -109.6333 },
-  "Nebraska": { lat: 41.5378, lng: -99.7951 },
-  "Nevada": { lat: 39.3289, lng: -116.6312 },
-  "New Hampshire": { lat: 43.6805, lng: -71.5811 },
-  "New Jersey": { lat: 40.1907, lng: -74.6728 },
-  "New Mexico": { lat: 34.4071, lng: -106.1126 },
-  "New York": { lat: 42.9538, lng: -75.5268 },
-  "North Carolina": { lat: 35.5557, lng: -79.3877 },
-  "North Dakota": { lat: 47.4501, lng: -100.4659 },
-  "Ohio": { lat: 40.2862, lng: -82.7937 },
-  "Oklahoma": { lat: 35.5889, lng: -97.4943 },
-  "Oregon": { lat: 43.9336, lng: -120.5583 },
-  "Pennsylvania": { lat: 40.8781, lng: -77.7996 },
-  "Rhode Island": { lat: 41.6762, lng: -71.5562 },
-  "South Carolina": { lat: 33.9169, lng: -80.8964 },
-  "South Dakota": { lat: 44.4443, lng: -100.2263 },
-  "Tennessee": { lat: 35.8580, lng: -86.3505 },
-  "Texas": { lat: 31.4757, lng: -99.3312 },
-  "Utah": { lat: 39.3055, lng: -111.6703 },
-  "Vermont": { lat: 44.0687, lng: -72.6658 },
-  "Virginia": { lat: 37.5215, lng: -78.8537 },
-  "Washington": { lat: 47.3826, lng: -120.4472 },
-  "West Virginia": { lat: 38.6409, lng: -80.6227 },
-  "Wisconsin": { lat: 44.6243, lng: -89.9941 },
-  "Wyoming": { lat: 42.9957, lng: -107.5512 },
-  
-  // United Kingdom
-  "England": { lat: 52.3555, lng: -1.1743 },
-  "Scotland": { lat: 56.4907, lng: -4.2026 },
-  "Wales": { lat: 52.1307, lng: -3.7837 },
-  "Northern Ireland": { lat: 54.7877, lng: -6.4923 },
-
-  // Canada
-  "Alberta": { lat: 53.9333, lng: -116.5765 },
-  "British Columbia": { lat: 53.7267, lng: -127.6476 },
-  "Manitoba": { lat: 53.7609, lng: -98.8139 },
-  "New Brunswick": { lat: 46.5653, lng: -66.4619 },
-  "Newfoundland and Labrador": { lat: 53.1355, lng: -57.6604 },
-  "Nova Scotia": { lat: 45.1969, lng: -63.1553 },
-  "Ontario": { lat: 51.2538, lng: -85.3232 },
-  "Prince Edward Island": { lat: 46.5107, lng: -63.4168 },
-  "Quebec": { lat: 52.9399, lng: -73.5491 },
-  "Saskatchewan": { lat: 52.9399, lng: -106.4509 },
-  "Northwest Territories": { lat: 64.8255, lng: -124.8457 },
-  "Nunavut": { lat: 70.2998, lng: -83.1076 },
-  "Yukon": { lat: 64.2823, lng: -135.0 },
-  
-  // Australia
-  "New South Wales": { lat: -31.2532, lng: 146.9211 },
-  "Victoria": { lat: -37.0201, lng: 144.9646 },
-  "Queensland": { lat: -20.9176, lng: 142.7028 },
-  "Western Australia": { lat: -27.6728, lng: 121.6283 },
-  "South Australia": { lat: -30.0002, lng: 136.2092 },
-  "Tasmania": { lat: -41.4545, lng: 145.9707 },
-  "Australian Capital Territory": { lat: -35.4735, lng: 149.0124 },
-  "Northern Territory": { lat: -19.4914, lng: 132.5510 },
-
-  // Default fallback for unknown regions
-  "default": { lat: 0, lng: 0 }
+  "default": { lat: 37.0902, lng: -95.7129 }, // Center of USA
+  "alabama": { lat: 32.7794, lng: -86.8287 },
+  "alaska": { lat: 64.0685, lng: -152.2782 },
+  "arizona": { lat: 34.2744, lng: -111.6602 },
+  "arkansas": { lat: 34.8938, lng: -92.4426 },
+  "california": { lat: 36.7783, lng: -119.4179 },
+  "colorado": { lat: 39.5501, lng: -105.7821 },
+  "connecticut": { lat: 41.6032, lng: -73.0877 },
+  "delaware": { lat: 38.9896, lng: -75.5050 },
+  "florida": { lat: 27.9944, lng: -81.7603 },
+  "georgia": { lat: 32.1656, lng: -82.9001 },
+  "hawaii": { lat: 19.8968, lng: -155.5828 },
+  "idaho": { lat: 44.0682, lng: -114.7420 },
+  "illinois": { lat: 40.0417, lng: -89.1965 },
+  "indiana": { lat: 39.8647, lng: -86.2604 },
+  "iowa": { lat: 42.0046, lng: -93.2140 },
+  "kansas": { lat: 38.5266, lng: -96.7265 },
+  "kentucky": { lat: 37.5347, lng: -85.3021 },
+  "louisiana": { lat: 31.1695, lng: -91.8678 },
+  "maine": { lat: 44.6074, lng: -69.3977 },
+  "maryland": { lat: 39.0458, lng: -76.6413 },
+  "massachusetts": { lat: 42.2373, lng: -71.5314 },
+  "michigan": { lat: 44.3148, lng: -85.6024 },
+  "minnesota": { lat: 46.2807, lng: -94.3053 },
+  "mississippi": { lat: 32.7673, lng: -89.6812 },
+  "missouri": { lat: 38.4623, lng: -92.3020 },
+  "montana": { lat: 46.8797, lng: -110.3626 },
+  "nebraska": { lat: 41.4925, lng: -99.9018 },
+  "nevada": { lat: 38.8026, lng: -116.4194 },
+  "new hampshire": { lat: 43.1939, lng: -71.5724 },
+  "new jersey": { lat: 40.0583, lng: -74.4057 },
+  "new mexico": { lat: 34.5199, lng: -105.8701 },
+  "new york": { lat: 42.1657, lng: -74.9481 },
+  "north carolina": { lat: 35.7596, lng: -79.0193 },
+  "north dakota": { lat: 47.5515, lng: -101.0020 },
+  "ohio": { lat: 40.4173, lng: -82.9071 },
+  "oklahoma": { lat: 35.5376, lng: -96.9247 },
+  "oregon": { lat: 43.8041, lng: -120.5542 },
+  "pennsylvania": { lat: 40.5773, lng: -77.2640 },
+  "rhode island": { lat: 41.6772, lng: -71.5101 },
+  "south carolina": { lat: 33.8191, lng: -80.9066 },
+  "south dakota": { lat: 43.9695, lng: -99.9018 },
+  "tennessee": { lat: 35.7478, lng: -86.6923 },
+  "texas": { lat: 31.9686, lng: -99.9018 },
+  "utah": { lat: 39.3210, lng: -111.0937 },
+  "vermont": { lat: 44.5588, lng: -72.5778 },
+  "virginia": { lat: 37.7693, lng: -78.1700 },
+  "washington": { lat: 47.7511, lng: -120.7401 },
+  "west virginia": { lat: 38.5976, lng: -80.4549 },
+  "wisconsin": { lat: 43.7844, lng: -88.7879 },
+  "wyoming": { lat: 43.0760, lng: -107.2903 }
 };
 
-// Country code mapping
+// Country codes for regional restrictions
 const COUNTRY_CODES: Record<string, string> = {
   "United States": "US",
-  "United Kingdom": "GB",
   "Canada": "CA",
+  "United Kingdom": "GB",
   "Australia": "AU",
-  "Germany": "DE",
-  "France": "FR",
-  "Spain": "ES",
-  "Italy": "IT",
-  "Japan": "JP",
-  "Brazil": "BR",
-  "India": "IN",
-  "China": "CN",
-  "Singapore": "SG",
-  "Netherlands": "NL",
-  "Sweden": "SE",
-  "Mexico": "MX",
-  "South Africa": "ZA",
-  "South Korea": "KR",
-  "Russia": "RU",
-  "United Arab Emirates": "AE",
   "New Zealand": "NZ",
   "Ireland": "IE",
-  "Switzerland": "CH",
-  "Norway": "NO",
-  "Denmark": "DK",
-  "Finland": "FI",
-  "Belgium": "BE",
-  "Austria": "AT",
-  "Portugal": "PT",
-  "Greece": "GR"
+  "US": "US",
+  "UK": "GB",
+  "USA": "US",
+  "England": "GB",
+  "Scotland": "GB",
+  "Wales": "GB",
+  "Northern Ireland": "GB"
 };
 
-// Helper function to sanitize queries for better results
-const sanitizeQuery = (query: string): string => {
-  // Remove problematic phrases like "near me" which don't work well with Places API
-  return query.replace(/\bnear me\b/gi, '').trim();
-};
-
-// Enhanced field mask for better place details
-const getFieldMask = (includeDetails: boolean): string[] => {
-  const basicFields = [
-    'places.id',
-    'places.displayName',
-    'places.formattedAddress',
-    'places.websiteUri',
+// Replace problematic phrases in the query
+function sanitizeQuery(query: string): string {
+  // Remove phrases that don't work well with the Places API
+  const replacements = [
+    { pattern: /\bnear me\b/gi, replacement: "" },
+    { pattern: /\bin my area\b/gi, replacement: "" },
+    { pattern: /\bnearby\b/gi, replacement: "" }
   ];
   
-  if (includeDetails) {
-    return [
-      ...basicFields,
-      'places.shortFormattedAddress',
-      'places.location',
-      'places.types',
-      'places.businessStatus',
-      'places.userRatingCount',
-      'places.googleMapsUri',
-      'places.nationalPhoneNumber',
-      'places.internationalPhoneNumber',
-      'places.rating',
-      'places.regularOpeningHours',
-      'places.priceLevel',
-      'places.primaryType',
-      'places.primaryTypeDisplayName'
-    ];
+  let result = query;
+  for (const { pattern, replacement } of replacements) {
+    result = result.replace(pattern, replacement);
   }
   
-  return basicFields;
-};
-
-Deno.serve(async (req) => {
-  // Handle CORS pre-flight request
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  // Trim excess whitespace and ensure the query is not too long
+  result = result.replace(/\s+/g, ' ').trim();
+  
+  // If the query becomes too short after sanitization, return the original
+  if (result.length < 3) {
+    return query;
   }
+  
+  return result;
+}
 
+serve(async (req) => {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+  
+  const startTime = Date.now();
+  
   try {
-    // Extract Google Places API key from environment
-    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
-    if (!GOOGLE_API_KEY) {
-      console.error('Google Places API key is missing');
+    // Parse request body
+    const requestData = await req.json();
+    const {
+      query,
+      country = "United States",
+      region = "",
+      include_details = true,
+      limit = 10,
+      client_timestamp
+    } = requestData;
+    
+    const startIndex = requestData.startIndex || 0;
+    
+    // Input validation
+    if (!query || typeof query !== 'string') {
       return new Response(
-        JSON.stringify({
-          error: 'Missing API key',
+        JSON.stringify({ error: 'Invalid query parameter', status: 'input_error' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Log the request with timestamp for correlation
+    console.log(`Processing Places request at ${new Date().toISOString()}`);
+    console.log(`Client timestamp: ${client_timestamp || 'Not provided'}`);
+    console.log(`Search params:`, { query, country, region, startIndex, limit });
+    
+    // Get the Google Places API key from environment variables
+    const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
+    if (!apiKey) {
+      console.error("Missing Google Places API key");
+      return new Response(
+        JSON.stringify({ 
+          error: 'API key configuration error', 
           status: 'config_error',
-          details: 'Google Places API key not found in environment variables'
+          details: 'Google Places API key is missing'
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const { query, country, region, startIndex = 0, limit = 20, include_details = true, client_timestamp } = await req.json() as SearchRequest;
+    
+    // Sanitize and prepare the query
     const sanitizedQuery = sanitizeQuery(query);
-    
-    // Log request parameters for debugging
-    console.log(`Search request received at ${new Date().toISOString()}`);
-    console.log(`Original query: "${query}"`);
     console.log(`Sanitized query: "${sanitizedQuery}"`);
-    console.log(`Country: ${country}, Region: ${region}, StartIndex: ${startIndex}, Limit: ${limit}`);
     
-    if (client_timestamp) {
-      console.log(`Client timestamp: ${client_timestamp}`);
-    }
+    // Determine the appropriate API URL (using Places API v1)
+    const apiUrl = "https://places.googleapis.com/v1/places:searchText";
     
-    // Check for required parameters
-    if (!sanitizedQuery || sanitizedQuery.length < 3) {
-      return new Response(
-        JSON.stringify({
-          error: 'Invalid query',
-          details: 'Query must be at least 3 characters'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-
-    // Use country code for location restriction
-    const countryCode = COUNTRY_CODES[country] || country;
-    if (countryCode) {
-      console.log(`Set location restriction to country: ${countryCode}`);
-    }
-
-    // Larger radius (150km instead of 50km) for broader search coverage
-    const searchRadius = 150000; // 150km in meters
+    // Set up location bias based on region and country
+    // Convert region to lowercase for matching
+    const regionLower = region.toLowerCase();
     
-    // Prepare request to Google Places API V1
+    // Prepare request body
     const requestBody: any = {
       textQuery: sanitizedQuery,
-      maxResultCount: Math.min(limit, 20), // API maximum is 20
+      maxResultCount: Math.min(20, limit || 10), // Ensure we don't exceed API limit of 20
       languageCode: "en",
-      locationBias: {},
-      priceLevels: ["PRICE_LEVEL_INEXPENSIVE", "PRICE_LEVEL_MODERATE", "PRICE_LEVEL_EXPENSIVE", "PRICE_LEVEL_VERY_EXPENSIVE"],
-      openNow: false,
-      includedTypes: [],
     };
     
-    // Set field mask based on details flag
-    requestBody.fields = {
-      paths: getFieldMask(include_details)
-    };
-
-    // Add regional bias if region is provided
-    if (region) {
-      const regionCoords = REGION_COORDINATES[region];
-      if (regionCoords) {
-        console.log(`Using coordinates for ${region}: lat ${regionCoords.lat}, lng ${regionCoords.lng}`);
-        requestBody.locationBias = {
-          circle: {
-            center: {
-              latitude: regionCoords.lat,
-              longitude: regionCoords.lng
-            },
-            radius: searchRadius
-          }
-        };
-      } else {
-        console.log(`No specific coordinates found for ${region}, using broader search`);
-      }
-    }
-
-    // Add country restriction if provided
-    if (countryCode) {
-      requestBody.locationRestriction = {
-        rectangle: {
-          low: { latitude: -90, longitude: -180 },
-          high: { latitude: 90, longitude: 180 }
+    // Add location bias with increased radius (200km instead of 50km)
+    // This allows for a wider search area to get more results
+    if (regionLower) {
+      const regionCoords = REGION_COORDINATES[regionLower] || REGION_COORDINATES.default;
+      console.log(`Using coordinates for region "${regionLower}":`, regionCoords);
+      
+      requestBody.locationBias = {
+        circle: {
+          center: {
+            latitude: regionCoords.lat,
+            longitude: regionCoords.lng
+          },
+          radius: 200000 // 200km radius (increased from 50km)
         }
       };
-      
-      // If we have a country code, use it for location restriction
-      if (countryCode) {
-        requestBody.locationRestriction = {
-          includedCountries: [countryCode]
-        };
-      }
     }
-
-    // Pagination support
-    if (startIndex > 0 && startIndex % 20 === 0) {
-      // Places API needs a pageToken for pagination, but we'd need to store this between requests
-      // This is a limitation we'll need to handle by making multiple requests on the client
-      console.log(`Starting from index ${startIndex}, making an offset request`);
-    }
-
-    // Call Google Places API
-    console.log(`Calling Google Places API with params:`, JSON.stringify(requestBody, null, 2));
-    const startTime = Date.now();
-    const response = await fetch(
-      'https://places.googleapis.com/v1/places:searchText',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_API_KEY,
-          'X-Goog-FieldMask': requestBody.fields.paths.join(','),
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
     
-    const apiResponseTime = Date.now() - startTime;
-    console.log(`API response received in ${apiResponseTime}ms with status ${response.status}`);
-
-    // Handle API errors
+    // Add country restriction if country is provided
+    if (country) {
+      const countryCode = COUNTRY_CODES[country] || country;
+      console.log(`Set location restriction to country: ${countryCode}`);
+      
+      requestBody.locationRestriction = {
+        countryRestriction: {
+          allowedCountries: [countryCode]
+        }
+      };
+    }
+    
+    // Enhanced field mask to include all relevant fields
+    // This helps us get more comprehensive details about each place
+    const fieldMask = [
+      "places.id",
+      "places.displayName",
+      "places.formattedAddress",
+      "places.websiteUri",
+      "places.businessStatus",
+      "places.userRatingCount", 
+      "places.googleMapsUri",
+      "places.nationalPhoneNumber",
+      "places.priceLevel",
+      "places.rating",
+      "places.shortFormattedAddress",
+      "places.types",
+      "places.internationalPhoneNumber",
+      "places.primaryTypeDisplayName",
+      "places.regularOpeningHours",
+      "places.photos",
+      "places.plusCode"
+    ].join(",");
+    
+    // Make the API request
+    console.log(`Making Google Places API request to ${apiUrl}`);
+    console.log(`Request body:`, JSON.stringify(requestBody));
+    
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": fieldMask
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const responseTime = Date.now() - startTime;
+    console.log(`Places API responded in ${responseTime}ms with status ${response.status}`);
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Google Places API error: ${response.status}`, errorText);
+      // Get details from the error response
+      let errorDetails = "Unknown error";
+      try {
+        const errorResponse = await response.json();
+        errorDetails = JSON.stringify(errorResponse);
+        console.error("Google Places API error:", errorDetails);
+      } catch (e) {
+        errorDetails = await response.text();
+        console.error("Failed to parse error response:", errorDetails);
+      }
+      
+      // Handle rate limiting specifically
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Rate limited by Google Places API', 
+            status: 'rate_limited',
+            retryAfter: parseInt(response.headers.get('Retry-After') || '60')
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
       return new Response(
-        JSON.stringify({
-          error: `Google Places API error: ${response.status}`,
-          details: errorText,
-          status: 'api_error'
+        JSON.stringify({ 
+          error: `Google Places API error: ${response.status}`, 
+          status: 'api_error',
+          details: errorDetails
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: response.status === 429 ? 429 : 500,
-          retryAfter: response.headers.get('retry-after') || "60"
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Parse successful response
-    const data = await response.json();
     
-    console.log(`Found ${data.places?.length || 0} places in response`);
-    if (data.places?.length > 0) {
-      console.log(`Sample result: ${data.places[0].websiteUri || 'No website'} (${data.places[0].id})`);
+    // Process the response
+    const data = await response.json();
+    console.log(`Places API returned ${data.places?.length || 0} places`);
+    
+    if (!data.places || !Array.isArray(data.places)) {
+      console.log("No places found in API response");
+      return new Response(
+        JSON.stringify({ results: [], hasMore: false }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    // Process results to extract relevant information
-    const results = (data.places || []).map((place: any) => {
-      const website = place.websiteUri || 'https://example.com/no-website';
+    
+    // Process each place to extract relevant information
+    const results = data.places.map((place: any) => {
+      // Extract the business name
+      const name = place.displayName?.text || "Unknown Business";
+      console.log(`Processing place: ${name}`);
       
-      console.log(`Processing ${place.displayName?.text || 'Unknown place'} (${website})`);
+      // Get website URL if available, or use a placeholder
+      const websiteUrl = place.websiteUri || "https://example.com/no-website";
+      
+      // Include additional details for enhanced verification
+      const details = {
+        title: name,
+        description: place.formattedAddress || place.shortFormattedAddress || "",
+        placeId: place.id,
+        phone: place.nationalPhoneNumber || place.internationalPhoneNumber,
+        rating: place.rating,
+        reviewCount: place.userRatingCount,
+        businessType: place.primaryTypeDisplayName?.text || (place.types && place.types[0]) || "Business",
+        priceLevel: place.priceLevel,
+        location: {
+          address: place.formattedAddress,
+          latitude: place.location?.latitude,
+          longitude: place.location?.longitude
+        },
+        googleMapsUrl: place.googleMapsUri,
+        openingHours: place.regularOpeningHours,
+        photoReference: place.photos && place.photos.length > 0 ? place.photos[0].name : null
+      };
       
       return {
-        url: website,
-        title: place.displayName?.text || '',
-        description: place.formattedAddress || '',
-        details: {
-          title: place.displayName?.text || '',
-          description: place.formattedAddress || '',
-          phone: place.internationalPhoneNumber || place.nationalPhoneNumber,
-          rating: place.rating,
-          reviewCount: place.userRatingCount,
-          businessType: place.primaryTypeDisplayName?.text || place.primaryType,
-          priceLevel: place.priceLevel,
-          openingHours: place.regularOpeningHours,
-          location: place.location,
-          placeId: place.id,
-          photoReference: null // Places API v1 handles photos differently
-        }
+        url: websiteUrl,
+        title: name,
+        details
       };
     });
-
-    // Check for more results - with Places API v1 we can use nextPageToken
-    // For now, we'll use a simple approximation based on the max results
-    const hasMore = data.places?.length >= Math.min(limit, 20);
     
-    // Construct the final response
+    // Determine if there are more results available
+    // In the Places API v1, we need to check if we received the maximum number of results
+    // If we got maxResultCount, it's likely there are more results
+    const hasMore = data.places.length >= requestBody.maxResultCount;
+    
+    // Return the formatted results
     const responseObj = {
       results,
       hasMore,
+      requestParams: {
+        query: sanitizedQuery,
+        region: region,
+        country: country
+      },
       nextPageToken: data.nextPageToken
     };
-
-    console.log(`Processed ${results.length} results with hasMore=${hasMore}`);
-    console.log(`Request completed in ${Date.now() - startTime}ms`);
     
+    console.log(`Returning ${results.length} processed results with hasMore=${hasMore}`);
+    console.log(`Total request processing time: ${Date.now() - startTime}ms`);
+    
+    // Return the response
     return new Response(
       JSON.stringify(responseObj),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error(`Error processing search-places request:`, error);
+    console.error("Error processing request:", error);
     
     return new Response(
       JSON.stringify({
-        error: 'Internal server error',
-        details: error.message,
+        error: `Internal server error: ${error.message}`,
         status: 'server_error'
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

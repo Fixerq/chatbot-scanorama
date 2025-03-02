@@ -59,7 +59,7 @@ export const performGoogleSearch = async (
           country,
           region,
           startIndex: startIndex || 0,
-          limit: 20, // Increased from 10 to 20 for more results
+          limit: 20, // Maximum allowed by Places API v1
           include_details: true, // Request additional details for better verification
           client_timestamp: requestTimestamp // Pass timestamp to correlate logs
         }
