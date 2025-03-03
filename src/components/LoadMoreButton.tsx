@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from './ui/button';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
 interface LoadMoreButtonProps {
   onLoadMore: () => void;
@@ -22,7 +22,10 @@ const LoadMoreButton = ({ onLoadMore, isProcessing }: LoadMoreButtonProps) => {
           Loading...
         </>
       ) : (
-        'Load More Results'
+        <>
+          Load More Results
+          <ChevronDown className="w-5 h-5 ml-2" />
+        </>
       )}
     </Button>
   );

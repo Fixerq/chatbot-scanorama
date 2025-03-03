@@ -1,11 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ResultsTable, { Result } from './ResultsTable';
 import ResultsHeader from './results/ResultsHeader';
 import ResultsFilters from './results/ResultsFilters';
 import EmptyResults from './results/EmptyResults';
 import LoadMoreButton from './LoadMoreButton';
-import ResultsPagination from './results/ResultsPagination';
 import ResultsAnalyzingState from './results/ResultsAnalyzingState';
 import useResultsContainer from '@/hooks/useResultsContainer';
 
@@ -34,25 +33,49 @@ const Results = ({
     resultsCount: results?.length, 
     isAnalyzing,
     hasResults: results && results.length > 0,
-    hasMore // Log hasMore flag to verify its value
+    hasMore
   });
+  
+  const RESULTS_PER_PAGE = 10; // Show 10 per page instead of larger batches
+  const [currentPage, setCurrentPage] = useState(1);
+  const [displayedResults, setDisplayedResults] = useState<Result[]>([]);
   
   const {
     validResults,
-    displayedResults,
     filterValue,
     sortValue,
-    currentPage,
-    totalPages,
     chatbotCount,
     handleFilter,
-    handleSort,
-    handlePageChange
+    handleSort
   } = useResultsContainer(results);
-
+  
+  // Update displayed results when page or filtered results change
+  useEffect(() => {
+    if (validResults.length > 0) {
+      // Slice the results array based on current page
+      const startIndex = 0; // Always show from beginning
+      const endIndex = Math.min(currentPage * RESULTS_PER_PAGE, validResults.length);
+      setDisplayedResults(validResults.slice(startIndex, endIndex));
+    } else {
+      setDisplayedResults([]);
+    }
+  }, [validResults, currentPage, RESULTS_PER_PAGE]);
+  
+  // Handle loading more results
+  const handleLoadMore = () => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    
+    // If we're close to the end of our local results and there are more on the server
+    if (validResults.length <= nextPage * RESULTS_PER_PAGE + RESULTS_PER_PAGE && hasMore && onLoadMore) {
+      onLoadMore(nextPage);
+    }
+  };
+  
   // Debug log for validResults
   console.log("Valid results count:", validResults?.length);
   console.log("hasMore status:", hasMore);
+  console.log("Displayed results:", displayedResults.length);
 
   // Show analyzing state when we're analyzing and either:
   // 1. There are no results at all, or
@@ -90,22 +113,11 @@ const Results = ({
         />
       </div>
       
-      {totalPages > 1 && (
-        <ResultsPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          hasMoreResults={hasMore}
-          onLoadMore={onLoadMore}
-          isLoading={isLoadingMore}
-        />
-      )}
-      
-      {/* Always show Load More button if hasMore is true */}
-      {hasMore && onLoadMore && (
+      {/* Show Load More button if there are more results to display */}
+      {(validResults.length > currentPage * RESULTS_PER_PAGE || hasMore) && (
         <div className="mt-6 flex justify-center">
           <LoadMoreButton 
-            onLoadMore={() => onLoadMore(currentPage + 1)} 
+            onLoadMore={handleLoadMore} 
             isProcessing={isLoadingMore || isAnalyzing} 
           />
         </div>
