@@ -1484,6 +1484,36 @@ export type Database = {
           },
         ]
       }
+      searches: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          id: string
+          query: string
+          region: string | null
+          result_count: number
+          user_id: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          query: string
+          region?: string | null
+          result_count?: number
+          user_id?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          query?: string
+          region?: string | null
+          result_count?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       secrets: {
         Row: {
           created_at: string
