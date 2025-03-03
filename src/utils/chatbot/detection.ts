@@ -55,7 +55,8 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
             confidenceThreshold: 0.15, // Further lowered threshold for better recall
             checkFunctionality: true,
             retryFailures: true,
-            timeout: 15000 // Increased timeout for more thorough analysis
+            timeout: 15000, // Increased timeout for more thorough analysis
+            useEnhancedDetection: true // Signal to use the new enhanced detection algorithm
           }
         });
 
@@ -101,6 +102,43 @@ function processAnalysisResult(data: any): ChatbotDetectionResponse {
   if (Array.isArray(data) && data.length > 0) {
     const result = data[0];
     
+    // Check if we have enhanced detection results
+    if (result.enhancedDetection) {
+      console.log('Processing enhanced detection results:', result.enhancedDetection);
+      
+      const hasChatbot = result.enhancedDetection.hasChatbot;
+      const confidence = result.enhancedDetection.confidence === 'high' ? 0.9 : 
+                        result.enhancedDetection.confidence === 'medium' ? 0.7 : 0.3;
+      
+      if (!hasChatbot) {
+        return {
+          status: 'No chatbot detected',
+          chatSolutions: [],
+          confidence: 0,
+          verificationStatus: 'verified', // We trust the enhanced detection
+          lastChecked: new Date().toISOString()
+        };
+      }
+      
+      // Extract provider information
+      let solutions = [];
+      const provider = result.enhancedDetection.provider;
+      
+      if (provider && provider !== 'Unknown' && provider !== 'Custom') {
+        solutions.push(provider);
+      } else {
+        solutions.push('Website Chatbot');
+      }
+      
+      return {
+        status: 'Chatbot detected',
+        chatSolutions: solutions,
+        confidence: confidence,
+        verificationStatus: 'verified',
+        lastChecked: new Date().toISOString()
+      };
+    }
+    
     // More permissive confidence checking with very low threshold
     if (!result.hasChatbot || 
        (result.confidence !== undefined && result.confidence < 0.15) || 
@@ -142,6 +180,7 @@ function processAnalysisResult(data: any): ChatbotDetectionResponse {
     };
   }
   
+  // Handle the original data format
   if (!data || !data.status) {
     console.warn('Edge function returned incomplete data');
     return {
