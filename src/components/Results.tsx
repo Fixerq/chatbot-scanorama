@@ -52,6 +52,7 @@ const Results = ({
 
   // Debug log for validResults
   console.log("Valid results count:", validResults?.length);
+  console.log("hasMore status:", hasMore);
 
   // Show analyzing state when we're analyzing and either:
   // 1. There are no results at all, or
@@ -102,7 +103,7 @@ const Results = ({
       
       {/* Always show Load More button if hasMore is true, regardless of pagination state */}
       {hasMore && onLoadMore && (
-        <div className="mt-6">
+        <div className="mt-6 flex justify-center">
           <LoadMoreButton 
             onLoadMore={() => onLoadMore(currentPage + 1)} 
             isProcessing={isLoadingMore || isAnalyzing} 

@@ -47,15 +47,39 @@ export const processSearchResults = (data: any): PlacesResult => {
     console.log('Sample formatted result:', formattedResults[0]);
   }
 
+  // Calculate hasMore flag - pay special attention to this logic
+  let hasMoreResults = false;
+  
+  // Check for explicit hasMore flag
+  if (data.hasMore !== undefined) {
+    hasMoreResults = Boolean(data.hasMore);
+  } 
+  // Check for nextPageToken (indicates more results are available)
+  else if (data.nextPageToken) {
+    hasMoreResults = true;
+  }
+  // Check total vs. current count if available
+  else if (data.totalResults !== undefined && data.totalResults > formattedResults.length) {
+    hasMoreResults = true;
+  }
+
+  console.log('hasMore flag set to:', hasMoreResults, 'based on data:', {
+    explicitHasMore: data.hasMore,
+    nextPageToken: !!data.nextPageToken,
+    totalResults: data.totalResults,
+    currentCount: formattedResults.length
+  });
+  
   // Add search metadata
   const returnValue: PlacesResult = {
     results: formattedResults,
-    hasMore: data.hasMore || false
+    hasMore: hasMoreResults
   };
   
   // Add pagination-related data if available
   if (data.nextPageToken) {
     returnValue.nextPageToken = data.nextPageToken;
+    console.log('Next page token available:', data.nextPageToken.substring(0, 10) + '...');
   }
   
   if (data.searchId) {

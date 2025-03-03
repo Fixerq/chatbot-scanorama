@@ -86,7 +86,7 @@ const Index = () => {
       isProcessing,
       hasMore // Log hasMore flag to verify its value
     });
-  }, [results, isProcessing, hasMore]); // Add hasMore to dependency array
+  }, [results, isProcessing, hasMore]);
 
   const handleSetResults = useCallback((newResults: Result[]) => {
     console.log('Setting new results in Index:', newResults.length);
