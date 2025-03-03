@@ -1,15 +1,13 @@
 
 import { 
-  enhanceSearchQuery, 
   executeSearch, 
   loadMore, 
-  validateSearchParams 
+  processSearchResults 
 } from './search/operations';
 
 // Re-export all functions from the new structure
 export {
-  enhanceSearchQuery,
   executeSearch,
   loadMore,
-  validateSearchParams
+  processSearchResults
 };

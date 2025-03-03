@@ -1,7 +1,8 @@
+
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
 import { BLOCKED_URLS } from '@/constants/blockedUrls';
-import { performGoogleSearch } from './searchEngine';
+import { performPlacesSearch } from './searchEngine';
 
 const isUrlBlocked = (url: string): boolean => {
   return BLOCKED_URLS.some(blockedUrl => url.toLowerCase().includes(blockedUrl.toLowerCase()));
@@ -15,28 +16,32 @@ export const performSearch = async (
   resultsLimit: number
 ): Promise<{ results: Result[]; hasMore: boolean } | null> => {
   try {
-    const searchResult = await performGoogleSearch(query, country, region);
+    const searchResponse = await performPlacesSearch({
+      query,
+      country,
+      region,
+      limit: resultsLimit
+    });
 
-    if (!searchResult || !searchResult.results) {
+    if (!searchResponse || !searchResponse.results) {
       toast.warning('No results found. Try adjusting your search terms.');
       return null;
     }
 
     // Filter out blocked URLs
-    const filteredResults = searchResult.results.filter(result => !isUrlBlocked(result.url));
+    const filteredResults = searchResponse.results.filter(result => !isUrlBlocked(result.url));
 
     if (filteredResults.length === 0) {
       toast.warning('No valid results found after filtering. Try adjusting your search terms.');
       return null;
     }
 
-    const hasMore = filteredResults.length > resultsLimit;
-    const limitedResults = filteredResults.slice(0, resultsLimit);
+    const hasMore = searchResponse.hasMore;
 
-    toast.success(`Found ${limitedResults.length} results to analyze`);
+    toast.success(`Found ${filteredResults.length} results to analyze`);
 
     return { 
-      results: limitedResults,
+      results: filteredResults,
       hasMore: hasMore
     };
   } catch (error) {
@@ -50,31 +55,30 @@ export const loadMoreResults = async (
   query: string,
   country: string,
   region: string,
-  currentResults: Result[],
-  newLimit: number
+  currentResults: Result[]
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   try {
-    const startIndex = currentResults.length + 1;
-    
-    const searchResult = await performGoogleSearch(
+    // Load more results using the Places API pagination
+    const moreResults = await performPlacesSearch({
       query,
       country,
       region,
-      startIndex
-    );
+      pageToken: currentResults[currentResults.length - 1]?._metadata?.nextPageToken,
+      existingPlaceIds: currentResults.filter(r => r.id).map(r => r.id as string)
+    });
     
-    if (!searchResult || !searchResult.results) {
+    if (!moreResults || !moreResults.results) {
       return null;
     }
 
     // Filter out blocked URLs and URLs we already have
-    const newResults = searchResult.results
+    const newResults = moreResults.results
       .filter(result => !isUrlBlocked(result.url))
       .filter(newResult => !currentResults.some(existing => existing.url === newResult.url));
 
     return { 
       newResults,
-      hasMore: searchResult.hasMore
+      hasMore: moreResults.hasMore
     };
   } catch (error) {
     console.error('Load more error:', error);

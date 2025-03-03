@@ -37,16 +37,18 @@ export const usePagination = (
         country,
         region || '',
         results,
-        nextPageToken
+        results.length + 10 // Target getting 10 more results
       );
       
       if (paginationResult) {
-        const { newResults, hasMore, nextPageToken: newPageToken } = paginationResult;
+        const { newResults, hasMore, nextPageToken: newToken } = paginationResult;
         
-        console.log(`Received ${newResults.length} new results, hasMore: ${hasMore}, token: ${newPageToken?.substring(0, 10) || 'none'}`);
+        console.log(`Received ${newResults.length} new results, hasMore: ${hasMore}, token: ${newToken?.substring(0, 10) || 'none'}`);
         
         // Update the next page token for future pagination
-        setNextPageToken(newPageToken);
+        if (newToken) {
+          setNextPageToken(newToken);
+        }
         
         // Merge the new results with existing ones
         const combinedResults = [...results, ...newResults];
@@ -61,7 +63,7 @@ export const usePagination = (
       setLoadingPages(prev => prev.filter(p => p !== pageNumber));
       setIsSearching(false);
     }
-  }, [results, updateResults, setIsSearching, nextPageToken]);
+  }, [results, updateResults, setIsSearching]);
   
   return {
     loadingPages,
