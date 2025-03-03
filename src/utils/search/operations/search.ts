@@ -1,7 +1,7 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performPlacesSearch } from '../placesApiService';
 import { toast } from 'sonner';
-import { enhanceSearchQuery } from './enhancer';
 import { validateSearchParams } from './validator';
 
 /**
@@ -20,8 +20,9 @@ export const performSearch = async (
     return null;
   }
 
-  // Enhance the search query
-  const enhancedQuery = enhanceSearchQuery(query);
+  // No need to call enhanceSearchQuery since we're using the raw query
+  // Just use the original query directly
+  const enhancedQuery = query;
 
   // Perform the places search
   const searchResult = await performPlacesSearch({

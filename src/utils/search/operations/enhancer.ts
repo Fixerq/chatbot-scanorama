@@ -4,8 +4,25 @@ import { toast } from 'sonner';
 
 /**
  * Enhances a search query using AI or fallback methods
+ * Now returns a string directly, not a promise
  */
-export const enhanceSearchQuery = async (
+export const enhanceSearchQuery = (
+  query: string,
+  country: string = '',
+  region: string = ''
+): string => {
+  // For quick testing, return a reasonable enhanced query
+  // This serves as a fallback to prevent search failures
+  const fallbackEnhancedQuery = `${query} ${region ? region + ' ' : ''}${country}`.trim();
+  
+  // For now, just return the enhanced query directly
+  return fallbackEnhancedQuery;
+};
+
+/**
+ * Async version of the enhance function if we want to use API calls in the future
+ */
+export const enhanceSearchQueryAsync = async (
   query: string,
   country: string,
   region: string
