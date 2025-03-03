@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ChatbotDetectionResponse } from '@/types/chatbot';
 import { toast } from 'sonner';
 import { isKnownFalsePositive, formatUrl } from './urlValidation';
+import { formatAdvancedDetectionResult } from './advancedDetection';
 
 /**
  * Detects chatbot presence on a website
@@ -56,7 +57,8 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
             checkFunctionality: true,
             retryFailures: true,
             timeout: 15000, // Increased timeout for more thorough analysis
-            useEnhancedDetection: true // Signal to use the new enhanced detection algorithm
+            useEnhancedDetection: true, // Signal to use the enhanced detection algorithm
+            useAdvancedDetection: true // New flag to use the advanced provider-specific detection
           }
         });
 
@@ -66,7 +68,7 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
           continue; // Try again
         }
 
-        console.log('Analysis result from edge function with enhanced verification:', data);
+        console.log('Analysis result from edge function with advanced verification:', data);
 
         return processAnalysisResult(data);
       } catch (attemptError) {
@@ -102,6 +104,47 @@ function processAnalysisResult(data: any): ChatbotDetectionResponse {
   if (Array.isArray(data) && data.length > 0) {
     const result = data[0];
     
+    // Check if we have advanced detection results
+    if (result.advancedDetection) {
+      console.log('Processing advanced detection results:', result.advancedDetection);
+      
+      const hasChatbot = result.advancedDetection.hasChatbot;
+      const advancedConfidence = result.advancedDetection.confidence;
+      const confidence = advancedConfidence === 'high' ? 0.9 : 
+                         advancedConfidence === 'medium' ? 0.7 : 
+                         advancedConfidence === 'low' ? 0.3 : 0;
+      
+      if (!hasChatbot) {
+        return {
+          status: 'No chatbot detected',
+          chatSolutions: [],
+          confidence: 0,
+          verificationStatus: 'verified', // We trust the advanced detection
+          lastChecked: new Date().toISOString(),
+          advancedDetection: formatAdvancedDetectionResult(result.advancedDetection)
+        };
+      }
+      
+      // Extract provider information
+      let solutions = [];
+      const provider = result.advancedDetection.provider;
+      
+      if (provider && provider !== 'Unknown' && provider !== 'None' && provider !== 'Custom') {
+        solutions.push(provider);
+      } else {
+        solutions.push('Website Chatbot');
+      }
+      
+      return {
+        status: 'Chatbot detected',
+        chatSolutions: solutions,
+        confidence: confidence,
+        verificationStatus: 'verified',
+        lastChecked: new Date().toISOString(),
+        advancedDetection: formatAdvancedDetectionResult(result.advancedDetection)
+      };
+    }
+    
     // Check if we have enhanced detection results
     if (result.enhancedDetection) {
       console.log('Processing enhanced detection results:', result.enhancedDetection);
@@ -116,7 +159,8 @@ function processAnalysisResult(data: any): ChatbotDetectionResponse {
           chatSolutions: [],
           confidence: 0,
           verificationStatus: 'verified', // We trust the enhanced detection
-          lastChecked: new Date().toISOString()
+          lastChecked: new Date().toISOString(),
+          enhancedDetection: result.enhancedDetection
         };
       }
       
@@ -135,7 +179,8 @@ function processAnalysisResult(data: any): ChatbotDetectionResponse {
         chatSolutions: solutions,
         confidence: confidence,
         verificationStatus: 'verified',
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
+        enhancedDetection: result.enhancedDetection
       };
     }
     

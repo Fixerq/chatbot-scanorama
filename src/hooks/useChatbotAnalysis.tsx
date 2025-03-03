@@ -16,6 +16,8 @@ export const useChatbotAnalysis = () => {
     // Perform tertiary analysis to find chatbots with various detection methods
     const { updatedResults } = performTertiaryAnalysis(processedResults);
     
+    console.log('Completed chatbot analysis with advanced detection capabilities');
+    
     return updatedResults;
   };
 

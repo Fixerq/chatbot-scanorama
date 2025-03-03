@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +17,11 @@ interface ResultStatusCellProps {
   confidence?: number;
   verificationStatus?: string;
   onResultUpdate?: () => void;
+  advancedDetection?: {
+    confidence: string;
+    evidence: string[];
+    falsePositiveChecks: string[];
+  };
 }
 
 const ResultStatusCell = ({ 
@@ -28,7 +32,8 @@ const ResultStatusCell = ({
   chatSolutions,
   confidence,
   verificationStatus,
-  onResultUpdate
+  onResultUpdate,
+  advancedDetection
 }: ResultStatusCellProps) => {
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean, confidence?: number) => {
     if (!status) return 'secondary';
@@ -59,7 +64,16 @@ const ResultStatusCell = ({
   };
 
   // Get confidence level text
-  const getConfidenceText = (confidence?: number) => {
+  const getConfidenceText = (confidence?: number, advancedConfidence?: string) => {
+    // If we have advanced detection results, use those
+    if (advancedConfidence) {
+      if (advancedConfidence === 'high') return 'Very high confidence';
+      if (advancedConfidence === 'medium') return 'High confidence';
+      if (advancedConfidence === 'low') return 'Medium confidence';
+      return 'Low confidence';
+    }
+    
+    // Otherwise, use the numeric confidence
     if (confidence === undefined) return '';
     if (confidence >= 0.9) return 'Very high confidence';
     if (confidence >= 0.75) return 'High confidence';
@@ -82,13 +96,37 @@ const ResultStatusCell = ({
       content.push(`Error: ${status}`);
     } else if (status?.toLowerCase().includes('no chatbot')) {
       content.push('No chatbot detected (verified)');
+      
+      // Add any false positive checks from advanced detection
+      if (advancedDetection?.falsePositiveChecks && advancedDetection.falsePositiveChecks.length > 0) {
+        content.push('');
+        content.push('Verification notes:');
+        advancedDetection.falsePositiveChecks.forEach(check => {
+          content.push(`- ${check}`);
+        });
+      }
     } else if (hasChatbot && chatSolutions && chatSolutions.length > 0) {
-      if (confidence !== undefined) {
+      // Add confidence information
+      if (advancedDetection?.confidence) {
+        content.push(getConfidenceText(undefined, advancedDetection.confidence));
+      } else if (confidence !== undefined) {
         content.push(getConfidenceText(confidence));
       }
       
       if (verificationStatus) {
         content.push(`Verification: ${verificationStatus}`);
+      }
+      
+      // Add chatbot evidence if available
+      if (advancedDetection?.evidence && advancedDetection.evidence.length > 0) {
+        content.push('');
+        content.push('Detection evidence:');
+        advancedDetection.evidence.slice(0, 3).forEach(evidence => {
+          content.push(`- ${evidence}`);
+        });
+        if (advancedDetection.evidence.length > 3) {
+          content.push(`- Plus ${advancedDetection.evidence.length - 3} more indicators`);
+        }
       }
       
       if (chatSolutions.length === 1) {
@@ -110,7 +148,7 @@ const ResultStatusCell = ({
     }
     
     if (onResultUpdate) {
-      content.push('Click to refresh analysis with enhanced verification');
+      content.push('Click to refresh analysis with advanced verification');
     }
     
     return content.join('\n');

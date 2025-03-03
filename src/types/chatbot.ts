@@ -6,6 +6,7 @@ export interface ChatbotDetectionResponse {
   verificationStatus?: 'verified' | 'unverified' | 'failed' | 'unknown';
   lastChecked?: string;
   enhancedDetection?: EnhancedDetectionResult;
+  advancedDetection?: AdvancedDetectionResult;
 }
 
 export interface EnhancedDetectionResult {
@@ -14,4 +15,13 @@ export interface EnhancedDetectionResult {
   score: number;
   evidence: string[];
   provider: string;
+}
+
+export interface AdvancedDetectionResult {
+  hasChatbot: boolean;
+  confidence: 'high' | 'medium' | 'low' | 'none';
+  evidence: string[];
+  provider: string;
+  falsePositiveChecks: string[];
+  providerScore?: number;
 }
