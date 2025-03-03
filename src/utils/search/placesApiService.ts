@@ -1,192 +1,126 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { logSearchParams, logResponse, logEnhancedQuery, logRetry, logRequestTimestamp } from './logging';
-import { handleSearchError, handleDataError } from './errorHandling';
-import { enhanceSearchQuery } from './queryEnhancement';
-import { processSearchResults, PlacesResult } from './resultProcessor';
-import { RETRY_CONFIG } from './constants';
+import { Result } from '@/components/ResultsTable';
+import { toast } from 'sonner';
 
-export const performGoogleSearch = async (
-  query: string,
-  country: string,
-  region: string,
-  startIndex?: number,
-  pageToken?: string
-): Promise<PlacesResult | null> => {
+interface PlacesSearchOptions {
+  query: string;
+  country: string;
+  region: string;
+  limit?: number;
+  pageToken?: string;
+  existingPlaceIds?: string[];
+}
+
+interface PlacesSearchResponse {
+  results: Result[];
+  nextPageToken?: string;
+  hasMore: boolean;
+}
+
+/**
+ * Performs a search using the Google Places API
+ */
+export const performPlacesSearch = async (options: PlacesSearchOptions): Promise<PlacesSearchResponse | null> => {
   let retryCount = 0;
-  const { maxRetries, baseRetryDelay } = RETRY_CONFIG;
+  const maxRetries = 3;
+  const retryDelay = 1000; // 1 second
   
   while (retryCount < maxRetries) {
     try {
-      logSearchParams({
-        query,
-        country,
-        region,
-        startIndex,
-        pageToken,
+      console.log('Performing Places search with params:', {
+        ...options,
         retryAttempt: retryCount
       });
 
-      // Enhance the search query
-      const enhancedQuery = enhanceSearchQuery(query, country, region);
-      logEnhancedQuery(query, enhancedQuery);
+      // Attempt to call the edge function
+      const { data, error } = await supabase.functions.invoke('search-places', {
+        body: options
+      });
 
-      // Calculate exponential backoff delay if we're retrying
-      const retryDelay = retryCount > 0 ? baseRetryDelay * Math.pow(2, retryCount - 1) : 0;
-      if (retryCount > 0) {
-        logRetry(retryCount, retryDelay);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-      }
-
-      // Add timestamp to help correlate client and server logs
-      const requestTimestamp = logRequestTimestamp();
-
-      // Prepare the request body
-      const requestBody: any = {
-        query: enhancedQuery,
-        country,
-        region,
-        limit: 20, // Maximum allowed by Places API
-        include_details: true,
-        client_timestamp: requestTimestamp
-      };
-      
-      // Check if we're doing pagination
-      if (pageToken && startIndex && startIndex > 0) {
-        // This is a pagination request
-        const currentPage = Math.floor(startIndex / 20) + 1;
-        requestBody.pageToken = pageToken;
-        requestBody.searchId = localStorage.getItem(`currentSearchId_${query}`);
-        requestBody.page = currentPage;
-        console.log(`Pagination request for page ${currentPage} with search ID: ${requestBody.searchId}`);
-      }
-
-      console.log('Sending request to Edge Function with body:', JSON.stringify(requestBody, null, 2));
-
-      // Try normal request first
-      try {
-        // Attempt to call the edge function with increased timeout
-        const { data, error } = await supabase.functions.invoke('search-places', {
-          body: requestBody,
-          headers: {
-            'Prefer': 'return=representation, count=exact',
-          }
+      if (error) {
+        console.error('Places search error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          statusCode: error.status
         });
 
-        if (error) {
-          console.error('Edge function error:', error);
-          const shouldRetry = handleSearchError(error, retryCount, maxRetries);
-          if (shouldRetry) {
-            retryCount++;
-            continue;
-          }
-          // If all retries have been exhausted, try test mode as last resort
-          if (retryCount === maxRetries - 1) {
-            console.log('Trying test mode as last resort');
-            // Add test mode to the request
-            const testRequestBody = { ...requestBody, testMode: true };
-            const { data: testData, error: testError } = await supabase.functions.invoke('search-places', {
-              body: testRequestBody,
-              headers: {
-                'Prefer': 'return=representation, count=exact',
-              }
-            });
-            
-            if (testError) {
-              console.error('Test mode also failed:', testError);
-              return null;
-            }
-            
-            console.log('Test mode returned data:', testData);
-            return processSearchResults(testData);
-          }
-          return null;
-        }
-
-        // Check for errors in the response
-        if (data?.error) {
-          console.error('Data error from Edge Function:', data.error, data.details || 'No details provided');
-          const shouldRetry = handleDataError(data, retryCount, maxRetries);
-          if (shouldRetry) {
-            retryCount++;
-            continue;
-          }
-          return null;
-        }
-
-        console.log('Raw response from Edge Function:', data);
-        logResponse(data);
-        
-        // Check if data is empty or malformed
-        if (!data || !data.results || !Array.isArray(data.results) || data.results.length === 0) {
-          console.log("Search returned no results");
-          return {
-            results: [],
-            hasMore: false
-          };
-        }
-        
-        // Process the results
-        const processedResults = processSearchResults(data);
-        
-        // Store the search ID for pagination
-        if (data.searchId) {
-          console.log(`Storing search ID for pagination: ${data.searchId}`);
-          localStorage.setItem(`currentSearchId_${query}`, data.searchId);
-          processedResults.searchId = data.searchId;
-        }
-        
-        // Store next page token if available
-        if (data.nextPageToken) {
-          console.log(`Storing next page token for pagination: ${data.nextPageToken.substring(0, 10)}...`);
-          localStorage.setItem(`searchPageToken_${query}_${country}_${region}`, data.nextPageToken);
-          
-          // Ensure hasMore is true if we have a next page token
-          processedResults.hasMore = true;
-        }
-        
-        return processedResults;
-      } catch (networkError) {
-        console.error('Network error during search:', networkError);
-        
-        // If we encounter a network error (like net::ERR_FAILED), try test mode
-        console.log('Network error occurred, trying test mode');
-        try {
-          const testRequestBody = { ...requestBody, testMode: true };
-          const { data: testData, error: testError } = await supabase.functions.invoke('search-places', {
-            body: testRequestBody,
-            headers: {
-              'Prefer': 'return=representation, count=exact',
-            }
-          });
-          
-          if (testError) {
-            console.error('Test mode also failed:', testError);
-            retryCount++;
-            continue;
-          }
-          
-          console.log('Test mode returned data:', testData);
-          return processSearchResults(testData);
-        } catch (testModeError) {
-          console.error('Test mode also failed with network error:', testModeError);
+        // If we get a non-200 error, retry after a delay
+        if (retryCount < maxRetries - 1) {
+          console.log(`Got error, retrying in ${retryDelay * (retryCount + 1)}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
           retryCount++;
+          await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
           continue;
         }
+        
+        // All retries failed
+        if (error.message.includes('API key')) {
+          toast.error('Google Places API key is missing or invalid. Please check your configuration.', { 
+            description: 'Contact your administrator to resolve this issue.'
+          });
+        } else {
+          toast.error('Search service is currently unavailable.', { 
+            description: 'Please try again later or try a different search.'
+          });
+        }
+        return null;
       }
+
+      // Check for errors in the response
+      if (data?.error) {
+        console.error('Places search API error:', data.error);
+        console.error('Error details:', data.details || 'No details provided');
+        
+        // If we have more retries left, try again
+        if (retryCount < maxRetries - 1) {
+          console.log(`Got API error, retrying in ${retryDelay * (retryCount + 1)}ms... (attempt ${retryCount + 1} of ${maxRetries})`);
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
+          continue;
+        }
+        
+        // All retries failed with API errors
+        if (data.status === 'api_error') {
+          toast.error('Error from Google Places API.', { 
+            description: 'Please check your search terms and try again with a more specific location.'
+          });
+        } else {
+          toast.error('Search service encountered an error.', { 
+            description: 'Please try again later or modify your search.'
+          });
+        }
+        return null;
+      }
+
+      console.log('Raw response from Edge Function:', data);
+      
+      // Add nextPageToken to response metadata for each result
+      if (data.results && data.nextPageToken) {
+        data.results = data.results.map(result => ({
+          ...result,
+          _metadata: {
+            nextPageToken: data.nextPageToken
+          }
+        }));
+      }
+      
+      return {
+        results: data.results || [],
+        nextPageToken: data.nextPageToken,
+        hasMore: data.hasMore || false
+      };
     } catch (error) {
       console.error('Places search error:', error);
       retryCount++;
       
-      // Use exponential backoff for retries
-      const exponentialDelay = baseRetryDelay * Math.pow(2, retryCount - 1);
-      
       if (retryCount < maxRetries) {
-        console.log(`Retrying search in ${exponentialDelay}ms... (attempt ${retryCount} of ${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, exponentialDelay));
+        console.log(`Retrying search in ${retryDelay * retryCount}ms... (attempt ${retryCount} of ${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay * retryCount));
       } else {
         // All retries failed
         console.error('Search failed after maximum retries');
+        toast.error('Search failed. Please try again later or refine your search criteria.');
         return null;
       }
     }
@@ -194,5 +128,46 @@ export const performGoogleSearch = async (
   
   // If we've exhausted all retries, return null
   console.error('Search failed after maximum retries');
+  toast.error('Search failed. Please try again later.');
   return null;
+};
+
+/**
+ * Loads more results for an existing search
+ */
+export const loadMoreResults = async (
+  query: string,
+  country: string,
+  region: string,
+  existingResults: Result[]
+): Promise<PlacesSearchResponse | null> => {
+  // Get the nextPageToken from the existing results
+  let nextPageToken = null;
+  
+  if (existingResults.length > 0) {
+    const lastResult = existingResults[existingResults.length - 1];
+    nextPageToken = lastResult._metadata?.nextPageToken;
+  }
+  
+  if (!nextPageToken) {
+    console.log('No page token found for loading more results');
+    return {
+      results: [],
+      hasMore: false
+    };
+  }
+  
+  // Get all existing place IDs for deduplication
+  const existingPlaceIds = existingResults
+    .filter(result => result.id)
+    .map(result => result.id);
+  
+  // Make the request for the next page
+  return performPlacesSearch({
+    query,
+    country,
+    region,
+    pageToken: nextPageToken,
+    existingPlaceIds
+  });
 };

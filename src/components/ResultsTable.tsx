@@ -23,6 +23,10 @@ export interface Result {
     confidence?: number;
     verificationStatus?: string;
   };
+  _metadata?: {
+    nextPageToken?: string;
+    searchId?: string;
+  };
 }
 
 export interface SearchResultMeta {
