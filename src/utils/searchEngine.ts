@@ -1,7 +1,7 @@
 
-import { performGoogleSearch } from './search';
+import { performPlacesSearch } from './search';
 import type { PlacesResult } from './search';
 
 // Re-export the functionality to maintain backward compatibility
-export { performGoogleSearch };
+export { performPlacesSearch };
 export type { PlacesResult };
