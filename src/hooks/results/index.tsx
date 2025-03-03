@@ -1,19 +1,25 @@
 
-import { useResultsState } from './useResultsState';
 import { useResultsCallback } from './useResultsCallback';
-import { Result } from '@/components/ResultsTable';
+import { useResultsState } from './useResultsState';
 
-export const useSearchResults = (onResults: (results: Result[]) => void) => {
-  const {
-    results,
-    isSearching,
-    setIsSearching,
-    updateResults
-  } = useResultsState(onResults);
+// Re-export the internal hooks
+export { useResultsCallback, useResultsState };
+
+// Define and export a combined hook for search results management
+export const useSearchResults = (onResults?: (results: any[]) => void) => {
+  const { 
+    results, 
+    isSearching, 
+    setIsSearching, 
+    setResults 
+  } = useResultsState();
   
-  // Set up the callback effect
-  useResultsCallback(results, onResults);
-
+  const { updateResults } = useResultsCallback(
+    results,
+    setResults,
+    onResults
+  );
+  
   return {
     results,
     isSearching,
@@ -21,6 +27,3 @@ export const useSearchResults = (onResults: (results: Result[]) => void) => {
     updateResults
   };
 };
-
-export * from './useResultsState';
-export * from './useResultsCallback';
