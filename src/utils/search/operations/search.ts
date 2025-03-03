@@ -4,6 +4,7 @@ import { performGoogleSearch } from '../index';
 import { toast } from 'sonner';
 import { enhanceSearchQuery } from './enhancer';
 import { validateSearchParams } from './validator';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Executes a search with all the necessary parameters
@@ -15,7 +16,7 @@ export const executeSearch = async (
   apiKey: string,
   resultsLimit: number,
   currentResults: Result[]
-): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
+): Promise<{ newResults: Result[]; hasMore: boolean; nextPageToken?: string } | null> => {
   try {
     // Validate search parameters
     if (!validateSearchParams(query, country)) {
@@ -25,7 +26,6 @@ export const executeSearch = async (
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
 
     // Add more specific terms to the query to find businesses more likely to have chatbots
-    // but don't overdo it to ensure we get good location-specific results
     const chatbotTerms = "website customer service";
     const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
 
@@ -38,136 +38,70 @@ export const executeSearch = async (
       limit: resultsLimit
     });
 
-    // Pass both country and region parameters for more accurate location filtering
-    const searchResult = await performGoogleSearch(
-      finalQuery,
-      country,
-      region
-    );
+    // Get all existing place IDs for deduplication (if any)
+    const existingPlaceIds = currentResults.map(result => result.id).filter(Boolean);
 
-    if (!searchResult) {
-      console.error('No search results returned');
-      
-      // Instead of immediately returning empty results, try a fallback
-      console.log('Attempting simplified fallback search...');
-      
-      // Try with just the plain query and country
-      const fallbackResult = await performGoogleSearch(
-        query,
+    // Perform the search
+    const { data, error } = await supabase.functions.invoke('search-places', {
+      body: {
+        query: finalQuery,
         country,
-        ''  // Empty region for broader search
-      );
-      
-      if (!fallbackResult) {
-        console.error('Fallback search also failed');
-        return { newResults: [], hasMore: false };
+        region,
+        existingPlaceIds
       }
-      
-      console.log('Fallback search returned:', fallbackResult.results?.length || 0, 'results');
-      
-      if (!fallbackResult.results || fallbackResult.results.length === 0) {
-        return { newResults: [], hasMore: false };
-      }
-      
-      return {
-        newResults: fallbackResult.results,
-        hasMore: fallbackResult.hasMore
-      };
-    }
+    });
 
-    console.log('Search results received:', searchResult.results?.length || 0);
-
-    // Check if we have any results
-    if (!searchResult.results || searchResult.results.length === 0) {
-      console.log('Search returned empty results array');
-      
-      // Try a more generic search as fallback
-      console.log('Attempting fallback search with just the original query...');
-      
-      // Try a series of increasingly simpler searches
-      const fallbackQueries = [
-        query, // Original query
-        `${query} in ${region || ''} ${country}`.trim(), // Structured query with location
-        `${query} services in ${country}`, // Add services
-        `${query} business in ${country}`, // Try with business term
-        region ? `${query} in ${region}` : null, // Just region if available
-        query.split(' ')[0] + ` in ${country}` // Just first word with country
-      ].filter(Boolean); // Remove any null entries
-      
-      for (const fallbackQuery of fallbackQueries) {
-        console.log(`Trying fallback search with: "${fallbackQuery}"`);
-        
-        // Show a toast to inform the user about the retry
-        if (fallbackQuery === fallbackQueries[0]) {
-          toast.info('No results found with initial search. Trying alternative search terms...');
-        }
-        
-        const fallbackResult = await performGoogleSearch(fallbackQuery, country, '');
-        
-        if (fallbackResult?.results && fallbackResult.results.length > 0) {
-          console.log(`Fallback search found ${fallbackResult.results.length} results`);
-          
-          // Filter out duplicates while keeping existing results
-          const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
-          const newResults = fallbackResult.results.filter(result => {
-            const lowerUrl = result.url.toLowerCase();
-            return !existingUrls.has(lowerUrl);
-          });
-          
-          console.log(`Found ${newResults.length} new results after filtering duplicates`);
-          
-          if (newResults.length > 0) {
-            toast.success(`Found ${newResults.length} results with modified search criteria`);
-            return {
-              newResults,
-              hasMore: fallbackResult.hasMore && newResults.length > 0
-            };
-          }
-        }
-      }
-      
-      // If all fallbacks failed, return empty results
-      toast.error('No results found. Please try different search terms or locations.', {
+    if (error) {
+      console.error('Search error:', error);
+      toast.error('Search service is currently unavailable.', {
+        description: 'Please try again later or try different search terms.',
         duration: 5000
       });
       return { newResults: [], hasMore: false };
     }
 
-    // Process "No website" placeholders
-    const processedResults = searchResult.results.map(result => {
-      if (result.url === 'https://example.com/no-website') {
-        // For business listings without websites, create a modified entry
-        // that still shows up but is clearly marked
-        return {
-          ...result,
-          details: {
-            ...result.details,
-            title: `${result.details?.title || ''} (No website)`,
-            description: `${result.details?.description || ''} - This business was found in search but has no website.`,
-          }
-        };
+    if (!data || !data.results) {
+      console.log('Search returned empty results array');
+      
+      // Try a more generic search as fallback
+      toast.info('No results found with initial search. Trying alternative search terms...');
+      
+      // Try with just the plain query and country
+      const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('search-places', {
+        body: {
+          query,
+          country,
+          region: ''  // Empty region for broader search
+        }
+      });
+      
+      if (fallbackError || !fallbackData?.results || fallbackData.results.length === 0) {
+        toast.error('No results found. Please try different search terms or locations.', {
+          duration: 5000
+        });
+        return { newResults: [], hasMore: false };
       }
-      return result;
-    });
+      
+      console.log(`Fallback search found ${fallbackData.results.length} results`);
+      toast.success(`Found ${fallbackData.results.length} results with modified search criteria`);
+      
+      return {
+        newResults: fallbackData.results,
+        nextPageToken: fallbackData.nextPageToken,
+        hasMore: fallbackData.hasMore
+      };
+    }
 
-    // Filter out duplicates while keeping existing results
-    const existingUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
-    const newResults = processedResults.filter(result => {
-      const lowerUrl = result.url.toLowerCase();
-      return !existingUrls.has(lowerUrl) && lowerUrl !== 'https://example.com/no-website';
-    });
-
-    console.log(`Found ${newResults.length} new results after filtering duplicates`);
-
-    if (newResults.length === 0) {
+    if (data.results.length === 0) {
       toast.info('No new results found. Try different search terms or locations.');
     } else {
-      toast.success(`Found ${newResults.length} new results to analyze`);
+      toast.success(`Found ${data.results.length} new results to analyze`);
     }
 
     return {
-      newResults,
-      hasMore: searchResult.hasMore && newResults.length > 0
+      newResults: data.results,
+      nextPageToken: data.nextPageToken,
+      hasMore: data.hasMore
     };
   } catch (error) {
     console.error('Search execution error:', error);
@@ -178,3 +112,4 @@ export const executeSearch = async (
     return { newResults: [], hasMore: false };
   }
 };
+

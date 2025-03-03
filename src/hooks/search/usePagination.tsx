@@ -1,122 +1,71 @@
 
+import { useState, useCallback } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { loadMore } from '@/utils/search/operations';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { useChatbotAnalysis } from '../useChatbotAnalysis';
 
 export const usePagination = (
-  currentResults: Result[],
-  updateResults: (results: Result[], hasMore: boolean) => void,
+  results: Result[],
+  updateResults: (newResults: Result[], hasMore: boolean) => void,
   setIsSearching: (isSearching: boolean) => void
 ) => {
+  const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
   const [loadingPages, setLoadingPages] = useState<number[]>([]);
-  const { analyzeChatbots } = useChatbotAnalysis();
-
-  const handleLoadMore = async (
-    pageNumber: number,
+  
+  const handleLoadMore = useCallback(async (
+    pageNumber: number, 
     forcePagination = false,
-    lastSearchParams: {
-      query: string;
-      country: string;
-      region: string;
-    } | null
+    searchParams?: { query: string; country: string; region: string }
   ) => {
-    if (!lastSearchParams) {
-      toast.error('No search parameters available. Please perform a search first.');
-      return;
-    }
-    
-    // If no specific page is requested, load the next page
-    const targetPage = pageNumber || Math.ceil(currentResults.length / 25) + 1;
-    
-    // Check if we're already loading this page
-    if (loadingPages.includes(targetPage) && !forcePagination) {
-      console.log(`Already loading page ${targetPage}, ignoring duplicate request`);
+    // If we don't have search params, we can't load more
+    if (!searchParams || !searchParams.query || !searchParams.country) {
+      console.error('Missing search parameters for pagination');
       return;
     }
     
     // Mark this page as loading
-    setLoadingPages(prev => [...prev, targetPage]);
+    setLoadingPages(prev => [...prev, pageNumber]);
     setIsSearching(true);
     
     try {
-      const { query, country, region } = lastSearchParams;
+      console.log(`Loading page ${pageNumber} for query: ${searchParams.query}`);
       
-      // Calculate how many results we need based on the requested page
-      const resultsPerPage = 25;
-      const targetResultsCount = targetPage * resultsPerPage;
-      const currentResultsCount = currentResults.length;
+      const { query, country, region } = searchParams;
       
-      console.log(`Loading more results for page ${targetPage}, currently have ${currentResultsCount} results, need ${targetResultsCount}`);
-      
-      if (currentResultsCount >= targetResultsCount && !forcePagination) {
-        console.log(`Already have enough results for page ${targetPage}, no need to load more`);
-        setIsSearching(false);
-        setLoadingPages(prev => prev.filter(p => p !== targetPage));
-        return;
-      }
-      
-      toast.info(`Loading more results for page ${targetPage}...`);
-      
-      // If we're doing force pagination (jumping to a page), we might need to load multiple pages
-      const extraResults = forcePagination ? targetResultsCount * 1.5 : targetResultsCount;
-      
-      const moreResults = await loadMore(
+      // Load more results using the token-based pagination
+      const paginationResult = await loadMore(
         query,
         country,
-        region,
-        currentResults,
-        extraResults
+        region || '',
+        results,
+        nextPageToken
       );
-
-      if (moreResults?.newResults.length) {
-        console.log(`Loaded ${moreResults.newResults.length} new results, analyzing...`);
-        const analyzedNewResults = await analyzeChatbots(moreResults.newResults);
+      
+      if (paginationResult) {
+        const { newResults, hasMore, nextPageToken: newPageToken } = paginationResult;
         
-        // Combine existing results with new ones, ensuring no duplicates
-        const allUrls = new Set(currentResults.map(r => r.url.toLowerCase()));
-        const uniqueNewResults = analyzedNewResults.filter(r => !allUrls.has(r.url.toLowerCase()));
+        console.log(`Received ${newResults.length} new results, hasMore: ${hasMore}, token: ${newPageToken?.substring(0, 10) || 'none'}`);
         
-        if (uniqueNewResults.length > 0) {
-          const updatedResults = [...currentResults, ...uniqueNewResults];
-          updateResults(updatedResults, moreResults.hasMore);
-          console.log(`Added ${uniqueNewResults.length} unique new results, total now ${updatedResults.length}`);
-          
-          const newChatbotCount = uniqueNewResults.filter(r => 
-            r.details?.chatSolutions && r.details.chatSolutions.length > 0
-          ).length;
-          
-          if (newChatbotCount > 0) {
-            toast.success(`Found ${newChatbotCount} more websites with chatbots!`);
-          } else {
-            toast.success(`Loaded ${uniqueNewResults.length} more results`);
-          }
-        } else {
-          console.log('No new unique results found');
-          toast.info('No more new results found');
-          
-          // Even if no new results were found, we should respect the hasMore flag
-          // from the API to continue showing the Load More button if appropriate
-          updateResults(currentResults, moreResults.hasMore);
-        }
-      } else {
-        console.log('No more results available');
-        toast.info('No more results available');
-        updateResults(currentResults, false);
+        // Update the next page token for future pagination
+        setNextPageToken(newPageToken);
+        
+        // Merge the new results with existing ones
+        const combinedResults = [...results, ...newResults];
+        
+        // Update the results
+        updateResults(combinedResults, hasMore);
       }
     } catch (error) {
-      console.error('Load more error:', error);
-      toast.error('Failed to load more results');
+      console.error('Error during pagination:', error);
     } finally {
-      setIsSearching(false);
       // Remove this page from loading pages
-      setLoadingPages(prev => prev.filter(p => p !== targetPage));
+      setLoadingPages(prev => prev.filter(p => p !== pageNumber));
+      setIsSearching(false);
     }
-  };
-
+  }, [results, updateResults, setIsSearching, nextPageToken]);
+  
   return {
     loadingPages,
-    handleLoadMore
+    handleLoadMore,
+    nextPageToken
   };
 };
