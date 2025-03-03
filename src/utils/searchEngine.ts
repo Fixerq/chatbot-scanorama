@@ -1,20 +1,9 @@
 
-import { performPlacesSearch } from './search';
+import { performPlacesSearch } from './search/placesApiService';
+import type { PlacesResult } from '@/types/search';
 
 // Define the PlacesResult type here since it's not exported from the search module
-export interface PlacesResult {
-  id?: string;
-  url: string;
-  status?: string;
-  details?: {
-    title?: string;
-    description?: string;
-    lastChecked?: string;
-    chatSolutions?: string[];
-    confidence?: number;
-    verificationStatus?: string;
-  };
-}
+export type { PlacesResult };
 
 // Re-export the functionality to maintain backward compatibility
 export { performPlacesSearch };

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
@@ -171,3 +170,6 @@ export const loadMoreResults = async (
     existingPlaceIds
   });
 };
+
+// Export the interfaces for external use
+export type { PlacesSearchOptions, PlacesSearchResponse };
