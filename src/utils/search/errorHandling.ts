@@ -59,7 +59,7 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
   console.error('Error details:', data.details || 'No details provided');
   
   // Check for rate limiting
-  if (data.status === 'rate_limited' || data.error?.includes('rate limit')) {
+  if (data.status === 'rate_limited' || data.error?.includes('rate limit') || data.status === 429) {
     const retryAfter = data.retryAfter || (retryCount + 1) * 10;
     console.log(`Rate limited, retrying after ${retryAfter}s...`);
     toast.error(`API rate limit reached. Retrying in ${retryAfter}s...`);
@@ -67,7 +67,7 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
   }
   
   // Check for server errors
-  if (data.status === 'server_error') {
+  if (data.status === 'server_error' || (data.status >= 500 && data.status < 600)) {
     console.log(`Server error, retrying with exponential backoff...`);
     return retryCount < maxRetries - 1; // Should retry for server errors
   }
@@ -77,7 +77,7 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
     console.log('Google Places API error, checking if we should retry...');
     
     // For INVALID_ARGUMENT errors, no retry
-    if (data.details?.error?.status === 'INVALID_ARGUMENT') {
+    if (data.details?.includes('INVALID_ARGUMENT') || data.details?.includes('field mask')) {
       toast.error('Invalid search parameters.', {
         description: 'Please modify your search criteria and try again.',
         duration: 5000
@@ -90,11 +90,11 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
   }
   
   // Handle 400 Bad Request errors specifically - check the payload format
-  if (data.status === 'bad_request' || data.error?.includes('400')) {
-    console.log('Bad request (400) error, checking what went wrong...');
+  if (data.status === 'bad_request' || data.status === 400 || data.error?.includes('400')) {
+    console.log('Bad request error, checking what went wrong...');
     
-    // If it mentions maxResultSizePerType, this is a formatting issue with the API
-    if (data.details?.includes('maxResultSizePerType')) {
+    // If it mentions field mask, this is a formatting issue with the API request
+    if (data.details?.includes('field mask') || data.details?.includes('FieldMask')) {
       toast.error('API request formatting error.', {
         description: 'Please try again with different search terms.',
         duration: 5000

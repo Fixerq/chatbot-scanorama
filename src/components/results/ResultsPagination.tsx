@@ -17,7 +17,7 @@ interface ResultsPaginationProps {
   onPageChange: (page: number) => void;
   hasMoreResults?: boolean;
   onLoadMore?: (page: number) => void;
-  isLoading?: boolean; // Add loading state
+  isLoading?: boolean;
 }
 
 const ResultsPagination = ({ 
@@ -99,7 +99,7 @@ const ResultsPagination = ({
           <PaginationLink
             onClick={() => handlePageChange(page as number)}
             isActive={currentPage === page}
-            className={`${currentPage === page ? "pointer-events-none" : ""} ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+            className={`${currentPage === page ? "pointer-events-none" : ""} ${isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}`}
           >
             {page}
           </PaginationLink>
@@ -115,7 +115,7 @@ const ResultsPagination = ({
           <PaginationItem>
             <PaginationPrevious 
               onClick={() => handlePageChange(currentPage - 1)} 
-              className={isLoading ? "opacity-50 pointer-events-none" : ""}
+              className={isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}
             />
           </PaginationItem>
         )}
@@ -126,7 +126,7 @@ const ResultsPagination = ({
           <PaginationItem>
             <PaginationNext 
               onClick={() => handlePageChange(currentPage + 1)} 
-              className={isLoading ? "opacity-50 pointer-events-none" : ""}
+              className={isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}
             />
           </PaginationItem>
         )}
