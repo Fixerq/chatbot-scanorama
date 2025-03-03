@@ -5,6 +5,8 @@ export interface PlacesResult {
   results: Result[];
   hasMore: boolean;
   nextPageToken?: string;
+  searchId?: string;
+  totalResults?: number;
 }
 
 // Process search results into the format expected by the application
@@ -45,9 +47,24 @@ export const processSearchResults = (data: any): PlacesResult => {
     console.log('Sample formatted result:', formattedResults[0]);
   }
 
-  return {
+  // Add search metadata
+  const returnValue: PlacesResult = {
     results: formattedResults,
-    hasMore: data.hasMore || false,
-    nextPageToken: data.nextPageToken
+    hasMore: data.hasMore || false
   };
+  
+  // Add pagination-related data if available
+  if (data.nextPageToken) {
+    returnValue.nextPageToken = data.nextPageToken;
+  }
+  
+  if (data.searchId) {
+    returnValue.searchId = data.searchId;
+  }
+  
+  if (data.totalResults !== undefined) {
+    returnValue.totalResults = data.totalResults;
+  }
+  
+  return returnValue;
 };

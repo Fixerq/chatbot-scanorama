@@ -1,4 +1,3 @@
-
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from '../placesApiService';
 import { toast } from 'sonner';
@@ -18,50 +17,42 @@ export const loadMore = async (
     const startIndex = currentResults.length;
     console.log(`Loading more results with startIndex: ${startIndex}, target: ${targetResultCount}`);
     
-    // Get the last stored nextPageToken if available
+    // Get the searchId from localStorage for this query
+    const searchId = localStorage.getItem(`currentSearchId_${query}`);
+    if (!searchId) {
+      console.error("No search ID found for pagination");
+      toast.error("Unable to load more results. Please try a new search.");
+      return null;
+    }
+    
+    console.log(`Using search ID for pagination: ${searchId}`);
+    
+    // Get the next page token if available
     const nextPageToken = localStorage.getItem(`searchPageToken_${query}_${country}_${region}`);
     console.log('Using page token for pagination:', nextPageToken);
+    
+    // Calculate the current page number (0-indexed)
+    const currentPage = Math.floor(startIndex / 20) + 1;
     
     // Add chatbot-specific terms to improve results, but keep it lightweight
     const chatbotTerms = "website customer service support contact";
     const enhancedQuery = await enhanceSearchQuery(query, country, region);
     const finalQuery = `${enhancedQuery} ${chatbotTerms}`;
     
-    // Calculate the maximum number of results we need
-    const maxNeededResults = Math.max(50, targetResultCount - startIndex);
-    
-    // First attempt with primary search using the page token if available
-    let searchResult = await performGoogleSearch(finalQuery, country, region, startIndex, nextPageToken || undefined);
-    
-    // If first attempt returns no results, try different approaches
-    if (!searchResult?.results || searchResult.results.length === 0) {
-      console.log('No results in first attempt, trying with adjusted parameters');
-      
-      // Try with a slightly different query formulation (more direct geography)
-      const alternateQuery = `${query} in ${region || ''} ${country}`;
-      searchResult = await performGoogleSearch(alternateQuery, country, region, Math.max(0, startIndex - 10));
-      
-      // If that still fails, try one more approach with just the category
-      if (!searchResult?.results || searchResult.results.length === 0) {
-        console.log('Second attempt failed, trying with more generic search');
-        searchResult = await performGoogleSearch(query, country, '', 0);
-      }
-    }
+    // Fetch the next page of results
+    const searchResult = await performGoogleSearch(
+      finalQuery, 
+      country, 
+      region, 
+      startIndex, 
+      nextPageToken || searchId // Use either token or searchId
+    );
     
     if (!searchResult || !searchResult.results) {
-      console.log('No more results found after multiple attempts');
+      console.log('No more results found');
       return { newResults: [], hasMore: false };
     }
     
-    // Store the next page token if available
-    if (searchResult.nextPageToken) {
-      localStorage.setItem(`searchPageToken_${query}_${country}_${region}`, searchResult.nextPageToken);
-      console.log('Saved new page token for future pagination:', searchResult.nextPageToken);
-    } else {
-      // Clear the token if we don't have a new one
-      localStorage.removeItem(`searchPageToken_${query}_${country}_${region}`);
-    }
-
     // Process "No website" placeholders
     const processedResults = searchResult.results.map(result => {
       if (result.url === 'https://example.com/no-website') {
@@ -89,7 +80,8 @@ export const loadMore = async (
     console.log(`Loaded ${searchResult.results.length} results, ${newResults.length} new after filtering duplicates`);
     
     // Determine if there are more results available
-    const hasMore = !!searchResult.nextPageToken; // Use the presence of nextPageToken to determine if more results are available
+    const hasMore = searchResult.hasMore;
+    console.log(`Has more results: ${hasMore}`);
     
     return {
       newResults,

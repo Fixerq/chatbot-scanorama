@@ -51,13 +51,14 @@ export const performGoogleSearch = async (
         client_timestamp: requestTimestamp
       };
       
-      // Add pageToken if available for pagination - this is critical for token-based pagination
-      if (pageToken) {
+      // Check if we're doing pagination
+      if (pageToken && startIndex && startIndex > 0) {
+        // This is a pagination request
+        const currentPage = Math.floor(startIndex / 20) + 1;
         requestBody.pageToken = pageToken;
-        console.log('Including pageToken in request:', pageToken);
-      } else if (startIndex && startIndex > 0) {
-        // Only use startIndex if no pageToken is available (legacy option)
-        requestBody.startIndex = startIndex;
+        requestBody.searchId = localStorage.getItem(`currentSearchId_${query}`);
+        requestBody.page = currentPage;
+        console.log(`Pagination request for page ${currentPage} with search ID: ${requestBody.searchId}`);
       }
 
       console.log('Sending request to Edge Function with body:', JSON.stringify(requestBody, null, 2));
@@ -125,13 +126,20 @@ export const performGoogleSearch = async (
           };
         }
         
-        // Process the results and store nextPageToken if available
+        // Process the results
         const processedResults = processSearchResults(data);
-        if (data.nextPageToken) {
-          console.log('Received page token for pagination:', data.nextPageToken);
-          processedResults.nextPageToken = data.nextPageToken;
-          // Always set hasMore to true if we have a nextPageToken
-          processedResults.hasMore = true;
+        
+        // Store the search ID for pagination
+        if (data.searchId) {
+          console.log(`Storing search ID for pagination: ${data.searchId}`);
+          localStorage.setItem(`currentSearchId_${query}`, data.searchId);
+          processedResults.searchId = data.searchId;
+        }
+        
+        // Always determine hasMore based on totalResults
+        if (data.totalResults && data.results) {
+          processedResults.hasMore = data.results.length < data.totalResults;
+          console.log(`Has more results: ${processedResults.hasMore} (${data.results.length} of ${data.totalResults})`);
         }
         
         return processedResults;

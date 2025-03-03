@@ -24,6 +24,11 @@ export interface Result {
   };
 }
 
+export interface SearchResultMeta {
+  searchId?: string;
+  totalResults?: number;
+}
+
 interface ResultsTableProps {
   results: Result[];
   onResultUpdate?: (updatedResult: Result) => void;
