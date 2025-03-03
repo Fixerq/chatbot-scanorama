@@ -12,6 +12,15 @@ export const handleSearchError = (error: any, retryCount: number, maxRetries: nu
     response: error.response
   });
 
+  // Check for network errors (like net::ERR_FAILED)
+  if (error.message?.includes('net::') || error.message?.includes('Failed to fetch')) {
+    console.log('Network error detected, will retry with exponential backoff');
+    toast.error('Network error connecting to search service. Retrying...', {
+      description: `Attempt ${retryCount + 1} of ${maxRetries}`
+    });
+    return retryCount < maxRetries - 1; // Should retry for network errors
+  }
+
   // Check for rate limiting
   if (error.status === 429) {
     const retryAfter = error?.retryAfter || (retryCount + 1) * 10;
@@ -70,6 +79,12 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
   if (data.status === 'server_error' || (data.status >= 500 && data.status < 600)) {
     console.log(`Server error, retrying with exponential backoff...`);
     return retryCount < maxRetries - 1; // Should retry for server errors
+  }
+
+  // Check for network errors
+  if (data.error?.includes('network') || data.error?.includes('timeout') || data.error?.includes('failed')) {
+    console.log('Network-related error detected in response, will retry');
+    return retryCount < maxRetries - 1; // Should retry for network errors
   }
 
   // Check for Google API specific errors

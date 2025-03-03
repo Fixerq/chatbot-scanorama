@@ -31,6 +31,12 @@ const ResultsPagination = ({
   const handlePageChange = (page: number) => {
     if (page === currentPage || isLoading) return;
     
+    // Visual feedback during loading state
+    if (isLoading) {
+      toast.info("Loading, please wait...");
+      return;
+    }
+    
     const isForwardNavigation = page > currentPage;
     
     // Check if we need to load more results for forward navigation
@@ -99,9 +105,20 @@ const ResultsPagination = ({
           <PaginationLink
             onClick={() => handlePageChange(page as number)}
             isActive={currentPage === page}
-            className={`${currentPage === page ? "pointer-events-none" : ""} ${isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}`}
+            className={`
+              ${currentPage === page ? "pointer-events-none" : ""} 
+              ${isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}
+              relative
+            `}
           >
-            {page}
+            {isLoading && currentPage === page && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="animate-pulse">...</span>
+              </span>
+            )}
+            <span className={isLoading && currentPage === page ? "opacity-0" : ""}>
+              {page}
+            </span>
           </PaginationLink>
         </PaginationItem>
       );
@@ -115,7 +132,10 @@ const ResultsPagination = ({
           <PaginationItem>
             <PaginationPrevious 
               onClick={() => handlePageChange(currentPage - 1)} 
-              className={isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}
+              className={`
+                ${isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}
+                relative
+              `}
             />
           </PaginationItem>
         )}
@@ -126,7 +146,10 @@ const ResultsPagination = ({
           <PaginationItem>
             <PaginationNext 
               onClick={() => handlePageChange(currentPage + 1)} 
-              className={isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}
+              className={`
+                ${isLoading ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}
+                relative
+              `}
             />
           </PaginationItem>
         )}

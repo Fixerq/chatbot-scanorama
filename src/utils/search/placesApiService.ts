@@ -62,55 +62,105 @@ export const performGoogleSearch = async (
 
       console.log('Sending request to Edge Function with body:', JSON.stringify(requestBody, null, 2));
 
-      // Attempt to call the edge function with increased timeout
-      const { data, error } = await supabase.functions.invoke('search-places', {
-        body: requestBody,
-        headers: {
-          'Prefer': 'return=representation, count=exact',
-        }
-      });
+      // Try normal request first
+      try {
+        // Attempt to call the edge function with increased timeout
+        const { data, error } = await supabase.functions.invoke('search-places', {
+          body: requestBody,
+          headers: {
+            'Prefer': 'return=representation, count=exact',
+          }
+        });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        const shouldRetry = handleSearchError(error, retryCount, maxRetries);
-        if (shouldRetry) {
+        if (error) {
+          console.error('Edge function error:', error);
+          const shouldRetry = handleSearchError(error, retryCount, maxRetries);
+          if (shouldRetry) {
+            retryCount++;
+            continue;
+          }
+          // If all retries have been exhausted, try test mode as last resort
+          if (retryCount === maxRetries - 1) {
+            console.log('Trying test mode as last resort');
+            // Add test mode to the request
+            const testRequestBody = { ...requestBody, testMode: true };
+            const { data: testData, error: testError } = await supabase.functions.invoke('search-places', {
+              body: testRequestBody,
+              headers: {
+                'Prefer': 'return=representation, count=exact',
+              }
+            });
+            
+            if (testError) {
+              console.error('Test mode also failed:', testError);
+              return null;
+            }
+            
+            console.log('Test mode returned data:', testData);
+            return processSearchResults(testData);
+          }
+          return null;
+        }
+
+        // Check for errors in the response
+        if (data?.error) {
+          console.error('Data error from Edge Function:', data.error, data.details || 'No details provided');
+          const shouldRetry = handleDataError(data, retryCount, maxRetries);
+          if (shouldRetry) {
+            retryCount++;
+            continue;
+          }
+          return null;
+        }
+
+        console.log('Raw response from Edge Function:', data);
+        logResponse(data);
+        
+        // Check if data is empty or malformed
+        if (!data || !data.results || !Array.isArray(data.results) || data.results.length === 0) {
+          console.log("Search returned no results");
+          return {
+            results: [],
+            hasMore: false
+          };
+        }
+        
+        // Process the results and store nextPageToken if available
+        const processedResults = processSearchResults(data);
+        if (data.nextPageToken) {
+          console.log('Received page token for pagination:', data.nextPageToken);
+          processedResults.nextPageToken = data.nextPageToken;
+        }
+        
+        return processedResults;
+      } catch (networkError) {
+        console.error('Network error during search:', networkError);
+        
+        // If we encounter a network error (like net::ERR_FAILED), try test mode
+        console.log('Network error occurred, trying test mode');
+        try {
+          const testRequestBody = { ...requestBody, testMode: true };
+          const { data: testData, error: testError } = await supabase.functions.invoke('search-places', {
+            body: testRequestBody,
+            headers: {
+              'Prefer': 'return=representation, count=exact',
+            }
+          });
+          
+          if (testError) {
+            console.error('Test mode also failed:', testError);
+            retryCount++;
+            continue;
+          }
+          
+          console.log('Test mode returned data:', testData);
+          return processSearchResults(testData);
+        } catch (testModeError) {
+          console.error('Test mode also failed with network error:', testModeError);
           retryCount++;
           continue;
         }
-        return null;
       }
-
-      // Check for errors in the response
-      if (data?.error) {
-        console.error('Data error from Edge Function:', data.error, data.details || 'No details provided');
-        const shouldRetry = handleDataError(data, retryCount, maxRetries);
-        if (shouldRetry) {
-          retryCount++;
-          continue;
-        }
-        return null;
-      }
-
-      console.log('Raw response from Edge Function:', data);
-      logResponse(data);
-      
-      // Check if data is empty or malformed
-      if (!data || !data.results || !Array.isArray(data.results) || data.results.length === 0) {
-        console.log("Search returned no results");
-        return {
-          results: [],
-          hasMore: false
-        };
-      }
-      
-      // Process the results and store nextPageToken if available
-      const processedResults = processSearchResults(data);
-      if (data.nextPageToken) {
-        console.log('Received page token for pagination:', data.nextPageToken);
-        processedResults.nextPageToken = data.nextPageToken;
-      }
-      
-      return processedResults;
     } catch (error) {
       console.error('Places search error:', error);
       retryCount++;
