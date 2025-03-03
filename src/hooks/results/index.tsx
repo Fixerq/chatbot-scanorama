@@ -17,7 +17,15 @@ export const useSearchResults = (onResults?: (results: Result[]) => void) => {
   // Initialize the callback hook with state from the state hook
   const { updateResults } = useResultsCallback(
     results,
-    stateHook.updateResults
+    (newResults: Result[], hasMore: boolean) => {
+      // Update our internal state
+      stateHook.updateResults(newResults, hasMore);
+      
+      // Also call the parent callback if provided
+      if (onResults) {
+        onResults(newResults);
+      }
+    }
   );
   
   // Return a combined API

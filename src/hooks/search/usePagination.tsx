@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { loadMore } from '@/utils/search/operations';
@@ -7,7 +8,6 @@ export const usePagination = (
   updateResults: (newResults: Result[], hasMore: boolean) => void,
   setIsSearching: (isSearching: boolean) => void
 ) => {
-  const [nextPageToken, setNextPageToken] = useState<string | undefined>(undefined);
   const [loadingPages, setLoadingPages] = useState<number[]>([]);
   
   const handleLoadMore = useCallback(async (
@@ -44,12 +44,6 @@ export const usePagination = (
         
         console.log(`Received ${newResults.length} new results, hasMore: ${hasMore}`);
         
-        // Update the next page token for future pagination - removed as it's not returned by loadMore
-        // but we'll keep this code in a commented form in case we need to add it back later
-        // if (paginationResult.nextPageToken) {
-        //   setNextPageToken(paginationResult.nextPageToken);
-        // }
-        
         // Merge the new results with existing ones
         const combinedResults = [...results, ...newResults];
         
@@ -67,7 +61,6 @@ export const usePagination = (
   
   return {
     loadingPages,
-    handleLoadMore,
-    nextPageToken
+    handleLoadMore
   };
 };

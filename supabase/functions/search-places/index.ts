@@ -230,6 +230,129 @@ async function fetchMoreResults(requestBody, apiKey, desiredCount = 30) {
   };
 }
 
+// Function to create search variations to get more results
+async function fetchWithVariations(baseQuery, country, region, requestBody, apiKey, desiredCount = 60) {
+  console.log(`Fetching results with variations for: ${baseQuery}, ${region}, ${country}`);
+  
+  // Create different search variations
+  const variations = [
+    baseQuery, // Original query
+    `${baseQuery} ${region}`, // Query with region
+  ];
+  
+  // Add more specific variations for service businesses
+  if (region) {
+    // Get major cities for this region if available
+    const cities = getMajorCities(country, region);
+    
+    if (cities && cities.length > 0) {
+      // Add major cities to variations
+      cities.forEach(city => {
+        variations.push(`${baseQuery} ${city}`);
+      });
+    } else {
+      // If no cities data, add generic variations
+      variations.push(`${baseQuery} services ${region}`);
+      variations.push(`${baseQuery} business ${region}`);
+    }
+  }
+  
+  // For specific business types, add more specific variations
+  if (baseQuery.toLowerCase().includes('dentist')) {
+    variations.push(`${baseQuery} clinic ${region}`);
+    variations.push(`dental clinic ${region}`);
+    variations.push(`dental practice ${region}`);
+  } else if (baseQuery.toLowerCase().includes('plumber')) {
+    variations.push(`plumbing services ${region}`);
+    variations.push(`emergency plumber ${region}`);
+    variations.push(`${baseQuery} contractor ${region}`);
+  }
+  
+  console.log(`Created ${variations.length} search variations:`, variations);
+  
+  // Fetch results for each variation
+  const allResultsMap = new Map(); // Use a map to track unique place IDs
+  let nextPageToken = null;
+  let hasMore = false;
+  
+  for (const variation of variations) {
+    // Skip if we've already reached our desired count
+    if (allResultsMap.size >= desiredCount) break;
+    
+    // Create a copy of the request body for this variation
+    const variationRequestBody = { ...requestBody, textQuery: variation };
+    
+    // Fetch results for this variation
+    console.log(`Fetching results for variation: "${variation}"`);
+    const { results, nextPageToken: token, hasMore: more } = 
+      await fetchMoreResults(variationRequestBody, apiKey, Math.min(30, desiredCount - allResultsMap.size));
+    
+    // Update pagination information
+    if (token) nextPageToken = token;
+    if (more) hasMore = true;
+    
+    // Add unique results to our map
+    for (const result of results) {
+      if (!allResultsMap.has(result.id)) {
+        allResultsMap.set(result.id, result);
+      }
+    }
+    
+    console.log(`Found ${results.length} results for "${variation}", total unique results: ${allResultsMap.size}`);
+    
+    // Wait between variations to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  // Convert map back to array
+  const allResults = Array.from(allResultsMap.values());
+  
+  return {
+    results: allResults,
+    nextPageToken,
+    hasMore
+  };
+}
+
+// Function to get major cities for a region
+function getMajorCities(country, region) {
+  const cities = {
+    'AU': {
+      'Western Australia': ['Perth', 'Fremantle', 'Mandurah', 'Bunbury', 'Geraldton', 'Albany', 'Kalgoorlie'],
+      'Victoria': ['Melbourne', 'Geelong', 'Ballarat', 'Bendigo', 'Shepparton', 'Mildura', 'Warrnambool'],
+      'New South Wales': ['Sydney', 'Newcastle', 'Wollongong', 'Central Coast', 'Coffs Harbour', 'Wagga Wagga'],
+      'Queensland': ['Brisbane', 'Gold Coast', 'Sunshine Coast', 'Cairns', 'Townsville', 'Toowoomba', 'Mackay'],
+      'South Australia': ['Adelaide', 'Mount Gambier', 'Whyalla', 'Port Lincoln', 'Port Augusta', 'Victor Harbor'],
+      'Tasmania': ['Hobart', 'Launceston', 'Devonport', 'Burnie'],
+      'Northern Territory': ['Darwin', 'Alice Springs', 'Katherine'],
+      'Australian Capital Territory': ['Canberra', 'Queanbeyan']
+    },
+    'US': {
+      'California': ['Los Angeles', 'San Francisco', 'San Diego', 'Sacramento', 'San Jose', 'Fresno'],
+      'New York': ['New York City', 'Buffalo', 'Rochester', 'Syracuse', 'Albany'],
+      'Texas': ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth', 'El Paso'],
+      'Florida': ['Miami', 'Orlando', 'Tampa', 'Jacksonville', 'Fort Lauderdale'],
+      'Connecticut': ['Hartford', 'New Haven', 'Stamford', 'Bridgeport', 'Waterbury']
+    },
+    'GB': {
+      'England': ['London', 'Manchester', 'Birmingham', 'Liverpool', 'Leeds', 'Bristol', 'Newcastle'],
+      'Scotland': ['Edinburgh', 'Glasgow', 'Aberdeen', 'Dundee', 'Inverness'],
+      'Wales': ['Cardiff', 'Swansea', 'Newport', 'Bangor'],
+      'Northern Ireland': ['Belfast', 'Derry', 'Newry', 'Armagh']
+    }
+  };
+  
+  // Normalize country code
+  const countryCode = normalizeCountryCode(country);
+  
+  // Return cities for this region if available
+  if (cities[countryCode] && cities[countryCode][region]) {
+    return cities[countryCode][region];
+  }
+  
+  return null;
+}
+
 // Main handler for Edge Function
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -331,8 +454,10 @@ Deno.serve(async (req) => {
     
     // Fetch results
     console.log('Fetching results from Google Places API');
+    
+    // Use search variations to get more results
     const { results: placesResults, nextPageToken, hasMore } = 
-      await fetchMoreResults(requestBody, GOOGLE_API_KEY, pageToken ? 20 : 30);
+      await fetchWithVariations(query, countryCode, region, requestBody, GOOGLE_API_KEY, pageToken ? 20 : 60);
     
     console.log(`Retrieved ${placesResults.length} results from Google Places API`);
     
@@ -361,8 +486,45 @@ Deno.serve(async (req) => {
         }
       }));
       
+      // Filter out directories, gov sites, edu sites, etc.
+      const nonServiceKeywords = [
+        'directory', 'listing', 'yellow pages', 'whitepages', 'yelp', 'finder',
+        'government', 'gov', 'council', 'department', 'authority', 'agency',
+        'university', 'education', 'school', 'college', 'academy', 'institute',
+        'wikipedia', 'wiki', 'encyclopedia', 'dictionary',
+        'news', 'magazine', 'blog', 'forum', 'review site'
+      ];
+      
+      // Filter out non-service businesses based on URL and title
+      let serviceResults = mappedResults.filter(result => {
+        const url = result.url.toLowerCase();
+        const title = result.title.toLowerCase();
+        
+        // Skip results with common directory/non-service keywords
+        const isNonService = nonServiceKeywords.some(keyword => 
+          url.includes(keyword) || title.includes(keyword)
+        );
+        
+        // Skip .gov .edu domains and common directory sites
+        const isUnwantedDomain = url.includes('.gov') || 
+                                url.includes('.edu') || 
+                                url.includes('yelp.com') ||
+                                url.includes('yellowpages') ||
+                                url.includes('directory.com') ||
+                                url.includes('whitepages.com') ||
+                                url.includes('yell.com') ||
+                                url.includes('trulia.com') ||
+                                url.includes('tripadvisor') ||
+                                url.includes('booking.com');
+        
+        // Keep only service businesses
+        return !isNonService && !isUnwantedDomain;
+      });
+      
+      console.log(`Filtered out ${mappedResults.length - serviceResults.length} non-service results`);
+      
       // Filter based on country-specific domains if appropriate
-      let filteredResults = mappedResults;
+      let filteredResults = serviceResults;
       
       if (countryCode && countryDomains[countryCode]) {
         console.log(`Applying domain filtering for country: ${countryCode}`);
@@ -378,7 +540,7 @@ Deno.serve(async (req) => {
         let otherDomainCount = 0;
         let neutralDomainCount = 0;
         
-        filteredResults = mappedResults.filter(result => {
+        filteredResults = serviceResults.filter(result => {
           const url = result.url.toLowerCase();
           
           // Check if URL contains preferred domains
@@ -403,7 +565,7 @@ Deno.serve(async (req) => {
         // If filtering left us with too few results, add back some neutral ones
         if (filteredResults.length < 10) {
           console.log('Too few results after filtering, adding back neutral domains');
-          filteredResults = mappedResults.filter(result => {
+          filteredResults = serviceResults.filter(result => {
             const url = result.url.toLowerCase();
             const hasPreferredDomain = preferredDomains.some(domain => url.includes(domain));
             const hasOtherCountryDomain = otherCountryDomains.some(domain => url.includes(domain));

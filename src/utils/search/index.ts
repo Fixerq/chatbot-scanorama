@@ -1,4 +1,6 @@
 
-export { performPlacesSearch, loadMoreResults } from './placesApiService';
-export { processSearchResults } from './operations';
-export { executeSearch, loadMore } from './operations';
+// Re-export from operations
+export * from './operations';
+
+// Re-export specific types for external use
+export { PlacesResult } from '@/types/search';
