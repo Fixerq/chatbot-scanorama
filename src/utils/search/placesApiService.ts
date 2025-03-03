@@ -130,6 +130,8 @@ export const performGoogleSearch = async (
         if (data.nextPageToken) {
           console.log('Received page token for pagination:', data.nextPageToken);
           processedResults.nextPageToken = data.nextPageToken;
+          // Always set hasMore to true if we have a nextPageToken
+          processedResults.hasMore = true;
         }
         
         return processedResults;

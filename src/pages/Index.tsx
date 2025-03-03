@@ -83,9 +83,10 @@ const Index = () => {
     console.log('Results updated in Index component:', { 
       count: results.length, 
       hasResults: results.length > 0,
-      isProcessing
+      isProcessing,
+      hasMore // Log hasMore flag to verify its value
     });
-  }, [results, isProcessing]);
+  }, [results, isProcessing, hasMore]); // Add hasMore to dependency array
 
   const handleSetResults = useCallback((newResults: Result[]) => {
     console.log('Setting new results in Index:', newResults.length);
@@ -116,7 +117,15 @@ const Index = () => {
           console.log('Automatically clicking load more button');
           loadMoreButton.click();
         } else {
-          console.log('Load more button not found');
+          console.log('Load more button not found in search form container');
+          // Fallback: try to find the LoadMoreButton directly in the Results component
+          const resultsLoadMoreButton = document.querySelector('.mt-6 button');
+          if (resultsLoadMoreButton) {
+            console.log('Found load more button in Results component');
+            (resultsLoadMoreButton as HTMLButtonElement).click();
+          } else {
+            console.log('Load more button not found in Results component either');
+          }
         }
       } else {
         console.log('Search form container not found');

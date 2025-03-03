@@ -28,6 +28,8 @@ const ResultsPagination = ({
   onLoadMore,
   isLoading = false
 }: ResultsPaginationProps) => {
+  console.log("Pagination props:", { currentPage, totalPages, hasMoreResults, isLoading });
+  
   const handlePageChange = (page: number) => {
     if (page === currentPage || isLoading) return;
     

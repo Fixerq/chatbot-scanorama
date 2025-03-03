@@ -33,7 +33,8 @@ const Results = ({
   console.log("Results component received:", { 
     resultsCount: results?.length, 
     isAnalyzing,
-    hasResults: results && results.length > 0
+    hasResults: results && results.length > 0,
+    hasMore // Log hasMore flag to verify its value
   });
   
   const {
@@ -95,14 +96,18 @@ const Results = ({
           onPageChange={handlePageChange}
           hasMoreResults={hasMore}
           onLoadMore={onLoadMore}
+          isLoading={isLoadingMore}
         />
       )}
       
+      {/* Always show Load More button if hasMore is true, regardless of pagination state */}
       {hasMore && onLoadMore && (
-        <LoadMoreButton 
-          onLoadMore={() => onLoadMore(currentPage + 1)} 
-          isProcessing={isLoadingMore || isAnalyzing} 
-        />
+        <div className="mt-6">
+          <LoadMoreButton 
+            onLoadMore={() => onLoadMore(currentPage + 1)} 
+            isProcessing={isLoadingMore || isAnalyzing} 
+          />
+        </div>
       )}
     </div>
   );
