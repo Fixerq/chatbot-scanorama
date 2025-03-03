@@ -101,7 +101,7 @@ const Results = ({
         />
       )}
       
-      {/* Always show Load More button if hasMore is true, regardless of pagination state */}
+      {/* Always show Load More button if hasMore is true */}
       {hasMore && onLoadMore && (
         <div className="mt-6 flex justify-center">
           <LoadMoreButton 

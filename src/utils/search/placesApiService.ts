@@ -136,10 +136,13 @@ export const performGoogleSearch = async (
           processedResults.searchId = data.searchId;
         }
         
-        // Always determine hasMore based on totalResults
-        if (data.totalResults && data.results) {
-          processedResults.hasMore = data.results.length < data.totalResults;
-          console.log(`Has more results: ${processedResults.hasMore} (${data.results.length} of ${data.totalResults})`);
+        // Store next page token if available
+        if (data.nextPageToken) {
+          console.log(`Storing next page token for pagination: ${data.nextPageToken.substring(0, 10)}...`);
+          localStorage.setItem(`searchPageToken_${query}_${country}_${region}`, data.nextPageToken);
+          
+          // Ensure hasMore is true if we have a next page token
+          processedResults.hasMore = true;
         }
         
         return processedResults;
