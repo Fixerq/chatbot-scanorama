@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 
 export interface SearchResults {
@@ -5,11 +6,15 @@ export interface SearchResults {
   hasMore: boolean;
 }
 
-export interface SearchState {
+export interface SearchParams {
   query: string;
   country: string;
-  region: string;
-  apiKey: string;
-  resultsLimit: number;
-  currentPage: number;
+  region?: string;
+  limit?: number;
+}
+
+export interface SearchResponse {
+  results: Result[];
+  hasMore: boolean;
+  nextPageToken?: string;
 }

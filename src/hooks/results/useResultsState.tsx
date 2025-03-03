@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { SearchResults } from '@/types/search';
 
-export const useResultsState = (onResults: (results: Result[]) => void) => {
+export const useResultsState = () => {
   const [results, setResults] = useState<SearchResults>({
     currentResults: [],
     hasMore: false,
@@ -17,10 +17,6 @@ export const useResultsState = (onResults: (results: Result[]) => void) => {
       hasMore
     };
     setResults(updatedResults);
-    
-    if (onResults) {
-      onResults(newResults);
-    }
   };
 
   return {
