@@ -1,4 +1,3 @@
-
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from '../index';
 import { toast } from 'sonner';
@@ -112,4 +111,3 @@ export const executeSearch = async (
     return { newResults: [], hasMore: false };
   }
 };
-

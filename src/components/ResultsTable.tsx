@@ -12,6 +12,7 @@ import ResultUrlCell from './results/ResultUrlCell';
 import ResultStatusCell from './results/ResultStatusCell';
 
 export interface Result {
+  id?: string; // Add id property for tracking Google Places results
   url: string;
   status?: string;
   details?: {
