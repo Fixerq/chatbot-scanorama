@@ -1,3 +1,4 @@
+
 import { Result } from '@/components/ResultsTable';
 import { performGoogleSearch } from '../index';
 import { toast } from 'sonner';
@@ -38,7 +39,9 @@ export const executeSearch = async (
     });
 
     // Get all existing place IDs for deduplication (if any)
-    const existingPlaceIds = currentResults.map(result => result.id).filter(Boolean);
+    const existingPlaceIds = currentResults
+      .map(result => result.id)
+      .filter(id => id !== undefined && id !== null);
 
     // Perform the search
     const { data, error } = await supabase.functions.invoke('search-places', {

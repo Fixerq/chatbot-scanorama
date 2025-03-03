@@ -22,7 +22,9 @@ export const loadMore = async (
     console.log(`Loading more results with page token: ${nextPageToken.substring(0, 10)}...`);
     
     // Get all existing place IDs for deduplication
-    const existingPlaceIds = currentResults.map(result => result.id).filter(Boolean);
+    const existingPlaceIds = currentResults
+      .map(result => result.id)
+      .filter(id => id !== undefined && id !== null);
     
     // Request more results with the page token
     const { data, error } = await supabase.functions.invoke('search-places', {
