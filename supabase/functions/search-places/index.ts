@@ -1,270 +1,262 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// Environment variables
+const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY') || '';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
-// Create a Supabase client with the service role key for admin access
-const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const googleApiKey = Deno.env.get('GOOGLE_PLACES_API_KEY') ?? '';
+async function fetchMoreResults(requestBody, apiKey, desiredCount = 30) {
+  let allResults = [];
+  let nextPageToken = null;
+  let pageCount = 0;
+  const MAX_PAGES = Math.ceil(desiredCount / 20); // Calculate how many pages we need (at least 2)
+  
+  do {
+    // Add page token if we have one from previous request
+    if (nextPageToken) {
+      requestBody.pageToken = nextPageToken;
+    }
+    
+    // Make the API request
+    const apiUrl = `https://places.googleapis.com/v1/places:searchText?key=${apiKey}`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.types'
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      console.error('Google Places API error:', response.status, responseData);
+      break;
+    }
+    
+    // Add this page's results to our collection
+    const placesResults = responseData.places || [];
+    allResults = [...allResults, ...placesResults];
+    
+    // Get next page token for pagination
+    nextPageToken = responseData.nextPageToken;
+    pageCount++;
+    
+    // Stop if we've reached desired count, max pages, or no more results
+    if (allResults.length >= desiredCount || pageCount >= MAX_PAGES || !nextPageToken) {
+      break;
+    }
+    
+    // Wait a bit between requests to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+  } while (nextPageToken);
+  
+  return {
+    results: allResults,
+    nextPageToken: nextPageToken,
+    hasMore: !!nextPageToken
+  };
+}
 
-const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+// Create Supabase client
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Parse request body
+    // Parse the request body
     const options = await req.json();
-    console.log('Received search request with options:', JSON.stringify(options));
-    
-    // Basic validation
-    if (!options.query) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameter: query' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
     const { 
       query, 
       country, 
-      region = '', 
+      region, 
       pageToken, 
-      testMode = false,
-      searchId: existingSearchId
+      existingPlaceIds = [],
+      searchId,
+      user_id,
+      testMode = false
     } = options;
 
-    // Get timestamp to ensure consistent client/server logging correlation
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Processing search: "${query}" in ${country}${region ? '/' + region : ''}`);
+    console.log('Received search request:', JSON.stringify({
+      query,
+      country,
+      region,
+      pageToken: pageToken ? 'exists' : 'none',
+      existingPlaceIdsCount: existingPlaceIds.length,
+      searchId,
+      testMode
+    }));
 
-    // For test mode requests, return mock data
+    // If we're in test mode, return dummy data
     if (testMode) {
-      console.log('Test mode enabled, returning mock data');
-      const mockData = generateMockData(query, country, region);
-      return new Response(
-        JSON.stringify(mockData),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
+      console.log('Running in test mode, returning dummy data');
+      
+      // Generate some dummy results
+      const dummyResults = Array.from({ length: 10 }, (_, i) => ({
+        id: `test-place-${i}`,
+        url: `https://example.com/business-${i}`,
+        title: `Test Business ${i}`,
+        description: `${i} Main St, Testville, ${country}`,
+        details: {
+          title: `Test Business ${i}`,
+          description: `${i} Main St, Testville, ${country}`,
+          rating: 4.5,
+          reviewCount: 100,
+          businessType: 'business',
+          location: `${i} Main St, Testville, ${country}`
+        }
+      }));
+      
+      return new Response(JSON.stringify({
+        results: dummyResults,
+        nextPageToken: 'dummy-next-page-token',
+        hasMore: true,
+        searchId: searchId || 'new-test-search-id'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
     }
 
-    // Generate a searchId for the first request to associate results
-    const searchId = existingSearchId || crypto.randomUUID();
-    console.log(`Using search ID: ${searchId}`);
-
-    const maxResults = 20; // Google Places API limit per request
-
-    // Build search request for Google Places API
-    const requestBody: any = {
+    // Prepare the request body for Google Places API
+    const requestBody = {
       textQuery: query,
+      maxResultCount: 20, // API max per request
       languageCode: "en"
     };
 
-    // Add locationBias if country is provided (required for regional searches)
-    if (country) {
-      // Set region/country code if provided
-      if (country.length === 2) {
-        requestBody.locationBias = {
-          rectangle: {
-            low: { latitude: -90, longitude: -180 },
-            high: { latitude: 90, longitude: 180 }
-          }
-        };
-        requestBody.regionCode = country.toUpperCase();
-      }
+    if (country && country.length === 2) {
+      requestBody.regionCode = country.toUpperCase();
     }
 
+    // If we were given a pageToken, use it directly
     if (pageToken) {
       requestBody.pageToken = pageToken;
-      console.log(`Using page token for pagination: ${pageToken.substring(0, 10)}...`);
     }
 
-    console.log('Sending request to Google Places API:', JSON.stringify(requestBody));
+    // Check if this is a pagination request
+    let dbSearchId = searchId;
+    if (!dbSearchId && !pageToken) {
+      // This is a new search, create a record in the database
+      console.log('Creating new search record in database');
+      const { data: newSearch, error: searchError } = await supabase
+        .from('searches')
+        .insert({
+          query,
+          country,
+          region,
+          user_id: user_id || null,
+          result_count: 0
+        })
+        .select()
+        .single();
 
-    // Call the Google Places API Text Search endpoint
-    const googleApiUrl = 'https://places.googleapis.com/v1/places:searchText';
-    const response = await fetch(googleApiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': googleApiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.types,places.rating,places.userRatingCount'
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Google API error (${response.status}):`, errorText);
-      return new Response(
-        JSON.stringify({ error: `API request failed with status ${response.status}`, details: errorText }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      if (searchError) {
+        console.error('Error creating search record:', searchError);
+      } else {
+        dbSearchId = newSearch.id;
+        console.log('Created new search with ID:', dbSearchId);
+      }
     }
 
-    const data = await response.json();
-    console.log(`Received ${data.places?.length || 0} places from Google API`);
+    // Fetch results
+    console.log('Fetching results from Google Places API');
+    const { results: placesResults, nextPageToken, hasMore } = 
+      await fetchMoreResults(requestBody, GOOGLE_API_KEY, pageToken ? 20 : 30);
     
-    // Transform the Google Places API response to match our app's format
-    const results = data.places?.map((place: any) => {
-      // Extract business type from the first type if available
-      const businessType = place.types && place.types.length > 0 
-        ? place.types[0].replace(/_/g, ' ') 
-        : null;
+    console.log(`Retrieved ${placesResults.length} results from Google Places API`);
 
-      return {
-        url: place.websiteUri || `https://example.com/no-website`, // Placeholder for places without websites
-        title: place.displayName?.text || '',
+    // Process results
+    const processedResults = placesResults.map(place => ({
+      id: place.id, // Store Place ID for deduplication
+      url: place.websiteUri || `https://www.google.com/search?q=${encodeURIComponent(place.displayName?.text || '')}`,
+      title: place.displayName?.text || 'Unknown Business',
+      description: place.formattedAddress || '',
+      details: {
+        title: place.displayName?.text || 'Unknown Business',
         description: place.formattedAddress || '',
-        details: {
-          title: place.displayName?.text || '',
-          description: place.formattedAddress || '',
-          placeId: place.id,
-          businessType,
-          rating: place.rating,
-          reviewCount: place.userRatingCount,
-          location: place.formattedAddress
-        }
-      };
-    }) || [];
+        rating: place.rating || 0,
+        reviewCount: place.userRatingCount || 0,
+        businessType: (place.types || [])[0] || '',
+        location: place.formattedAddress || ''
+      }
+    }));
 
-    console.log(`Transformed ${results.length} results for response`);
+    // Filter out any places that match existing IDs
+    const filteredResults = processedResults.filter(result => 
+      !existingPlaceIds.includes(result.id)
+    );
+    
+    console.log(`Returning ${filteredResults.length} unique new results`);
 
-    // Add error handling for database operations
-    try {
-      if (results.length > 0 && !existingSearchId) {
-        // Only create search metadata for first page (not for pagination)
-        console.log(`Storing search metadata for: "${query}"`);
-        
-        const { error: metadataError } = await supabaseClient
-          .from('searches')
-          .insert({
-            id: searchId,
-            query,
-            country,
-            region,
-            result_count: results.length
-          });
-          
-        if (metadataError) {
-          console.error('Error inserting search metadata:', metadataError);
-          // Continue execution even if metadata insertion fails
-        } else {
-          console.log('Successfully inserted search metadata');
-        }
-        
-        // Insert results with the search ID
-        console.log(`Storing ${results.length} search results with search ID: ${searchId}`);
-        const searchResults = results.map(result => ({
-          search_id: searchId,
-          place_id: result.details?.placeId,
-          url: result.url,
-          title: result.title,
-          description: result.description,
-          details: result.details || {}, // Ensure details is always an object
-          query
-        }));
-        
-        const { error: resultsError } = await supabaseClient
-          .from('search_results')
-          .insert(searchResults);
-          
-        if (resultsError) {
-          console.error('Error inserting search results:', resultsError);
-          // Continue execution even if results insertion fails
-        } else {
-          console.log('Successfully inserted search results');
-        }
-      } else if (existingSearchId && results.length > 0) {
-        // For pagination, just add the additional results
-        console.log(`Adding ${results.length} paginated results to existing search: ${existingSearchId}`);
-        
-        const searchResults = results.map(result => ({
-          search_id: existingSearchId,
-          place_id: result.details?.placeId,
-          url: result.url,
-          title: result.title,
-          description: result.description,
-          details: result.details || {},
-          query
-        }));
-        
-        const { error: resultsError } = await supabaseClient
-          .from('search_results')
-          .insert(searchResults);
-          
-        if (resultsError) {
-          console.error('Error inserting paginated search results:', resultsError);
-        } else {
-          console.log('Successfully inserted paginated search results');
-          
-          // Update the total count in the search record
-          const { error: updateError } = await supabaseClient
-            .from('searches')
-            .update({ result_count: supabaseClient.rpc('increment', { x: results.length }) })
-            .eq('id', existingSearchId);
-            
-          if (updateError) {
-            console.error('Error updating search result count:', updateError);
-          }
+    // Store results in database if we have a search ID
+    if (dbSearchId && filteredResults.length > 0) {
+      const resultsToInsert = filteredResults.map(result => ({
+        search_id: dbSearchId,
+        place_id: result.id,
+        url: result.url,
+        title: result.title,
+        description: result.description,
+        details: result.details,
+        query
+      }));
+
+      console.log('Storing search results in database');
+      const { error: insertError } = await supabase
+        .from('search_results')
+        .insert(resultsToInsert);
+
+      if (insertError) {
+        console.error('Error storing search results:', insertError);
+      } else {
+        // Update the search record with the new result count
+        const { error: updateError } = await supabase.rpc('increment', {
+          search_id: dbSearchId,
+          increment_amount: filteredResults.length
+        });
+
+        if (updateError) {
+          console.error('Error updating search result count:', updateError);
         }
       }
-    } catch (dbError) {
-      console.error('Database operation failed:', dbError);
-      // Continue execution, don't let DB errors stop the response
     }
 
-    // Return response including the next page token if available
+    // Return results
     return new Response(
       JSON.stringify({
-        results,
-        nextPageToken: data.nextPageToken,
-        totalResults: results.length,
-        searchId,
-        hasMore: Boolean(data.nextPageToken)
+        results: filteredResults,
+        nextPageToken: nextPageToken,
+        hasMore: hasMore,
+        searchId: dbSearchId || searchId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
+
   } catch (error) {
-    console.error('Unhandled error in search-places function:', error);
+    console.error('Error processing search request:', error);
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({
+        error: 'Failed to process search request',
+        details: error.message
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      }
     );
   }
 });
-
-// Generate mock data for testing
-function generateMockData(query: string, country: string, region: string) {
-  const mockResults = Array(10).fill(null).map((_, i) => ({
-    url: `https://example.com/result-${i+1}`,
-    title: `Mock Result ${i+1} for "${query}"`,
-    description: `This is a mock result for a search in ${country}${region ? '/' + region : ''}`,
-    details: {
-      title: `Mock Result ${i+1} for "${query}"`,
-      description: `This is a mock result for a search in ${country}${region ? '/' + region : ''}`,
-      placeId: `mock-place-id-${i+1}`,
-      businessType: 'mock_business',
-      rating: 4.5,
-      reviewCount: 42,
-      location: `Mock Location, ${region || ''} ${country}`.trim()
-    }
-  }));
-
-  const mockSearchId = crypto.randomUUID();
-
-  return {
-    results: mockResults,
-    nextPageToken: 'mock-next-page-token',
-    totalResults: mockResults.length,
-    searchId: mockSearchId,
-    hasMore: true
-  };
-}
