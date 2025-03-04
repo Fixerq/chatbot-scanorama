@@ -5,9 +5,10 @@ import { processAnalysisResult } from './resultProcessor';
 
 /**
  * Main function to detect chatbots and process results
+ * Uses the new multi-stage detection pipeline
  */
 export const detectChatbotWithProcessing = async (url: string): Promise<ChatbotDetectionResponse> => {
-  // Get the raw detection data
+  // Get the detection data using the multi-stage pipeline
   const rawData = await detectChatbot(url);
   
   // Process the raw data into a standardized format

@@ -25,3 +25,12 @@ export interface AdvancedDetectionResult {
   falsePositiveChecks: string[];
   providerScore?: number;
 }
+
+/**
+ * Result type for a single stage in the multi-stage detection pipeline
+ */
+export interface DetectionStageResult {
+  proceed: boolean;
+  response: ChatbotDetectionResponse;
+  chatSolutions: string[];
+}

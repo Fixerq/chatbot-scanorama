@@ -12,6 +12,9 @@ export interface AnalysisOptions {
   checkFunctionality?: boolean;
   maxRedirects?: number;
   timeout?: number;
+  detectHiddenChatbots?: boolean;
+  ignoreVisibilityChecks?: boolean;
+  suggestedProviders?: string[];
 }
 
 export interface AnalysisResult {

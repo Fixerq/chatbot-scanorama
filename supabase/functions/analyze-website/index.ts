@@ -17,7 +17,14 @@ serve(async (req) => {
   }
 
   try {
-    const { urls, url, debug = false, verifyResults = true, deepVerification = false, smartDetection = true, confidenceThreshold = 0.5 } = await req.json();
+    const { 
+      urls, url, debug = false, verifyResults = true, 
+      deepVerification = false, smartDetection = true, 
+      confidenceThreshold = 0.5, timeout = 30000,
+      checkFunctionality = false, detectHiddenChatbots = false,
+      ignoreVisibilityChecks = false, suggestedProviders = [],
+      useEnhancedDetection = false, useAdvancedDetection = false
+    } = await req.json();
     
     // Options for analysis
     const options: AnalysisOptions = {
@@ -26,8 +33,14 @@ serve(async (req) => {
       deepVerification,
       smartDetection,
       confidenceThreshold: Number(confidenceThreshold) || 0.5,
-      checkFunctionality: true
+      checkFunctionality,
+      timeout: Number(timeout) || 30000,
+      detectHiddenChatbots,
+      ignoreVisibilityChecks,
+      suggestedProviders: Array.isArray(suggestedProviders) ? suggestedProviders : []
     };
+
+    console.log("Analysis options:", options);
 
     // Handle batch analysis
     if (urls && Array.isArray(urls) && urls.length > 0) {

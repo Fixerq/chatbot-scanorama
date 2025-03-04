@@ -25,7 +25,8 @@ export async function analyzeWebsite(
     checkFunctionality = false,
     timeout = 30000,
     detectHiddenChatbots = false,
-    ignoreVisibilityChecks = false
+    ignoreVisibilityChecks = false,
+    suggestedProviders = []
   } = options;
 
   // Validate and normalize URL
@@ -43,21 +44,26 @@ export async function analyzeWebsite(
     // Normalize and sanitize the URL
     const formattedUrl = sanitizeUrl(normalizeUrl(url));
     
-    // Check cache first
-    const cachedResult = getCachedResult(formattedUrl);
-    if (cachedResult && !debug) {
-      if (debug) console.log(`Returning cached result for ${formattedUrl}`);
-      return {
-        ...cachedResult,
-        status: 'Cached',
-      };
+    // Skip cache if we're using suggested providers or in debug mode
+    const useCachedResult = !debug && suggestedProviders.length === 0;
+    
+    // Check cache first if appropriate
+    if (useCachedResult) {
+      const cachedResult = getCachedResult(formattedUrl);
+      if (cachedResult) {
+        if (debug) console.log(`Returning cached result for ${formattedUrl}`);
+        return {
+          ...cachedResult,
+          status: 'Cached',
+        };
+      }
     }
 
     // Fetch the HTML content if not provided
     let htmlContent = html;
     if (!htmlContent) {
       if (debug) console.log(`Fetching HTML content for ${formattedUrl}`);
-      htmlContent = await fetchHtmlContent(formattedUrl);
+      htmlContent = await fetchHtmlContent(formattedUrl, { timeout });
     }
 
     // Check for false positives
@@ -75,8 +81,33 @@ export async function analyzeWebsite(
       return result;
     }
 
+    // If we have suggested providers, prioritize their patterns
+    let patternsToUse = CHATBOT_PATTERNS;
+    if (suggestedProviders && suggestedProviders.length > 0) {
+      if (debug) console.log(`Using suggested providers: ${suggestedProviders.join(', ')}`);
+      
+      // Create a filtered patterns object with only the suggested providers
+      const filteredPatterns: Record<string, RegExp[]> = {};
+      
+      for (const provider of suggestedProviders) {
+        if (CHATBOT_PATTERNS[provider]) {
+          filteredPatterns[provider] = CHATBOT_PATTERNS[provider];
+        }
+      }
+      
+      // Always include generic patterns
+      if (CHATBOT_PATTERNS['Website Chatbot']) {
+        filteredPatterns['Website Chatbot'] = CHATBOT_PATTERNS['Website Chatbot'];
+      }
+      
+      // If we have filtered patterns, use them, otherwise fallback to all patterns
+      if (Object.keys(filteredPatterns).length > 0) {
+        patternsToUse = filteredPatterns;
+      }
+    }
+
     // Detect chatbot solutions using pattern matching - more aggressive
-    const detectedSolutions = detectChatbotSolutions(htmlContent, CHATBOT_PATTERNS);
+    const detectedSolutions = detectChatbotSolutions(htmlContent, patternsToUse);
     
     // Check for chat invitation patterns - stronger signal
     const invitationMatches = CHAT_INVITATION_PATTERNS.some(pattern => 
@@ -102,8 +133,13 @@ export async function analyzeWebsite(
       ? 0.8 * patternBasedConfidence + 0.2 * smartDetectionResult.confidence
       : smartDetectionResult.confidence * 1.25; // Boost smart detection confidence
     
+    // Adjust threshold based on stage options
+    const effectiveThreshold = suggestedProviders.length > 0 
+      ? Math.max(0.4, confidenceThreshold) // Higher threshold for subsequent stages
+      : confidenceThreshold; // Use provided threshold for initial stage
+    
     // More relaxed threshold for determining if a chatbot is present
-    const hasChatbot = combinedConfidence >= confidenceThreshold || 
+    const hasChatbot = combinedConfidence >= effectiveThreshold || 
       (detectedSolutions.length > 0 && invitationMatches) ||
       (detectedSolutions.length >= 3); // If we have at least 3 pattern matches, be more confident
     
