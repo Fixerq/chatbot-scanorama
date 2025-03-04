@@ -1,3 +1,4 @@
+
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { CrawlScrapeOptions, CrawlStatusResponse, ErrorResponse, CrawlResponse, CrawlFormat, CrawlDocument } from './types';
 
@@ -19,6 +20,13 @@ export class FirecrawlService {
 
   static getApiKey(): string {
     return this.API_KEY;
+  }
+
+  static saveApiKey(apiKey: string): void {
+    this.API_KEY = apiKey;
+    // Reset the firecrawlApp instance so it will be reinitialized with the new API key
+    this.firecrawlApp = null;
+    console.log('API key saved for future use');
   }
 
   private static initializeApp(): void {
