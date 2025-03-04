@@ -77,50 +77,62 @@ const Results = ({
   console.log("hasMore status:", hasMore);
   console.log("Displayed results:", displayedResults.length);
 
-  // Show analyzing state when we're analyzing and either:
-  // 1. There are no results at all, or
-  // 2. We have results but they're still being processed
-  if (isAnalyzing && (results.length === 0 || results.every(r => r.status === 'Processing...'))) {
-    return <ResultsAnalyzingState />;
-  }
-
-  // If there are no valid results after filtering and we're not analyzing
-  if (!isAnalyzing && (!validResults || validResults.length === 0)) {
+  // Check if we need to show full analyzing state
+  const showFullAnalyzingState = isAnalyzing && results.length === 0;
+  
+  // Check if we need to show the empty results state
+  const showEmptyResults = !isAnalyzing && (!validResults || validResults.length === 0);
+  
+  if (showEmptyResults) {
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
+  // Rather than showing an analyzing indicator for all results or nothing,
+  // we'll show results as they come in with the analyzing state above them
   return (
     <div className="mt-12 space-y-6">
-      <div className="flex items-center justify-between mb-8">
-        <ResultsFilters
-          filterValue={filterValue}
-          sortValue={sortValue}
-          onFilterChange={handleFilter}
-          onSortChange={handleSort}
-        />
-        <ResultsHeader
-          results={validResults}
-          totalCount={validResults.length}
-          chatbotCount={chatbotCount}
-          onNewSearch={onNewSearch}
-          onExport={onExport}
-        />
-      </div>
-      <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
-        <ResultsTable 
-          results={displayedResults} 
-          onResultUpdate={onResultUpdate}
-        />
-      </div>
-      
-      {/* Show Load More button if there are more results to display */}
-      {(validResults.length > currentPage * RESULTS_PER_PAGE || hasMore) && (
-        <div className="mt-6 flex justify-center">
-          <LoadMoreButton 
-            onLoadMore={handleLoadMore} 
-            isProcessing={isLoadingMore || isAnalyzing} 
-          />
+      {/* Always show analyzing state when still processing */}
+      {isAnalyzing && (
+        <div className="mb-4">
+          <ResultsAnalyzingState isPartial={results.length > 0} />
         </div>
+      )}
+      
+      {/* Show results table if we have any results */}
+      {results.length > 0 && (
+        <>
+          <div className="flex items-center justify-between mb-8">
+            <ResultsFilters
+              filterValue={filterValue}
+              sortValue={sortValue}
+              onFilterChange={handleFilter}
+              onSortChange={handleSort}
+            />
+            <ResultsHeader
+              results={validResults}
+              totalCount={validResults.length}
+              chatbotCount={chatbotCount}
+              onNewSearch={onNewSearch}
+              onExport={onExport}
+            />
+          </div>
+          <div className="rounded-[1.25rem] overflow-hidden bg-black/20 border border-white/10">
+            <ResultsTable 
+              results={displayedResults} 
+              onResultUpdate={onResultUpdate}
+            />
+          </div>
+          
+          {/* Show Load More button if there are more results to display */}
+          {(validResults.length > currentPage * RESULTS_PER_PAGE || hasMore) && (
+            <div className="mt-6 flex justify-center">
+              <LoadMoreButton 
+                onLoadMore={handleLoadMore} 
+                isProcessing={isLoadingMore || isAnalyzing} 
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

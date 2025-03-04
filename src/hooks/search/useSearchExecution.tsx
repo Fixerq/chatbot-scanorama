@@ -1,101 +1,102 @@
 
+import { useState, useCallback } from 'react';
+import { executeSearch, processSearchResults } from '@/utils/search/operations';
 import { Result } from '@/components/ResultsTable';
-import { executeSearch } from '@/utils/search/operations';
+import { FirecrawlService } from '@/utils/firecrawl';
+import { useChatbotAnalysis } from '@/hooks/useChatbotAnalysis';
 import { toast } from 'sonner';
-import { useState } from 'react';
-import { useChatbotAnalysis } from '../useChatbotAnalysis';
 
-export const useSearchExecution = (updateResults: (results: Result[], hasMore: boolean) => void) => {
+export const useSearchExecution = (
+  updateResults: (results: Result[], hasMore: boolean, isPartialUpdate?: boolean) => void
+) => {
   const [isSearching, setIsSearching] = useState(false);
   const { analyzeChatbots } = useChatbotAnalysis();
-  
-  const executeSearchOperation = async (
+
+  const executeSearchOperation = useCallback(async (
     query: string,
     country: string,
     region: string,
     apiKey: string,
     resultsLimit: number
   ) => {
-    setIsSearching(true);
+    console.log('Executing search operation:', { query, country, region, resultsLimit });
     
     try {
-      console.log('Starting search process with params:', { query, country, region });
+      // Save the API key for future use
+      FirecrawlService.saveApiKey(apiKey);
       
-      // First try with the specified region
-      let searchResult = await executeSearch(
+      // Execute the search
+      const searchData = await executeSearch(
         query,
         country,
         region,
         apiKey,
-        resultsLimit,
-        []
+        resultsLimit
       );
-
-      // If no results or error with the specified region, try without region
-      if (!searchResult || searchResult.newResults.length === 0) {
-        console.log('No results found with region. Trying without region...');
-        
-        // Show a toast to inform the user we're trying another approach
-        toast.info('No results found with specific region. Trying a broader search...');
-        
-        searchResult = await executeSearch(
-          query,
-          country,
-          '', // Empty region
-          apiKey,
-          resultsLimit,
-          []
-        );
-      }
-
-      if (!searchResult) {
-        console.error('Search returned no results or encountered an error');
-        toast.error('Search service is currently unavailable. Please try again later or try a different search.', {
-          duration: 5000
-        });
-        updateResults([], false);
-        return;
-      }
-
-      console.log('Search returned results count:', searchResult.newResults.length);
       
-      if (searchResult.newResults.length === 0) {
-        toast.info('No results found. Try different search terms or locations.');
-        updateResults([], false);
+      if (!searchData || !searchData.newResults) {
+        console.error('Search failed or returned no results');
+        setIsSearching(false);
         return;
       }
       
-      console.log('Analyzing websites for chatbots with improved detection...');
-      toast.info('Analyzing websites for chatbots...');
+      // Process search results
+      const { results: searchResults, hasMore } = processSearchResults(searchData);
       
-      const analyzedResults = await analyzeChatbots(searchResult.newResults);
+      console.log(`Received ${searchResults.length} search results, hasMore: ${hasMore}`);
       
-      console.log('Analysis complete. Results count:', analyzedResults.length);
-      updateResults(analyzedResults, searchResult.hasMore);
+      // Mark all results as "Processing..." initially
+      const placeholderResults = searchResults.map(result => ({
+        ...result,
+        status: 'Processing...'
+      }));
+
+      // Update results with placeholders first
+      updateResults(placeholderResults, hasMore);
       
-      if (analyzedResults.length > 0) {
-        const chatbotCount = analyzedResults.filter(r => 
-          r.details?.chatSolutions && r.details.chatSolutions.length > 0
-        ).length;
+      // Batch analyze in smaller chunks to show progress faster
+      const BATCH_SIZE = 5; // Process 5 at a time for faster feedback
+      const totalBatches = Math.ceil(placeholderResults.length / BATCH_SIZE);
+      
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, placeholderResults.length);
+        const batch = placeholderResults.slice(start, end);
         
-        if (chatbotCount > 0) {
-          toast.success(`Found ${chatbotCount} websites with chatbots out of ${analyzedResults.length} results`);
-        } else {
-          toast.info(`Analyzed ${analyzedResults.length} websites, still looking for chatbots...`);
+        console.log(`Processing batch ${batchIndex + 1}/${totalBatches}, results ${start+1}-${end}`);
+        
+        try {
+          // Analyze this batch
+          const analyzedBatch = await analyzeChatbots(batch);
+          
+          if (analyzedBatch && analyzedBatch.length > 0) {
+            console.log(`Batch ${batchIndex + 1} analysis complete, updating partial results`);
+            
+            // Send partial updates as each batch completes
+            updateResults(analyzedBatch, hasMore, true);
+          }
+        } catch (batchError) {
+          console.error(`Error analyzing batch ${batchIndex + 1}:`, batchError);
+          
+          // Continue with next batch even if this one fails
+          const errorBatch = batch.map(result => ({
+            ...result,
+            status: 'Error analyzing URL'
+          }));
+          
+          // Update with error status for this batch
+          updateResults(errorBatch, hasMore, true);
         }
-      } else {
-        toast.info('No results found. Try different search terms.');
       }
+      
+      console.log('All batches processed');
     } catch (error) {
-      console.error('Search error:', error);
-      toast.error('Search service is currently unavailable. Please try again later or try a different search.', {
-        duration: 5000
-      });
-      updateResults([], false);
+      console.error('Search execution error:', error);
+      toast.error('An error occurred during search execution');
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [updateResults, analyzeChatbots]);
 
   return {
     isSearching,

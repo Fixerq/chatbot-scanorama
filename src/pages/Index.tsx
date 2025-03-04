@@ -25,6 +25,33 @@ const Index = () => {
     console.log('New search triggered');
   }, []);
 
+  // Process partial result updates - show results as they become available
+  const handlePartialResults = useCallback((partialResults: Result[]) => {
+    if (partialResults.length > 0) {
+      console.log(`Received ${partialResults.length} partial results`);
+      setSearchPerformed(true);
+      
+      // Merge new results with existing ones, replacing any with matching URLs
+      setResults(prevResults => {
+        const updatedResults = [...prevResults];
+        const existingUrls = new Set(updatedResults.map(r => r.url));
+        
+        partialResults.forEach(newResult => {
+          const existingIndex = updatedResults.findIndex(r => r.url === newResult.url);
+          if (existingIndex >= 0) {
+            // Replace existing result
+            updatedResults[existingIndex] = newResult;
+          } else {
+            // Add new result
+            updatedResults.push(newResult);
+          }
+        });
+        
+        return updatedResults;
+      });
+    }
+  }, []);
+
   const handleResultUpdate = async (updatedResult: Result) => {
     console.log('Triggering result update for:', updatedResult);
     
@@ -84,7 +111,7 @@ const Index = () => {
       count: results.length, 
       hasResults: results.length > 0,
       isProcessing,
-      hasMore // Log hasMore flag to verify its value
+      hasMore
     });
   }, [results, isProcessing, hasMore]);
 
@@ -156,6 +183,7 @@ const Index = () => {
         <div id="search-form-container">
           <SearchFormContainer 
             onResults={handleSetResults}
+            onPartialResults={handlePartialResults}
             onHasMoreChange={handleSetMoreInfo}
             isProcessing={isProcessing}
             setIsProcessing={handleSetProcessing}
@@ -163,8 +191,8 @@ const Index = () => {
           />
         </div>
         
-        {/* Only show Results component when a search has been performed */}
-        {searchPerformed && (
+        {/* Show Results component as soon as we have partial results */}
+        {(searchPerformed || results.length > 0) && (
           <Results 
             results={results}
             onExport={() => {}} 

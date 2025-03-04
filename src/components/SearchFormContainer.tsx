@@ -8,6 +8,7 @@ import { useSearchOperations } from '@/hooks/useSearchOperations';
 
 interface SearchFormContainerProps {
   onResults: (results: Result[]) => void;
+  onPartialResults?: (partialResults: Result[]) => void;
   onHasMoreChange?: (hasMore: boolean) => void;
   isProcessing: boolean;
   setIsProcessing: (processing: boolean) => void;
@@ -16,6 +17,7 @@ interface SearchFormContainerProps {
 
 const SearchFormContainer = ({ 
   onResults, 
+  onPartialResults,
   onHasMoreChange,
   isProcessing, 
   setIsProcessing, 
@@ -33,7 +35,13 @@ const SearchFormContainer = ({
     handleSearch,
     handleLoadMore,
     loadingPages
-  } = useSearchOperations(onResults);
+  } = useSearchOperations((results) => {
+    // Pass results to both callbacks
+    onResults(results);
+    if (onPartialResults) {
+      onPartialResults(results);
+    }
+  });
 
   const onSubmit = () => {
     setIsProcessing(true);
