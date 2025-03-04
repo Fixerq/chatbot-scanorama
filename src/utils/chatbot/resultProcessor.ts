@@ -64,7 +64,7 @@ export function processAnalysisResult(data: any): ChatbotDetectionResponse {
           status: 'No chatbot detected',
           chatSolutions: [],
           confidence: 0,
-          verificationStatus: 'verified', // We trust the enhanced detection
+          verificationStatus: 'verified',
           lastChecked: new Date().toISOString(),
           enhancedDetection: result.enhancedDetection
         };
@@ -90,9 +90,9 @@ export function processAnalysisResult(data: any): ChatbotDetectionResponse {
       };
     }
     
-    // More permissive confidence checking with very low threshold
+    // Very permissive confidence checking with extremely low threshold
     if (!result.hasChatbot || 
-       (result.confidence !== undefined && result.confidence < 0.15) || 
+       (result.confidence !== undefined && result.confidence < 0.12) || 
        (result.verificationStatus === 'failed')) {
       console.log(`No chatbot detected or verification failed (${result.confidence}), marking as no chatbot`);
       return {

@@ -16,9 +16,20 @@ export function detectChatbotSolutions(
   
   // Check each solution's patterns against the HTML
   for (const [solution, solutionPatterns] of Object.entries(patterns)) {
-    const matchesPattern = solutionPatterns.some(pattern => pattern.test(html));
+    // Count how many patterns match for this solution
+    let matchCount = 0;
+    for (const pattern of solutionPatterns) {
+      if (pattern.test(html)) {
+        matchCount++;
+      }
+    }
     
-    if (matchesPattern) {
+    // If we have even one match, consider it a potential solution
+    // For "Website Chatbot", require more matches since it's generic
+    const isGeneric = solution === 'Website Chatbot';
+    const requiredMatches = isGeneric ? 2 : 1;
+    
+    if (matchCount >= requiredMatches) {
       solutions.push(solution);
     }
   }
@@ -68,8 +79,14 @@ export function analyzePatternMatches(
     
     // If we found matches for this solution
     if (solutionMatches.length > 0) {
-      matches.push(solution);
-      matchedPatterns[solution] = solutionMatches;
+      // For generic solutions, require more evidence
+      const isGeneric = solution === 'Website Chatbot' || solution === 'ChatBot';
+      const requiredMatches = isGeneric ? 2 : 1;
+      
+      if (solutionMatches.length >= requiredMatches) {
+        matches.push(solution);
+        matchedPatterns[solution] = solutionMatches;
+      }
     }
   }
   
@@ -85,6 +102,7 @@ export function analyzePatternMatches(
 
 /**
  * Calculates a confidence score based on the number of matching patterns
+ * More aggressive with scoring to improve detection
  */
 export function calculateConfidenceScore(
   matches: string[],
@@ -94,12 +112,20 @@ export function calculateConfidenceScore(
     return 0;
   }
   
-  // Weight based on number of matching solutions
-  const solutionWeight = Math.min(matches.length / 3, 1); // Cap at 1
+  // Weight based on number of matching solutions - more aggressive
+  const solutionWeight = Math.min(matches.length / 2, 1); // Cap at 1, but easier to reach
   
-  // Base confidence starting at 0.6
-  const baseConfidence = 0.6;
+  // Base confidence starting at 0.65 - higher baseline
+  const baseConfidence = 0.65;
   
   // Adjust confidence based on solution count
-  return baseConfidence + (0.4 * solutionWeight);
+  const finalConfidence = baseConfidence + (0.35 * solutionWeight);
+  
+  // Provide a boost for known commercial solutions vs generic detections
+  const hasCommercialSolution = matches.some(solution => 
+    solution !== 'Website Chatbot' && solution !== 'ChatBot'
+  );
+  
+  // Apply a confidence boost for commercial solutions
+  return hasCommercialSolution ? Math.min(finalConfidence * 1.1, 1) : finalConfidence;
 }

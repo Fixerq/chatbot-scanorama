@@ -52,12 +52,14 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
             verifyResults: true,
             deepVerification: true,
             smartDetection: true,
-            confidenceThreshold: 0.15, // Further lowered threshold for better recall
+            confidenceThreshold: 0.12, // Further lowered threshold for better recall
             checkFunctionality: true,
             retryFailures: true,
-            timeout: 15000, // Increased timeout for more thorough analysis
+            timeout: 18000, // Increased timeout for more thorough analysis
             useEnhancedDetection: true, // Signal to use the enhanced detection algorithm
-            useAdvancedDetection: true // New flag to use the advanced provider-specific detection
+            useAdvancedDetection: true, // New flag to use the advanced provider-specific detection
+            detectHiddenChatbots: true, // Try to find chatbots that might be hidden initially
+            ignoreVisibilityChecks: true // Skip visibility checks which can be unreliable
           }
         });
 
