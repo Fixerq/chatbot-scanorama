@@ -9,7 +9,8 @@ export const FALSE_POSITIVE_DOMAINS = [
   'privategphealthcare.com',
   'dentalcaredirect.co.uk',
   'mydentist.co.uk',
-  'dentist-special.com'
+  'dentist-special.com',
+  'firstgroupliverpool.co.uk'
 ];
 
 /**
