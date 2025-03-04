@@ -16,13 +16,19 @@ export async function fetchHtmlContent(
 ): Promise<string> {
   const {
     timeout = 30000,
-    retries = 1,
+    retries = 3, // Increased from 1 to 3 for better reliability
     userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
   } = options;
 
   // Controller for timeout abort
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  const timeoutId = setTimeout(() => {
+    try {
+      controller.abort();
+    } catch (e) {
+      console.error('Error aborting fetch:', e);
+    }
+  }, timeout);
   
   try {
     // Create fetch options
@@ -49,7 +55,7 @@ export async function fetchHtmlContent(
       try {
         if (attempt > 0) {
           console.log(`Retry attempt ${attempt + 1} for ${url}`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1))); // Exponential backoff
         }
         
         const response = await fetch(url, fetchOptions);
@@ -69,12 +75,20 @@ export async function fetchHtmlContent(
         return html;
       } catch (error) {
         console.error(`Fetch attempt ${attempt + 1} failed:`, error);
+        // Check if this is an abort error (timeout)
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.warn(`Fetch aborted due to timeout (${timeout}ms) for ${url}`);
+          throw new Error(`Timeout after ${timeout}ms fetching ${url}`);
+        }
         lastError = error instanceof Error ? error : new Error(String(error));
       }
     }
     
     // If we get here, all retry attempts failed
     throw lastError || new Error(`Failed to fetch ${url} after ${retries} attempts`);
+  } catch (error) {
+    // Make sure to rethrow the error after cleanup
+    throw error;
   } finally {
     clearTimeout(timeoutId);
   }

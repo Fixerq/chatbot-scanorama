@@ -5,15 +5,28 @@ import { processAnalysisResult } from './resultProcessor';
 
 /**
  * Main function to detect chatbots and process results
- * Uses the new multi-stage detection pipeline
+ * Uses the multi-stage detection pipeline with improved error handling
  */
 export const detectChatbotWithProcessing = async (url: string): Promise<ChatbotDetectionResponse> => {
-  // Get the detection data using the multi-stage pipeline
-  const rawData = await detectChatbot(url);
-  
-  // Process the raw data into a standardized format
-  return processAnalysisResult(rawData);
+  try {
+    // Get the detection data using the multi-stage pipeline
+    const rawData = await detectChatbot(url);
+    
+    // Process the raw data into a standardized format
+    return processAnalysisResult(rawData);
+  } catch (error) {
+    console.error('Error in chatbot detection pipeline:', error);
+    
+    // Return a graceful fallback response instead of throwing
+    return {
+      status: "Error during analysis",
+      chatSolutions: [],
+      confidence: 0,
+      verificationStatus: "unknown",
+      lastChecked: new Date().toISOString()
+    };
+  }
 };
 
-// Re-export the detectChatbot function with the new name for backward compatibility
+// Re-export the detectChatbotWithProcessing function with the new name for backward compatibility
 export { detectChatbotWithProcessing as detectChatbot };

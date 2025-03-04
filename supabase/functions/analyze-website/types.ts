@@ -15,6 +15,8 @@ export interface AnalysisOptions {
   detectHiddenChatbots?: boolean;
   ignoreVisibilityChecks?: boolean;
   suggestedProviders?: string[];
+  maxRetries?: number; // New option to control retries
+  skipFunctionalValidation?: boolean; // Option to skip functionality check
 }
 
 export interface AnalysisResult {
@@ -27,6 +29,13 @@ export interface AnalysisResult {
   indicators?: string[];
   lastChecked: string;
   error?: string;
+  // Add stage information for debugging
+  stageResults?: {
+    initialScan?: boolean;
+    providerSpecific?: boolean;
+    verification?: boolean;
+    functional?: boolean;
+  };
 }
 
 export interface BatchAnalysisRequest {
