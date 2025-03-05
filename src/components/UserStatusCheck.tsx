@@ -14,6 +14,7 @@ export const UserStatusCheck = () => {
     const checkAdminStatus = async () => {
       if (!session?.user?.id) {
         console.log('No user session found');
+        setIsLoading(false);
         return;
       }
 
@@ -24,10 +25,11 @@ export const UserStatusCheck = () => {
           .from('admin_users')
           .select('user_id')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error checking admin status:', error);
+          setIsLoading(false);
           return;
         }
 

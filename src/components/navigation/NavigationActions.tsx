@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -33,13 +34,18 @@ export const NavigationActions = ({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) return;
 
-      const { data: adminData } = await supabase
+      const { data, error } = await supabase
         .from('admin_users')
         .select('user_id')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
       
-      setIsAdmin(!!adminData);
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return;
+      }
+      
+      setIsAdmin(!!data);
     };
 
     checkAdminStatus();

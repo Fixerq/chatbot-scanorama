@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,19 +12,27 @@ export const useAdminStatus = () => {
   const checkAdminStatus = async () => {
     try {
       setIsChecking(true);
-      const { data: adminData, error: adminError } = await supabase
+      const { data, error } = await supabase
         .from('admin_users')
         .select('user_id')
-        .single();
+        .maybeSingle();
 
-      if (adminError || !adminData) {
-        console.error('Admin check error:', adminError);
+      if (error) {
+        console.error('Admin check error:', error);
         toast.error('You do not have admin access');
         navigate('/dashboard');
         return false;
       }
-      setIsAdmin(true);
-      return true;
+      
+      const hasAdminAccess = !!data;
+      setIsAdmin(hasAdminAccess);
+      
+      if (!hasAdminAccess) {
+        toast.error('You do not have admin access');
+        navigate('/dashboard');
+      }
+      
+      return hasAdminAccess;
     } catch (error) {
       console.error('Admin check error:', error);
       toast.error('Failed to verify admin status');
