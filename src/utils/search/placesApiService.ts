@@ -101,7 +101,18 @@ export const performPlacesSearch = async (options: PlacesSearchOptions): Promise
       console.log('Raw response from Edge Function:', JSON.stringify(data, null, 2));
       console.log('Results count:', data?.results?.length || 0);
       
-      if (!data || data.results?.length === 0) {
+      // FIX: Check if there are results but they don't appear to be properly formatted
+      if (data && Array.isArray(data.results) && data.results.length > 0) {
+        console.log('Successfully processed results:', data.results.length);
+      } else if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+        // This handles the case where the edge function might return data in an unexpected format
+        console.log('Data structure received:', Object.keys(data));
+      }
+      
+      // Ensure data.results is always an array even if we get unexpected response format
+      const results = Array.isArray(data?.results) ? data.results : [];
+      
+      if (results.length === 0) {
         console.log('No results found. Check if search criteria may be too restrictive.');
         toast.info('No results found.', {
           description: 'Try broadening your search criteria or searching for a different term.'
@@ -109,19 +120,25 @@ export const performPlacesSearch = async (options: PlacesSearchOptions): Promise
       }
       
       // Add nextPageToken to response metadata for each result
-      if (data.results && data.nextPageToken) {
-        data.results = data.results.map(result => ({
+      if (results.length > 0 && data.nextPageToken) {
+        const resultsWithMetadata = results.map(result => ({
           ...result,
           _metadata: {
             nextPageToken: data.nextPageToken
           }
         }));
+        
+        return {
+          results: resultsWithMetadata,
+          nextPageToken: data.nextPageToken,
+          hasMore: data.hasMore || false
+        };
       }
       
       return {
-        results: data.results || [],
-        nextPageToken: data.nextPageToken,
-        hasMore: data.hasMore || false
+        results: results,
+        nextPageToken: data?.nextPageToken,
+        hasMore: data?.hasMore || false
       };
     } catch (error) {
       console.error('Places search error:', error);

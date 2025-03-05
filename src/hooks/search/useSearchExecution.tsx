@@ -34,9 +34,21 @@ export const useSearchExecution = (
         resultsLimit
       );
       
-      if (!searchData || !searchData.newResults) {
-        console.error('Search failed or returned no results');
+      console.log('Search data received:', searchData ? 
+        `Results: ${searchData.newResults?.length || 0}, HasMore: ${searchData.hasMore}` : 
+        'No search data returned');
+      
+      if (!searchData) {
+        console.error('Search failed or returned no data');
         setIsSearching(false);
+        return;
+      }
+      
+      if (!searchData.newResults || searchData.newResults.length === 0) {
+        console.log('Search returned no results');
+        setIsSearching(false);
+        // Update with empty results to show "no results" state
+        updateResults([], false);
         return;
       }
       
