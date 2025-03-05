@@ -384,7 +384,7 @@ Deno.serve(async (req) => {
     let options;
     try {
       options = await req.json();
-      console.log('Received search request with options:', JSON.stringify(options));
+      console.log('Received search request with options:', JSON.stringify(options, null, 2));
     } catch (jsonError) {
       console.error('JSON parse error:', jsonError);
       return new Response(
@@ -410,6 +410,7 @@ Deno.serve(async (req) => {
     
     // Basic validation
     if (!query?.trim()) {
+      console.error('Missing query parameter');
       return new Response(
         JSON.stringify({
           error: 'Missing query parameter',
@@ -431,10 +432,12 @@ Deno.serve(async (req) => {
     
     // Process country and region
     const countryCode = normalizeCountryCode(country);
+    console.log(`Normalized country code: ${country} -> ${countryCode}`);
     
     // Add region code if we have a valid country code
     if (countryCode) {
       requestBody.regionCode = countryCode;
+      console.log(`Setting region code to ${countryCode}`);
       
       // Add location bias if we have coordinates for this region
       if (region && regionBounds[countryCode] && regionBounds[countryCode][region]) {
@@ -450,159 +453,175 @@ Deno.serve(async (req) => {
     // If we were given a pageToken, use it directly
     if (pageToken) {
       requestBody.pageToken = pageToken;
+      console.log(`Using page token: ${pageToken}`);
     }
     
     // Fetch results
-    console.log('Fetching results from Google Places API');
+    console.log('Request body for Google Places API:', JSON.stringify(requestBody, null, 2));
     
     // Use search variations to get more results
-    const { results: placesResults, nextPageToken, hasMore } = 
-      await fetchWithVariations(query, countryCode, region, requestBody, GOOGLE_API_KEY, pageToken ? 20 : 60);
+    try {
+      const { results: placesResults, nextPageToken, hasMore } = 
+        await fetchWithVariations(query, countryCode, region, requestBody, GOOGLE_API_KEY, pageToken ? 20 : 60);
     
-    console.log(`Retrieved ${placesResults.length} results from Google Places API`);
-    
-    // Process and filter results based on country
-    const processResults = () => {
-      // First map the raw results to our desired format
-      const mappedResults = placesResults.map(place => ({
-        id: place.id, // Store Place ID for deduplication
-        url: place.websiteUri || `https://www.google.com/search?q=${encodeURIComponent(place.displayName?.text || '')}`,
-        title: place.displayName?.text || 'Unknown Business',
-        description: place.formattedAddress || '',
-        details: {
+      console.log(`Retrieved ${placesResults.length} results from Google Places API`);
+      
+      // Process and filter results based on country
+      const processResults = () => {
+        // First map the raw results to our desired format
+        const mappedResults = placesResults.map(place => ({
+          id: place.id, // Store Place ID for deduplication
+          url: place.websiteUri || `https://www.google.com/search?q=${encodeURIComponent(place.displayName?.text || '')}`,
           title: place.displayName?.text || 'Unknown Business',
           description: place.formattedAddress || '',
-          phone: place.internationalPhoneNumber || '',
-          rating: place.rating || 0,
-          reviewCount: place.userRatingCount || 0,
-          businessType: place.primaryType || (place.types || [])[0] || '',
-          priceLevel: place.priceLevel || 0,
-          openingHours: place.regularOpeningHours ? 
-            (place.regularOpeningHours.periods || []).map(p => ({
-              open: p.open?.day + ' ' + p.open?.hour + ':' + p.open?.minute,
-              close: p.close?.day + ' ' + p.close?.hour + ':' + p.close?.minute,
-            })) : [],
-          location: place.formattedAddress || ''
-        }
-      }));
-      
-      // Filter out directories, gov sites, edu sites, etc.
-      const nonServiceKeywords = [
-        'directory', 'listing', 'yellow pages', 'whitepages', 'yelp', 'finder',
-        'government', 'gov', 'council', 'department', 'authority', 'agency',
-        'university', 'education', 'school', 'college', 'academy', 'institute',
-        'wikipedia', 'wiki', 'encyclopedia', 'dictionary',
-        'news', 'magazine', 'blog', 'forum', 'review site'
-      ];
-      
-      // Filter out non-service businesses based on URL and title
-      let serviceResults = mappedResults.filter(result => {
-        const url = result.url.toLowerCase();
-        const title = result.title.toLowerCase();
+          details: {
+            title: place.displayName?.text || 'Unknown Business',
+            description: place.formattedAddress || '',
+            phone: place.internationalPhoneNumber || '',
+            rating: place.rating || 0,
+            reviewCount: place.userRatingCount || 0,
+            businessType: place.primaryType || (place.types || [])[0] || '',
+            priceLevel: place.priceLevel || 0,
+            openingHours: place.regularOpeningHours ? 
+              (place.regularOpeningHours.periods || []).map(p => ({
+                open: p.open?.day + ' ' + p.open?.hour + ':' + p.open?.minute,
+                close: p.close?.day + ' ' + p.close?.hour + ':' + p.close?.minute,
+              })) : [],
+            location: place.formattedAddress || ''
+          }
+        }));
         
-        // Skip results with common directory/non-service keywords
-        const isNonService = nonServiceKeywords.some(keyword => 
-          url.includes(keyword) || title.includes(keyword)
-        );
+        // Filter out directories, gov sites, edu sites, etc.
+        const nonServiceKeywords = [
+          'directory', 'listing', 'yellow pages', 'whitepages', 'yelp', 'finder',
+          'government', 'gov', 'council', 'department', 'authority', 'agency',
+          'university', 'education', 'school', 'college', 'academy', 'institute',
+          'wikipedia', 'wiki', 'encyclopedia', 'dictionary',
+          'news', 'magazine', 'blog', 'forum', 'review site'
+        ];
         
-        // Skip .gov .edu domains and common directory sites
-        const isUnwantedDomain = url.includes('.gov') || 
-                                url.includes('.edu') || 
-                                url.includes('yelp.com') ||
-                                url.includes('yellowpages') ||
-                                url.includes('directory.com') ||
-                                url.includes('whitepages.com') ||
-                                url.includes('yell.com') ||
-                                url.includes('trulia.com') ||
-                                url.includes('tripadvisor') ||
-                                url.includes('booking.com');
-        
-        // Keep only service businesses
-        return !isNonService && !isUnwantedDomain;
-      });
-      
-      console.log(`Filtered out ${mappedResults.length - serviceResults.length} non-service results`);
-      
-      // Filter based on country-specific domains if appropriate
-      let filteredResults = serviceResults;
-      
-      if (countryCode && countryDomains[countryCode]) {
-        console.log(`Applying domain filtering for country: ${countryCode}`);
-        
-        // Group results by whether they match the country's domains
-        const preferredDomains = countryDomains[countryCode];
-        const otherCountryDomains = Object.entries(countryDomains)
-          .filter(([code]) => code !== countryCode)
-          .flatMap(([_, domains]) => domains);
-        
-        // Count matches by domain type
-        let preferredDomainCount = 0;
-        let otherDomainCount = 0;
-        let neutralDomainCount = 0;
-        
-        filteredResults = serviceResults.filter(result => {
+        // Filter out non-service businesses based on URL and title
+        let serviceResults = mappedResults.filter(result => {
           const url = result.url.toLowerCase();
+          const title = result.title.toLowerCase();
           
-          // Check if URL contains preferred domains
-          const hasPreferredDomain = preferredDomains.some(domain => url.includes(domain));
+          // Skip results with common directory/non-service keywords
+          const isNonService = nonServiceKeywords.some(keyword => 
+            url.includes(keyword) || title.includes(keyword)
+          );
           
-          // Check if URL contains domains from other countries
-          const hasOtherCountryDomain = otherCountryDomains.some(domain => url.includes(domain));
+          // Skip .gov .edu domains and common directory sites
+          const isUnwantedDomain = url.includes('.gov') || 
+                                  url.includes('.edu') || 
+                                  url.includes('yelp.com') ||
+                                  url.includes('yellowpages') ||
+                                  url.includes('directory.com') ||
+                                  url.includes('whitepages.com') ||
+                                  url.includes('yell.com') ||
+                                  url.includes('trulia.com') ||
+                                  url.includes('tripadvisor') ||
+                                  url.includes('booking.com');
           
-          // Count matches for logging
-          if (hasPreferredDomain) preferredDomainCount++;
-          else if (hasOtherCountryDomain) otherDomainCount++;
-          else neutralDomainCount++;
-          
-          // Keep all preferred domain results, or neutral results
-          // Filter out other country domains unless we don't have enough results
-          return hasPreferredDomain || !hasOtherCountryDomain;
+          // Keep only service businesses
+          return !isNonService && !isUnwantedDomain;
         });
         
-        console.log(`Domain filtering stats: preferred=${preferredDomainCount}, neutral=${neutralDomainCount}, other=${otherDomainCount}`);
-        console.log(`Results after domain filtering: ${filteredResults.length}`);
+        console.log(`Filtered out ${mappedResults.length - serviceResults.length} non-service results`);
         
-        // If filtering left us with too few results, add back some neutral ones
-        if (filteredResults.length < 10) {
-          console.log('Too few results after filtering, adding back neutral domains');
+        // Filter based on country-specific domains if appropriate
+        let filteredResults = serviceResults;
+        
+        if (countryCode && countryDomains[countryCode]) {
+          console.log(`Applying domain filtering for country: ${countryCode}`);
+          
+          // Group results by whether they match the country's domains
+          const preferredDomains = countryDomains[countryCode];
+          const otherCountryDomains = Object.entries(countryDomains)
+            .filter(([code]) => code !== countryCode)
+            .flatMap(([_, domains]) => domains);
+          
+          // Count matches by domain type
+          let preferredDomainCount = 0;
+          let otherDomainCount = 0;
+          let neutralDomainCount = 0;
+          
           filteredResults = serviceResults.filter(result => {
             const url = result.url.toLowerCase();
+            
+            // Check if URL contains preferred domains
             const hasPreferredDomain = preferredDomains.some(domain => url.includes(domain));
+            
+            // Check if URL contains domains from other countries
             const hasOtherCountryDomain = otherCountryDomains.some(domain => url.includes(domain));
             
-            // Keep preferred domains and neutral domains, but not other country domains
+            // Count matches for logging
+            if (hasPreferredDomain) preferredDomainCount++;
+            else if (hasOtherCountryDomain) otherDomainCount++;
+            else neutralDomainCount++;
+            
+            // Keep all preferred domain results, or neutral results
+            // Filter out other country domains unless we don't have enough results
             return hasPreferredDomain || !hasOtherCountryDomain;
           });
+          
+          console.log(`Domain filtering stats: preferred=${preferredDomainCount}, neutral=${neutralDomainCount}, other=${otherDomainCount}`);
+          console.log(`Results after domain filtering: ${filteredResults.length}`);
+          
+          // If filtering left us with too few results, add back some neutral ones
+          if (filteredResults.length < 10) {
+            console.log('Too few results after filtering, adding back neutral domains');
+            filteredResults = serviceResults.filter(result => {
+              const url = result.url.toLowerCase();
+              const hasPreferredDomain = preferredDomains.some(domain => url.includes(domain));
+              const hasOtherCountryDomain = otherCountryDomains.some(domain => url.includes(domain));
+              
+              // Keep preferred domains and neutral domains, but not other country domains
+              return hasPreferredDomain || !hasOtherCountryDomain;
+            });
+          }
         }
-      }
+        
+        // Filter out existing place IDs (for pagination)
+        if (existingPlaceIds.length > 0) {
+          console.log(`Filtering out ${existingPlaceIds.length} existing place IDs`);
+          filteredResults = filteredResults.filter(result => 
+            !existingPlaceIds.includes(result.id)
+          );
+        }
+        
+        return filteredResults;
+      };
       
-      // Filter out existing place IDs (for pagination)
-      if (existingPlaceIds.length > 0) {
-        console.log(`Filtering out ${existingPlaceIds.length} existing place IDs`);
-        filteredResults = filteredResults.filter(result => 
-          !existingPlaceIds.includes(result.id)
-        );
-      }
+      // Process the results
+      const processedResults = processResults();
+      console.log(`Returning ${processedResults.length} processed results`);
       
-      return filteredResults;
-    };
-    
-    // Process the results
-    const processedResults = processResults();
-    console.log(`Returning ${processedResults.length} processed results`);
-    
-    // Return results with pagination token
-    return new Response(
-      JSON.stringify({
-        results: processedResults,
-        nextPageToken: nextPageToken,
-        hasMore: hasMore
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    );
+      // Return results with pagination token
+      return new Response(
+        JSON.stringify({
+          results: processedResults,
+          nextPageToken: nextPageToken,
+          hasMore: hasMore
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    } catch (apiError) {
+      console.error('Error from Google Places API:', apiError);
+      return new Response(
+        JSON.stringify({
+          error: 'Google Places API error',
+          details: apiError.message,
+          status: 'api_error'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        }
+      );
+    }
   } catch (error) {
     console.error('Error processing request:', error);
     

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
@@ -27,10 +28,15 @@ export const performPlacesSearch = async (options: PlacesSearchOptions): Promise
   
   while (retryCount < maxRetries) {
     try {
-      console.log('Performing Places search with params:', {
-        ...options,
+      console.log('Performing Places search with params:', JSON.stringify({
+        query: options.query,
+        country: options.country,
+        region: options.region,
+        limit: options.limit,
+        pageToken: options.pageToken ? 'present' : 'not present',
+        existingPlaceIds: options.existingPlaceIds ? options.existingPlaceIds.length : 0,
         retryAttempt: retryCount
-      });
+      }, null, 2));
 
       // Attempt to call the edge function
       const { data, error } = await supabase.functions.invoke('search-places', {
@@ -92,7 +98,15 @@ export const performPlacesSearch = async (options: PlacesSearchOptions): Promise
         return null;
       }
 
-      console.log('Raw response from Edge Function:', data);
+      console.log('Raw response from Edge Function:', JSON.stringify(data, null, 2));
+      console.log('Results count:', data?.results?.length || 0);
+      
+      if (!data || data.results?.length === 0) {
+        console.log('No results found. Check if search criteria may be too restrictive.');
+        toast.info('No results found.', {
+          description: 'Try broadening your search criteria or searching for a different term.'
+        });
+      }
       
       // Add nextPageToken to response metadata for each result
       if (data.results && data.nextPageToken) {
