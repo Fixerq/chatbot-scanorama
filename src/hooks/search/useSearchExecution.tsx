@@ -69,9 +69,10 @@ export const useSearchExecution = (
       // Immediately update results with placeholders first
       updateResults(placeholderResults, hasMore);
       
-      // Make a direct call to update results immediately
+      // Make a direct call to update results immediately - critical fix here!
+      // We need to pass the actual search results to the display immediately
       try {
-        // Skip chatbot analysis for initial display - just show the search results
+        // Display initial results right away before analysis
         const initialResults = searchResults.map(result => ({
           ...result,
           status: 'Loaded, analyzing...',
@@ -81,8 +82,8 @@ export const useSearchExecution = (
           }
         }));
         
-        // Send these to display right away
-        updateResults(initialResults, hasMore, true);
+        // Send these to display right away - this is the key fix
+        updateResults(initialResults, hasMore, false);
         
         // Then proceed with batch analysis
         const analyzedResults = await analyzeChatbots(initialResults);
@@ -93,11 +94,7 @@ export const useSearchExecution = (
       } catch (error) {
         console.error('Error during analysis:', error);
         // Still show the search results even if analysis fails
-        const errorResults = placeholderResults.map(result => ({
-          ...result,
-          status: 'Found, analysis pending'
-        }));
-        updateResults(errorResults, hasMore, false);
+        updateResults(placeholderResults, hasMore, false);
       }
       
       setIsSearching(false);

@@ -15,7 +15,7 @@ export const useResultsContainer = (results: Result[] = []) => {
     return results.filter(r => {
       // Make sure the result exists and has valid data
       if (!r) return false;
-      // Check if the result has an error status
+      // Only filter out results with explicit error status
       return !r.status?.toLowerCase().includes('error analyzing url');
     });
   }, [results]);

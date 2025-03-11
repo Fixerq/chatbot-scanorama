@@ -125,9 +125,18 @@ const Index = () => {
 
   const handleSetResults = useCallback((newResults: Result[]) => {
     console.log('Setting new results in Index:', newResults.length);
-    setResults(newResults);
-    setSearchPerformed(true);
-  }, []);
+    if (newResults.length > 0) {
+      setResults(newResults);
+      setSearchPerformed(true);
+    } else {
+      // If we receive an empty result, don't overwrite existing results
+      // unless it's a new search (handled by searchPerformed state)
+      if (!searchPerformed) {
+        setResults([]);
+        setSearchPerformed(true);
+      }
+    }
+  }, [searchPerformed]);
 
   const handleSetMoreInfo = useCallback((hasMoreResults: boolean) => {
     console.log('Setting hasMore status:', hasMoreResults);

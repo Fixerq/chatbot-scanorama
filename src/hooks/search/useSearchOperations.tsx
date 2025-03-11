@@ -54,9 +54,30 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     
     // Notify the parent component of all results so far
     if (onResults) {
+      // Always send all results regardless of update type - critical fix here!
       if (isPartialUpdate) {
-        // For partial updates, we only send the new batch
-        onResults(newResults);
+        setResults(prev => {
+          // Get all unique results
+          const allResults = [...prev.currentResults];
+          
+          // Merge new results
+          newResults.forEach(newResult => {
+            const existingIndex = allResults.findIndex(r => r.url === newResult.url);
+            if (existingIndex >= 0) {
+              allResults[existingIndex] = newResult;
+            } else {
+              allResults.push(newResult);
+            }
+          });
+          
+          // Call onResults with all results
+          onResults(allResults);
+          
+          return {
+            currentResults: allResults,
+            hasMore: hasMoreResults || prev.hasMore
+          };
+        });
       } else {
         // For complete replacements, send everything
         onResults(newResults);
@@ -107,5 +128,3 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
     loadingPages
   };
 };
-
-export default useSearchOperations;
