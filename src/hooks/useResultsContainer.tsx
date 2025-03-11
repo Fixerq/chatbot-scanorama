@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Result } from '@/components/ResultsTable';
 
 export const useResultsContainer = (results: Result[] = []) => {
-  // Filter out results with error status
+  // Accept all results regardless of status - no more filtering out results with errors
   const validResults = useMemo(() => {
     console.log('Computing validResults from', results?.length || 0, 'results');
     // First check if we have results to process
@@ -11,13 +10,8 @@ export const useResultsContainer = (results: Result[] = []) => {
       return [];
     }
     
-    // Filter out error results
-    return results.filter(r => {
-      // Make sure the result exists and has valid data
-      if (!r) return false;
-      // Only filter out results with explicit error status
-      return !r.status?.toLowerCase().includes('error analyzing url');
-    });
+    // Keep all results, even those with errors
+    return results;
   }, [results]);
   
   const [filteredResults, setFilteredResults] = useState<Result[]>([]);

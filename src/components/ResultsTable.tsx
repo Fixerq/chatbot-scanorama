@@ -46,6 +46,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
     if (!result.status) return 'Analyzing...';
     if (result.status.toLowerCase().includes('error')) return result.status;
     if (result.status === 'Processing...' || result.status.includes('analyzing')) return 'Processing...';
+    if (result.status === 'Found, analyzing...') return 'Analyzing...';
     
     const chatSolutions = result.details?.chatSolutions || [];
     if (chatSolutions.length === 0) return 'No chatbot detected';
@@ -93,7 +94,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
           return (
             <TableRow key={`${result.url}-${index}`}>
               <ResultUrlCell url={result.url} />
-              <TableCell>{result.details?.title || 'N/A'}</TableCell>
+              <TableCell>{result.details?.title || 'Loading...'}</TableCell>
               <ResultStatusCell 
                 status={result.status}
                 hasChatbot={hasChatbot}

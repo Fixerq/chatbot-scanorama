@@ -60,44 +60,37 @@ export const useSearchExecution = (
       
       console.log(`Received ${searchResults.length} search results, hasMore: ${hasMore}`);
       
-      // Mark all results as "Processing..." initially
-      const placeholderResults = searchResults.map(result => ({
+      // IMMEDIATELY display raw Google Places results with minimal processing
+      const initialResults = searchResults.map(result => ({
         ...result,
-        status: 'Processing...'
+        status: 'Found, analyzing...',
+        details: {
+          ...result.details,
+          title: result.details?.title || 'Loading business info...',
+          lastChecked: new Date().toISOString()
+        }
       }));
-
-      // Immediately update results with placeholders first
-      updateResults(placeholderResults, hasMore);
       
-      // Make a direct call to update results immediately - critical fix here!
-      // We need to pass the actual search results to the display immediately
+      // Update the UI with these results immediately
+      updateResults(initialResults, hasMore, false);
+      
+      // Set searching to false AFTER displaying initial results
+      setIsSearching(false);
+      
+      // Now start the analysis process in the background
       try {
-        // Display initial results right away before analysis
-        const initialResults = searchResults.map(result => ({
-          ...result,
-          status: 'Loaded, analyzing...',
-          details: {
-            ...result.details,
-            lastChecked: new Date().toISOString()
-          }
-        }));
-        
-        // Send these to display right away - this is the key fix
-        updateResults(initialResults, hasMore, false);
-        
-        // Then proceed with batch analysis
+        // Run chatbot analysis after initial results are displayed
         const analyzedResults = await analyzeChatbots(initialResults);
+        
         if (analyzedResults && analyzedResults.length > 0) {
-          // Update with analyzed results
-          updateResults(analyzedResults, hasMore, false);
+          // Update with analyzed results, but don't replace all results
+          updateResults(analyzedResults, hasMore, true);
         }
       } catch (error) {
         console.error('Error during analysis:', error);
-        // Still show the search results even if analysis fails
-        updateResults(placeholderResults, hasMore, false);
+        // Analysis failed, but we already showed the initial results, so don't clear them
+        toast.error('Analysis encountered an error, but search results are displayed');
       }
-      
-      setIsSearching(false);
     } catch (error) {
       console.error('Search execution error:', error);
       toast.error('An error occurred during search execution');

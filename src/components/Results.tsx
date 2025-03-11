@@ -79,32 +79,27 @@ const Results = ({
   console.log("hasMore status:", hasMore);
   console.log("Displayed results:", displayedResults.length);
 
-  // Check if we need to show full analyzing state
-  const showFullAnalyzingState = isAnalyzing && (!results || results.length === 0);
-  
-  // Check if we need to show the empty results state
-  // Only show empty results when we're not analyzing AND we have no valid results
+  // Only show empty state when we have zero results AND we're not processing
   const showEmptyResults = !isAnalyzing && (!validResults || validResults.length === 0);
   
-  if (showFullAnalyzingState) {
-    console.log("Showing full analyzing state");
-    return <ResultsAnalyzingState isPartial={false} />;
-  }
-  
+  // Return empty results component if needed
   if (showEmptyResults) {
     console.log("Showing empty results state");
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
-  // Rather than showing an analyzing indicator for all results or nothing,
-  // we'll show results as they come in with the analyzing state above them
   return (
     <div className="mt-12 space-y-6">
-      {/* Always show analyzing state when still processing */}
-      {isAnalyzing && displayedResults.length > 0 && (
+      {/* Show processing indicator when analyzing but we have results */}
+      {isAnalyzing && validResults.length > 0 && (
         <div className="mb-4">
           <ResultsAnalyzingState isPartial={true} />
         </div>
+      )}
+      
+      {/* Show full analyzing state if we're processing but don't have results yet */}
+      {isAnalyzing && validResults.length === 0 && (
+        <ResultsAnalyzingState isPartial={false} />
       )}
       
       {/* Show results table if we have any results */}

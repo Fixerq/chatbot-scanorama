@@ -36,7 +36,10 @@ const Index = () => {
         results={results}
         onExport={() => {}}
         onNewSearch={handleNewSearch}
-        onResultUpdate={result => console.log('Result update:', result)}
+        onResultUpdate={result => {
+          console.log('Result update received:', result.url);
+          handlePartialResults([result]);
+        }}
         hasMore={hasMore}
         onLoadMore={handleLoadMore}
         isLoadingMore={isLoadingMore}

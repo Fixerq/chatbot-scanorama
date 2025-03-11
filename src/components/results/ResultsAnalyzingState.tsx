@@ -18,7 +18,9 @@ const ResultsAnalyzingState = ({ isPartial = false }: ResultsAnalyzingStateProps
         )}
       </div>
       <p className="text-cyan-100 mt-2 text-sm">
-        {isPartial ? 'Analyzing more websites...' : 'Searching and analyzing websites...'}
+        {isPartial ? 
+          'Analyzing websites for chatbots (showing search results now)...' : 
+          'Loading search results...'}
       </p>
     </div>
   );
