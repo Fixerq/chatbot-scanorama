@@ -1,11 +1,11 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.1.0';
-import { corsHeaders } from './config';
-import { normalizeCountryCode } from './utils';
-import { fetchWithVariations } from './searchService';
-import { processResults } from './resultProcessor';
-import { PlacesSearchOptions } from './types';
-import { regionBounds } from './config';
+import { corsHeaders } from './config.ts';
+import { normalizeCountryCode } from './utils.ts';
+import { fetchWithVariations } from './searchService.ts';
+import { processResults } from './resultProcessor.ts';
+import { PlacesSearchOptions } from './types.ts';
+import { regionBounds } from './config.ts';
 
 // API key from environment variable
 const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');

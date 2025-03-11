@@ -1,4 +1,5 @@
-import { CountryCodeMap, CountryBounds, CountryDomains, PlaceFields } from './types';
+
+import { CountryCodeMap, CountryBounds, CountryDomains, PlaceFields } from './types.ts';
 
 // CORS headers for all responses
 export const corsHeaders = {

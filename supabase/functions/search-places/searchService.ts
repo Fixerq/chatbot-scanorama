@@ -1,7 +1,7 @@
 
-import { PLACE_FIELDS } from './config';
-import { getMajorCities } from './utils';
-import { PlacesSearchOptions, SearchResponse } from './types';
+import { PLACE_FIELDS } from './config.ts';
+import { getMajorCities } from './utils.ts';
+import { PlacesSearchOptions, SearchResponse } from './types.ts';
 
 // Function to fetch multiple pages of results
 export async function fetchMoreResults(

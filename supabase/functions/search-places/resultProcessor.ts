@@ -1,5 +1,5 @@
 
-import { countryDomains } from './config';
+import { countryDomains } from './config.ts';
 
 export function processResults(mappedResults: any[], countryCode: string) {
   // Filter out directories, gov sites, edu sites, etc.

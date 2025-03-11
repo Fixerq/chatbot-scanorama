@@ -1,4 +1,5 @@
-import { countryCodeMap } from './config';
+
+import { countryCodeMap } from './config.ts';
 
 // Helper functions
 export function normalizeCountryCode(country: string): string {
