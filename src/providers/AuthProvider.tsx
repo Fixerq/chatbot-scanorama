@@ -15,9 +15,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     console.log("AuthProvider initialized");
     
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const subscription = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth event in provider:", event);
       
       if (event === 'TOKEN_REFRESHED') {
@@ -26,7 +24,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out, redirecting to login');
-        // Use replace instead of navigate to avoid adding to history stack
         navigate('/login', { replace: true });
         toast.info('You have been signed out');
       }
@@ -46,9 +43,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     });
 
     return () => {
-      subscription.unsubscribe();
+      subscription.data.subscription.unsubscribe();
       if (authErrorSubscription) {
-        authErrorSubscription.unsubscribe();
+        authErrorSubscription.data.subscription.unsubscribe();
       }
     };
   }, [navigate]);

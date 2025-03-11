@@ -1,6 +1,7 @@
+
 import React from 'react';
-import { NavigationLogo } from './navigation/NavigationLogo';
-import { NavigationActions } from './navigation/NavigationActions';
+import NavigationLogo from './navigation/NavigationLogo';
+import NavigationActions from './navigation/NavigationActions';
 import { useNavigation } from './navigation/useNavigation';
 
 const NavigationBar = () => {

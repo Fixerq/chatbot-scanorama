@@ -3,8 +3,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useSubscriptionManagement } from './useSubscriptionManagement';
-import SupportDialog from './SupportDialog';
-import RecentSearchDialog from './RecentSearchDialog';
+import { SupportDialog } from './SupportDialog';
+import { RecentSearchDialog } from './RecentSearchDialog';
 
 const NavigationActions = () => {
   const { handleSubscriptionAction, isSubscriptionLoading, currentPlan } = useSubscriptionManagement();
@@ -14,7 +14,6 @@ const NavigationActions = () => {
       <RecentSearchDialog />
       <SupportDialog />
       
-      {/* Use Link component instead of anchor tag for client-side routing */}
       <Link to="/dashboard" className="text-sm text-slate-200 hover:text-cyan-400 transition-colors">
         Dashboard
       </Link>
