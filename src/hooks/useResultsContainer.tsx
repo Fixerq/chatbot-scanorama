@@ -1,16 +1,13 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { Result } from '@/components/ResultsTable';
 
 export const useResultsContainer = (results: Result[] = []) => {
-  // Accept all results regardless of status - no more filtering out results with errors
   const validResults = useMemo(() => {
     console.log('Computing validResults from', results?.length || 0, 'results');
-    // First check if we have results to process
     if (!results || results.length === 0) {
       return [];
     }
-    
-    // Keep all results, even those with errors
     return results;
   }, [results]);
   
@@ -18,7 +15,6 @@ export const useResultsContainer = (results: Result[] = []) => {
   const [filterValue, setFilterValue] = useState('all');
   const [sortValue, setSortValue] = useState('name');
 
-  // Update filtered results when the input results change or filter changes
   useEffect(() => {
     console.log('Processing results in useResultsContainer:', validResults.length);
     let filtered = [...validResults];
@@ -29,7 +25,6 @@ export const useResultsContainer = (results: Result[] = []) => {
       filtered = filtered.filter(r => !r.details?.chatSolutions?.length);
     }
     
-    // Apply sorting
     if (sortValue === 'name') {
       filtered.sort((a, b) => (a.details?.title || '').localeCompare(b.details?.title || ''));
     } else if (sortValue === 'url') {
@@ -52,11 +47,10 @@ export const useResultsContainer = (results: Result[] = []) => {
     setSortValue(value);
   };
 
-  // Calculate chatbot counts
   const chatbotCount = validResults.filter(r => r.details?.chatSolutions?.length > 0).length;
 
   return {
-    validResults: filteredResults, // Return the filtered and sorted results
+    validResults: filteredResults,
     filterValue,
     sortValue,
     chatbotCount,

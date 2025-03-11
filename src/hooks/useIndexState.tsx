@@ -14,50 +14,59 @@ export function useIndexState() {
     setResults([]);
     setNewSearchTrigger(prev => !prev);
     setSearchPerformed(false);
-    console.log('New search triggered');
+    console.log('New search triggered, clearing results');
   }, []);
 
   const handlePartialResults = useCallback((partialResults: Result[]) => {
-    if (partialResults.length > 0) {
-      console.log(`Received ${partialResults.length} partial results`);
-      setSearchPerformed(true);
-      
-      setResults(prevResults => {
-        const updatedResults = [...prevResults];
-        const existingUrls = new Set(updatedResults.map(r => r.url));
-        
-        partialResults.forEach(newResult => {
-          const existingIndex = updatedResults.findIndex(r => r.url === newResult.url);
-          if (existingIndex >= 0) {
-            updatedResults[existingIndex] = newResult;
-          } else {
-            updatedResults.push(newResult);
-          }
-        });
-        
-        console.log(`After merging, we have ${updatedResults.length} total results`);
-        return updatedResults;
-      });
-    } else {
-      if (!searchPerformed) {
-        setSearchPerformed(true);
-        setResults([]);
-      }
+    if (!partialResults || partialResults.length === 0) {
+      console.log('Received empty partial results');
+      return;
     }
-  }, [searchPerformed]);
 
-  const handleSetResults = useCallback((newResults: Result[]) => {
-    console.log('Setting new results in Index:', newResults.length);
-    if (newResults.length > 0) {
+    console.log(`Received ${partialResults.length} partial results`);
+    setSearchPerformed(true);
+    
+    setResults(prevResults => {
+      const updatedResults = [...prevResults];
+      const existingUrls = new Set(updatedResults.map(r => r.url));
+      
+      let updated = false;
+      partialResults.forEach(newResult => {
+        if (!newResult.url) {
+          console.warn('Skipping result without URL:', newResult);
+          return;
+        }
+
+        const existingIndex = updatedResults.findIndex(r => r.url === newResult.url);
+        if (existingIndex >= 0) {
+          updatedResults[existingIndex] = newResult;
+          updated = true;
+        } else {
+          updatedResults.push(newResult);
+          updated = true;
+        }
+      });
+      
+      console.log(`After merging, we have ${updatedResults.length} total results${updated ? ' (updated)' : ''}`);
+      return updated ? updatedResults : prevResults;
+    });
+  }, []);
+
+  const handleSetResults = useCallback((newResults: Result[], hasMoreResults: boolean) => {
+    console.log('Setting new results:', { count: newResults?.length, hasMore: hasMoreResults });
+    
+    if (newResults && newResults.length > 0) {
       setResults(newResults);
+      setHasMore(hasMoreResults);
       setSearchPerformed(true);
+      console.log('Results updated successfully');
     } else {
-      if (!searchPerformed) {
-        setResults([]);
-        setSearchPerformed(true);
-      }
+      console.log('No results to set, clearing state');
+      setResults([]);
+      setHasMore(false);
+      setSearchPerformed(true);
     }
-  }, [searchPerformed]);
+  }, []);
 
   const handleSetMoreInfo = useCallback((hasMoreResults: boolean) => {
     console.log('Setting hasMore status:', hasMoreResults);
