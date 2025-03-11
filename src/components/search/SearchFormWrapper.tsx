@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { Result } from '@/components/ResultsTable';
-import SearchHeader from './SearchHeader';
-import SearchFormWrapper from './SearchFormWrapper';
+import SearchFormContainer from '../SearchFormContainer';
 
-interface SearchSectionProps {
+interface SearchFormWrapperProps {
   onResults: (results: Result[]) => void;
   onPartialResults: (partialResults: Result[]) => void;
   onHasMoreChange: (hasMore: boolean) => void;
@@ -13,18 +12,17 @@ interface SearchSectionProps {
   triggerNewSearch: boolean;
 }
 
-const SearchSection = ({
+const SearchFormWrapper = ({
   onResults,
   onPartialResults,
   onHasMoreChange,
   isProcessing,
   setIsProcessing,
   triggerNewSearch
-}: SearchSectionProps) => {
+}: SearchFormWrapperProps) => {
   return (
-    <>
-      <SearchHeader />
-      <SearchFormWrapper
+    <div id="search-form-container">
+      <SearchFormContainer 
         onResults={onResults}
         onPartialResults={onPartialResults}
         onHasMoreChange={onHasMoreChange}
@@ -32,8 +30,8 @@ const SearchSection = ({
         setIsProcessing={setIsProcessing}
         triggerNewSearch={triggerNewSearch}
       />
-    </>
+    </div>
   );
 };
 
-export default SearchSection;
+export default SearchFormWrapper;
