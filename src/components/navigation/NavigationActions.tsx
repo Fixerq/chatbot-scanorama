@@ -1,98 +1,35 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Loader2, MessageCircle, Settings } from 'lucide-react';
-import { SubscriptionStatus } from '../SubscriptionStatus';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { SupportDialog } from './SupportDialog';
+import { useSubscriptionManagement } from './useSubscriptionManagement';
+import SupportDialog from './SupportDialog';
+import RecentSearchDialog from './RecentSearchDialog';
 
-interface NavigationActionsProps {
-  onSubscriptionClick: () => void;
-  onLogout: () => void;
-  isSubscriptionLoading: boolean;
-}
-
-export const NavigationActions = ({
-  onSubscriptionClick,
-  onLogout,
-  isSubscriptionLoading,
-}: NavigationActionsProps) => {
-  const navigate = useNavigate();
-  const supabase = useSupabaseClient();
-  const [isAdmin, setIsAdmin] = React.useState(false);
-  const [isSupportOpen, setIsSupportOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkAdminStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
-
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('user_id')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error checking admin status:', error);
-        return;
-      }
-      
-      setIsAdmin(!!data);
-    };
-
-    checkAdminStatus();
-  }, [supabase]);
+const NavigationActions = () => {
+  const { handleSubscriptionAction, isSubscriptionLoading, currentPlan } = useSubscriptionManagement();
 
   return (
-    <div className="flex items-center gap-4">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setIsSupportOpen(true)}
-        className="h-9 w-9"
+    <div className="flex items-center gap-3">
+      <RecentSearchDialog />
+      <SupportDialog />
+      
+      {/* Use Link component instead of anchor tag for client-side routing */}
+      <Link to="/dashboard" className="text-sm text-slate-200 hover:text-cyan-400 transition-colors">
+        Dashboard
+      </Link>
+      
+      <Button 
+        onClick={handleSubscriptionAction}
+        disabled={isSubscriptionLoading}
+        variant="default"
+        size="sm"
+        className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-none"
       >
-        <MessageCircle className="h-4 w-4" />
+        {isSubscriptionLoading ? 'Loading...' : currentPlan === 'pro' ? 'Manage Subscription' : 'Upgrade Plan'}
       </Button>
-
-      <SubscriptionStatus />
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {isAdmin && (
-            <DropdownMenuItem onClick={() => navigate('/admin')}>
-              Admin Panel
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={onSubscriptionClick}>
-            {isSubscriptionLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Manage Subscription'
-            )}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onLogout}>
-            Logout
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <SupportDialog 
-        open={isSupportOpen}
-        onOpenChange={setIsSupportOpen}
-      />
     </div>
   );
 };
+
+export default NavigationActions;

@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
 import { checkUserSession } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const session = useSession();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [hasSession, setHasSession] = useState(false);
 
@@ -34,14 +35,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       } else {
         console.log("No session found, redirecting to login");
         toast.error('Please log in to access this page');
-        navigate('/login');
+        // Use replace to avoid building up history stack
+        navigate('/login', { replace: true, state: { from: location.pathname } });
       }
       
       setIsChecking(false);
     };
 
     checkSession();
-  }, [session, navigate]);
+  }, [session, navigate, location]);
 
   if (isChecking) {
     // You could return a loading spinner here

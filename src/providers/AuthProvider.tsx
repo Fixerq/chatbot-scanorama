@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -10,6 +10,7 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     console.log("AuthProvider initialized");
@@ -25,7 +26,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out, redirecting to login');
-        navigate('/login');
+        // Use replace instead of navigate to avoid adding to history stack
+        navigate('/login', { replace: true });
         toast.info('You have been signed out');
       }
 
@@ -39,12 +41,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (event === 'SIGNED_OUT' && !session) {
         console.log('Session expired or refresh token invalid');
         toast.error('Your session has expired. Please sign in again.');
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     });
 
     return () => {
       subscription.unsubscribe();
+      if (authErrorSubscription) {
+        authErrorSubscription.unsubscribe();
+      }
     };
   }, [navigate]);
 
