@@ -16,6 +16,7 @@ interface ResultsProps {
   onLoadMore?: (page: number) => void;
   isLoadingMore?: boolean;
   isAnalyzing?: boolean;
+  analysisStage?: string;
   onResultUpdate?: (updatedResult: Result) => void;
 }
 
@@ -27,11 +28,13 @@ const Results = ({
   onLoadMore,
   isLoadingMore = false,
   isAnalyzing = false,
+  analysisStage = '',
   onResultUpdate
 }: ResultsProps) => {
   console.log("Results component received:", { 
     resultsCount: results?.length, 
     isAnalyzing,
+    analysisStage,
     hasResults: results && results.length > 0,
     hasMore
   });
@@ -78,6 +81,7 @@ const Results = ({
   console.log("Valid results count:", validResults?.length);
   console.log("hasMore status:", hasMore);
   console.log("Displayed results:", displayedResults.length);
+  console.log("Analysis stage:", analysisStage);
 
   // Only show empty state when we have zero results AND we're not processing
   const showEmptyResults = !isAnalyzing && (!validResults || validResults.length === 0);
@@ -93,13 +97,13 @@ const Results = ({
       {/* Show processing indicator when analyzing but we have results */}
       {isAnalyzing && validResults.length > 0 && (
         <div className="mb-4">
-          <ResultsAnalyzingState isPartial={true} />
+          <ResultsAnalyzingState isPartial={true} analysisStage={analysisStage} />
         </div>
       )}
       
       {/* Show full analyzing state if we're processing but don't have results yet */}
       {isAnalyzing && validResults.length === 0 && (
-        <ResultsAnalyzingState isPartial={false} />
+        <ResultsAnalyzingState isPartial={false} analysisStage={analysisStage} />
       )}
       
       {/* Show results table if we have any results */}

@@ -10,7 +10,7 @@ export const useSearchExecution = (
   updateResults: (results: Result[], hasMore: boolean, isPartialUpdate?: boolean) => void
 ) => {
   const [isSearching, setIsSearching] = useState(false);
-  const { analyzeChatbots } = useChatbotAnalysis();
+  const { analyzeChatbots, analysisStage } = useChatbotAnalysis();
 
   const executeSearchOperation = useCallback(async (
     query: string,
@@ -52,11 +52,11 @@ export const useSearchExecution = (
         return;
       }
       
-      // Map initial results with basic info
+      // Map initial results with basic info and analyzing status
       const initialResults = searchData.newResults.map(result => ({
         id: result.id,
         url: result.url,
-        status: 'Found, analyzing...',
+        status: 'Preparing for analysis...',
         details: {
           title: result.details?.title || 'Loading business info...',
           description: result.details?.description || '',
@@ -68,19 +68,41 @@ export const useSearchExecution = (
       console.log(`Updating UI with ${initialResults.length} initial results`);
       updateResults(initialResults, searchData.hasMore, false);
       
-      setIsSearching(false);
-      
-      // Run analysis in background
+      // Start analysis immediately and show status
       try {
+        // First partial update to show analysis is starting
+        const startingAnalysisResults = initialResults.map(result => ({
+          ...result,
+          status: 'Starting chatbot detection...'
+        }));
+        updateResults(startingAnalysisResults, searchData.hasMore, true);
+        
+        // Immediately run analysis (no waiting)
         const analyzedResults = await analyzeChatbots(initialResults);
         
         if (analyzedResults && analyzedResults.length > 0) {
           console.log(`Updating with ${analyzedResults.length} analyzed results`);
+          // This is a complete replacement of results
           updateResults(analyzedResults, searchData.hasMore, true);
+          
+          // Count chatbots detected
+          const chatbotCount = analyzedResults.filter(r => 
+            r.details?.chatSolutions && r.details.chatSolutions.length > 0
+          ).length;
+          
+          if (chatbotCount > 0) {
+            toast.success(`Found ${chatbotCount} sites with chatbots`, {
+              description: `Successfully analyzed ${analyzedResults.length} websites`
+            });
+          } else {
+            toast.info(`No chatbots found in the ${analyzedResults.length} analyzed websites`);
+          }
         }
       } catch (error) {
         console.error('Analysis error:', error);
         toast.error('Analysis encountered an error, but search results are displayed');
+      } finally {
+        setIsSearching(false);
       }
     } catch (error) {
       console.error('Search execution error:', error);
@@ -93,6 +115,7 @@ export const useSearchExecution = (
   return {
     isSearching,
     setIsSearching,
-    executeSearchOperation
+    executeSearchOperation,
+    analysisStage
   };
 };

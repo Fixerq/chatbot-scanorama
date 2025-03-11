@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ChatbotDetectionResponse, DetectionStageResult } from '@/types/chatbot';
 import { toast } from 'sonner';
@@ -21,7 +20,6 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       };
     }
     
-    // Check if this is a known false positive before even making the request
     if (isKnownFalsePositive(url)) {
       console.log('Known false positive site detected:', url);
       return {
@@ -31,15 +29,13 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       };
     }
     
-    // Format the URL properly if needed
     const formattedUrl = formatUrl(url);
     console.log('Formatted URL for analysis:', formattedUrl);
     
-    // STAGE 1: Initial lightweight scan
     console.log('STAGE 1: Running initial lightweight scan');
     const initialResult = await runDetectionStage(formattedUrl, {
       stageName: 'initial',
-      confidenceThreshold: 0.3,
+      confidenceThreshold: 0.1,
       useSmartDetection: true,
       useEnhancedDetection: false,
       useAdvancedDetection: false,
@@ -51,11 +47,10 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       return initialResult.response;
     }
     
-    // STAGE 2: Provider-specific detection
     console.log('STAGE 2: Running provider-specific detection');
     const providerResult = await runDetectionStage(formattedUrl, {
       stageName: 'provider',
-      confidenceThreshold: 0.5,
+      confidenceThreshold: 0.3,
       useSmartDetection: true,
       useEnhancedDetection: true,
       useAdvancedDetection: true,
@@ -68,11 +63,10 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       return providerResult.response;
     }
     
-    // STAGE 3: Verification and false positive prevention
     console.log('STAGE 3: Running verification and false positive prevention');
     const verificationResult = await runDetectionStage(formattedUrl, {
       stageName: 'verification',
-      confidenceThreshold: 0.7,
+      confidenceThreshold: 0.5,
       useSmartDetection: true,
       useEnhancedDetection: true,
       useAdvancedDetection: true,
@@ -87,7 +81,6 @@ export const detectChatbot = async (url: string): Promise<ChatbotDetectionRespon
       return verificationResult.response;
     }
     
-    // STAGE 4: Functional validation (interactive elements)
     console.log('STAGE 4: Running functional validation');
     const functionalResult = await runDetectionStage(formattedUrl, {
       stageName: 'functional',
@@ -186,14 +179,12 @@ async function runDetectionStage(
 
     console.log(`${stageName} stage result:`, data);
     
-    // Process the response based on the stage we're in
     if (Array.isArray(data) && data.length > 0) {
       const result = data[0];
       const confidence = result.confidence || 0;
       const hasAdvancedDetection = result.advancedDetection?.hasChatbot;
       const hasEnhancedDetection = result.enhancedDetection?.hasChatbot;
       
-      // Determine providers from the results
       let providers: string[] = [];
       
       if (result.chatSolutions && result.chatSolutions.length > 0) {
@@ -204,7 +195,6 @@ async function runDetectionStage(
         providers = [result.enhancedDetection.provider];
       }
       
-      // Filter generic providers if we have specific ones
       if (providers.length > 1) {
         const genericProviders = ['Website Chatbot', 'ChatBot', 'Custom Chat'];
         const specificProviders = providers.filter(p => !genericProviders.includes(p));
@@ -214,8 +204,7 @@ async function runDetectionStage(
         }
       }
       
-      // Determine whether to proceed to the next stage
-      const meetsCriteria = confidence >= confidenceThreshold || 
+      const meetsCriteria = confidence >= options.confidenceThreshold || 
                            (stageName !== 'functional' && (hasAdvancedDetection || hasEnhancedDetection));
       
       if (!meetsCriteria) {
@@ -232,10 +221,9 @@ async function runDetectionStage(
         };
       }
       
-      // If we're in the final stage or we've detected a chatbot with high confidence
-      if (stageName === 'functional' || confidence >= 0.8) {
+      if (stageName === 'functional' || confidence >= 0.6) {
         return {
-          proceed: false, // Don't proceed further, we're done
+          proceed: false,
           response: {
             status: 'Chatbot detected',
             chatSolutions: providers,
@@ -249,7 +237,6 @@ async function runDetectionStage(
         };
       }
       
-      // Proceed to the next stage with the current findings
       return {
         proceed: true,
         response: {
@@ -263,7 +250,6 @@ async function runDetectionStage(
       };
     }
     
-    // Handle single object response (older format)
     return {
       proceed: false,
       response: {

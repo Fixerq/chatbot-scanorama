@@ -12,6 +12,7 @@ interface ResultsSectionProps {
   onLoadMore: (page: number) => void;
   isLoadingMore: boolean;
   isProcessing: boolean;
+  analysisStage?: string;
   searchPerformed: boolean;
 }
 
@@ -24,6 +25,7 @@ const ResultsSection = ({
   onLoadMore,
   isLoadingMore,
   isProcessing,
+  analysisStage,
   searchPerformed
 }: ResultsSectionProps) => {
   if (!searchPerformed) return null;
@@ -38,6 +40,7 @@ const ResultsSection = ({
       onLoadMore={onLoadMore}
       isLoadingMore={isLoadingMore}
       isAnalyzing={isProcessing}
+      analysisStage={analysisStage}
     />
   );
 };

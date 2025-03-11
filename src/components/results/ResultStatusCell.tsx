@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -37,14 +38,22 @@ const ResultStatusCell = ({
 }: ResultStatusCellProps) => {
   const getChatbotStatusColor = (status: string | undefined, hasChatbot: boolean, confidence?: number) => {
     if (!status) return 'secondary';
+    
+    // For analysis in progress states
+    if (status.toLowerCase().includes('analyzing') || 
+        status.toLowerCase().includes('starting') || 
+        status.toLowerCase().includes('preparing')) {
+      return 'default';
+    }
+    
     if (status.toLowerCase().includes('error')) return 'destructive';
     if (status === 'Processing...') return 'secondary';
     if (hasChatbot) {
       // If we have confidence data, use it to determine the color
       if (confidence !== undefined) {
-        if (confidence >= 0.9) return 'success';
-        if (confidence >= 0.75) return 'success';
-        if (confidence >= 0.5) return 'secondary'; // Changed from 'warning' to 'secondary'
+        if (confidence >= 0.8) return 'success';
+        if (confidence >= 0.5) return 'success';
+        if (confidence >= 0.3) return 'secondary'; 
         return 'secondary';
       }
       return 'success';
@@ -54,6 +63,11 @@ const ResultStatusCell = ({
 
   // Format the display text to be more user-friendly
   const getDisplayText = () => {
+    // Handle analysis in progress states
+    if (status?.toLowerCase().includes('preparing')) return 'Preparing analysis...';
+    if (status?.toLowerCase().includes('starting')) return 'Starting analysis...';
+    if (status?.toLowerCase().includes('analyzing')) return 'Analyzing...';
+    
     if (technologies === 'Custom Chat') {
       return 'Website Chatbot';
     }
@@ -62,6 +76,11 @@ const ResultStatusCell = ({
     }
     return technologies || 'Analyzing...';
   };
+
+  // Add spinning animation for analysis in progress
+  const isAnalyzing = status?.toLowerCase().includes('analyzing') || 
+                    status?.toLowerCase().includes('starting') || 
+                    status?.toLowerCase().includes('preparing');
 
   // Get confidence level text
   const getConfidenceText = (confidence?: number, advancedConfidence?: string) => {
@@ -75,16 +94,23 @@ const ResultStatusCell = ({
     
     // Otherwise, use the numeric confidence
     if (confidence === undefined) return '';
-    if (confidence >= 0.9) return 'Very high confidence';
-    if (confidence >= 0.75) return 'High confidence';
-    if (confidence >= 0.5) return 'Medium confidence';
-    if (confidence >= 0.25) return 'Low confidence';
+    if (confidence >= 0.8) return 'Very high confidence';
+    if (confidence >= 0.5) return 'High confidence';
+    if (confidence >= 0.3) return 'Medium confidence';
+    if (confidence >= 0.1) return 'Low confidence';
     return 'Very low confidence';
   };
 
   // Improved tooltip content with verification status
   const formatTooltipContent = () => {
     const content = [];
+    
+    // Add analysis status information for in-progress analysis
+    if (isAnalyzing) {
+      content.push('Analysis in progress...');
+      content.push('Scanning website for chatbot indicators');
+      return content.join('\n');
+    }
     
     if (lastChecked) {
       content.push(`Last checked: ${new Date(lastChecked).toLocaleString()}`);
@@ -175,7 +201,7 @@ const ResultStatusCell = ({
             >
               <Badge 
                 variant={getChatbotStatusColor(status, hasChatbot, confidence)}
-                className={`${status === 'Processing...' ? 'animate-pulse' : ''} px-3 py-1`}
+                className={`${isAnalyzing ? 'animate-pulse' : ''} px-3 py-1`}
               >
                 {getDisplayText()}
               </Badge>

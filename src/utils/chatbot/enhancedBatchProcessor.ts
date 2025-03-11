@@ -15,8 +15,8 @@ export const processResultsWithEnhancedDetection = async (results: Result[]): Pr
   console.log(`Analyzing ${results.length} results for chatbots with enhanced detection`);
   
   try {
-    // Process in smaller batches for better reliability
-    const batchSize = 3;
+    // Process in larger batches for better performance
+    const batchSize = 8; // Increased from 3 to 8
     let processedResults: Result[] = [];
     
     // Process in batches to prevent overloading
@@ -24,12 +24,30 @@ export const processResultsWithEnhancedDetection = async (results: Result[]): Pr
       const batch = results.slice(i, i + batchSize);
       console.log(`Processing batch ${i/batchSize + 1} of ${Math.ceil(results.length/batchSize)}`);
       
+      // Update status of results in this batch to indicate active analysis
+      const batchWithAnalysisStatus = batch.map(result => ({
+        ...result,
+        status: 'Analyzing chatbot features...'
+      }));
+      
+      // Add the batch with updated status to processed results immediately
+      processedResults = [...processedResults, ...batchWithAnalysisStatus];
+      
+      // Now process the batch for actual detection
       const batchResults = await processBatch(batch);
-      processedResults = [...processedResults, ...batchResults];
+      
+      // Update processed results with the analyzed batch
+      processedResults = processedResults.map(result => {
+        const analyzedResult = batchResults.find(r => r.url === result.url);
+        if (analyzedResult) {
+          return analyzedResult;
+        }
+        return result;
+      });
       
       // Short delay between batches to prevent rate limiting
       if (i + batchSize < results.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500)); // Reduced from 1000ms to 500ms
       }
     }
     

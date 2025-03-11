@@ -4,6 +4,7 @@ import DashboardContainer from '@/components/layout/DashboardContainer';
 import SearchSection from '@/components/search/SearchSection';
 import ResultsSection from '@/components/results/ResultsSection';
 import { useIndexState } from '@/hooks/useIndexState';
+import { useChatbotAnalysis } from '@/hooks/useChatbotAnalysis';
 
 const Index = () => {
   const {
@@ -20,6 +21,8 @@ const Index = () => {
     handleSetProcessing,
     handleLoadMore
   } = useIndexState();
+  
+  const { analysisStage } = useChatbotAnalysis();
 
   return (
     <DashboardContainer>
@@ -44,6 +47,7 @@ const Index = () => {
         onLoadMore={handleLoadMore}
         isLoadingMore={isLoadingMore}
         isProcessing={isProcessing}
+        analysisStage={analysisStage}
         searchPerformed={searchPerformed}
       />
     </DashboardContainer>

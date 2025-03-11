@@ -57,11 +57,11 @@ export const processBatch = async (batch: Result[]): Promise<Result[]> => {
         // Log detailed response for debugging
         console.log(`Analysis response for ${result.url}:`, response);
         
-        // Enhanced verification with much lower confidence threshold
+        // Enhanced verification with MUCH lower confidence threshold for more aggressive detection
         const hasChatbot = response.chatSolutions && 
                          response.chatSolutions.length > 0 && 
                          !response.status?.toLowerCase().includes('no chatbot') &&
-                         (response.confidence === undefined || response.confidence >= 0.15); // Lower threshold
+                         (response.confidence === undefined || response.confidence >= 0.1); // Lower threshold from 0.15 to 0.1
         
         // Only include chat solutions if they passed verification
         let validChatSolutions = hasChatbot ? response.chatSolutions : [];
