@@ -42,6 +42,7 @@ export const useSearchExecution = (
         console.error('Search failed or returned no data');
         setIsSearching(false);
         toast.error('Search failed. Please try again with different criteria.');
+        updateResults([], false); // Make sure to update with empty results
         return;
       }
       
@@ -88,6 +89,8 @@ export const useSearchExecution = (
             
             // Send partial updates as each batch completes
             updateResults(analyzedBatch, hasMore, true);
+          } else {
+            console.warn(`Batch ${batchIndex + 1} analysis returned no results`);
           }
         } catch (batchError) {
           console.error(`Error analyzing batch ${batchIndex + 1}:`, batchError);
@@ -107,6 +110,8 @@ export const useSearchExecution = (
     } catch (error) {
       console.error('Search execution error:', error);
       toast.error('An error occurred during search execution');
+      // Make sure to clear the loading state and show an empty result
+      updateResults([], false);
     } finally {
       setIsSearching(false);
     }

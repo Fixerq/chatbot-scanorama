@@ -51,13 +51,15 @@ const Results = ({
   
   // Update displayed results when page or filtered results change
   useEffect(() => {
-    if (validResults.length > 0) {
+    if (validResults?.length > 0) {
       // Slice the results array based on current page
       const startIndex = 0; // Always show from beginning
       const endIndex = Math.min(currentPage * RESULTS_PER_PAGE, validResults.length);
       setDisplayedResults(validResults.slice(startIndex, endIndex));
+      console.log(`Displaying ${endIndex - startIndex} results on page ${currentPage}`);
     } else {
       setDisplayedResults([]);
+      console.log('No valid results to display');
     }
   }, [validResults, currentPage, RESULTS_PER_PAGE]);
   
@@ -78,12 +80,18 @@ const Results = ({
   console.log("Displayed results:", displayedResults.length);
 
   // Check if we need to show full analyzing state
-  const showFullAnalyzingState = isAnalyzing && results.length === 0;
+  const showFullAnalyzingState = isAnalyzing && !results?.length;
   
   // Check if we need to show the empty results state
-  const showEmptyResults = !isAnalyzing && (!validResults || validResults.length === 0);
+  const showEmptyResults = !isAnalyzing && (!validResults?.length || validResults.length === 0);
+  
+  if (showFullAnalyzingState) {
+    console.log("Showing full analyzing state");
+    return <ResultsAnalyzingState isPartial={false} />;
+  }
   
   if (showEmptyResults) {
+    console.log("Showing empty results state");
     return <EmptyResults onNewSearch={onNewSearch} />;
   }
 
@@ -92,14 +100,14 @@ const Results = ({
   return (
     <div className="mt-12 space-y-6">
       {/* Always show analyzing state when still processing */}
-      {isAnalyzing && (
+      {isAnalyzing && results.length > 0 && (
         <div className="mb-4">
-          <ResultsAnalyzingState isPartial={results.length > 0} />
+          <ResultsAnalyzingState isPartial={true} />
         </div>
       )}
       
       {/* Show results table if we have any results */}
-      {results.length > 0 && (
+      {displayedResults.length > 0 && (
         <>
           <div className="flex items-center justify-between mb-8">
             <ResultsFilters

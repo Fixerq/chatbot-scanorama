@@ -47,10 +47,18 @@ const Index = () => {
           }
         });
         
+        console.log(`After merging, we have ${updatedResults.length} total results`);
         return updatedResults;
       });
+    } else {
+      // If we get an empty result array, make sure to handle that case
+      console.log('Received empty partial results array');
+      if (!searchPerformed) {
+        setSearchPerformed(true);
+        setResults([]);
+      }
     }
-  }, []);
+  }, [searchPerformed]);
 
   const handleResultUpdate = async (updatedResult: Result) => {
     console.log('Triggering result update for:', updatedResult);
@@ -191,8 +199,8 @@ const Index = () => {
           />
         </div>
         
-        {/* Show Results component as soon as we have partial results */}
-        {(searchPerformed || results.length > 0) && (
+        {/* Always render Results if search has been performed, even with empty results */}
+        {searchPerformed && (
           <Results 
             results={results}
             onExport={() => {}} 

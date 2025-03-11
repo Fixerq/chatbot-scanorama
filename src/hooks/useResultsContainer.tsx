@@ -35,6 +35,7 @@ export const useResultsContainer = (results: Result[] = []) => {
       filtered.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
     }
     
+    console.log(`After filtering and sorting: ${filtered.length} results`);
     setFilteredResults(filtered);
   }, [validResults, filterValue, sortValue]);
 

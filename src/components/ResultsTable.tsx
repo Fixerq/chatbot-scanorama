@@ -54,8 +54,9 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
     return chatSolutions[0];
   };
 
-  return (
-    <div className="rounded-md border">
+  if (!results || results.length === 0) {
+    console.log('ResultsTable: No results to display');
+    return (
       <Table>
         <TableHeader>
           <TableRow>
@@ -65,38 +66,49 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!results || results.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
-                No results to display
-              </TableCell>
-            </TableRow>
-          ) : (
-            results.map((result, index) => {
-              const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
-              const technologies = formatInstalledTechnologies(result);
-              
-              return (
-                <TableRow key={`${result.url}-${index}`}>
-                  <ResultUrlCell url={result.url} />
-                  <TableCell>{result.details?.title || 'N/A'}</TableCell>
-                  <ResultStatusCell 
-                    status={result.status}
-                    hasChatbot={hasChatbot}
-                    technologies={technologies}
-                    lastChecked={result.details?.lastChecked}
-                    chatSolutions={result.details?.chatSolutions}
-                    confidence={result.details?.confidence}
-                    verificationStatus={result.details?.verificationStatus}
-                    onResultUpdate={onResultUpdate ? () => onResultUpdate(result) : undefined}
-                  />
-                </TableRow>
-              );
-            })
-          )}
+          <TableRow>
+            <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+              No results to display
+            </TableCell>
+          </TableRow>
         </TableBody>
       </Table>
-    </div>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-[300px]">Website</TableHead>
+          <TableHead>Business Name</TableHead>
+          <TableHead>Chatbot Provider</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {results.map((result, index) => {
+          const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
+          const technologies = formatInstalledTechnologies(result);
+          
+          return (
+            <TableRow key={`${result.url}-${index}`}>
+              <ResultUrlCell url={result.url} />
+              <TableCell>{result.details?.title || 'N/A'}</TableCell>
+              <ResultStatusCell 
+                status={result.status}
+                hasChatbot={hasChatbot}
+                technologies={technologies}
+                lastChecked={result.details?.lastChecked}
+                chatSolutions={result.details?.chatSolutions}
+                confidence={result.details?.confidence}
+                verificationStatus={result.details?.verificationStatus}
+                onResultUpdate={onResultUpdate ? () => onResultUpdate(result) : undefined}
+              />
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 };
 
