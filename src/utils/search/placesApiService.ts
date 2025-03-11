@@ -101,7 +101,7 @@ export const performPlacesSearch = async (options: PlacesSearchOptions): Promise
       console.log('Raw response from Edge Function:', JSON.stringify(data, null, 2));
       console.log('Results count:', data?.results?.length || 0);
       
-      // FIX: Check if there are results but they don't appear to be properly formatted
+      // Check if there are results but they don't appear to be properly formatted
       if (data && Array.isArray(data.results) && data.results.length > 0) {
         console.log('Successfully processed results:', data.results.length);
       } else if (data && typeof data === 'object' && Object.keys(data).length > 0) {

@@ -41,12 +41,14 @@ export const useSearchExecution = (
       if (!searchData) {
         console.error('Search failed or returned no data');
         setIsSearching(false);
+        toast.error('Search failed. Please try again with different criteria.');
         return;
       }
       
       if (!searchData.newResults || searchData.newResults.length === 0) {
         console.log('Search returned no results');
         setIsSearching(false);
+        toast.info('No results found for your search criteria.');
         // Update with empty results to show "no results" state
         updateResults([], false);
         return;
@@ -63,7 +65,7 @@ export const useSearchExecution = (
         status: 'Processing...'
       }));
 
-      // Update results with placeholders first
+      // Immediately update results with placeholders first
       updateResults(placeholderResults, hasMore);
       
       // Batch analyze in smaller chunks to show progress faster
