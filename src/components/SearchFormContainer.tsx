@@ -7,7 +7,7 @@ import LoadMoreButton from './LoadMoreButton';
 import { useSearchOperations } from '@/hooks/useSearchOperations';
 
 interface SearchFormContainerProps {
-  onResults: (results: Result[]) => void;
+  onResults: (results: Result[], hasMore: boolean) => void;
   onPartialResults?: (partialResults: Result[]) => void;
   onHasMoreChange?: (hasMore: boolean) => void;
   isProcessing: boolean;
@@ -35,9 +35,9 @@ const SearchFormContainer = ({
     handleSearch,
     handleLoadMore,
     loadingPages
-  } = useSearchOperations((results) => {
+  } = useSearchOperations((results, hasMore) => {
     // Pass results to both callbacks
-    onResults(results);
+    onResults(results, hasMore);
     if (onPartialResults) {
       onPartialResults(results);
     }
@@ -46,7 +46,7 @@ const SearchFormContainer = ({
   const onSubmit = () => {
     setIsProcessing(true);
     // Clear any previous results first to avoid showing old results during a new search
-    onResults([]);
+    onResults([], false);
     console.log('Search form submitted with:', searchState);
     
     // Ensure region is properly formatted

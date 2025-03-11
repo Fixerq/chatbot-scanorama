@@ -6,7 +6,7 @@ import { useSearchExecution } from './useSearchExecution';
 import { usePagination } from './usePagination';
 import { useSearchParams } from './useSearchParams';
 
-export const useSearchOperations = (onResults: (results: Result[]) => void) => {
+export const useSearchOperations = (onResults: (results: Result[], hasMore: boolean) => void) => {
   const [results, setResults] = useState<{ currentResults: Result[], hasMore: boolean }>({
     currentResults: [],
     hasMore: false
@@ -70,8 +70,8 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
             }
           });
           
-          // Call onResults with all results
-          onResults(allResults);
+          // Call onResults with all results and hasMore status
+          onResults(allResults, hasMoreResults || prev.hasMore);
           
           return {
             currentResults: allResults,
@@ -80,7 +80,7 @@ export const useSearchOperations = (onResults: (results: Result[]) => void) => {
         });
       } else {
         // For complete replacements, send everything
-        onResults(newResults);
+        onResults(newResults, hasMoreResults);
       }
     }
   };

@@ -5,7 +5,7 @@ import SearchHeader from './SearchHeader';
 import SearchFormWrapper from './SearchFormWrapper';
 
 interface SearchSectionProps {
-  onResults: (results: Result[]) => void;
+  onResults: (results: Result[], hasMore: boolean) => void;
   onPartialResults: (partialResults: Result[]) => void;
   onHasMoreChange: (hasMore: boolean) => void;
   isProcessing: boolean;

@@ -24,7 +24,7 @@ const Index = () => {
   return (
     <DashboardContainer>
       <SearchSection
-        onResults={handleSetResults}
+        onResults={(newResults, hasMoreResults) => handleSetResults(newResults, hasMoreResults)}
         onPartialResults={handlePartialResults}
         onHasMoreChange={handleSetMoreInfo}
         isProcessing={isProcessing}

@@ -4,7 +4,7 @@ import { Result } from '@/components/ResultsTable';
 import SearchFormContainer from '../SearchFormContainer';
 
 interface SearchFormWrapperProps {
-  onResults: (results: Result[]) => void;
+  onResults: (results: Result[], hasMore: boolean) => void;
   onPartialResults: (partialResults: Result[]) => void;
   onHasMoreChange: (hasMore: boolean) => void;
   isProcessing: boolean;
