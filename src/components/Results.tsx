@@ -80,10 +80,11 @@ const Results = ({
   console.log("Displayed results:", displayedResults.length);
 
   // Check if we need to show full analyzing state
-  const showFullAnalyzingState = isAnalyzing && !results?.length;
+  const showFullAnalyzingState = isAnalyzing && (!results || results.length === 0);
   
   // Check if we need to show the empty results state
-  const showEmptyResults = !isAnalyzing && (!validResults?.length || validResults.length === 0);
+  // Only show empty results when we're not analyzing AND we have no valid results
+  const showEmptyResults = !isAnalyzing && (!validResults || validResults.length === 0);
   
   if (showFullAnalyzingState) {
     console.log("Showing full analyzing state");
@@ -100,7 +101,7 @@ const Results = ({
   return (
     <div className="mt-12 space-y-6">
       {/* Always show analyzing state when still processing */}
-      {isAnalyzing && results.length > 0 && (
+      {isAnalyzing && displayedResults.length > 0 && (
         <div className="mb-4">
           <ResultsAnalyzingState isPartial={true} />
         </div>

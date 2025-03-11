@@ -69,50 +69,43 @@ export const useSearchExecution = (
       // Immediately update results with placeholders first
       updateResults(placeholderResults, hasMore);
       
-      // Batch analyze in smaller chunks to show progress faster
-      const BATCH_SIZE = 5; // Process 5 at a time for faster feedback
-      const totalBatches = Math.ceil(placeholderResults.length / BATCH_SIZE);
-      
-      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-        const start = batchIndex * BATCH_SIZE;
-        const end = Math.min(start + BATCH_SIZE, placeholderResults.length);
-        const batch = placeholderResults.slice(start, end);
-        
-        console.log(`Processing batch ${batchIndex + 1}/${totalBatches}, results ${start+1}-${end}`);
-        
-        try {
-          // Analyze this batch
-          const analyzedBatch = await analyzeChatbots(batch);
-          
-          if (analyzedBatch && analyzedBatch.length > 0) {
-            console.log(`Batch ${batchIndex + 1} analysis complete, updating partial results`);
-            
-            // Send partial updates as each batch completes
-            updateResults(analyzedBatch, hasMore, true);
-          } else {
-            console.warn(`Batch ${batchIndex + 1} analysis returned no results`);
+      // Make a direct call to update results immediately
+      try {
+        // Skip chatbot analysis for initial display - just show the search results
+        const initialResults = searchResults.map(result => ({
+          ...result,
+          status: 'Loaded, analyzing...',
+          details: {
+            ...result.details,
+            lastChecked: new Date().toISOString()
           }
-        } catch (batchError) {
-          console.error(`Error analyzing batch ${batchIndex + 1}:`, batchError);
-          
-          // Continue with next batch even if this one fails
-          const errorBatch = batch.map(result => ({
-            ...result,
-            status: 'Error analyzing URL'
-          }));
-          
-          // Update with error status for this batch
-          updateResults(errorBatch, hasMore, true);
+        }));
+        
+        // Send these to display right away
+        updateResults(initialResults, hasMore, true);
+        
+        // Then proceed with batch analysis
+        const analyzedResults = await analyzeChatbots(initialResults);
+        if (analyzedResults && analyzedResults.length > 0) {
+          // Update with analyzed results
+          updateResults(analyzedResults, hasMore, false);
         }
+      } catch (error) {
+        console.error('Error during analysis:', error);
+        // Still show the search results even if analysis fails
+        const errorResults = placeholderResults.map(result => ({
+          ...result,
+          status: 'Found, analysis pending'
+        }));
+        updateResults(errorResults, hasMore, false);
       }
       
-      console.log('All batches processed');
+      setIsSearching(false);
     } catch (error) {
       console.error('Search execution error:', error);
       toast.error('An error occurred during search execution');
       // Make sure to clear the loading state and show an empty result
       updateResults([], false);
-    } finally {
       setIsSearching(false);
     }
   }, [updateResults, analyzeChatbots]);

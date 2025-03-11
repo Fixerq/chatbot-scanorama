@@ -45,7 +45,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
   const formatInstalledTechnologies = (result: Result) => {
     if (!result.status) return 'Analyzing...';
     if (result.status.toLowerCase().includes('error')) return result.status;
-    if (result.status === 'Processing...') return 'Processing...';
+    if (result.status === 'Processing...' || result.status.includes('analyzing')) return 'Processing...';
     
     const chatSolutions = result.details?.chatSolutions || [];
     if (chatSolutions.length === 0) return 'No chatbot detected';

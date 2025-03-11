@@ -6,9 +6,18 @@ export const useResultsContainer = (results: Result[] = []) => {
   // Filter out results with error status
   const validResults = useMemo(() => {
     console.log('Computing validResults from', results?.length || 0, 'results');
-    return results?.filter(r => 
-      r && !r.status?.toLowerCase().includes('error analyzing url')
-    ) || [];
+    // First check if we have results to process
+    if (!results || results.length === 0) {
+      return [];
+    }
+    
+    // Filter out error results
+    return results.filter(r => {
+      // Make sure the result exists and has valid data
+      if (!r) return false;
+      // Check if the result has an error status
+      return !r.status?.toLowerCase().includes('error analyzing url');
+    });
   }, [results]);
   
   const [filteredResults, setFilteredResults] = useState<Result[]>([]);
