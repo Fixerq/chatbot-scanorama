@@ -1,3 +1,4 @@
+
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,12 +7,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthError } from '@supabase/supabase-js';
+import { toast } from "sonner";
 
 const Login = () => {
   const session = useSession();
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const checkAdminStatus = async (userId: string) => {
     try {
@@ -32,13 +34,23 @@ const Login = () => {
   };
 
   useEffect(() => {
+    console.log("Session state changed:", session ? "Logged in" : "Logged out");
+    
     const handleSession = async () => {
       if (session) {
-        const isAdmin = await checkAdminStatus(session.user.id);
-        if (isAdmin) {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
+        setIsLoggingIn(true);
+        try {
+          const isAdmin = await checkAdminStatus(session.user.id);
+          if (isAdmin) {
+            navigate('/admin');
+          } else {
+            navigate('/dashboard');
+          }
+        } catch (err) {
+          console.error("Navigation error:", err);
+          setError("Error during login redirect. Please try again.");
+        } finally {
+          setIsLoggingIn(false);
         }
       }
     };
@@ -46,12 +58,23 @@ const Login = () => {
     handleSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
+      
       if (event === 'SIGNED_IN' && session) {
-        const isAdmin = await checkAdminStatus(session.user.id);
-        if (isAdmin) {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
+        setIsLoggingIn(true);
+        toast.success('Logged in successfully');
+        try {
+          const isAdmin = await checkAdminStatus(session.user.id);
+          if (isAdmin) {
+            navigate('/admin');
+          } else {
+            navigate('/dashboard');
+          }
+        } catch (err) {
+          console.error("Navigation error after sign in:", err);
+          setError("Error during login redirect. Please try again.");
+        } finally {
+          setIsLoggingIn(false);
         }
       }
       
@@ -87,6 +110,11 @@ const Login = () => {
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {isLoggingIn && (
+              <Alert className="mb-4 bg-cyan-500/10">
+                <AlertDescription>Logging you in...</AlertDescription>
               </Alert>
             )}
             <div className="rounded-lg p-4">
