@@ -10,6 +10,7 @@ interface PlacesSearchOptions {
   limit?: number;
   pageToken?: string;
   existingPlaceIds?: string[];
+  apiKey?: string;
 }
 
 interface PlacesSearchResponse {
@@ -35,7 +36,8 @@ export const performPlacesSearch = async (options: PlacesSearchOptions): Promise
         limit: options.limit,
         pageToken: options.pageToken ? 'present' : 'not present',
         existingPlaceIds: options.existingPlaceIds ? options.existingPlaceIds.length : 0,
-        retryAttempt: retryCount
+        retryAttempt: retryCount,
+        hasApiKey: !!options.apiKey
       }, null, 2));
 
       // Attempt to call the edge function
@@ -169,24 +171,10 @@ export const loadMoreResults = async (
   query: string,
   country: string,
   region: string,
-  existingResults: Result[]
+  apiKey: string,
+  pageToken?: string,
+  existingResults: Result[] = []
 ): Promise<PlacesSearchResponse | null> => {
-  // Get the nextPageToken from the existing results
-  let nextPageToken = null;
-  
-  if (existingResults.length > 0) {
-    const lastResult = existingResults[existingResults.length - 1];
-    nextPageToken = lastResult._metadata?.nextPageToken;
-  }
-  
-  if (!nextPageToken) {
-    console.log('No page token found for loading more results');
-    return {
-      results: [],
-      hasMore: false
-    };
-  }
-  
   // Get all existing place IDs for deduplication
   const existingPlaceIds = existingResults
     .filter(result => result.id)
@@ -197,8 +185,9 @@ export const loadMoreResults = async (
     query,
     country,
     region,
-    pageToken: nextPageToken,
-    existingPlaceIds
+    pageToken,
+    existingPlaceIds,
+    apiKey
   });
 };
 

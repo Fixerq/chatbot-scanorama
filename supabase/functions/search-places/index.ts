@@ -21,22 +21,6 @@ Deno.serve(async (req) => {
   }
   
   try {
-    // Check API key
-    if (!GOOGLE_API_KEY) {
-      console.error('GOOGLE_PLACES_API_KEY is not set in environment variables');
-      return new Response(
-        JSON.stringify({
-          error: 'API key configuration error',
-          details: 'Google Places API key is not configured',
-          status: 'config_error'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        }
-      );
-    }
-
     // Parse request body
     let options: PlacesSearchOptions;
     try {
@@ -56,7 +40,26 @@ Deno.serve(async (req) => {
       );
     }
     
-    const { query, country, region, pageToken, limit = 20 } = options;
+    const { query, country, region, pageToken, limit = 20, apiKey: clientApiKey } = options;
+    
+    // Use client-provided API key or fallback to server API key
+    const apiKey = clientApiKey || GOOGLE_API_KEY;
+    
+    // Check API key
+    if (!apiKey) {
+      console.error('No Google Places API key available');
+      return new Response(
+        JSON.stringify({
+          error: 'API key configuration error',
+          details: 'Google Places API key is not configured',
+          status: 'config_error'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        }
+      );
+    }
     
     // Basic validation
     if (!query?.trim()) {
@@ -74,7 +77,7 @@ Deno.serve(async (req) => {
     }
 
     // Prepare the request body
-    const requestBody = {
+    const requestBody: any = {
       textQuery: query,
       maxResultCount: Math.min(limit, 20),
       languageCode: "en"
@@ -111,7 +114,7 @@ Deno.serve(async (req) => {
     
     try {
       const { results: placesResults, nextPageToken, hasMore } = 
-        await fetchWithVariations(query, countryCode, region, requestBody, GOOGLE_API_KEY, pageToken ? 20 : 60);
+        await fetchWithVariations(query, countryCode, region, requestBody, apiKey, pageToken ? 20 : 60);
     
       console.log(`Retrieved ${placesResults.length} results from Google Places API`);
       

@@ -76,11 +76,13 @@ const SearchForm = ({
         query={query}
         country={country}
         region={region}
+        apiKey={apiKey}
         isProcessing={isProcessing}
         isSearching={isSearching}
         onQueryChange={onQueryChange}
         onCountryChange={onCountryChange}
         onRegionChange={onRegionChange}
+        onApiKeyChange={onApiKeyChange}
       />
     </form>
   );

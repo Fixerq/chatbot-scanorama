@@ -13,7 +13,7 @@ export const usePagination = (
   const handleLoadMore = useCallback(async (
     pageNumber: number, 
     forcePagination = false,
-    searchParams?: { query: string; country: string; region: string }
+    searchParams?: { query: string; country: string; region: string; apiKey?: string }
   ) => {
     // If we don't have search params, we can't load more
     if (!searchParams || !searchParams.query || !searchParams.country) {
@@ -28,15 +28,16 @@ export const usePagination = (
     try {
       console.log(`Loading page ${pageNumber} for query: ${searchParams.query}`);
       
-      const { query, country, region } = searchParams;
+      const { query, country, region, apiKey } = searchParams;
       
       // Load more results using the token-based pagination
       const paginationResult = await loadMore(
         query,
         country,
         region || '',
+        apiKey || '',
         results,
-        results.length + 10 // Target getting 10 more results
+        results.length + 20 // Target getting 20 more results
       );
       
       if (paginationResult) {
@@ -45,7 +46,13 @@ export const usePagination = (
         console.log(`Received ${newResults.length} new results, hasMore: ${hasMore}`);
         
         // Merge the new results with existing ones
-        const combinedResults = [...results, ...newResults];
+        // Ensure no duplicates by checking URLs
+        const urlSet = new Set(results.map(r => r.url));
+        const uniqueNewResults = newResults.filter(r => !urlSet.has(r.url));
+        
+        console.log(`After deduplication, adding ${uniqueNewResults.length} unique new results`);
+        
+        const combinedResults = [...results, ...uniqueNewResults];
         
         // Update the results
         updateResults(combinedResults, hasMore);

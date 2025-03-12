@@ -61,7 +61,8 @@ export const useSearchExecution = (
           title: result.details?.title || 'Loading business info...',
           description: result.details?.description || '',
           lastChecked: new Date().toISOString()
-        }
+        },
+        _metadata: result._metadata || {}
       }));
       
       // Update UI with initial results immediately

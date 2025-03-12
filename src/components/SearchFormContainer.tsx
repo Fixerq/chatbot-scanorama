@@ -81,7 +81,12 @@ const SearchFormContainer = ({
       currentPage: nextPage
     });
 
-    handleLoadMore(nextPage, forcePagination);
+    handleLoadMore(nextPage, forcePagination, {
+      query: searchState.query,
+      country: searchState.country,
+      region: searchState.region,
+      apiKey: searchState.apiKey
+    });
   };
 
   React.useEffect(() => {
@@ -118,11 +123,13 @@ const SearchFormContainer = ({
         onSubmit={onSubmit}
       />
       
-      {results.hasMore && (
-        <LoadMoreButton 
-          onLoadMore={onLoadMore}
-          isProcessing={isProcessing}
-        />
+      {results.hasMore && !isProcessing && (
+        <div className="flex justify-center mt-4">
+          <LoadMoreButton 
+            onLoadMore={onLoadMore}
+            isProcessing={isSearching}
+          />
+        </div>
       )}
     </div>
   );

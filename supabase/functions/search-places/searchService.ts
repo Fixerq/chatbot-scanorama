@@ -103,6 +103,12 @@ export async function fetchWithVariations(
     variations.push(`plumbing services ${region}`);
     variations.push(`emergency plumber ${region}`);
     variations.push(`${baseQuery} contractor ${region}`);
+  } else {
+    // General variations for any business type
+    variations.push(`${baseQuery} company ${region}`);
+    variations.push(`${baseQuery} service provider ${region}`);
+    variations.push(`top ${baseQuery} ${region}`);
+    variations.push(`best ${baseQuery} ${region}`);
   }
   
   console.log(`Created ${variations.length} search variations:`, variations);

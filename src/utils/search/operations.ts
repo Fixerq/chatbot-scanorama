@@ -25,7 +25,8 @@ export const executeSearch = async (
       query: enhancedQuery,
       country,
       region,
-      limit: resultsLimit
+      limit: resultsLimit,
+      apiKey
     });
 
     if (!searchResponse) {
@@ -35,10 +36,15 @@ export const executeSearch = async (
     // Add metadata to results for client-side pagination
     const results = searchResponse.results.map(result => ({
       ...result,
+      _metadata: {
+        nextPageToken: searchResponse.nextPageToken,
+        searchId: new Date().getTime().toString()
+      },
       _searchMetadata: {
         query,
         country,
-        region
+        region,
+        apiKey
       }
     }));
 
@@ -60,6 +66,7 @@ export const loadMore = async (
   query: string,
   country: string,
   region: string,
+  apiKey: string,
   currentResults: Result[],
   targetResultsCount: number
 ): Promise<{ newResults: Result[], hasMore: boolean } | null> => {
@@ -81,11 +88,34 @@ export const loadMore = async (
       };
     }
 
+    // Get the metadata from the most recent result to use for pagination
+    let pageToken = null;
+    
+    // First, check the last result for a token
+    if (currentResults.length > 0) {
+      const lastResult = currentResults[currentResults.length - 1];
+      if (lastResult._metadata?.nextPageToken) {
+        pageToken = lastResult._metadata.nextPageToken;
+      }
+    }
+    
+    // If we don't have a token, try to find one in any of the results (in case they're not ordered)
+    if (!pageToken) {
+      for (const result of currentResults) {
+        if (result._metadata?.nextPageToken) {
+          pageToken = result._metadata.nextPageToken;
+          break;
+        }
+      }
+    }
+
     // Load more results
     const moreResults = await loadMoreResults(
       query,
       country,
       region,
+      apiKey,
+      pageToken,
       currentResults
     );
 
@@ -99,10 +129,14 @@ export const loadMore = async (
     // Add metadata to results
     const results = moreResults.results.map(result => ({
       ...result,
+      _metadata: {
+        nextPageToken: moreResults.nextPageToken
+      },
       _searchMetadata: {
         query,
         country,
-        region
+        region,
+        apiKey
       }
     }));
 
