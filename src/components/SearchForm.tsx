@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useSearchLimits } from '@/hooks/useSearchLimits';
 import SearchInputs from './SearchInputs';
@@ -37,7 +38,7 @@ const SearchForm = ({
   onApiKeyChange,
   onSubmit
 }: SearchFormProps) => {
-  const { searchesLeft, isLoading } = useSearchLimits();
+  const { searchesLeft, isLoading, isUnlimited } = useSearchLimits();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +55,9 @@ const SearchForm = ({
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-2 text-sm text-cyan-200/70">
                   <Info className="w-4 h-4" />
-                  {searchesLeft !== null ? (
+                  {isUnlimited ? (
+                    <span>Unlimited searches</span>
+                  ) : searchesLeft !== null ? (
                     <span>{searchesLeft} searches remaining this month</span>
                   ) : (
                     <span>Loading search limit...</span>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react';
 import { toast } from 'sonner';
@@ -7,6 +8,7 @@ export const useSearchLimits = () => {
   const session = useSession();
   const [searchesLeft, setSearchesLeft] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUnlimited, setIsUnlimited] = useState(false);
 
   useEffect(() => {
     const fetchSearchLimits = async () => {
@@ -21,6 +23,14 @@ export const useSearchLimits = () => {
           .maybeSingle();
 
         const userLevel = subscriptionData?.level || 'starter';
+
+        // Check if user has the founders plan (unlimited searches)
+        if (userLevel === 'founders') {
+          setIsUnlimited(true);
+          setSearchesLeft(-1); // -1 indicates unlimited
+          setIsLoading(false);
+          return;
+        }
 
         // Get max searches for this level
         const { data: levelData } = await supabase
@@ -43,6 +53,7 @@ export const useSearchLimits = () => {
         const remaining = Math.max(0, maxSearches - (searchesUsed || 0));
         
         setSearchesLeft(remaining);
+        setIsUnlimited(false);
       } catch (error) {
         console.error('Error fetching search limits:', error);
         toast.error('Could not fetch search limit information');
@@ -54,5 +65,5 @@ export const useSearchLimits = () => {
     fetchSearchLimits();
   }, [supabase, session]);
 
-  return { searchesLeft, isLoading };
+  return { searchesLeft, isLoading, isUnlimited };
 };
