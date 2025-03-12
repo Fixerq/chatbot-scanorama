@@ -39,6 +39,7 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
     query: string;
     country: string;
     region: string;
+    apiKey: string;
   } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   
@@ -75,7 +76,8 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
     setLastSearchParams({
       query,
       country,
-      region
+      region,
+      apiKey
     });
     
     try {
@@ -136,12 +138,13 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
       }
       
       // Otherwise, fetch more results
-      const { query, country, region } = lastSearchParams;
+      const { query, country, region, apiKey } = lastSearchParams;
       
       const moreResults = await loadMore(
         query,
         country,
         region,
+        apiKey,
         results.currentResults,
         targetResultsCount
       );
@@ -171,7 +174,6 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
     }
   };
   
-  // Render component
   return (
     <div className="search-businesses">
       <form onSubmit={handleSearch} className="space-y-4">
@@ -226,6 +228,19 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
           </div>
         </div>
         
+        <div className="space-y-2">
+          <label htmlFor="apiKey" className="text-sm font-medium">
+            Google Places API Key
+          </label>
+          <Input
+            id="apiKey"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Enter your Google Places API Key"
+            disabled={isSearching}
+          />
+        </div>
+        
         <Button 
           type="submit" 
           disabled={isSearching}
@@ -235,7 +250,6 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
         </Button>
       </form>
       
-      {/* Results summary */}
       {results.currentResults.length > 0 && (
         <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
@@ -246,7 +260,6 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
             </p>
           </div>
           
-          {/* Load more button */}
           {results.hasMore && currentPage * resultsPerPage < results.currentResults.length && (
             <Button
               variant="outline"

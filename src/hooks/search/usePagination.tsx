@@ -3,6 +3,14 @@ import { useState, useCallback } from 'react';
 import { Result } from '@/components/ResultsTable';
 import { loadMore } from '@/utils/search/operations';
 
+export interface SearchParams {
+  query: string;
+  country: string;
+  region: string;
+  apiKey?: string;
+  resultsLimit?: number;
+}
+
 export const usePagination = (
   results: Result[],
   updateResults: (newResults: Result[], hasMore: boolean) => void,
@@ -13,7 +21,7 @@ export const usePagination = (
   const handleLoadMore = useCallback(async (
     pageNumber: number, 
     forcePagination = false,
-    searchParams?: { query: string; country: string; region: string; apiKey?: string }
+    searchParams?: SearchParams
   ) => {
     // If we don't have search params, we can't load more
     if (!searchParams || !searchParams.query || !searchParams.country) {

@@ -81,7 +81,7 @@ const SearchFormContainer = ({
       currentPage: nextPage
     });
 
-    // Fix the arguments - pass the searchParams object as expected
+    // Pass the parameters as expected by the handleLoadMore function
     handleLoadMore(nextPage, forcePagination, {
       query: searchState.query,
       country: searchState.country,
