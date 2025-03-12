@@ -17,24 +17,24 @@ interface SearchInputsProps {
   query: string;
   country: string;
   region: string;
-  apiKey: string;  // Added apiKey prop
+  apiKey: string;  // Keeping this prop for compatibility
   isProcessing: boolean;
   isSearching: boolean;
   onQueryChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
-  onApiKeyChange: (value: string) => void;  // Added handler for apiKey changes
+  onApiKeyChange: (value: string) => void;  // Keeping this handler for compatibility
 }
 
 const SearchInputs = ({
   query,
   country,
   region,
-  apiKey,  // Added apiKey
+  apiKey,  // Not using this visibly anymore
   onQueryChange,
   onCountryChange,
   onRegionChange,
-  onApiKeyChange,  // Added handler
+  onApiKeyChange,  // Not exposing this handler anymore
   isProcessing,
   isSearching,
 }: SearchInputsProps) => {
@@ -98,16 +98,6 @@ const SearchInputs = ({
             className="flex-1"
           />
         )}
-      </div>
-      {/* Add API Key input */}
-      <div className="mb-4">
-        <Input
-          type="text"
-          placeholder="Enter Google Places API Key"
-          value={apiKey}
-          onChange={(e) => onApiKeyChange(e.target.value)}
-          className="w-full"
-        />
       </div>
       <div>
         <Button 

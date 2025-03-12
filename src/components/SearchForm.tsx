@@ -15,13 +15,13 @@ interface SearchFormProps {
   query: string;
   country: string;
   region: string;
-  apiKey: string;
+  apiKey: string;  // Keeping this prop for compatibility
   isProcessing: boolean;
   isSearching: boolean;
   onQueryChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
-  onApiKeyChange: (value: string) => void;
+  onApiKeyChange: (value: string) => void;  // Keeping this handler for compatibility
   onSubmit: () => void;
 }
 
@@ -29,13 +29,13 @@ const SearchForm = ({
   query,
   country,
   region,
-  apiKey,
+  apiKey,  // Keeping this prop for compatibility
   isProcessing,
   isSearching,
   onQueryChange,
   onCountryChange,
   onRegionChange,
-  onApiKeyChange,
+  onApiKeyChange,  // Keeping this handler for compatibility
   onSubmit
 }: SearchFormProps) => {
   const { searchesLeft, isLoading, isUnlimited } = useSearchLimits();
@@ -76,13 +76,13 @@ const SearchForm = ({
         query={query}
         country={country}
         region={region}
-        apiKey={apiKey}
+        apiKey={apiKey}  // Passing this for compatibility
         isProcessing={isProcessing}
         isSearching={isSearching}
         onQueryChange={onQueryChange}
         onCountryChange={onCountryChange}
         onRegionChange={onRegionChange}
-        onApiKeyChange={onApiKeyChange}
+        onApiKeyChange={onApiKeyChange}  // Passing this for compatibility
       />
     </form>
   );

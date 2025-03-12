@@ -52,7 +52,7 @@ const SearchFormContainer = ({
       searchState.query,
       searchState.country,
       formattedRegion,
-      searchState.apiKey,
+      '',
       searchState.resultsLimit
     );
   };
