@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Result } from './ResultsTable';
 import { useSearchState } from '../hooks/useSearchState';
@@ -36,7 +35,6 @@ const SearchFormContainer = ({
     handleLoadMore,
     loadingPages
   } = useSearchOperations((results, hasMore) => {
-    // Pass results to both callbacks
     onResults(results, hasMore);
     if (onPartialResults) {
       onPartialResults(results);
@@ -45,11 +43,9 @@ const SearchFormContainer = ({
 
   const onSubmit = () => {
     setIsProcessing(true);
-    // Clear any previous results first to avoid showing old results during a new search
     onResults([], false);
     console.log('Search form submitted with:', searchState);
     
-    // Ensure region is properly formatted
     const formattedRegion = searchState.region ? searchState.region.trim() : '';
     
     handleSearch(
@@ -64,14 +60,11 @@ const SearchFormContainer = ({
   const onLoadMore = (pageNumber?: number) => {
     const nextPage = pageNumber || searchState.currentPage + 1;
     
-    // Prevent duplicate loading
     if (loadingPages?.includes(nextPage)) {
       console.log(`Already loading page ${nextPage}, ignoring duplicate request`);
       return;
     }
     
-    // If a page number is specified, it means we're jumping to a specific page
-    // and may need to load multiple pages of data
     const forcePagination = pageNumber !== undefined && pageNumber > searchState.currentPage + 1;
     
     setIsProcessing(true);
@@ -81,13 +74,7 @@ const SearchFormContainer = ({
       currentPage: nextPage
     });
 
-    // Pass the parameters as expected by the handleLoadMore function
-    handleLoadMore(nextPage, forcePagination, {
-      query: searchState.query,
-      country: searchState.country,
-      region: searchState.region,
-      apiKey: searchState.apiKey
-    });
+    handleLoadMore(nextPage, forcePagination);
   };
 
   React.useEffect(() => {

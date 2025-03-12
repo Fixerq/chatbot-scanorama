@@ -3,7 +3,7 @@ import { Result } from '@/components/ResultsTable';
 import { useState } from 'react';
 import { useSearchValidation } from '../useSearchValidation';
 import { useSearchExecution } from './useSearchExecution';
-import { usePagination } from './usePagination';
+import { usePagination, SearchParams } from './usePagination';
 import { useSearchParams } from './useSearchParams';
 
 export const useSearchOperations = (onResults: (results: Result[], hasMore: boolean) => void) => {
@@ -87,7 +87,7 @@ export const useSearchOperations = (onResults: (results: Result[], hasMore: bool
   
   const { isSearching, setIsSearching, executeSearchOperation } = useSearchExecution(updateResults);
   const { lastSearchParams, updateSearchParams } = useSearchParams();
-  const { loadingPages, handleLoadMore } = usePagination(
+  const { loadingPages, handleLoadMore: paginationLoadMore } = usePagination(
     results.currentResults, 
     updateResults, 
     setIsSearching
@@ -116,6 +116,10 @@ export const useSearchOperations = (onResults: (results: Result[], hasMore: bool
     await executeSearchOperation(query, country, region, apiKey, resultsLimit);
   };
 
+  // Modify the handleLoadMore function to match the expected signature
+  const handleLoadMore = (pageNumber?: number, forcePagination = false) => 
+    paginationLoadMore(pageNumber || 1, forcePagination, lastSearchParams);
+
   return {
     results: { 
       currentResults: results.currentResults, 
@@ -123,8 +127,7 @@ export const useSearchOperations = (onResults: (results: Result[], hasMore: bool
     },
     isSearching,
     handleSearch,
-    handleLoadMore: (pageNumber?: number, forcePagination = false) => 
-      handleLoadMore(pageNumber || 1, forcePagination, lastSearchParams),
+    handleLoadMore,
     loadingPages
   };
 };
