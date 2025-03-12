@@ -17,20 +17,25 @@ interface SearchInputsProps {
   query: string;
   country: string;
   region: string;
+  apiKey: string;  // Added apiKey prop
   isProcessing: boolean;
   isSearching: boolean;
   onQueryChange: (value: string) => void;
   onCountryChange: (value: string) => void;
   onRegionChange: (value: string) => void;
+  onApiKeyChange: (value: string) => void;  // Added handler for apiKey changes
 }
 
 const SearchInputs = ({
   query,
   country,
   region,
+  apiKey,  // Added apiKey
   onQueryChange,
   onCountryChange,
   onRegionChange,
+  onApiKeyChange,  // Added handler
+  isProcessing,
   isSearching,
 }: SearchInputsProps) => {
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
@@ -70,7 +75,7 @@ const SearchInputs = ({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex gap-2 mb-8">
+      <div className="flex gap-2 mb-4">
         {availableRegions.length > 0 ? (
           <Select value={region} onValueChange={onRegionChange}>
             <SelectTrigger className="flex-1">
@@ -93,9 +98,21 @@ const SearchInputs = ({
             className="flex-1"
           />
         )}
+      </div>
+      {/* Add API Key input */}
+      <div className="mb-4">
+        <Input
+          type="text"
+          placeholder="Enter Google Places API Key"
+          value={apiKey}
+          onChange={(e) => onApiKeyChange(e.target.value)}
+          className="w-full"
+        />
+      </div>
+      <div>
         <Button 
           type="submit" 
-          disabled={isSearching || !query.trim()} 
+          disabled={isProcessing || !query.trim()} 
           className="w-32"
         >
           {isSearching ? (

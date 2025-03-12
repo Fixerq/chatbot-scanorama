@@ -5,7 +5,8 @@ import { handlePlacesApiError } from './errors/placesErrors';
 import { processPlacesResults } from './processing/resultsProcessor';
 import { toast } from 'sonner';
 
-interface PlacesSearchOptions {
+// Export these interfaces so they can be used in index.ts
+export interface PlacesSearchOptions {
   query: string;
   country: string;
   region: string;
@@ -15,7 +16,7 @@ interface PlacesSearchOptions {
   apiKey?: string;
 }
 
-interface PlacesSearchResponse {
+export interface PlacesSearchResponse {
   results: Result[];
   nextPageToken?: string;
   hasMore: boolean;
