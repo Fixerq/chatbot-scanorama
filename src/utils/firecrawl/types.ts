@@ -1,29 +1,16 @@
+
+// Stub types kept for backward compatibility
+// The Firecrawl integration has been deprecated
+
 export interface ErrorResponse {
   success: false;
   error: string;
-}
-
-export interface SearchResult {
-  url: string;
-  title: string;
-  description?: string;
-}
-
-export interface SuccessResponse {
-  success: true;
-  data: SearchResult[];
-  warning?: {
-    _type: string;
-    value: string;
-  };
 }
 
 export interface CrawlDocument {
   url: string;
   content?: string;
   selectors?: Record<string, string[]>;
-  html?: string;
-  markdown?: string;
 }
 
 export interface CrawlStatusResponse {
@@ -36,19 +23,10 @@ export interface CrawlStatusResponse {
   data: CrawlDocument[];
 }
 
-export type ApiResponse = SuccessResponse | ErrorResponse;
 export type CrawlResponse = CrawlStatusResponse | ErrorResponse;
-
-export type CrawlFormat = "html" | "markdown" | "rawHtml" | "content" | "links" | "screenshot" | "screenshot@fullPage" | "extract";
-
+export type CrawlFormat = string;
 export interface CrawlScrapeOptions {
-  formats: CrawlFormat[];  // Changed to required field
+  formats: CrawlFormat[];
   timeout?: number;
-  selectors?: {
-    [key: string]: {
-      selector: string;
-      type: string;
-      attribute?: string;
-    };
-  };
+  selectors?: Record<string, any>;
 }

@@ -1,20 +1,8 @@
-export const DIRECTORY_DOMAINS = [
-  'yelp.com',
-  'yellowpages.com',
-  'angi.com',
-  'angieslist.com',
-  'checkatrade.com',
-  'houzz.com',
-  'thumbtack.com',
-  'homeadvisor.com',
-  'bark.com',
-  'trustpilot.com',
-  'bbb.org',
-  'google.com/maps',
-  'facebook.com/pages',
-  'linkedin.com/company',
-  'foursquare.com'
-];
+
+// This file is kept for backward compatibility
+// The Firecrawl integration has been deprecated
+
+export const DIRECTORY_DOMAINS: string[] = [];
 
 export const API_CONSTANTS = {
   MAX_API_LIMIT: 10,

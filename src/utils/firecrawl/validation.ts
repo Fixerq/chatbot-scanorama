@@ -1,13 +1,12 @@
-import { DIRECTORY_DOMAINS } from './config';
+
+// This file is kept for backward compatibility
+// The Firecrawl integration has been deprecated
 
 export const isDirectorySite = (url: string): boolean => {
-  return DIRECTORY_DOMAINS.some(domain => url.toLowerCase().includes(domain));
+  return false;
 };
 
 export const validateApiKey = (apiKey: string | null): string | null => {
-  if (!apiKey) {
-    console.error('API key not found');
-    return null;
-  }
-  return apiKey;
+  console.log('Firecrawl integration is no longer supported');
+  return null;
 };
