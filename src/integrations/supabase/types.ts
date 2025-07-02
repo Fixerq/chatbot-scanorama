@@ -1874,15 +1874,11 @@ export type Database = {
     }
     Functions: {
       check_admin_direct: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       check_admin_mv: {
-        Args: {
-          uid: string
-        }
+        Args: { uid: string }
         Returns: boolean
       }
       check_alert_thresholds: {
@@ -1903,9 +1899,7 @@ export type Database = {
         Returns: Json
       }
       check_subscription_status: {
-        Args: {
-          p_user_id: string
-        }
+        Args: { p_user_id: string }
         Returns: Json
       }
       check_worker_health: {
@@ -1917,53 +1911,28 @@ export type Database = {
           jobs_in_progress: number
         }[]
       }
-      citext:
-        | {
-            Args: {
-              "": boolean
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              "": string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              "": unknown
-            }
-            Returns: string
-          }
+      citext: {
+        Args: { "": boolean } | { "": string } | { "": unknown }
+        Returns: string
+      }
       citext_hash: {
-        Args: {
-          "": string
-        }
+        Args: { "": string }
         Returns: number
       }
       citextin: {
-        Args: {
-          "": unknown
-        }
+        Args: { "": unknown }
         Returns: string
       }
       citextout: {
-        Args: {
-          "": string
-        }
+        Args: { "": string }
         Returns: unknown
       }
       citextrecv: {
-        Args: {
-          "": unknown
-        }
+        Args: { "": unknown }
         Returns: string
       }
       citextsend: {
-        Args: {
-          "": string
-        }
+        Args: { "": string }
         Returns: string
       }
       cleanup_expired_sessions: {
@@ -2015,9 +1984,7 @@ export type Database = {
         Returns: undefined
       }
       delete_user_data: {
-        Args: {
-          user_id_param: string
-        }
+        Args: { user_id_param: string }
         Returns: undefined
       }
       get_available_worker: {
@@ -2043,9 +2010,7 @@ export type Database = {
         }[]
       }
       get_or_create_analysis: {
-        Args: {
-          url_param: string
-        }
+        Args: { url_param: string }
         Returns: {
           url: string
           has_chatbot: boolean
@@ -2054,49 +2019,31 @@ export type Database = {
           last_checked: string
         }[]
       }
-      get_performance_metrics:
-        | {
-            Args: Record<PropertyKey, never>
-            Returns: {
-              metric_name: string
-              metric_value: number
-            }[]
-          }
-        | {
-            Args: {
-              time_window?: unknown
-            }
-            Returns: {
-              metric_name: string
-              metric_value: number
-            }[]
-          }
+      get_performance_metrics: {
+        Args: Record<PropertyKey, never> | { time_window?: unknown }
+        Returns: {
+          metric_name: string
+          metric_value: number
+        }[]
+      }
       get_test_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
       get_user_status: {
-        Args: {
-          user_uid: string
-        }
+        Args: { user_uid: string }
         Returns: Json
       }
       increment_retry_count: {
-        Args: {
-          request_id: string
-        }
+        Args: { request_id: string }
         Returns: undefined
       }
       is_admin: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       is_admin_direct_v2: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       refresh_admin_users_mv: {
@@ -2108,17 +2055,11 @@ export type Database = {
         Returns: undefined
       }
       update_pattern_metrics: {
-        Args: {
-          p_pattern: string
-          p_matched: boolean
-        }
+        Args: { p_pattern: string; p_matched: boolean }
         Returns: undefined
       }
       update_proxy_status: {
-        Args: {
-          p_proxy_id: string
-          p_success: boolean
-        }
+        Args: { p_proxy_id: string; p_success: boolean }
         Returns: undefined
       }
     }
@@ -2154,27 +2095,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -2182,20 +2125,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -2203,20 +2148,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -2224,21 +2171,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -2247,6 +2196,31 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      alert_severity: ["error", "warning", "info"],
+      analysis_status: ["pending", "processing", "completed", "failed"],
+      batch_status: ["pending", "processing", "completed", "failed"],
+      block_reason_type: [
+        "forbidden_403",
+        "rate_limit_429",
+        "timeout",
+        "connection_refused",
+        "dns_error",
+        "other",
+      ],
+      crawl_status: ["pending", "processing", "completed", "failed"],
+      detection_method: ["selector", "script", "iframe", "text", "mutation"],
+      job_status: ["pending", "processing", "completed", "failed"],
+      request_status: ["pending", "processing", "completed", "failed"],
+      subscription_level: ["starter", "pro", "premium", "founders", "admin"],
+      website_analysis_status: ["success", "error"],
+      worker_status: ["idle", "processing", "completed", "failed"],
+    },
+  },
+} as const
