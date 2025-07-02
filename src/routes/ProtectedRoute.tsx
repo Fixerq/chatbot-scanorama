@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSession } from '@supabase/auth-helpers-react';
-import { checkUserSession } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
@@ -27,7 +27,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
       // Double-check with direct API call if hook returns null
       console.log("No session in hook, checking directly");
-      const directSession = await checkUserSession();
+      const { data: { session: directSession } } = await supabase.auth.getSession();
       
       if (directSession) {
         console.log("Direct session check successful");
