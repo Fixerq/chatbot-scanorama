@@ -6,6 +6,15 @@ import { fetchWithVariations } from './searchService.ts';
 import { processResults } from './resultProcessor.ts';
 import { PlacesSearchOptions } from './types.ts';
 import { regionBounds } from './config.ts';
+import { 
+  validateSearchQuery, 
+  validateCountryCode, 
+  validateNumber, 
+  sanitizeString,
+  ValidationException, 
+  createValidationErrorResponse,
+  checkRateLimit 
+} from '../_shared/validation.ts';
 
 // API key from environment variable
 const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
@@ -21,6 +30,20 @@ Deno.serve(async (req) => {
   }
   
   try {
+    // Rate limiting check
+    const userAgent = req.headers.get('user-agent');
+    const clientIP = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for');
+    
+    if (!checkRateLimit(userAgent, clientIP)) {
+      return new Response(
+        JSON.stringify({ error: 'Request blocked', status: 'rate_limited' }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Parse request body
     let options: PlacesSearchOptions;
     try {
@@ -31,7 +54,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: 'Invalid JSON in request body',
-          details: jsonError.message
+          details: jsonError.message,
+          status: 'invalid_json'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -40,7 +64,32 @@ Deno.serve(async (req) => {
       );
     }
     
+    // Extract and validate inputs
     const { query, country, region, pageToken, limit = 20, apiKey: clientApiKey } = options;
+    
+    // Validate required fields
+    let validatedQuery: string;
+    let validatedCountry: string | undefined;
+    let validatedRegion: string | undefined;
+    let validatedLimit: number;
+    
+    try {
+      validatedQuery = validateSearchQuery(query);
+      validatedLimit = validateNumber(limit, 'limit', 1, 100);
+      
+      if (country) {
+        validatedCountry = validateCountryCode(country);
+      }
+      
+      if (region) {
+        validatedRegion = sanitizeString(region);
+      }
+    } catch (validationError) {
+      if (validationError instanceof ValidationException) {
+        return createValidationErrorResponse(validationError);
+      }
+      throw validationError;
+    }
     
     // Use client-provided API key or fallback to server API key
     const apiKey = clientApiKey || GOOGLE_API_KEY;
@@ -61,30 +110,15 @@ Deno.serve(async (req) => {
       );
     }
     
-    // Basic validation
-    if (!query?.trim()) {
-      console.error('Missing query parameter');
-      return new Response(
-        JSON.stringify({
-          error: 'Missing query parameter',
-          status: 'invalid_params'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400
-        }
-      );
-    }
-
-    // Prepare the request body
+    // Prepare the request body using validated inputs
     const requestBody: any = {
-      textQuery: query,
-      maxResultCount: Math.min(limit, 20),
+      textQuery: validatedQuery,
+      maxResultCount: Math.min(validatedLimit, 20),
       languageCode: "en"
     };
     
-    // Process country and region
-    const countryCode = normalizeCountryCode(country);
+    // Process country and region using validated inputs
+    const countryCode = normalizeCountryCode(validatedCountry);
     console.log(`Normalized country code: ${country} -> ${countryCode}`);
     
     // Add region code if we have a valid country code
@@ -114,7 +148,7 @@ Deno.serve(async (req) => {
     
     try {
       const { results: placesResults, nextPageToken, hasMore } = 
-        await fetchWithVariations(query, countryCode, region, requestBody, apiKey, pageToken ? 20 : 60);
+        await fetchWithVariations(validatedQuery, countryCode, validatedRegion, requestBody, apiKey, pageToken ? 20 : 60);
     
       console.log(`Retrieved ${placesResults.length} results from Google Places API`);
       

@@ -21,11 +21,9 @@ export const UserStatusCheck = () => {
       console.log('Checking admin status for user:', session.user.id);
 
       try {
+        // Use the secure admin check function instead of direct query
         const { data, error } = await supabase
-          .from('admin_users')
-          .select('user_id')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+          .rpc('is_admin', { user_id: session.user.id });
 
         if (error) {
           console.error('Error checking admin status:', error);

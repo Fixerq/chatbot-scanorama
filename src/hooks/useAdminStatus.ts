@@ -12,9 +12,21 @@ export const useAdminStatus = () => {
   const checkAdminStatus = async () => {
     try {
       setIsChecking(true);
+      
+      // Get current user session first
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No authenticated user found');
+        setIsAdmin(false);
+        return false;
+      }
+
+      // Check if current user is in admin_users table
       const { data, error } = await supabase
         .from('admin_users')
         .select('user_id')
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) {

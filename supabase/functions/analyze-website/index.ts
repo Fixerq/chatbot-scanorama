@@ -3,6 +3,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { analyzeWebsite, analyzeBatch } from "./analyzer.ts";
 import { normalizeUrl, isValidUrl, sanitizeUrl } from "./utils/urlUtils.ts";
 import { AnalysisOptions, BatchAnalysisRequest } from "./types.ts";
+import { 
+  validateUrl, 
+  validateUrlArray, 
+  validateNumber, 
+  validateBoolean, 
+  ValidationException, 
+  createValidationErrorResponse,
+  checkRateLimit 
+} from "../_shared/validation.ts";
 
 // Setup CORS headers
 const corsHeaders = {
@@ -17,6 +26,21 @@ serve(async (req) => {
   }
 
   try {
+    // Rate limiting check
+    const userAgent = req.headers.get('user-agent');
+    const clientIP = req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for');
+    
+    if (!checkRateLimit(userAgent, clientIP)) {
+      return new Response(
+        JSON.stringify({ error: 'Request blocked' }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const requestBody = await req.json();
     const { 
       urls, url, debug = false, verifyResults = true, 
       deepVerification = false, smartDetection = true, 
@@ -24,19 +48,19 @@ serve(async (req) => {
       checkFunctionality = false, detectHiddenChatbots = false,
       ignoreVisibilityChecks = false, suggestedProviders = [],
       useEnhancedDetection = false, useAdvancedDetection = false
-    } = await req.json();
+    } = requestBody;
     
-    // Options for analysis
+    // Validate input parameters
     const options: AnalysisOptions = {
-      debug,
-      verifyResults,
-      deepVerification,
-      smartDetection,
-      confidenceThreshold: Number(confidenceThreshold) || 0.5,
-      checkFunctionality,
-      timeout: Number(timeout) || 30000,
-      detectHiddenChatbots,
-      ignoreVisibilityChecks,
+      debug: validateBoolean(debug, 'debug'),
+      verifyResults: validateBoolean(verifyResults, 'verifyResults'),
+      deepVerification: validateBoolean(deepVerification, 'deepVerification'),
+      smartDetection: validateBoolean(smartDetection, 'smartDetection'),
+      confidenceThreshold: validateNumber(confidenceThreshold, 'confidenceThreshold', 0, 1),
+      checkFunctionality: validateBoolean(checkFunctionality, 'checkFunctionality'),
+      timeout: validateNumber(timeout, 'timeout', 1000, 60000),
+      detectHiddenChatbots: validateBoolean(detectHiddenChatbots, 'detectHiddenChatbots'),
+      ignoreVisibilityChecks: validateBoolean(ignoreVisibilityChecks, 'ignoreVisibilityChecks'),
       suggestedProviders: Array.isArray(suggestedProviders) ? suggestedProviders : []
     };
 
@@ -46,11 +70,21 @@ serve(async (req) => {
     if (urls && Array.isArray(urls) && urls.length > 0) {
       console.log(`Batch analyzing ${urls.length} URLs`);
       
-      const validUrls = urls
+      try {
+        const validUrls = validateUrlArray(urls, 'urls');
+        console.log(`Validated ${validUrls.length} URLs for batch analysis`);
+      } catch (validationError) {
+        if (validationError instanceof ValidationException) {
+          return createValidationErrorResponse(validationError);
+        }
+        throw validationError;
+      }
+      
+      const processedUrls = urls
         .filter(u => u && isValidUrl(normalizeUrl(u)))
         .map(u => sanitizeUrl(normalizeUrl(u)));
       
-      if (validUrls.length === 0) {
+      if (processedUrls.length === 0) {
         return new Response(
           JSON.stringify({ error: 'No valid URLs provided' }),
           {
@@ -84,20 +118,19 @@ serve(async (req) => {
       );
     }
 
-    // Normalize and validate URL
-    const normalizedUrl = normalizeUrl(targetUrl);
-    if (!isValidUrl(normalizedUrl)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid URL format' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // Validate the single URL
+    let validatedUrl: string;
+    try {
+      validatedUrl = validateUrl(targetUrl, 'url');
+    } catch (validationError) {
+      if (validationError instanceof ValidationException) {
+        return createValidationErrorResponse(validationError);
+      }
+      throw validationError;
     }
 
-    // Sanitize the URL
-    const sanitizedUrl = sanitizeUrl(normalizedUrl);
+    // Sanitize the URL (keeping existing logic for backward compatibility)
+    const sanitizedUrl = sanitizeUrl(normalizeUrl(validatedUrl));
     console.log(`Analyzing website: ${sanitizedUrl}`);
 
     try {
@@ -133,6 +166,11 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error('Server error:', error);
+    
+    // Handle validation errors
+    if (error instanceof ValidationException) {
+      return createValidationErrorResponse(error);
+    }
     
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
