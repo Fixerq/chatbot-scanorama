@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -8,8 +8,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Mail, Loader2 } from "lucide-react";
 import ResultUrlCell from './results/ResultUrlCell';
 import ResultStatusCell from './results/ResultStatusCell';
+import { useApolloScraper, ApolloResults } from '@/hooks/useApolloScraper';
 
 export interface Result {
   id?: string; // Add id property for tracking Google Places results
@@ -19,6 +22,7 @@ export interface Result {
     title?: string;
     description?: string;
     phone?: string;
+    email?: string;
     rating?: number;
     reviewCount?: number;
     businessType?: string;
@@ -28,6 +32,7 @@ export interface Result {
     confidence?: number;
     verificationStatus?: string;
   };
+  apolloData?: ApolloResults;
   _metadata?: {
     nextPageToken?: string;
     searchId?: string;
@@ -45,6 +50,9 @@ interface ResultsTableProps {
 }
 
 const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) => {
+  const [enrichedResults, setEnrichedResults] = useState<Result[]>(results);
+  const { scrapeCompany, isLoading: apolloLoading } = useApolloScraper();
+  
   console.log('ResultsTable received results:', results?.length);
 
   const formatInstalledTechnologies = (result: Result) => {
@@ -60,6 +68,33 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
     return chatSolutions[0];
   };
 
+  const handleEnrichWithApollo = async (result: Result, index: number) => {
+    if (!result.details?.title) return;
+    
+    const apolloData = await scrapeCompany(
+      result.details.title,
+      result.url,
+      result.details.location
+    );
+    
+    if (apolloData && apolloData.contacts.length > 0) {
+      const updatedResults = [...enrichedResults];
+      updatedResults[index] = {
+        ...result,
+        apolloData,
+        details: {
+          ...result.details,
+          email: apolloData.contacts[0]?.email || result.details?.email,
+        }
+      };
+      setEnrichedResults(updatedResults);
+      
+      if (onResultUpdate) {
+        onResultUpdate(updatedResults[index]);
+      }
+    }
+  };
+
   if (!results || results.length === 0) {
     console.log('ResultsTable: No results to display');
     return (
@@ -69,13 +104,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
           <TableHead className="w-[300px]">Website</TableHead>
           <TableHead>Business Name</TableHead>
           <TableHead>Phone</TableHead>
+          <TableHead>Email</TableHead>
           <TableHead>Location</TableHead>
           <TableHead>Chatbot Provider</TableHead>
         </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+            <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
               No results to display
             </TableCell>
           </TableRow>
@@ -91,12 +127,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
           <TableHead className="w-[300px]">Website</TableHead>
           <TableHead>Business Name</TableHead>
           <TableHead>Phone</TableHead>
+          <TableHead>Email</TableHead>
           <TableHead>Location</TableHead>
           <TableHead>Chatbot Provider</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {results.map((result, index) => {
+        {(enrichedResults.length > 0 ? enrichedResults : results).map((result, index) => {
           const hasChatbot = result.details?.chatSolutions && result.details.chatSolutions.length > 0;
           const technologies = formatInstalledTechnologies(result);
           
@@ -106,6 +143,30 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
               <TableCell>{result.details?.title || 'Loading...'}</TableCell>
               <TableCell className="text-sm">
                 {result.details?.phone || 'Not available'}
+              </TableCell>
+              <TableCell className="text-sm">
+                <div className="flex items-center gap-2">
+                  {result.details?.email || result.apolloData?.contacts?.[0]?.email ? (
+                    <span>{result.details?.email || result.apolloData?.contacts?.[0]?.email}</span>
+                  ) : (
+                    <>
+                      <span className="text-muted-foreground">Not available</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEnrichWithApollo(result, index)}
+                        disabled={apolloLoading}
+                        className="h-6 px-2"
+                      >
+                        {apolloLoading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Mail className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                 {result.details?.location || result.details?.description || 'Not available'}
