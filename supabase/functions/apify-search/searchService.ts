@@ -21,8 +21,8 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
   console.log('Constructed search query:', searchQuery);
   
   try {
-    // Use Google Maps scraper for business search
-    const runResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.MAPS_SCRAPER}/runs?token=${apiKey}`, {
+    // Use a working Google search scraper instead
+    const runResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.BUSINESS_SEARCH}/runs?token=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,14 +58,14 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
       
-      const statusResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.MAPS_SCRAPER}/runs/${runId}?token=${apiKey}`);
+      const statusResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.BUSINESS_SEARCH}/runs/${runId}?token=${apiKey}`);
       const statusData = await statusResponse.json();
       
       console.log(`Run status (attempt ${attempts + 1}):`, statusData.data.status);
       
       if (statusData.data.status === 'SUCCEEDED') {
         // Get the results
-        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.MAPS_SCRAPER}/runs/${runId}/dataset/items?token=${apiKey}`);
+        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.BUSINESS_SEARCH}/runs/${runId}/dataset/items?token=${apiKey}`);
         
         if (!resultsResponse.ok) {
           throw new Error(`Failed to fetch results: ${resultsResponse.status}`);

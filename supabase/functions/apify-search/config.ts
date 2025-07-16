@@ -6,7 +6,7 @@ export const corsHeaders = {
 // Apify actor IDs for different search types
 export const APIFY_ACTORS = {
   BUSINESS_SEARCH: 'apify/google-search-scraper', // General business search
-  MAPS_SCRAPER: 'compass/google-maps-scraper', // Google Maps business scraper
+  MAPS_SCRAPER: 'compass/google-maps-scraper', // Use the correct actor ID
   WEBSITE_FINDER: 'lukaskrivka/website-finder', // Website finder
 };
 
