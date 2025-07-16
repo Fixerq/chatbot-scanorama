@@ -21,18 +21,21 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
   console.log('Constructed search query:', searchQuery);
   
   try {
-    // Use a working Google search scraper instead
-    const runResponse = await fetch(`https://api.apify.com/v2/acts/dtrungtin~google-maps-scraper/runs?token=${apiKey}`, {
+    // Use a simpler, direct approach with a Google Maps scraper
+    const runResponse = await fetch(`https://api.apify.com/v2/acts/nwua9Gu5YrADL7ZDj/runs?token=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        searchQuery: searchQuery,
+        searchTerms: [searchQuery],
         maxResults: Math.min(limit, SEARCH_CONFIG.MAX_RESULTS_PER_REQUEST),
         language: 'en',
-        includeContacts: true,
-        includeWebsites: true,
+        includeFullPlaceDetails: true,
+        geo: {
+          country: country || 'US',
+          state: region || ''
+        }
       }),
     });
 
@@ -47,21 +50,28 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
     
     console.log('Created Apify run:', runId);
 
-    // Poll for completion
+    // Use shorter polling intervals and timeout
     let attempts = 0;
-    const maxAttempts = 60; // 10 minutes max (10 second intervals)
+    const maxAttempts = 30; // 5 minutes max (10 second intervals)
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
       
-      const statusResponse = await fetch(`https://api.apify.com/v2/acts/dtrungtin~google-maps-scraper/runs/${runId}?token=${apiKey}`);
+      const statusResponse = await fetch(`https://api.apify.com/v2/acts/nwua9Gu5YrADL7ZDj/runs/${runId}?token=${apiKey}`);
+      
+      if (!statusResponse.ok) {
+        console.error('Failed to check run status:', statusResponse.status);
+        attempts++;
+        continue;
+      }
+      
       const statusData = await statusResponse.json();
       
       console.log(`Run status (attempt ${attempts + 1}):`, statusData.data.status);
       
       if (statusData.data.status === 'SUCCEEDED') {
         // Get the results
-        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/dtrungtin~google-maps-scraper/runs/${runId}/dataset/items?token=${apiKey}`);
+        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/nwua9Gu5YrADL7ZDj/runs/${runId}/dataset/items?token=${apiKey}`);
         
         if (!resultsResponse.ok) {
           throw new Error(`Failed to fetch results: ${resultsResponse.status}`);
@@ -75,18 +85,20 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
         
         return {
           results: processedResults,
-          nextPageToken: undefined, // Apify doesn't typically use pagination tokens like this
-          hasMore: false // For now, we'll handle pagination differently
+          nextPageToken: undefined,
+          hasMore: false
         };
       } else if (statusData.data.status === 'FAILED') {
         const errorDetail = statusData.data.errors?.[0]?.message || 'Unknown error';
         throw new Error(`Apify search run failed: ${errorDetail}`);
+      } else if (statusData.data.status === 'ABORTED') {
+        throw new Error('Apify search run was aborted');
       }
       
       attempts++;
     }
     
-    throw new Error('Apify search run timed out');
+    throw new Error('Apify search run timed out after 5 minutes');
   } catch (error) {
     console.error('Error in executeApifySearch:', error);
     throw error;
