@@ -22,21 +22,17 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
   
   try {
     // Use a working Google search scraper instead
-    const runResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.BUSINESS_SEARCH}/runs?token=${apiKey}`, {
+    const runResponse = await fetch(`https://api.apify.com/v2/acts/dtrungtin~google-maps-scraper/runs?token=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        searchStringsArray: [searchQuery],
-        maxCrawledPlacesPerSearch: Math.min(limit, SEARCH_CONFIG.MAX_RESULTS_PER_REQUEST),
+        searchQuery: searchQuery,
+        maxResults: Math.min(limit, SEARCH_CONFIG.MAX_RESULTS_PER_REQUEST),
         language: 'en',
-        exportPlaceUrls: true,
-        includeContactInfo: true,
+        includeContacts: true,
         includeWebsites: true,
-        scrapeReviews: false,
-        allPlacesNoSearch: false,
-        customGeolocation: country ? COUNTRY_MAPPINGS[country] || country : undefined,
       }),
     });
 
@@ -58,14 +54,14 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
       
-      const statusResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.BUSINESS_SEARCH}/runs/${runId}?token=${apiKey}`);
+      const statusResponse = await fetch(`https://api.apify.com/v2/acts/dtrungtin~google-maps-scraper/runs/${runId}?token=${apiKey}`);
       const statusData = await statusResponse.json();
       
       console.log(`Run status (attempt ${attempts + 1}):`, statusData.data.status);
       
       if (statusData.data.status === 'SUCCEEDED') {
         // Get the results
-        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/${APIFY_ACTORS.BUSINESS_SEARCH}/runs/${runId}/dataset/items?token=${apiKey}`);
+        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/dtrungtin~google-maps-scraper/runs/${runId}/dataset/items?token=${apiKey}`);
         
         if (!resultsResponse.ok) {
           throw new Error(`Failed to fetch results: ${resultsResponse.status}`);
