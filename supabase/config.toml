@@ -1,1 +1,4 @@
 project_id = "cfelpyucqllkshmlkwxz"
+
+[functions.apify-search]
+verify_jwt = false
