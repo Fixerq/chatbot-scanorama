@@ -18,6 +18,11 @@ export interface Result {
   details?: {
     title?: string;
     description?: string;
+    phone?: string;
+    rating?: number;
+    reviewCount?: number;
+    businessType?: string;
+    location?: string;
     lastChecked?: string;
     chatSolutions?: string[];
     confidence?: number;
@@ -60,15 +65,17 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
     return (
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead className="w-[300px]">Website</TableHead>
-            <TableHead>Business Name</TableHead>
-            <TableHead>Chatbot Provider</TableHead>
-          </TableRow>
+        <TableRow>
+          <TableHead className="w-[300px]">Website</TableHead>
+          <TableHead>Business Name</TableHead>
+          <TableHead>Phone</TableHead>
+          <TableHead>Location</TableHead>
+          <TableHead>Chatbot Provider</TableHead>
+        </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+            <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
               No results to display
             </TableCell>
           </TableRow>
@@ -83,6 +90,8 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
         <TableRow>
           <TableHead className="w-[300px]">Website</TableHead>
           <TableHead>Business Name</TableHead>
+          <TableHead>Phone</TableHead>
+          <TableHead>Location</TableHead>
           <TableHead>Chatbot Provider</TableHead>
         </TableRow>
       </TableHeader>
@@ -95,6 +104,12 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, onResultUpdate }) 
             <TableRow key={`${result.url}-${index}`}>
               <ResultUrlCell url={result.url} />
               <TableCell>{result.details?.title || 'Loading...'}</TableCell>
+              <TableCell className="text-sm">
+                {result.details?.phone || 'Not available'}
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                {result.details?.location || result.details?.description || 'Not available'}
+              </TableCell>
               <ResultStatusCell 
                 status={result.status}
                 hasChatbot={hasChatbot}
