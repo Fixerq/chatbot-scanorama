@@ -84,11 +84,12 @@ Deno.serve(async (req) => {
       throw validationError;
     }
     
-    // Use client-provided API key or fallback to server API key
-    const apiKey = clientApiKey || APIFY_API_KEY;
+    // Use server API key if client key is placeholder or missing
+    const apiKey = (clientApiKey && clientApiKey !== 'backend-configured') ? clientApiKey : APIFY_API_KEY;
     console.log('Using API key:', { 
       hasClientKey: !!clientApiKey, 
       hasServerKey: !!APIFY_API_KEY, 
+      clientKeyIsPlaceholder: clientApiKey === 'backend-configured',
       finalKeyLength: apiKey?.length || 0 
     });
     
