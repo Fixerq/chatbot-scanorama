@@ -3,7 +3,7 @@
 // The Firecrawl integration has been deprecated
 
 export class FirecrawlService {
-  private static API_KEY = '';
+  private static API_KEY = 'backend-configured';
 
   static getApiKey(): string {
     return this.API_KEY;
