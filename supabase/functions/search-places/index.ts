@@ -78,7 +78,14 @@ Deno.serve(async (req) => {
       validatedLimit = validateNumber(limit, 'limit', 1, 100);
       
       if (country) {
-        validatedCountry = validateCountryCode(country);
+        // First normalize the country name to code, then validate
+        const normalizedCountry = normalizeCountryCode(country);
+        if (normalizedCountry.length === 2) {
+          validatedCountry = normalizedCountry;
+        } else {
+          // If normalization didn't work, treat it as a raw country code and validate
+          validatedCountry = validateCountryCode(country);
+        }
       }
       
       if (region) {
@@ -117,9 +124,9 @@ Deno.serve(async (req) => {
       languageCode: "en"
     };
     
-    // Process country and region using validated inputs
-    const countryCode = normalizeCountryCode(validatedCountry);
-    console.log(`Normalized country code: ${country} -> ${countryCode}`);
+    // Use the already normalized and validated country code
+    const countryCode = validatedCountry;
+    console.log(`Using country code: ${country} -> ${countryCode}`);
     
     // Add region code if we have a valid country code
     if (countryCode) {

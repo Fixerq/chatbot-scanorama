@@ -169,19 +169,26 @@ export function checkRateLimit(userAgent: string | null, ip: string | null): boo
   // In a production environment, you'd implement proper rate limiting
   // with Redis or database storage. This is a basic check.
   
-  if (!userAgent || !ip) {
-    return false; // Block requests without proper headers
+  // Allow requests without headers (browsers may not always send these)
+  if (!userAgent && !ip) {
+    return true; // Allow if both are missing (likely from browser)
   }
   
-  // Block suspicious user agents
-  const suspiciousPatterns = [
-    /bot/i,
-    /crawler/i,
-    /spider/i,
-    /scraper/i,
-    /curl/i,
-    /wget/i
-  ];
+  // Block suspicious user agents only if we have a user agent
+  if (userAgent) {
+    const suspiciousPatterns = [
+      /bot/i,
+      /crawler/i,
+      /spider/i,
+      /scraper/i,
+      /curl/i,
+      /wget/i
+    ];
+    
+    if (suspiciousPatterns.some(pattern => pattern.test(userAgent))) {
+      return false;
+    }
+  }
   
-  return !suspiciousPatterns.some(pattern => pattern.test(userAgent));
+  return true; // Allow by default
 }
