@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { executeSearch, processSearchResults } from '@/utils/search/operations';
 import { Result } from '@/components/ResultsTable';
-import { FirecrawlService } from '@/utils/firecrawl';
+import { ApiKeyService } from '@/utils/apiKeyService';
 import { useChatbotAnalysis } from '@/hooks/useChatbotAnalysis';
 import { toast } from 'sonner';
 
@@ -22,7 +22,7 @@ export const useSearchExecution = (
     console.log('Executing search operation:', { query, country, region, resultsLimit });
     
     try {
-      FirecrawlService.saveApiKey(apiKey);
+      ApiKeyService.saveApiKey(apiKey);
       
       const searchData = await executeSearch(
         query,

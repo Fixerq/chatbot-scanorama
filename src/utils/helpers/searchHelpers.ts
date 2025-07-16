@@ -1,4 +1,4 @@
-import { SearchResult } from '../types/firecrawl';
+import { SearchResult } from '../types/search';
 import { isExcludedDomain } from './domainFilters';
 import { 
   hasBusinessIndicators, 

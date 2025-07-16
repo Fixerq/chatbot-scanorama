@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { FirecrawlService } from '../utils/firecrawl';
+import { ApiKeyService } from '../utils/apiKeyService';
 import { Result } from '@/components/ResultsTable';
 
 interface SearchState {
@@ -35,14 +35,14 @@ export const useSearchState = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    const savedApiKey = FirecrawlService.getApiKey();
+    const savedApiKey = ApiKeyService.getApiKey();
     if (savedApiKey) {
       setSearchState(prev => ({ ...prev, apiKey: savedApiKey }));
     }
   }, []);
 
   const resetSearch = useCallback(() => {
-    const savedApiKey = FirecrawlService.getApiKey();
+    const savedApiKey = ApiKeyService.getApiKey();
     setSearchState({
       ...initialState,
       apiKey: savedApiKey || '' // Preserve the API key

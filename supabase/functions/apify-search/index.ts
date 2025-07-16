@@ -11,6 +11,7 @@ import { ApifySearchOptions, ApifySearchResponse } from './types.ts';
 import { executeApifySearch } from './searchService.ts';
 
 const APIFY_API_KEY = Deno.env.get('APIFY_API_KEY');
+console.log('APIFY_API_KEY available:', !!APIFY_API_KEY);
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -85,6 +86,11 @@ Deno.serve(async (req) => {
     
     // Use client-provided API key or fallback to server API key
     const apiKey = clientApiKey || APIFY_API_KEY;
+    console.log('Using API key:', { 
+      hasClientKey: !!clientApiKey, 
+      hasServerKey: !!APIFY_API_KEY, 
+      finalKeyLength: apiKey?.length || 0 
+    });
     
     // Check API key
     if (!apiKey) {
