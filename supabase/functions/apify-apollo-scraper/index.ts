@@ -38,18 +38,14 @@ async function runApolloScraper(options: ApifyScraperOptions): Promise<ApifyResp
   console.log('Starting Apollo scraper with options:', options);
 
   // Create a new Apify actor run
-  const runResponse = await fetch(`https://api.apify.com/v2/acts/lukaskrivka~apollo-scraper/runs?token=${APIFY_API_KEY}`, {
+  const runResponse = await fetch(`https://api.apify.com/v2/acts/scrapefull~apollo-scraper/runs?token=${APIFY_API_KEY}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      searchCompanyName: options.companyName,
-      searchCompanyDomain: options.domain,
-      searchCompanyLocation: options.location,
+      searchQuery: `${options.companyName}${options.domain ? ` site:${options.domain}` : ''}${options.location ? ` location:${options.location}` : ''}`,
       maxResults: 10,
-      includeContactInfo: true,
-      includeEmails: true,
     }),
   });
 
@@ -71,14 +67,14 @@ async function runApolloScraper(options: ApifyScraperOptions): Promise<ApifyResp
   while (attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
     
-    const statusResponse = await fetch(`https://api.apify.com/v2/acts/lukaskrivka~apollo-scraper/runs/${runId}?token=${APIFY_API_KEY}`);
+    const statusResponse = await fetch(`https://api.apify.com/v2/acts/scrapefull~apollo-scraper/runs/${runId}?token=${APIFY_API_KEY}`);
     const statusData = await statusResponse.json();
     
     console.log(`Run status (attempt ${attempts + 1}):`, statusData.data.status);
     
     if (statusData.data.status === 'SUCCEEDED') {
       // Get the results
-      const resultsResponse = await fetch(`https://api.apify.com/v2/acts/lukaskrivka~apollo-scraper/runs/${runId}/dataset/items?token=${APIFY_API_KEY}`);
+      const resultsResponse = await fetch(`https://api.apify.com/v2/acts/scrapefull~apollo-scraper/runs/${runId}/dataset/items?token=${APIFY_API_KEY}`);
       const results = await resultsResponse.json();
       
       console.log('Apollo scraper results:', results);
