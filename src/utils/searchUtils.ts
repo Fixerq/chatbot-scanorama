@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { Result } from '@/components/ResultsTable';
 import { BLOCKED_URLS } from '@/constants/blockedUrls';
-import { performPlacesSearch } from './searchEngine';
+import { performApifySearch } from './searchEngine';
 
 const isUrlBlocked = (url: string): boolean => {
   return BLOCKED_URLS.some(blockedUrl => url.toLowerCase().includes(blockedUrl.toLowerCase()));
@@ -16,7 +16,7 @@ export const performSearch = async (
   resultsLimit: number
 ): Promise<{ results: Result[]; hasMore: boolean } | null> => {
   try {
-    const searchResponse = await performPlacesSearch({
+    const searchResponse = await performApifySearch({
       query,
       country,
       region,
@@ -59,7 +59,7 @@ export const loadMoreResults = async (
 ): Promise<{ newResults: Result[]; hasMore: boolean } | null> => {
   try {
     // Load more results using the Places API pagination
-    const moreResults = await performPlacesSearch({
+    const moreResults = await performApifySearch({
       query,
       country,
       region,

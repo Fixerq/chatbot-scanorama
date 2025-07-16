@@ -1,7 +1,7 @@
 
 import { Result } from '@/components/ResultsTable';
 
-export const processPlacesResults = (results: Result[], existingResults: Result[] = []): Result[] => {
+export const processApifyResults = (results: Result[], existingResults: Result[] = []): Result[] => {
   if (!results?.length) {
     return existingResults;
   }

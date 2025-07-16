@@ -230,13 +230,13 @@ const SearchBusinesses: React.FC<SearchBusinessesProps> = ({
         
         <div className="space-y-2">
           <label htmlFor="apiKey" className="text-sm font-medium">
-            Google Places API Key
+            Apify API Key
           </label>
           <Input
             id="apiKey"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter your Google Places API Key"
+            placeholder="Enter your Apify API Key"
             disabled={isSearching}
           />
         </div>

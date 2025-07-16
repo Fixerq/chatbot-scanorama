@@ -6,5 +6,5 @@ export * from './operations';
 export type { PlacesResult } from '@/types/search';
 
 // Export the places search functionality
-export { performPlacesSearch, loadMoreResults } from './placesApiService';
-export type { PlacesSearchOptions, PlacesSearchResponse } from './placesApiService';
+export { performApifySearch, loadMoreResults } from './apifyApiService';
+export type { ApifySearchOptions, ApifySearchResponse } from './apifyApiService';

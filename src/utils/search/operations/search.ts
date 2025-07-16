@@ -1,6 +1,6 @@
 
 import { Result } from '@/components/ResultsTable';
-import { performPlacesSearch } from '../placesApiService';
+import { performApifySearch } from '../apifyApiService';
 import { toast } from 'sonner';
 import { validateSearchParams } from './validator';
 
@@ -25,7 +25,7 @@ export const performSearch = async (
   const enhancedQuery = query;
 
   // Perform the places search
-  const searchResult = await performPlacesSearch({
+  const searchResult = await performApifySearch({
     query: enhancedQuery,
     country,
     region,

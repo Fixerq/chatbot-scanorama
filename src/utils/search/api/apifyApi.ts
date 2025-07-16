@@ -1,15 +1,14 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Result } from '@/components/ResultsTable';
 import { toast } from 'sonner';
 
-interface PlacesApiResponse {
+interface ApifyApiResponse {
   results: Result[];
   nextPageToken?: string;
   hasMore: boolean;
 }
 
-export const callPlacesApi = async (options: {
+export const callApifyApi = async (options: {
   query: string;
   country: string;
   region: string;
@@ -17,14 +16,14 @@ export const callPlacesApi = async (options: {
   pageToken?: string;
   existingPlaceIds?: string[];
   apiKey?: string;
-}): Promise<PlacesApiResponse | null> => {
+}): Promise<ApifyApiResponse | null> => {
   let retryCount = 0;
   const maxRetries = 3;
   const retryDelay = 1000;
 
   while (retryCount < maxRetries) {
     try {
-      console.log('Performing Places search with params:', JSON.stringify({
+      console.log('Performing Apify search with params:', JSON.stringify({
         query: options.query,
         country: options.country,
         region: options.region,
@@ -35,7 +34,7 @@ export const callPlacesApi = async (options: {
         hasApiKey: !!options.apiKey
       }, null, 2));
 
-      const { data, error } = await supabase.functions.invoke('search-places', {
+      const { data, error } = await supabase.functions.invoke('apify-search', {
         body: options
       });
 
@@ -53,7 +52,7 @@ export const callPlacesApi = async (options: {
         hasMore: data?.hasMore || false
       };
     } catch (error) {
-      console.error('Places API call error:', error);
+      console.error('Apify API call error:', error);
       retryCount++;
       
       if (retryCount < maxRetries) {

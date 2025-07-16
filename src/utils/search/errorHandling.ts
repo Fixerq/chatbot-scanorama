@@ -51,7 +51,7 @@ export const handleSearchError = (error: any, retryCount: number, maxRetries: nu
   
   // All retries failed
   if (error.message?.includes('API key')) {
-    toast.error('Google Places API key is missing or invalid. Please check your configuration.', { 
+    toast.error('Apify API key is missing or invalid. Please check your configuration.', { 
       description: 'Contact your administrator to resolve this issue.'
     });
   } else {
@@ -87,8 +87,8 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
     return retryCount < maxRetries - 1; // Should retry for network errors
   }
 
-  // Check for Google API specific errors
-  if (data.error?.includes('Google Places API error')) {
+  // Check for Apify API specific errors
+  if (data.error?.includes('Apify API error')) {
     console.log('Google Places API error, checking if we should retry...');
     
     // For INVALID_ARGUMENT errors, no retry
@@ -130,12 +130,12 @@ export const handleDataError = (data: any, retryCount: number, maxRetries: numbe
   
   // All retries failed with API errors
   if (data.status === 'api_error' || data.error?.includes('API')) {
-    toast.error('Error from Google Places API.', { 
+    toast.error('Error from Apify API.', { 
       description: 'The search service is currently unavailable. Please try again later.',
       duration: 5000
     });
   } else if (data.status === 'config_error') {
-    toast.error('Google Places API configuration error.', {
+    toast.error('Apify API configuration error.', {
       description: 'Please contact support for assistance.',
       duration: 5000
     });

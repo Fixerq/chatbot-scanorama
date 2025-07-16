@@ -1,10 +1,10 @@
 
 import { Result } from '@/components/ResultsTable';
-import { performPlacesSearch, loadMoreResults } from './placesApiService';
+import { performApifySearch, loadMoreResults } from './apifyApiService';
 import { toast } from 'sonner';
 
 /**
- * Executes a search using the Google Places API
+ * Executes a search using the Apify API
  */
 export const executeSearch = async (
   query: string,
@@ -21,7 +21,7 @@ export const executeSearch = async (
       enhancedQuery = `${query} ${region}`;
     }
 
-    const searchResponse = await performPlacesSearch({
+    const searchResponse = await performApifySearch({
       query: enhancedQuery,
       country,
       region,

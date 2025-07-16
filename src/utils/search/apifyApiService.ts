@@ -1,12 +1,11 @@
-
 import { Result } from '@/components/ResultsTable';
-import { callPlacesApi } from './api/placesApi';
-import { handlePlacesApiError } from './errors/placesErrors';
-import { processPlacesResults } from './processing/resultsProcessor';
+import { callApifyApi } from './api/apifyApi';
+import { handleApifyApiError } from './errors/apifyErrors';
+import { processApifyResults } from './processing/resultsProcessor';
 import { toast } from 'sonner';
 
 // Export these interfaces so they can be used in index.ts
-export interface PlacesSearchOptions {
+export interface ApifySearchOptions {
   query: string;
   country: string;
   region: string;
@@ -16,15 +15,15 @@ export interface PlacesSearchOptions {
   apiKey?: string;
 }
 
-export interface PlacesSearchResponse {
+export interface ApifySearchResponse {
   results: Result[];
   nextPageToken?: string;
   hasMore: boolean;
 }
 
-export const performPlacesSearch = async (options: PlacesSearchOptions): Promise<PlacesSearchResponse | null> => {
+export const performApifySearch = async (options: ApifySearchOptions): Promise<ApifySearchResponse | null> => {
   try {
-    const response = await callPlacesApi(options);
+    const response = await callApifyApi(options);
     
     if (!response) {
       return null;
@@ -38,7 +37,7 @@ export const performPlacesSearch = async (options: PlacesSearchOptions): Promise
     
     return response;
   } catch (error) {
-    handlePlacesApiError(error);
+    handleApifyApiError(error);
     return null;
   }
 };
@@ -50,7 +49,7 @@ export const loadMoreResults = async (
   apiKey: string,
   pageToken?: string,
   existingResults: Result[] = []
-): Promise<PlacesSearchResponse | null> => {
+): Promise<ApifySearchResponse | null> => {
   try {
     // Get all existing place IDs for deduplication
     const existingPlaceIds = existingResults
@@ -58,7 +57,7 @@ export const loadMoreResults = async (
       .map(result => result.id);
     
     // Make the request for the next page
-    const response = await performPlacesSearch({
+    const response = await performApifySearch({
       query,
       country,
       region,
@@ -72,7 +71,7 @@ export const loadMoreResults = async (
     }
     
     // Process and deduplicate results
-    const processedResults = processPlacesResults(response.results, existingResults);
+    const processedResults = processApifyResults(response.results, existingResults);
     
     return {
       results: processedResults,
@@ -80,7 +79,7 @@ export const loadMoreResults = async (
       hasMore: response.hasMore
     };
   } catch (error) {
-    handlePlacesApiError(error);
+    handleApifyApiError(error);
     return null;
   }
 };
