@@ -5,59 +5,57 @@ import { processApifyResults } from './resultProcessor.ts';
 export async function executeApifySearch(options: ApifySearchOptions): Promise<ApifySearchResponse> {
   const { query, country, region, limit = 20, pageToken, apiKey } = options;
   
-  console.log('Starting Apify search with options:', { query, country, region, limit });
+  console.log('Starting Apollo scraper search with options:', { query, country, region, limit });
   
-  // Build search query with location context
-  let searchQuery = query;
+  // Build Apollo.io search URL based on query and location
+  let searchUrl = `https://app.apollo.io/#/people?finderViewId=5b8050d050a3893c382e9360&personLocations[]=${country || 'United States'}`;
+  
+  // Add query parameters to the Apollo URL
+  if (query) {
+    // Apollo uses specific URL parameters for search
+    searchUrl += `&personTitles[]=${encodeURIComponent(query)}`;
+  }
+  
   if (region) {
-    searchQuery += ` in ${region}`;
-  }
-  if (country && COUNTRY_MAPPINGS[country]) {
-    searchQuery += ` ${COUNTRY_MAPPINGS[country]}`;
-  } else if (country) {
-    searchQuery += ` ${country}`;
+    searchUrl += `&personLocations[]=${encodeURIComponent(region)}`;
   }
   
-  console.log('Constructed search query:', searchQuery);
+  console.log('Constructed Apollo search URL:', searchUrl);
   
   try {
-    // Use a simpler, direct approach with a Google Maps scraper
-    const runResponse = await fetch(`https://api.apify.com/v2/acts/nwua9Gu5YrADL7ZDj/runs?token=${apiKey}`, {
+    // Use the Apollo scraper actor
+    const runResponse = await fetch(`https://api.apify.com/v2/acts/code_crafter~apollo-io-scraper/runs?token=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        searchTerms: [searchQuery],
-        maxResults: Math.min(limit, SEARCH_CONFIG.MAX_RESULTS_PER_REQUEST),
-        language: 'en',
-        includeFullPlaceDetails: true,
-        geo: {
-          country: country || 'US',
-          state: region || ''
-        }
+        searchUrl: searchUrl,
+        totalNumberOfRecordsRequired: Math.min(limit, 50000), // Apollo scraper can handle up to 50k
+        fileName: `Search_${Date.now()}`,
+        cleanOutput: true
       }),
     });
 
     if (!runResponse.ok) {
       const errorText = await runResponse.text();
-      console.error('Apify run creation failed:', errorText);
-      throw new Error(`Failed to start Apify search: ${runResponse.status} - ${errorText}`);
+      console.error('Apollo scraper run creation failed:', errorText);
+      throw new Error(`Failed to start Apollo scraper: ${runResponse.status} - ${errorText}`);
     }
 
     const runData = await runResponse.json();
     const runId = runData.data.id;
     
-    console.log('Created Apify run:', runId);
+    console.log('Created Apollo scraper run:', runId);
 
-    // Use shorter polling intervals and timeout
+    // Poll for completion with appropriate timeout for Apollo scraper
     let attempts = 0;
-    const maxAttempts = 30; // 5 minutes max (10 second intervals)
+    const maxAttempts = 60; // 10 minutes max (10 second intervals)
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
       
-      const statusResponse = await fetch(`https://api.apify.com/v2/acts/nwua9Gu5YrADL7ZDj/runs/${runId}?token=${apiKey}`);
+      const statusResponse = await fetch(`https://api.apify.com/v2/acts/code_crafter~apollo-io-scraper/runs/${runId}?token=${apiKey}`);
       
       if (!statusResponse.ok) {
         console.error('Failed to check run status:', statusResponse.status);
@@ -67,21 +65,21 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
       
       const statusData = await statusResponse.json();
       
-      console.log(`Run status (attempt ${attempts + 1}):`, statusData.data.status);
+      console.log(`Apollo scraper run status (attempt ${attempts + 1}):`, statusData.data.status);
       
       if (statusData.data.status === 'SUCCEEDED') {
-        // Get the results
-        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/nwua9Gu5YrADL7ZDj/runs/${runId}/dataset/items?token=${apiKey}`);
+        // Get the results from Apollo scraper
+        const resultsResponse = await fetch(`https://api.apify.com/v2/acts/code_crafter~apollo-io-scraper/runs/${runId}/dataset/items?token=${apiKey}`);
         
         if (!resultsResponse.ok) {
-          throw new Error(`Failed to fetch results: ${resultsResponse.status}`);
+          throw new Error(`Failed to fetch Apollo results: ${resultsResponse.status}`);
         }
         
         const results = await resultsResponse.json();
-        console.log(`Retrieved ${results.length} raw results from Apify`);
+        console.log(`Retrieved ${results.length} leads from Apollo scraper`);
         
-        // Process and format results
-        const processedResults = processApifyResults(results);
+        // Process Apollo results to match our expected format
+        const processedResults = processApolloResults(results);
         
         return {
           results: processedResults,
@@ -90,19 +88,37 @@ export async function executeApifySearch(options: ApifySearchOptions): Promise<A
         };
       } else if (statusData.data.status === 'FAILED') {
         const errorDetail = statusData.data.errors?.[0]?.message || 'Unknown error';
-        throw new Error(`Apify search run failed: ${errorDetail}`);
+        throw new Error(`Apollo scraper run failed: ${errorDetail}`);
       } else if (statusData.data.status === 'ABORTED') {
-        throw new Error('Apify search run was aborted');
+        throw new Error('Apollo scraper run was aborted');
       }
       
       attempts++;
     }
     
-    throw new Error('Apify search run timed out after 5 minutes');
+    throw new Error('Apollo scraper run timed out after 10 minutes');
   } catch (error) {
     console.error('Error in executeApifySearch:', error);
     throw error;
   }
+}
+
+// Process Apollo results to match our expected format
+function processApolloResults(apolloResults: any[]): any[] {
+  return apolloResults.map((lead, index) => ({
+    id: lead.id || `apollo-${index}`,
+    name: lead.name || lead.fullName || 'Unknown',
+    title: lead.title || lead.jobTitle || '',
+    description: lead.headline || lead.bio || '',
+    url: lead.linkedinUrl || lead.profileUrl || '',
+    phone: lead.phone || '',
+    email: lead.email || '',
+    company: lead.company || lead.organizationName || '',
+    location: lead.location || lead.city || '',
+    website: lead.companyWebsite || '',
+    industry: lead.industry || '',
+    status: 'completed'
+  }));
 }
 
 // Helper function to build search variations for better results
